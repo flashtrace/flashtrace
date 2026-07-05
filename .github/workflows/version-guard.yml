@@ -19,6 +19,10 @@ jobs:
 
       - name: Ensure package.json "version" is unchanged
         run: |
+          if ! git cat-file -e HEAD^1:package.json 2>/dev/null; then
+            echo 'package.json does not exist on the base branch; nothing to guard.'
+            exit 0
+          fi
           base_version=$(git show HEAD^1:package.json | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
           pr_version=$(node -p 'require("./package.json").version')
           echo "Base version: $base_version"
