@@ -1,0 +1,113 @@
+name: Release Communicator
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+# Only the latest state matters; drop superseded runs for the same PR (or main).
+concurrency:
+  group: release-communicator-${{ github.event.pull_request.number || 'main' }}
+  cancel-in-progress: true
+
+jobs:
+  communicate:
+    name: Update release preview comment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # read package.json from main via the API
+      pull-requests: write # create/update the PR comment
+    steps:
+      - name: Upsert release comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT_PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          marker='<!-- release-communicator -->'
+
+          # Highest release:* label wins, mirroring the release workflow.
+          pick_level() {
+            local labels=" $1 "
+            if [[ "$labels" == *" release:major "* ]]; then echo major
+            elif [[ "$labels" == *" release:minor "* ]]; then echo minor
+            elif [[ "$labels" == *" release:patch "* ]]; then echo patch
+            fi
+          }
+
+          bump() {
+            node -e '
+              const [major, minor, patch] = process.argv[1].split(".").map(Number);
+              const level = process.argv[2];
+              if (level === "major") console.log(`${major + 1}.0.0`);
+              else if (level === "minor") console.log(`${major}.${minor + 1}.0`);
+              else console.log(`${major}.${minor}.${patch + 1}`);
+            ' "$1" "$2"
+          }
+
+          # Detect a missing package.json from a successful listing of main's
+          # root, so that real API failures (auth, network) still fail the job
+          # instead of being mistaken for "file missing".
+          main_files=$(gh api "repos/$REPO/contents/?ref=main" --jq '.[].name')
+          if ! grep -qxF 'package.json' <<<"$main_files"; then
+            echo 'package.json does not exist on main yet; nothing to communicate.'
+            exit 0
+          fi
+          base_version=$(gh api "repos/$REPO/contents/package.json?ref=main" --jq '.content' \
+            | base64 -d \
+            | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
+
+          if [ -n "${EVENT_PR:-}" ]; then
+            prs=$EVENT_PR
+          else
+            # Push to main: refresh every open PR. The release workflow pushes
+            # its version bump with the default GITHUB_TOKEN, which does not
+            # trigger workflows - so if this push merged a release-labeled PR,
+            # anticipate that bump instead of reading a stale version.
+            merged_labels=$(gh api "repos/$REPO/commits/$GITHUB_SHA/pulls" \
+              --jq '[.[] | select(.merged_at != null) | .labels[].name] | join(" ")')
+            merged_level=$(pick_level "$merged_labels")
+            if [ -n "$merged_level" ]; then
+              base_version=$(bump "$base_version" "$merged_level")
+            fi
+            prs=$(gh pr list --repo "$REPO" --base main --state open --json number --jq '.[].number')
+          fi
+
+          for pr in $prs; do
+            labels=$(gh pr view "$pr" --repo "$REPO" --json labels --jq '[.labels[].name] | join(" ")')
+            level=$(pick_level "$labels")
+
+            if [ -n "$level" ]; then
+              next_version=$(bump "$base_version" "$level")
+              body=$(printf '%s\n\n%s\n\n%s\n\n%s' \
+                "$marker" \
+                "### :rocket: Release Communicator" \
+                "Merging this PR triggers a **$level** release (label \`release:$level\`): version **$base_version** will (most likely) be bumped to **$next_version**." \
+                "_\"Most likely\" because another release may land on \`main\` first - this comment updates itself when labels, this PR, or \`main\` change._")
+            else
+              body=$(printf '%s\n\n%s\n\n%s\n\n%s' \
+                "$marker" \
+                "### :rocket: Release Communicator" \
+                "Merging this PR will **not** trigger a release - no \`release:major\` / \`release:minor\` / \`release:patch\` label is set. The version stays at **$base_version**." \
+                "_This comment updates itself when labels, this PR, or \`main\` change._")
+            fi
+
+            comment_id=$(gh api "repos/$REPO/issues/$pr/comments" --paginate \
+              --jq ".[] | select(.body | contains(\"$marker\")) | .id" | head -n 1)
+            if [ -n "$comment_id" ]; then
+              gh api --silent --method PATCH "repos/$REPO/issues/comments/$comment_id" -f body="$body"
+            else
+              gh api --silent --method POST "repos/$REPO/issues/$pr/comments" -f body="$body"
+            fi
+          done

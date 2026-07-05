@@ -1,0 +1,40 @@
+name: Version guard
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  guard:
+    name: Block manual version changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # The default checkout is the PR merge commit; depth 2 makes its
+          # first parent (the base branch tip) available for comparison.
+          fetch-depth: 2
+
+      - name: Ensure package.json "version" is unchanged
+        run: |
+          # cat-file -e cannot distinguish "file absent on base" from "HEAD^1
+          # unresolvable"; verify the parent first so a broken checkout (e.g.
+          # fetch-depth reverted to 1) fails the job instead of skipping it.
+          if ! git rev-parse --verify --quiet HEAD^1 >/dev/null; then
+            echo '::error::Cannot resolve HEAD^1; the guard needs fetch-depth: 2 on checkout.'
+            exit 1
+          fi
+          if ! git cat-file -e HEAD^1:package.json 2>/dev/null; then
+            echo 'package.json does not exist on the base branch; nothing to guard.'
+            exit 0
+          fi
+          base_version=$(git show HEAD^1:package.json | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
+          pr_version=$(node -p 'require("./package.json").version')
+          echo "Base version: $base_version"
+          echo "PR version:   $pr_version"
+          if [ "$base_version" != "$pr_version" ]; then
+            echo '::error file=package.json::The "version" field must not be changed in a PR. It is bumped automatically by the release workflow (release:* labels).'
+            exit 1
+          fi
