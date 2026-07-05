@@ -86,7 +86,14 @@ async function collectFiles(dirs) {
 var SEG_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
 var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(\d+)`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
+var FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
 var mkId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
+var mkForward = (m, base, file, line) => ({
+  from: mkId(m[base], m[base + 1], m[base + 2], m[base + 3]),
+  to: mkId(m[base + 4], m[base + 5], m[base + 6], m[base + 7]),
+  file,
+  line
+});
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => Number(id.slice(id.lastIndexOf("#") + 1));
 function parseIdEntry(raw) {
@@ -117,7 +124,13 @@ var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
+var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
 var isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
+function takeForward(line, file, n, forwards) {
+  const f = line.match(FORWARD_LINE_RE);
+  if (f) forwards.push(mkForward(f, 2, file, n + 1));
+  return !!f;
+}
 function titleAbove(lines, defIndex) {
   for (let k = defIndex - 1; k >= 0; k--) {
     const l = lines[k];
@@ -157,11 +170,15 @@ function applyKeyword(item, keyword, entries, file, kwLine, problems) {
       });
   }
 }
-function parseItemBody(lines, start, item, file, problems) {
+function parseItemBody(lines, start, item, file, problems, forwards) {
   let j = start;
   let descDone = false;
   while (j < lines.length && !isBoundary(lines[j])) {
     const line = lines[j];
+    if (takeForward(line, file, j, forwards)) {
+      j++;
+      continue;
+    }
     const kw = line.match(KEYWORD_RE);
     if (kw) {
       descDone = true;
@@ -177,11 +194,15 @@ function parseItemBody(lines, start, item, file, problems) {
   }
   return j;
 }
-function parseMarkdown(file, text, problems) {
+function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const items = [];
   let i = 0;
   while (i < lines.length) {
+    if (takeForward(lines[i], file, i, forwards)) {
+      i++;
+      continue;
+    }
     const def = lines[i].match(DEF_RE);
     if (!def) {
       i++;
@@ -189,7 +210,7 @@ function parseMarkdown(file, text, problems) {
     }
     const item = newItem(mkId(def[1], def[2], def[3], def[4]), "markdown", file, i + 1);
     item.title = titleAbove(lines, i);
-    i = parseItemBody(lines, i + 1, item, file, problems);
+    i = parseItemBody(lines, i + 1, item, file, problems, forwards);
     items.push(item);
   }
   return items;
@@ -198,6 +219,7 @@ function parseMarkdown(file, text, problems) {
 // src/parse-code.mjs
 import path2 from "node:path";
 var TAG_RE = new RegExp(String.raw`\[(>>)?\s*${ID_SRC}\s*\]`, "g");
+var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
 var BLOCK_CLOSERS = { c: "*/", html: "-->" };
 function findCommentStart(s, pos, lineMarkers, htmlBlocks) {
   const candidates = lineMarkers.map((m) => ({ idx: s.indexOf(m, pos), kind: "line", len: m.length }));
@@ -254,7 +276,7 @@ function collectTags(comment, file, line, state, items, problems) {
     }
   }
 }
-function parseCode(file, text, problems) {
+function parseCode(file, text, problems, forwards = []) {
   const ext = path2.extname(file).toLowerCase();
   const lines = text.split(/\r?\n/);
   const items = [];
@@ -263,15 +285,24 @@ function parseCode(file, text, problems) {
   const state = { last: null, block: null };
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, lineMarkers, htmlBlocks);
+    for (const m of comment.matchAll(FORWARD_RE)) {
+      forwards.push(mkForward(m, 1, file, i + 1));
+    }
     collectTags(comment, file, i + 1, state, items, problems);
   }
   return items;
 }
 
 // src/analyze.mjs
-function checkItemReferences(it, byId, neededIds, revHint) {
-  for (const n of it.needs) {
-    if (!byId.has(n)) it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
+function checkItemReferences(it, byId, neededIds, revHint, fwdTarget) {
+  const fwd = fwdTarget.get(it.id);
+  if (fwd !== void 0) {
+    if (!byId.has(fwd))
+      it.defects.push(`uncovered: forwards to ${fwd}, which does not exist${revHint(fwd)}`);
+  } else {
+    for (const n of it.needs) {
+      if (!byId.has(n)) it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
+    }
   }
   for (const c of it.covers) {
     const targets = byId.get(c);
@@ -285,7 +316,7 @@ function checkItemReferences(it, byId, neededIds, revHint) {
     it.defects.push(`unwanted: no item needs ${it.id}`);
   }
 }
-function analyze(items) {
+function analyze(items, forwards = [], problems = []) {
   const byId = /* @__PURE__ */ new Map();
   const revsByKey = /* @__PURE__ */ new Map();
   for (const it of items) {
@@ -301,7 +332,29 @@ function analyze(items) {
     const revs = revsByKey.get(keyOf(id));
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(", ")})` : "";
   };
-  for (const it of items) checkItemReferences(it, byId, neededIds, revHint);
+  const fwdTarget = /* @__PURE__ */ new Map();
+  const fwdBySource = /* @__PURE__ */ new Map();
+  for (const f of forwards) {
+    (fwdBySource.get(f.from) ?? fwdBySource.set(f.from, []).get(f.from)).push(f);
+  }
+  for (const [from, group] of fwdBySource) {
+    const sources = byId.get(from);
+    if (!sources) {
+      for (const f of group)
+        problems.push({
+          file: f.file,
+          line: f.line,
+          message: `forwarding from ${from}, which does not exist${revHint(from)}`
+        });
+      continue;
+    }
+    if (group.length > 1)
+      for (const it of sources)
+        it.defects.push(`duplicate: forwarding for ${from} is declared ${group.length} times`);
+    fwdTarget.set(from, group[0].to);
+    neededIds.add(group[0].to);
+  }
+  for (const it of items) checkItemReferences(it, byId, neededIds, revHint, fwdTarget);
   const memo = /* @__PURE__ */ new Map();
   const deep = (id) => {
     if (memo.has(id)) return memo.get(id);
@@ -311,8 +364,13 @@ function analyze(items) {
       memo.set(id, false);
       return false;
     }
+    const fwd = fwdTarget.get(id);
     let ok = true;
-    for (const it of group) for (const n of it.needs) if (!deep(n)) ok = false;
+    if (fwd !== void 0) {
+      ok = deep(fwd);
+    } else {
+      for (const it of group) for (const n of it.needs) if (!deep(n)) ok = false;
+    }
     memo.set(id, ok);
     return ok;
   };
@@ -408,12 +466,13 @@ async function main() {
   const opts = parseArgs(process3.argv.slice(2));
   const files = await collectFiles(opts.dirs);
   const problems = [];
+  const forwards = [];
   let items = [];
   for (const file of files) {
     const text = await fs2.readFile(file, "utf8");
     const ext = path4.extname(file).toLowerCase();
     items.push(
-      ...MD_EXT.has(ext) ? parseMarkdown(file, text, problems) : parseCode(file, text, problems)
+      ...MD_EXT.has(ext) ? parseMarkdown(file, text, problems, forwards) : parseCode(file, text, problems, forwards)
     );
   }
   if (opts.tags) {
@@ -422,7 +481,7 @@ async function main() {
       (it) => it.origin === "code" || it.tags.some((t) => opts.tags.includes(t)) || wantUntagged && it.tags.length === 0
     );
   }
-  analyze(items);
+  analyze(items, forwards, problems);
   const clean = report(items, problems, process3.cwd());
   process3.exit(clean ? 0 : 1);
 }

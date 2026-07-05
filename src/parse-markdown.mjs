@@ -6,16 +6,28 @@
  *     ID is allowed) up to the next blank line.
  *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated or as a
  *     bullet list on the following lines. Needs/Covers list full, explicit IDs.
+ *   - A line containing only `[<id> --> <id>]` (optionally backticked) forwards
+ *     the first item's coverage obligation to the second (spaces optional).
  */
 
-import { ID_SRC, mkId, parseIdEntry, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, mkForward, mkId, parseIdEntry, newItem } from './ids.mjs';
 
 const DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
+// group 1 is the optional backtick; the \1 backreference keeps it balanced,
+// so the two ID captures start at group 2
+const FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
 
 const isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
+
+// a line that is only a forwarding tag pushes a forward and is otherwise skipped
+function takeForward(line, file, n, forwards) {
+  const f = line.match(FORWARD_LINE_RE);
+  if (f) forwards.push(mkForward(f, 2, file, n + 1));
+  return !!f;
+}
 
 function titleAbove(lines, defIndex) {
   for (let k = defIndex - 1; k >= 0; k--) {
@@ -63,11 +75,15 @@ function applyKeyword(item, keyword, entries, file, kwLine, problems) {
 
 // consume the item's body (description and keyword lines) starting at `start`;
 // returns the index of the first line after the item
-function parseItemBody(lines, start, item, file, problems) {
+function parseItemBody(lines, start, item, file, problems, forwards) {
   let j = start;
   let descDone = false;
   while (j < lines.length && !isBoundary(lines[j])) {
     const line = lines[j];
+    if (takeForward(line, file, j, forwards)) {
+      j++;
+      continue;
+    }
     const kw = line.match(KEYWORD_RE);
     if (kw) {
       descDone = true;
@@ -86,12 +102,16 @@ function parseItemBody(lines, start, item, file, problems) {
   return j;
 }
 
-export function parseMarkdown(file, text, problems) {
+export function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const items = [];
 
   let i = 0;
   while (i < lines.length) {
+    if (takeForward(lines[i], file, i, forwards)) {
+      i++;
+      continue;
+    }
     const def = lines[i].match(DEF_RE);
     if (!def) {
       i++;
@@ -99,7 +119,7 @@ export function parseMarkdown(file, text, problems) {
     }
     const item = newItem(mkId(def[1], def[2], def[3], def[4]), 'markdown', file, i + 1);
     item.title = titleAbove(lines, i);
-    i = parseItemBody(lines, i + 1, item, file, problems);
+    i = parseItemBody(lines, i + 1, item, file, problems, forwards);
     items.push(item);
   }
   return items;

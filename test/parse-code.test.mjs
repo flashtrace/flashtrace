@@ -4,8 +4,9 @@ import { parseCode } from '../src/main.mjs';
 
 function parse(file, lines) {
   const problems = [];
-  const items = parseCode(file, lines.join('\n'), problems);
-  return { items, problems };
+  const forwards = [];
+  const items = parseCode(file, lines.join('\n'), problems, forwards);
+  return { items, problems, forwards };
 }
 
 test('line-comment item tag with attached need tag', () => {
@@ -59,6 +60,34 @@ test('SQL uses -- comments and does not honour //', () => {
   ]);
   assert.equal(items.length, 1);
   assert.equal(items[0].id, 'impl:db/schema#1');
+});
+
+test('forwarding tag in a comment, spaces around --> optional', () => {
+  const { items, problems, forwards } = parse('src.ts', [
+    '// [req:login#1 --> dsn:auth#2]',
+    '// [req:logout#1-->dsn:auth#2]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 0); // a forwarding tag defines no item
+  assert.deepEqual(forwards, [
+    { from: 'req:login#1', to: 'dsn:auth#2', file: 'src.ts', line: 1 },
+    { from: 'req:logout#1', to: 'dsn:auth#2', file: 'src.ts', line: 2 },
+  ]);
+});
+
+test('a forwarding tag does not anchor subsequent need tags', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [req:a#1 --> dsn:b#1]',
+    '// [>>utest:a#1]',
+  ]);
+  assert.equal(items.length, 0);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /no preceding item tag/);
+});
+
+test('forwarding tags outside comments are ignored', () => {
+  const { forwards } = parse('src.ts', ['const s = "[req:a#1 --> dsn:b#1]";']);
+  assert.equal(forwards.length, 0);
 });
 
 test('Vue supports HTML comments', () => {
