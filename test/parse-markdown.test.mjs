@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseMarkdown } from '../flashtrace.mjs';
+import { parseMarkdown } from '../src/main.mjs';
 
 // Fixtures are built from line arrays: backticked IDs inside template
 // literals would need escaping and hurt readability.

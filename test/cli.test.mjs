@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const SCRIPT = fileURLToPath(new URL('../flashtrace.mjs', import.meta.url));
+const SCRIPT = fileURLToPath(new URL('../dist/flashtrace.mjs', import.meta.url));
 
 function runCli(cwd, args = []) {
   return spawnSync(process.execPath, [SCRIPT, ...args], { cwd, encoding: 'utf8' });

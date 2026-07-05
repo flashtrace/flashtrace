@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCode } from '../flashtrace.mjs';
+import { parseCode } from '../src/main.mjs';
 
 function parse(file, lines) {
   const problems = [];

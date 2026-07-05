@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analyze, parseCode, parseMarkdown } from '../flashtrace.mjs';
+import { analyze, parseCode, parseMarkdown } from '../src/main.mjs';
 
 // Builds items through the real parsers so the shapes always match.
 function run({ md = [], code = [] }) {

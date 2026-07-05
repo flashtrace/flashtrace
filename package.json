@@ -5,16 +5,21 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "flashtrace": "./flashtrace.mjs"
+    "flashtrace": "./dist/flashtrace.mjs"
   },
   "files": [
-    "flashtrace.mjs",
-    "src/"
+    "dist/"
   ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
+    "build": "esbuild src/main.mjs --bundle --format=esm --platform=node --outfile=dist/flashtrace.mjs",
+    "prepack": "npm run build",
+    "pretest": "npm run build",
     "test": "node --test"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }
