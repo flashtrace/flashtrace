@@ -47,9 +47,9 @@ Covers:
 Tags: security
 ```
 
-- **Title** — the heading directly above the ID (only blank lines in between).
-- **Description** — the lines following the ID, up to the next blank line.
-- **Needs / Covers / Tags** — inline comma-separated or as a bullet list on the
+- **Title** - the heading directly above the ID (only blank lines in between).
+- **Description** - the lines following the ID, up to the next blank line.
+- **Needs / Covers / Tags** - inline comma-separated or as a bullet list on the
   following lines. Needs/Covers take full, explicit IDs.
 
 ## Tagging code
@@ -67,11 +67,11 @@ Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
 An ID is **covered** when an item with exactly that ID (including revision)
 exists. Reported defects:
 
-- **duplicate** — the same ID is defined more than once.
-- **uncovered** — a needed ID does not exist (a hint is shown when other
+- **duplicate** - the same ID is defined more than once.
+- **uncovered** - a needed ID does not exist (a hint is shown when other
   revisions of the same item exist).
-- **orphaned** — `Covers:` references an ID that does not exist.
-- **unwanted** — an item covers something that does not need it back, or a
+- **orphaned** - `Covers:` references an ID that does not exist.
+- **unwanted** - an item covers something that does not need it back, or a
   code item that nothing needs.
 
 Coverage is checked transitively: an item is only *deep-covered* when all of

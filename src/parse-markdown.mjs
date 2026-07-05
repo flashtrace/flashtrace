@@ -4,7 +4,7 @@
  *   - Title: the heading (#...) directly above the ID (only blank lines in between).
  *   - Description: the lines following the ID (one blank line directly under the
  *     ID is allowed) up to the next blank line.
- *   - Keywords "Needs:", "Covers:", "Tags:" — inline comma-separated or as a
+ *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated or as a
  *     bullet list on the following lines. Needs/Covers list full, explicit IDs.
  */
 

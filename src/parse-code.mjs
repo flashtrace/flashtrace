@@ -1,5 +1,5 @@
 /*
- * Code parser — comment-aware tag scanner (.ts, .js, .mjs, .sql, .vue):
+ * Code parser - comment-aware tag scanner (.ts, .js, .mjs, .sql, .vue):
  *   - `[<id>]` inside a comment defines a coverage item with that ID.
  *   - `[>><id>]` inside a comment attaches a need to the nearest preceding
  *     item tag in the same file (error if there is none).
