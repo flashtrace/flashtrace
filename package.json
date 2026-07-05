@@ -8,7 +8,8 @@
     "flashtrace": "./flashtrace.mjs"
   },
   "files": [
-    "flashtrace.mjs"
+    "flashtrace.mjs",
+    "src/"
   ],
   "engines": {
     "node": ">=18"
