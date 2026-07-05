@@ -2,8 +2,8 @@
 /**
  * flashtrace - lightweight requirement tracing for Markdown specs and source code.
  *
- * Item ID format:  <type>:[<group>/]<name>#<revision>
- *   e.g.  req:auth/login#1   impl:whatever-other-name#2
+ * Item ID format:  <type>:[<group>/[<group>/...]]<name>#<revision>
+ *   e.g.  req:auth/login#1   req:auth/session/login#1   impl:whatever-other-name#2
  *
  * Markdown (.md, .markdown):
  *   - An item is defined by a line containing only its ID in backticks: `req:auth/login#1`
@@ -36,8 +36,9 @@ import { execFileSync } from 'node:child_process';
 const MD_EXT = new Set(['.md', '.markdown']);
 const CODE_EXT = new Set(['.ts', '.js', '.mjs', '.sql', '.vue']);
 
+const SEG_SRC = String.raw`[A-Za-z][A-Za-z0-9_.-]*`;
 const ID_SRC =
-  String.raw`([A-Za-z]+):(?:([A-Za-z][A-Za-z0-9_.-]*)\/)?([A-Za-z][A-Za-z0-9_.-]*)#(\d+)`;
+  String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(\d+)`;
 const ID_RE = new RegExp(`^${ID_SRC}$`);
 const DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(.*\S)\s*$/;

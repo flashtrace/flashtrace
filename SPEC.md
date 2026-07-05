@@ -7,15 +7,15 @@ flashtrace verifies that every requirement defined in Markdown documents is cove
 Every traceable item has a project-wide unique ID:
 
 ```
-<type>:[<group>/]<name>#<revision>
+<type>:[<group>/[<group>/…]]<name>#<revision>
 ```
 
 - **type** — ASCII letters only (e.g. `feat`, `req`, `dsn`, `impl`, `utest`). Types are free-form; the tool does not hardcode a hierarchy.
-- **group** — *optional* grouping segment, separated from the name by `/`.
-- **name** — letters, digits, `_`, `-`, `.`; must start with a letter. Same rules apply to group.
+- **group** — *optional* grouping path of one or more segments, each separated from the next segment (and from the name) by `/`. Groups may be nested arbitrarily deep; the tool treats the path as an opaque part of the ID.
+- **name** — letters, digits, `_`, `-`, `.`; must start with a letter. The same rules apply to each group segment.
 - **revision** — non-negative integer. Increment it whenever the item's meaning changes; this invalidates all references that still name the old revision.
 
-Examples: `req:auth/login#1`, `impl:whatever-other-name#2`.
+Examples: `req:auth/login#1`, `req:auth/session/login#1`, `impl:whatever-other-name#2`.
 
 Matching is always by the **exact, full ID** including the revision.
 
@@ -55,8 +55,8 @@ An item's definition extends to the next ID line or heading. An item with an emp
 
 Tags are written inside comments — `//`, `/* … */`, `<!-- … -->` (Vue), or `--` (SQL). Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
 
-- `[<type>:[<group>/]<name>#<revision>]` — defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
-- `[>><type>:[<group>/]<name>#<revision>]` — attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.
+- `[<type>:[<group>/…]<name>#<revision>]` — defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
+- `[>><type>:[<group>/…]<name>#<revision>]` — attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.
 
 ```ts
 // [impl:auth/login#1]
