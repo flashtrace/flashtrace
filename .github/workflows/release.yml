@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+# Serialize releases so two quickly merged PRs cannot race on the version bump.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Bump version and publish
+    if: |
+      github.event.pull_request.merged == true &&
+      (
+        contains(github.event.pull_request.labels.*.name, 'release:major') ||
+        contains(github.event.pull_request.labels.*.name, 'release:minor') ||
+        contains(github.event.pull_request.labels.*.name, 'release:patch')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the bump commit + tag, create the GitHub Release
+      id-token: write # npm trusted publishing (OIDC) with provenance
+    steps:
+      - name: Determine bump level
+        id: bump
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+        run: |
+          if [[ " $LABELS " == *" release:major "* ]]; then
+            level=major
+          elif [[ " $LABELS " == *" release:minor "* ]]; then
+            level=minor
+          else
+            level=patch
+          fi
+          echo "level=$level" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Bump version
+        id: version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version "${{ steps.bump.outputs.level }}" -m "chore: release v%s"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Push bump commit and tag
+        run: git push origin HEAD:main --follow-tags
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes
+
+      - name: Update npm for trusted publishing
+        # OIDC trusted publishing requires npm >= 11.5.1; Node 22 ships an older npm.
+        run: npm install -g npm@latest
+
+      - name: Publish to npmjs
+        run: npm publish
