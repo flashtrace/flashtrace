@@ -35,6 +35,7 @@ Work in small chunks.
 Commit regularly on proper (preliminary) results.
 Follow conventional commits, that means use the format `<type>: <short description of work>` for every commit.
 You can add a descriptive body too.
+Adapt a similiar pattern for branch naming.
 
 We are using merging over Pull Requests from feature-branches.
 Every PR is being merged in as a commit; we do not squash the commits nor do we rebase anything directly on top of main without a merge commit.
