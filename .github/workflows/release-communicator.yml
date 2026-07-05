@@ -56,7 +56,11 @@ jobs:
             ' "$1" "$2"
           }
 
-          base_version=$(gh api "repos/$REPO/contents/package.json?ref=main" --jq '.content' \
+          if ! content=$(gh api "repos/$REPO/contents/package.json?ref=main" --jq '.content'); then
+            echo 'package.json does not exist on main yet; nothing to communicate.'
+            exit 0
+          fi
+          base_version=$(printf '%s' "$content" \
             | base64 -d \
             | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
 
