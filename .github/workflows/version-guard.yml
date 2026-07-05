@@ -19,6 +19,13 @@ jobs:
 
       - name: Ensure package.json "version" is unchanged
         run: |
+          # cat-file -e cannot distinguish "file absent on base" from "HEAD^1
+          # unresolvable"; verify the parent first so a broken checkout (e.g.
+          # fetch-depth reverted to 1) fails the job instead of skipping it.
+          if ! git rev-parse --verify --quiet HEAD^1 >/dev/null; then
+            echo '::error::Cannot resolve HEAD^1; the guard needs fetch-depth: 2 on checkout.'
+            exit 1
+          fi
           if ! git cat-file -e HEAD^1:package.json 2>/dev/null; then
             echo 'package.json does not exist on the base branch; nothing to guard.'
             exit 0
