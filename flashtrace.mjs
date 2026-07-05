@@ -27,6 +27,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
 /* ------------------------------------------------------------------ */
@@ -98,7 +99,7 @@ async function walk(dir, out) {
   return out;
 }
 
-async function collectFiles(dirs) {
+export async function collectFiles(dirs) {
   const files = new Set();
   for (const dir of dirs) {
     const abs = path.resolve(dir);
@@ -143,7 +144,7 @@ function titleAbove(lines, defIndex) {
   return null;
 }
 
-function parseMarkdown(file, text, problems) {
+export function parseMarkdown(file, text, problems) {
   const lines = text.split(/\r?\n/);
   const items = [];
   const isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
@@ -209,7 +210,7 @@ function parseMarkdown(file, text, problems) {
 /* Code parser (comment-aware tag scanner)                              */
 /* ------------------------------------------------------------------ */
 
-function parseCode(file, text, problems) {
+export function parseCode(file, text, problems) {
   const ext = path.extname(file).toLowerCase();
   const lines = text.split(/\r?\n/);
   const items = [];
@@ -295,7 +296,7 @@ function parseCode(file, text, problems) {
 /* Analysis                                                             */
 /* ------------------------------------------------------------------ */
 
-function analyze(items) {
+export function analyze(items) {
   const byId = new Map();
   const revsByKey = new Map();
   for (const it of items) {
@@ -407,7 +408,7 @@ function report(items, problems, cwd) {
 /* CLI                                                                  */
 /* ------------------------------------------------------------------ */
 
-class UsageError extends Error {}
+export class UsageError extends Error {}
 
 const HELP = `Usage: flashtrace [options] [directory-or-file ...]
 
@@ -472,11 +473,16 @@ async function main() {
   process.exit(clean ? 0 : 1);
 }
 
-main().catch((err) => {
-  if (err instanceof UsageError) {
-    console.error(`error: ${err.message}\n\n${HELP}`);
+const runAsCli =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (runAsCli) {
+  main().catch((err) => {
+    if (err instanceof UsageError) {
+      console.error(`error: ${err.message}\n\n${HELP}`);
+      process.exit(2);
+    }
+    console.error(err);
     process.exit(2);
-  }
-  console.error(err);
-  process.exit(2);
-});
+  });
+}
