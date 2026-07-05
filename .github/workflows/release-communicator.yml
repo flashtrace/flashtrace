@@ -56,11 +56,15 @@ jobs:
             ' "$1" "$2"
           }
 
-          if ! content=$(gh api "repos/$REPO/contents/package.json?ref=main" --jq '.content'); then
+          # Detect a missing package.json from a successful listing of main's
+          # root, so that real API failures (auth, network) still fail the job
+          # instead of being mistaken for "file missing".
+          main_files=$(gh api "repos/$REPO/contents/?ref=main" --jq '.[].name')
+          if ! grep -qxF 'package.json' <<<"$main_files"; then
             echo 'package.json does not exist on main yet; nothing to communicate.'
             exit 0
           fi
-          base_version=$(printf '%s' "$content" \
+          base_version=$(gh api "repos/$REPO/contents/package.json?ref=main" --jq '.content' \
             | base64 -d \
             | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
 
