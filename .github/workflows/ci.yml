@@ -28,5 +28,11 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Ensure committed dist/ matches a fresh build
+        run: git diff --exit-code -- dist/
+
       - name: Test
         run: pnpm test
+
+      - name: Verify publishable tarball
+        run: npm pack --dry-run
