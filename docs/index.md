@@ -5,6 +5,7 @@ flashtrace verifies that every requirement defined in Markdown documents is cove
 - [Item IDs](docs/item-ids.md)
 - [Markdown items](docs/markdown-items.md)
 - [Code tags](docs/code-tags.md)
+- [Forwarding / delegation](docs/forwarding.md)
 - [Coverage rules](docs/coverage-rules.md)
 - [Command line](docs/command-line.md)
 - [Known limitations](docs/known-limitations.md)

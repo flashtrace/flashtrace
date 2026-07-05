@@ -62,6 +62,14 @@ Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
 //                               item tag in the same file
 ```
 
+## Forwarding / delegation
+
+`[req:login#1 --> dsn:auth#2]` (spaces optional) redirects `req:login#1`'s
+coverage obligation: instead of its own `Needs`, it counts as covered exactly
+when `dsn:auth#2` exists, and as deep-covered when `dsn:auth#2` is. The tag is
+recognized inside code comments and on a standalone line in Markdown
+(optionally backticked). At most one forwarding per item.
+
 ## Coverage rules
 
 An ID is **covered** when an item with exactly that ID (including revision)
