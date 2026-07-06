@@ -30,6 +30,11 @@ function findGit() {
   }
   return gitBin;
 }
+function compareStrings(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
 async function walk(dir, out) {
   let entries;
   try {
@@ -73,7 +78,7 @@ async function collectFiles(dirs) {
   return [...files].filter((f) => {
     const ext = path.extname(f).toLowerCase();
     return MD_EXT.has(ext) || CODE_EXT.has(ext);
-  }).sort();
+  }).sort(compareStrings);
 }
 
 // src/ids.mjs
@@ -84,7 +89,7 @@ var mkId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${nam
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => Number(id.slice(id.lastIndexOf("#") + 1));
 function parseIdEntry(raw) {
-  const cleaned = raw.replace(/`/g, "").trim();
+  const cleaned = raw.replaceAll("`", "").trim();
   const m = cleaned.match(ID_RE);
   return m ? mkId(m[1], m[2], m[3], m[4]) : null;
 }
@@ -108,9 +113,9 @@ function newItem(id, origin, file, line) {
 
 // src/parse-markdown.mjs
 var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
-var HEADING_RE = /^(#{1,6})\s+(.*\S)\s*$/;
-var KEYWORD_RE = /^(Needs|Covers|Tags):\s*(.*)$/;
-var BULLET_RE = /^\s*[-*+]\s+(.*\S)\s*$/;
+var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
+var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
+var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 function titleAbove(lines, defIndex) {
   for (let k = defIndex - 1; k >= 0; k--) {
     const l = lines[k];
@@ -124,9 +129,13 @@ function parseMarkdown(file, text, problems) {
   const lines = text.split(/\r?\n/);
   const items = [];
   const isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
-  for (let i = 0; i < lines.length; i++) {
+  let i = 0;
+  while (i < lines.length) {
     const def = lines[i].match(DEF_RE);
-    if (!def) continue;
+    if (!def) {
+      i++;
+      continue;
+    }
     const item = newItem(mkId(def[1], def[2], def[3], def[4]), "markdown", file, i + 1);
     item.title = titleAbove(lines, i);
     let j = i + 1;
@@ -170,7 +179,7 @@ function parseMarkdown(file, text, problems) {
       j++;
     }
     items.push(item);
-    i = j - 1;
+    i = j;
   }
   return items;
 }
