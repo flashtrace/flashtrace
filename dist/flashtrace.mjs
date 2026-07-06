@@ -20,8 +20,8 @@ import { execFileSync } from "node:child_process";
 var MD_EXT = /* @__PURE__ */ new Set([".md", ".markdown"]);
 var CODE_EXT = /* @__PURE__ */ new Set([".ts", ".js", ".mjs", ".sql", ".vue"]);
 var GIT_LOCATIONS = process.platform === "win32" ? [
-  "C:\\Program Files\\Git\\cmd\\git.exe",
-  "C:\\Program Files (x86)\\Git\\cmd\\git.exe"
+  String.raw`C:\Program Files\Git\cmd\git.exe`,
+  String.raw`C:\Program Files (x86)\Git\cmd\git.exe`
 ] : ["/usr/bin/git", "/bin/git"];
 var gitBin;
 function findGit() {

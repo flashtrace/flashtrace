@@ -16,8 +16,8 @@ export const CODE_EXT = new Set(['.ts', '.js', '.mjs', '.sql', '.vue']);
 // via PATH (writable PATH entries would allow binary planting).
 const GIT_LOCATIONS = process.platform === 'win32'
   ? [
-      'C:\\Program Files\\Git\\cmd\\git.exe',
-      'C:\\Program Files (x86)\\Git\\cmd\\git.exe',
+      String.raw`C:\Program Files\Git\cmd\git.exe`,
+      String.raw`C:\Program Files (x86)\Git\cmd\git.exe`,
     ]
   : ['/usr/bin/git', '/bin/git'];
 
