@@ -43,7 +43,7 @@ export function report(items, problems, cwd) {
   out.push(`  items       ${items.length}  ${originBreakdown}`);
   out.push(`  ok          ${c.green(String(okCount))}`);
   out.push(`  defective   ${defective.length ? c.red(String(defective.length)) : '0'}`);
-  if (notDeep) out.push(`  ${c.dim(`of the ok items, ${notDeep} are only shallow-covered (a needed item is itself defective)`)}`);
+  if (notDeep) out.push('  ' + c.dim(`of the ok items, ${notDeep} are only shallow-covered (a needed item is itself defective)`));
   if (problems.length) out.push(`  problems    ${c.yellow(String(problems.length))}`);
   out.push('');
 
