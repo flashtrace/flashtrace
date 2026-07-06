@@ -30,6 +30,57 @@ test('need tag without a preceding item tag is a problem', () => {
   assert.match(problems[0].message, /no preceding item tag/);
 });
 
+test('explicit need tag attaches to the named item, not the nearest one', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [impl:some-name#1]',
+    'function fn() {',
+    '  // [impl:in-between-link#1]',
+    '  const x = 1;',
+    '  // [impl:some-name#1>>impl:anotherFunc#1]',
+    '  anotherFunc();',
+    '}',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].needs, ['impl:anotherFunc#1']);
+  assert.deepEqual(items[1].needs, []);
+});
+
+test('explicit need tag allows spaces around >>', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [impl:a#1]',
+    '// [ impl:a#1 >> utest:a#1 ]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['utest:a#1']);
+});
+
+test('explicit need tag does not move the anchor for later implicit tags', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [impl:a#1]',
+    '// [impl:b#1]',
+    '// [impl:a#1>>utest:a#1]',
+    '// [>>utest:b#1]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['utest:a#1']);
+  assert.deepEqual(items[1].needs, ['utest:b#1']);
+});
+
+test('explicit need tag without a matching preceding item tag is a problem', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [impl:a#1]',
+    '// [impl:other#1>>utest:other#1]',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, []);
+  assert.equal(problems.length, 1);
+  assert.match(
+    problems[0].message,
+    /\[impl:other#1>>utest:other#1\] has no preceding item tag \[impl:other#1\]/,
+  );
+});
+
 test('tags outside comments are ignored', () => {
   const { items } = parse('src.ts', ['const s = "[impl:a#1]";']);
   assert.equal(items.length, 0);

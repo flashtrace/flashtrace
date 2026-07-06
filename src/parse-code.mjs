@@ -3,6 +3,9 @@
  *   - `[<id>]` inside a comment defines a coverage item with that ID.
  *   - `[>><id>]` inside a comment attaches a need to the nearest preceding
  *     item tag in the same file (error if there is none).
+ *   - `[<source-id>>><id>]` attaches the need to the preceding item tag with
+ *     exactly that source ID instead (error if there is none), so tags placed
+ *     in between cannot steal the attachment (spaces around `>>` optional).
  *   - `[<id> --> <id>]` inside a comment forwards the first item's coverage
  *     obligation to the second (spaces optional).
  */
@@ -11,7 +14,12 @@ import path from 'node:path';
 
 import { FORWARD_SRC, ID_SRC, mkForward, mkId, newItem } from './ids.mjs';
 
-const TAG_RE = new RegExp(String.raw`\[(>>)?\s*${ID_SRC}\s*\]`, 'g');
+// Alternation: need tag with optional explicit source (groups 1-4 source,
+// 5-8 target), or plain item tag (groups 9-12).
+const TAG_RE = new RegExp(
+  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${ID_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
+  'g',
+);
 const FORWARD_RE = new RegExp(FORWARD_SRC, 'g');
 const BLOCK_CLOSERS = { c: '*/', html: '-->' };
 
@@ -61,10 +69,28 @@ function commentText(s, state, lineMarkers, htmlBlocks) {
 
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
-    const id = mkId(m[2], m[3], m[4], m[5]);
-    if (!m[1]) {
-      state.last = newItem(id, 'code', file, line);
-      items.push(state.last);
+    if (m[9]) {
+      // [<id>] item tag
+      const item = newItem(mkId(m[9], m[10], m[11], m[12]), 'code', file, line);
+      state.last = item;
+      state.byId.set(item.id, item);
+      items.push(item);
+      continue;
+    }
+    const id = mkId(m[5], m[6], m[7], m[8]);
+    if (m[1]) {
+      // [<source-id>>>...] explicit need tag
+      const source = mkId(m[1], m[2], m[3], m[4]);
+      const anchor = state.byId.get(source);
+      if (anchor) {
+        anchor.needs.push(id);
+      } else {
+        problems.push({
+          file,
+          line,
+          message: `need tag [${source}>>${id}] has no preceding item tag [${source}] in this file`,
+        });
+      }
     } else if (state.last) {
       // [>>...] need tag
       state.last.needs.push(id);
@@ -84,8 +110,9 @@ export function parseCode(file, text, problems, forwards = []) {
   const items = [];
   const lineMarkers = ext === '.sql' ? ['--'] : ['//'];
   const htmlBlocks = ext === '.vue';
-  // last: nearest preceding item tag in this file; block: open 'c' (/* */) | 'html' (<!-- -->)
-  const state = { last: null, block: null };
+  // last: nearest preceding item tag in this file; byId: preceding item tags
+  // by ID; block: open 'c' (/* */) | 'html' (<!-- -->)
+  const state = { last: null, byId: new Map(), block: null };
 
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, lineMarkers, htmlBlocks);

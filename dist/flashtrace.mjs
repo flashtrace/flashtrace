@@ -218,7 +218,10 @@ function parseMarkdown(file, text, problems, forwards = []) {
 
 // src/parse-code.mjs
 import path2 from "node:path";
-var TAG_RE = new RegExp(String.raw`\[(>>)?\s*${ID_SRC}\s*\]`, "g");
+var TAG_RE = new RegExp(
+  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${ID_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
+  "g"
+);
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
 var BLOCK_CLOSERS = { c: "*/", html: "-->" };
 function findCommentStart(s, pos, lineMarkers, htmlBlocks) {
@@ -261,10 +264,26 @@ function commentText(s, state, lineMarkers, htmlBlocks) {
 }
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
-    const id = mkId(m[2], m[3], m[4], m[5]);
-    if (!m[1]) {
-      state.last = newItem(id, "code", file, line);
-      items.push(state.last);
+    if (m[9]) {
+      const item = newItem(mkId(m[9], m[10], m[11], m[12]), "code", file, line);
+      state.last = item;
+      state.byId.set(item.id, item);
+      items.push(item);
+      continue;
+    }
+    const id = mkId(m[5], m[6], m[7], m[8]);
+    if (m[1]) {
+      const source = mkId(m[1], m[2], m[3], m[4]);
+      const anchor = state.byId.get(source);
+      if (anchor) {
+        anchor.needs.push(id);
+      } else {
+        problems.push({
+          file,
+          line,
+          message: `need tag [${source}>>${id}] has no preceding item tag [${source}] in this file`
+        });
+      }
     } else if (state.last) {
       state.last.needs.push(id);
     } else {
@@ -282,7 +301,7 @@ function parseCode(file, text, problems, forwards = []) {
   const items = [];
   const lineMarkers = ext === ".sql" ? ["--"] : ["//"];
   const htmlBlocks = ext === ".vue";
-  const state = { last: null, block: null };
+  const state = { last: null, byId: /* @__PURE__ */ new Map(), block: null };
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, lineMarkers, htmlBlocks);
     for (const m of comment.matchAll(FORWARD_RE)) {
