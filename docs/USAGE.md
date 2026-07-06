@@ -68,7 +68,8 @@ Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
 coverage obligation: instead of its own `Needs`, it counts as covered exactly
 when `dsn:auth#2` exists, and as deep-covered when `dsn:auth#2` is. The tag is
 recognized inside code comments and on a standalone line in Markdown
-(optionally backticked). At most one forwarding per item.
+(optionally backticked). At most one forwarding per item, and forwarding
+chains must be acyclic.
 
 ## Coverage rules
 

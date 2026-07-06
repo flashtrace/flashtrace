@@ -23,5 +23,6 @@ A forwarding may be declared anywhere in the project; it does not have to sit ne
 - The source ID must refer to an existing item; otherwise the forwarding is reported as a *problem* (with the usual revision-mismatch hint).
 - If the target ID does not exist, the source item is *uncovered* (with the revision-mismatch hint).
 - At most one forwarding per source ID; every further declaration flags the source item as *duplicate*. The first declaration stays in effect.
+- Forwarding chains must be acyclic; a forwarding of an item to itself counts as a cycle too. Every forwarding on a cycle is reported as a *problem* and has no effect - the items on the cycle fall back to their own `Needs`.
 - A forwarding target counts as demanded coverage: a code item referenced only as a forwarding target is not *unwanted*.
 - Forwarding only lifts the source's coverage obligation. Its literal `Needs` list still validates incoming `Covers` entries, and its own `Covers` entries are checked unchanged.

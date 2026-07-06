@@ -316,6 +316,30 @@ function checkItemReferences(it, byId, neededIds, revHint, fwdTarget) {
     it.defects.push(`unwanted: no item needs ${it.id}`);
   }
 }
+function dropCyclicForwards(fwdTarget, declBySource, problems) {
+  const done = /* @__PURE__ */ new Set();
+  for (const start of fwdTarget.keys()) {
+    if (done.has(start)) continue;
+    const seen = /* @__PURE__ */ new Map();
+    const path5 = [];
+    let cur = start;
+    while (fwdTarget.has(cur) && !done.has(cur) && !seen.has(cur)) {
+      seen.set(cur, path5.length);
+      path5.push(cur);
+      cur = fwdTarget.get(cur);
+    }
+    if (seen.has(cur)) {
+      const cycle = path5.slice(seen.get(cur));
+      const chain = [...cycle, cur].join(" --> ");
+      for (const id of cycle) {
+        const f = declBySource.get(id);
+        problems.push({ file: f.file, line: f.line, message: `cyclic forwarding: ${chain}` });
+        fwdTarget.delete(id);
+      }
+    }
+    for (const id of path5) done.add(id);
+  }
+}
 function analyze(items, forwards = [], problems = []) {
   const byId = /* @__PURE__ */ new Map();
   const revsByKey = /* @__PURE__ */ new Map();
@@ -333,6 +357,7 @@ function analyze(items, forwards = [], problems = []) {
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(", ")})` : "";
   };
   const fwdTarget = /* @__PURE__ */ new Map();
+  const declBySource = /* @__PURE__ */ new Map();
   const fwdBySource = /* @__PURE__ */ new Map();
   for (const f of forwards) {
     (fwdBySource.get(f.from) ?? fwdBySource.set(f.from, []).get(f.from)).push(f);
@@ -352,8 +377,10 @@ function analyze(items, forwards = [], problems = []) {
       for (const it of sources)
         it.defects.push(`duplicate: forwarding for ${from} is declared ${group.length} times`);
     fwdTarget.set(from, group[0].to);
-    neededIds.add(group[0].to);
+    declBySource.set(from, group[0]);
   }
+  dropCyclicForwards(fwdTarget, declBySource, problems);
+  for (const to of fwdTarget.values()) neededIds.add(to);
   for (const it of items) checkItemReferences(it, byId, neededIds, revHint, fwdTarget);
   const memo = /* @__PURE__ */ new Map();
   const deep = (id) => {

@@ -176,10 +176,12 @@ test('a code item referenced only as forwarding target is not unwanted', () => {
   assert.deepEqual(byId(items, 'impl:b#1').defects, []);
 });
 
-test('cyclic forwarding does not hang', () => {
-  const items = run({
+test('cyclic forwarding is a problem and the forwardings have no effect', () => {
+  const { items, problems } = runAll({
     md: [
       '`req:a#1`',
+      '',
+      'Needs: impl:missing#1',
       '',
       '`req:b#1`',
       '',
@@ -187,6 +189,36 @@ test('cyclic forwarding does not hang', () => {
       '[req:b#1 --> req:a#1]',
     ],
   });
+  assert.equal(problems.length, 2);
+  for (const p of problems)
+    assert.match(p.message, /^cyclic forwarding: req:a#1 --> req:b#1 --> req:a#1$/);
+  // the forwardings are inert: req:a#1 falls back to its own needs
+  assert.match(byId(items, 'req:a#1').defects[0], /^uncovered: needs impl:missing#1/);
+  assert.deepEqual(byId(items, 'req:b#1').defects, []);
+});
+
+test('a self-forwarding is a cyclic-forwarding problem', () => {
+  const { problems } = runAll({
+    md: ['`req:a#1`', '', '[req:a#1 --> req:a#1]'],
+  });
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /^cyclic forwarding: req:a#1 --> req:a#1$/);
+});
+
+test('an acyclic forwarding chain is allowed', () => {
+  const { items, problems } = runAll({
+    md: [
+      '`req:a#1`',
+      '',
+      '`dsn:b#1`',
+      '',
+      '`impl:c#1`',
+      '',
+      '[req:a#1 --> dsn:b#1]',
+      '[dsn:b#1 --> impl:c#1]',
+    ],
+  });
+  assert.equal(problems.length, 0);
   for (const it of items) {
     assert.deepEqual(it.defects, []);
     assert.equal(it.deepCovered, true);

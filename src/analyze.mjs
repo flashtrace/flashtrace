@@ -25,6 +25,33 @@ function checkItemReferences(it, byId, neededIds, revHint, fwdTarget) {
   }
 }
 
+// forwarding chains must be acyclic (self-forwarding included); every
+// forwarding on a cycle is reported as a problem and has no effect
+function dropCyclicForwards(fwdTarget, declBySource, problems) {
+  const done = new Set(); // ids verified to not sit on a cycle
+  for (const start of fwdTarget.keys()) {
+    if (done.has(start)) continue;
+    const seen = new Map(); // id -> position in the walked path
+    const path = [];
+    let cur = start;
+    while (fwdTarget.has(cur) && !done.has(cur) && !seen.has(cur)) {
+      seen.set(cur, path.length);
+      path.push(cur);
+      cur = fwdTarget.get(cur);
+    }
+    if (seen.has(cur)) {
+      const cycle = path.slice(seen.get(cur));
+      const chain = [...cycle, cur].join(' --> ');
+      for (const id of cycle) {
+        const f = declBySource.get(id);
+        problems.push({ file: f.file, line: f.line, message: `cyclic forwarding: ${chain}` });
+        fwdTarget.delete(id);
+      }
+    }
+    for (const id of path) done.add(id);
+  }
+}
+
 export function analyze(items, forwards = [], problems = []) {
   const byId = new Map();
   const revsByKey = new Map();
@@ -47,6 +74,7 @@ export function analyze(items, forwards = [], problems = []) {
   // forwarding [A --> B]: A's coverage obligation is redirected to B - A's own
   // needs are excused; A is covered iff B exists, deep-covered iff B is
   const fwdTarget = new Map();
+  const declBySource = new Map(); // effective (first) declaration per source
   const fwdBySource = new Map();
   for (const f of forwards) {
     (fwdBySource.get(f.from) ?? fwdBySource.set(f.from, []).get(f.from)).push(f);
@@ -66,8 +94,10 @@ export function analyze(items, forwards = [], problems = []) {
       for (const it of sources)
         it.defects.push(`duplicate: forwarding for ${from} is declared ${group.length} times`);
     fwdTarget.set(from, group[0].to);
-    neededIds.add(group[0].to); // a forwarding target is wanted coverage
+    declBySource.set(from, group[0]);
   }
+  dropCyclicForwards(fwdTarget, declBySource, problems);
+  for (const to of fwdTarget.values()) neededIds.add(to); // a forwarding target is wanted coverage
 
   for (const it of items) checkItemReferences(it, byId, neededIds, revHint, fwdTarget);
 

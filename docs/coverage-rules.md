@@ -13,4 +13,4 @@
 | orphaned   | A `Covers` entry points to a non-existent ID (with the same revision-mismatch hint).         |
 | unwanted   | Coverage nobody asked for: a `Covers` entry whose target does not need the coverer's ID, or a code item whose ID is neither needed by any item nor a forwarding target. |
 | duplicate  | The same full ID is defined more than once, or more than one forwarding is declared for the same source ID. |
-| problem    | Parse-level error, e.g. a `[>>…]` tag with no preceding item tag, a malformed ID in a `Needs`/`Covers` list, or a forwarding from a non-existent item. |
+| problem    | Parse-level error, e.g. a `[>>…]` tag with no preceding item tag, a malformed ID in a `Needs`/`Covers` list, a forwarding from a non-existent item, or a cyclic forwarding chain. |
