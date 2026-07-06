@@ -23,13 +23,23 @@ jobs:
   communicate:
     name: Update release preview comment
     runs-on: ubuntu-latest
-    permissions:
-      contents: read # read package.json from main via the API
-      pull-requests: write # create/update the PR comment
+    # The comment is posted with the release app's token (not GITHUB_TOKEN) so
+    # it carries the app's configurable name and avatar instead of
+    # github-actions[bot]. GITHUB_TOKEN is therefore not needed at all.
+    permissions: {}
     steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: read # read package.json from main via the API
+          permission-pull-requests: write # create/update the PR comment
+
       - name: Upsert release comment
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
           EVENT_PR: ${{ github.event.pull_request.number }}
         run: |
