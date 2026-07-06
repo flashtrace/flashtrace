@@ -60,6 +60,10 @@ Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
 // [impl:auth/login#1]           defines a coverage item
 // [>>test:auth/login#1]         attaches a need to the nearest preceding
 //                               item tag in the same file
+// [impl:auth/login#1>>impl:auth/session#1]
+//                               attaches a need to the preceding item tag
+//                               with exactly that ID (robust against item
+//                               tags inserted in between)
 ```
 
 ## Forwarding / delegation
@@ -88,4 +92,5 @@ its needs exist and are themselves deep-covered. Shallow-covered items are
 counted separately in the summary.
 
 Malformed input (invalid IDs in Needs/Covers lists, a `[>>...]` tag with no
-preceding item tag) is reported as a **problem** ⚠ alongside the defects.
+preceding item tag, an explicit `[<source>>><id>]` tag whose source item tag
+does not precede it) is reported as a **problem** ⚠ alongside the defects.
