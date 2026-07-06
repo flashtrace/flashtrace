@@ -337,7 +337,7 @@ function report(items, problems, cwd) {
   const defective = items.filter((it) => it.defects.length > 0);
   const out = [];
   for (const it of defective) {
-    const title = it.title ? ` ${c.dim(`"${it.title}"`)}` : "";
+    const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
     out.push(
       `${c.red("\u2718")} ${c.bold(it.id)}${title}  ${c.dim(`${rel(it.file)}:${it.line}`)}`
     );

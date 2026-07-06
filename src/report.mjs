@@ -21,7 +21,7 @@ export function report(items, problems, cwd) {
   const out = [];
 
   for (const it of defective) {
-    const title = it.title ? ` ${c.dim(`"${it.title}"`)}` : '';
+    const title = it.title ? ' ' + c.dim(`"${it.title}"`) : '';
     out.push(
       `${c.red('✘')} ${c.bold(it.id)}${title}  ${c.dim(`${rel(it.file)}:${it.line}`)}`,
     );
