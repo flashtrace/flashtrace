@@ -92,5 +92,5 @@ its needs exist and are themselves deep-covered. Shallow-covered items are
 counted separately in the summary.
 
 Malformed input (invalid IDs in Needs/Covers lists, a `[>>...]` tag with no
-preceding item tag, an explicit `[<source>>><id>]` tag whose source item tag
-does not precede it) is reported as a **problem** ⚠ alongside the defects.
+preceding item tag, an explicit `[<source-id> >> <id>]` tag whose source item
+tag does not precede it) is reported as a **problem** ⚠ alongside the defects.

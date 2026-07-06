@@ -3,7 +3,7 @@
  *   - `[<id>]` inside a comment defines a coverage item with that ID.
  *   - `[>><id>]` inside a comment attaches a need to the nearest preceding
  *     item tag in the same file (error if there is none).
- *   - `[<source-id>>><id>]` attaches the need to the preceding item tag with
+ *   - `[<source-id> >> <id>]` attaches the need to the preceding item tag with
  *     exactly that source ID instead (error if there is none), so tags placed
  *     in between cannot steal the attachment (spaces around `>>` optional).
  *   - `[<id> --> <id>]` inside a comment forwards the first item's coverage
