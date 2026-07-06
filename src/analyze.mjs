@@ -52,27 +52,11 @@ function dropCyclicForwards(fwdTarget, declBySource, problems) {
   }
 }
 
-export function analyze(items, forwards = [], problems = []) {
-  const byId = new Map();
-  const revsByKey = new Map();
-  for (const it of items) {
-    (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
-    (revsByKey.get(it.key) ?? revsByKey.set(it.key, new Set()).get(it.key)).add(it.revision);
-  }
-  const neededIds = new Set(items.flatMap((it) => it.needs));
-
-  for (const [id, group] of byId) {
-    if (group.length > 1)
-      for (const it of group) it.defects.push(`duplicate: ID ${id} is defined ${group.length} times`);
-  }
-
-  const revHint = (id) => {
-    const revs = revsByKey.get(keyOf(id));
-    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(', ')})` : '';
-  };
-
-  // forwarding [A --> B]: A's coverage obligation is redirected to B - A's own
-  // needs are excused; A is covered iff B exists, deep-covered iff B is
+// forwarding [A --> B]: A's coverage obligation is redirected to B - A's own
+// needs are excused; A is covered iff B exists, deep-covered iff B is. Builds
+// the source -> target map, reporting missing sources and duplicate/cyclic
+// declarations, and marks each surviving target as wanted coverage.
+function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
   const fwdTarget = new Map();
   const declBySource = new Map(); // effective (first) declaration per source
   const fwdBySource = new Map();
@@ -98,11 +82,12 @@ export function analyze(items, forwards = [], problems = []) {
   }
   dropCyclicForwards(fwdTarget, declBySource, problems);
   for (const to of fwdTarget.values()) neededIds.add(to); // a forwarding target is wanted coverage
+  return fwdTarget;
+}
 
-  for (const it of items) checkItemReferences(it, byId, neededIds, revHint, fwdTarget);
-
-  // deep coverage: all needs exist and are themselves deep-covered (cycle-safe);
-  // a forwarded ID follows its target instead of its own needs
+// deep coverage: all needs exist and are themselves deep-covered (cycle-safe);
+// a forwarded ID follows its target instead of its own needs
+function markDeepCoverage(items, byId, fwdTarget) {
   const memo = new Map();
   const deep = (id) => {
     if (memo.has(id)) return memo.get(id);
@@ -123,4 +108,30 @@ export function analyze(items, forwards = [], problems = []) {
     return ok;
   };
   for (const it of items) it.deepCovered = deep(it.id);
+}
+
+export function analyze(items, forwards = [], problems = []) {
+  const byId = new Map();
+  const revsByKey = new Map();
+  for (const it of items) {
+    (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
+    (revsByKey.get(it.key) ?? revsByKey.set(it.key, new Set()).get(it.key)).add(it.revision);
+  }
+  const neededIds = new Set(items.flatMap((it) => it.needs));
+
+  for (const [id, group] of byId) {
+    if (group.length > 1)
+      for (const it of group) it.defects.push(`duplicate: ID ${id} is defined ${group.length} times`);
+  }
+
+  const revHint = (id) => {
+    const revs = revsByKey.get(keyOf(id));
+    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(', ')})` : '';
+  };
+
+  const fwdTarget = buildForwardMap(forwards, byId, neededIds, revHint, problems);
+
+  for (const it of items) checkItemReferences(it, byId, neededIds, revHint, fwdTarget);
+
+  markDeepCoverage(items, byId, fwdTarget);
 }
