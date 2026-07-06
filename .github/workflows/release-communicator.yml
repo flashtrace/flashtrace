@@ -1,7 +1,13 @@
 name: Release Communicator
 
 on:
-  pull_request:
+  # pull_request_target instead of pull_request so runs for PRs opened from
+  # forks still receive secrets (the app identity) and a write-capable
+  # GITHUB_TOKEN (the fallback), letting the comment post there too. This is
+  # safe only while the workflow never checks out or executes PR code - it
+  # must keep operating purely on metadata via the API. Do not add a checkout
+  # of the PR head here.
+  pull_request_target:
     types:
       - opened
       - reopened
