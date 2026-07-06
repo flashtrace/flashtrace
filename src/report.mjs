@@ -30,7 +30,7 @@ export function report(items, problems, cwd) {
     out.push('');
   }
   for (const p of problems) {
-    out.push(`${c.yellow('⚠')} ${p.message}  ${c.dim(`${rel(p.file)}:${p.line}`)}`);
+    out.push(`${c.yellow('⚠')} ${p.message}  ${dimLoc(p.file, p.line)}`);
   }
   if (problems.length) out.push('');
 
