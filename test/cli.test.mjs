@@ -103,6 +103,35 @@ test('--tags filters markdown items; "_" re-admits untagged ones', async () => {
   });
 });
 
+// Returns a path that reaches SCRIPT through a link, as pnpm bins do. File
+// symlinks need elevation on Windows, so fall back to a directory junction.
+async function linkToScript(linkDir) {
+  const link = path.join(linkDir, 'flashtrace-link.mjs');
+  try {
+    await fs.symlink(SCRIPT, link, 'file');
+    return link;
+  } catch (err) {
+    if (err.code !== 'EPERM') throw err;
+    const junction = path.join(linkDir, 'dist-link');
+    await fs.symlink(path.dirname(SCRIPT), junction, 'junction');
+    return path.join(junction, path.basename(SCRIPT));
+  }
+}
+
+test('CLI runs when invoked through a symlink (pnpm-style bin)', async () => {
+  const linkDir = await fs.mkdtemp(path.join(os.tmpdir(), 'flashtrace-link-'));
+  try {
+    const link = await linkToScript(linkDir);
+    await withProject({ 'spec.md': ['`req:login#1`'] }, (dir) => {
+      const res = spawnSync(process.execPath, [link], { cwd: dir, encoding: 'utf8' });
+      assert.equal(res.status, 0, res.stderr);
+      assert.ok(res.stdout.trim().endsWith('ok'), `expected report output, got: ${JSON.stringify(res.stdout)}`);
+    });
+  } finally {
+    await fs.rm(linkDir, { recursive: true, force: true });
+  }
+});
+
 test('git-ignored files are excluded from the scan', async (t) => {
   const git = findGit();
   if (!git || spawnSync(git, ['--version']).status !== 0) {
