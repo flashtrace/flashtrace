@@ -75,11 +75,18 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # Author the bump commit as the release app's bot user so it shows the
+      # app's name and avatar. GitHub resolves the identity from the author
+      # email, which embeds the bot's user id.
       - name: Bump version
         id: version
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
           npm version "${{ steps.bump.outputs.level }}" -m "release: v%s"
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
