@@ -17,31 +17,35 @@ function makeStyler() {
 export function report(items, problems, cwd) {
   const c = makeStyler();
   const rel = (f) => path.relative(cwd, f) || f;
+  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
   const defective = items.filter((it) => it.defects.length > 0);
   const out = [];
 
   for (const it of defective) {
-    const title = it.title ? ` ${c.dim(`"${it.title}"`)}` : '';
+    const title = it.title ? ' ' + c.dim(`"${it.title}"`) : '';
     out.push(
-      `${c.red('✘')} ${c.bold(it.id)}${title}  ${c.dim(`${rel(it.file)}:${it.line}`)}`,
+      `${c.red('✘')} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`,
     );
     for (const d of it.defects) out.push(`    ${c.red('•')} ${d}`);
     out.push('');
   }
   for (const p of problems) {
-    out.push(`${c.yellow('⚠')} ${p.message}  ${c.dim(`${rel(p.file)}:${p.line}`)}`);
+    out.push(`${c.yellow('⚠')} ${p.message}  ${dimLoc(p.file, p.line)}`);
   }
   if (problems.length) out.push('');
 
   const okCount = items.length - defective.length;
   const notDeep = items.filter((it) => it.defects.length === 0 && !it.deepCovered).length;
   const md = items.filter((i) => i.origin === 'markdown').length;
+  const originBreakdown = c.dim(`(${md} from markdown, ${items.length - md} from code)`);
 
-  out.push(c.bold('Summary'));
-  out.push(`  items       ${items.length}  ${c.dim(`(${md} from markdown, ${items.length - md} from code)`)}`);
-  out.push(`  ok          ${c.green(String(okCount))}`);
-  out.push(`  defective   ${defective.length ? c.red(String(defective.length)) : '0'}`);
-  if (notDeep) out.push(`  ${c.dim(`of the ok items, ${notDeep} are only shallow-covered (a needed item is itself defective)`)}`);
+  out.push(
+    c.bold('Summary'),
+    `  items       ${items.length}  ${originBreakdown}`,
+    `  ok          ${c.green(String(okCount))}`,
+    `  defective   ${defective.length ? c.red(String(defective.length)) : '0'}`,
+  );
+  if (notDeep) out.push('  ' + c.dim(`of the ok items, ${notDeep} are only shallow-covered (a needed item is itself defective)`));
   if (problems.length) out.push(`  problems    ${c.yellow(String(problems.length))}`);
   out.push('');
 

@@ -1,5 +1,22 @@
 import { keyOf } from './ids.mjs';
 
+function checkItemReferences(it, byId, neededIds, revHint) {
+  for (const n of it.needs) {
+    if (!byId.has(n)) it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
+  }
+  for (const c of it.covers) {
+    const targets = byId.get(c);
+    if (!targets) {
+      it.defects.push(`orphaned: covers ${c}, which does not exist${revHint(c)}`);
+    } else if (!targets.some((t) => t.needs.includes(it.id))) {
+      it.defects.push(`unwanted: covers ${c}, but ${c} does not need ${it.id}`);
+    }
+  }
+  if (it.origin === 'code' && !neededIds.has(it.id)) {
+    it.defects.push(`unwanted: no item needs ${it.id}`);
+  }
+}
+
 export function analyze(items) {
   const byId = new Map();
   const revsByKey = new Map();
@@ -19,22 +36,7 @@ export function analyze(items) {
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(', ')})` : '';
   };
 
-  for (const it of items) {
-    for (const n of it.needs) {
-      if (!byId.has(n)) it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
-    }
-    for (const c of it.covers) {
-      const targets = byId.get(c);
-      if (!targets) {
-        it.defects.push(`orphaned: covers ${c}, which does not exist${revHint(c)}`);
-      } else if (!targets.some((t) => t.needs.includes(it.id))) {
-        it.defects.push(`unwanted: covers ${c}, but ${c} does not need ${it.id}`);
-      }
-    }
-    if (it.origin === 'code' && !neededIds.has(it.id)) {
-      it.defects.push(`unwanted: no item needs ${it.id}`);
-    }
-  }
+  for (const it of items) checkItemReferences(it, byId, neededIds, revHint);
 
   // deep coverage: all needs exist and are themselves deep-covered (cycle-safe)
   const memo = new Map();

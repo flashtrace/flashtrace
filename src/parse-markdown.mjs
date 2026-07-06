@@ -15,6 +15,8 @@ const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 
+const isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
+
 function titleAbove(lines, defIndex) {
   for (let k = defIndex - 1; k >= 0; k--) {
     const l = lines[k];
@@ -25,10 +27,68 @@ function titleAbove(lines, defIndex) {
   return null;
 }
 
+// entries of a keyword line: inline comma-separated, or a bullet list on the
+// following lines; returns the entries and the index of the last consumed line
+function keywordEntries(lines, j, inline) {
+  if (inline.trim() !== '') {
+    return { entries: inline.split(',').map((s) => s.trim()).filter(Boolean), j };
+  }
+  const entries = [];
+  while (j + 1 < lines.length) {
+    const b = lines[j + 1].match(BULLET_RE);
+    if (!b) break;
+    entries.push(b[1].trim());
+    j++;
+  }
+  return { entries, j };
+}
+
+function applyKeyword(item, keyword, entries, file, kwLine, problems) {
+  if (keyword === 'Tags') {
+    item.tags.push(...entries);
+    return;
+  }
+  const target = keyword === 'Needs' ? 'needs' : 'covers';
+  for (const e of entries) {
+    const id = parseIdEntry(e);
+    if (id) item[target].push(id);
+    else
+      problems.push({
+        file,
+        line: kwLine,
+        message: `invalid ID "${e}" in ${keyword}: list of ${item.id}`,
+      });
+  }
+}
+
+// consume the item's body (description and keyword lines) starting at `start`;
+// returns the index of the first line after the item
+function parseItemBody(lines, start, item, file, problems) {
+  let j = start;
+  let descDone = false;
+  while (j < lines.length && !isBoundary(lines[j])) {
+    const line = lines[j];
+    const kw = line.match(KEYWORD_RE);
+    if (kw) {
+      descDone = true;
+      const collected = keywordEntries(lines, j, kw[2]);
+      applyKeyword(item, kw[1], collected.entries, file, j + 1, problems);
+      j = collected.j;
+    } else if (line.trim() === '') {
+      if (item.description.length > 0) descDone = true;
+      // a blank line directly under the ID (before the description) is allowed
+    } else if (!descDone) {
+      item.description.push(line.trim());
+    }
+    // anything after the description's terminating blank line is informative text
+    j++;
+  }
+  return j;
+}
+
 export function parseMarkdown(file, text, problems) {
   const lines = text.split(/\r?\n/);
   const items = [];
-  const isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
 
   let i = 0;
   while (i < lines.length) {
@@ -37,56 +97,10 @@ export function parseMarkdown(file, text, problems) {
       i++;
       continue;
     }
-
     const item = newItem(mkId(def[1], def[2], def[3], def[4]), 'markdown', file, i + 1);
     item.title = titleAbove(lines, i);
-
-    let j = i + 1;
-    let descDone = false;
-    while (j < lines.length && !isBoundary(lines[j])) {
-      const line = lines[j];
-      const kw = line.match(KEYWORD_RE);
-      if (kw) {
-        descDone = true;
-        const kwLine = j + 1;
-        const entries = [];
-        if (kw[2].trim() !== '') {
-          // one-line, comma-separated
-          entries.push(...kw[2].split(',').map((s) => s.trim()).filter(Boolean));
-        } else {
-          // bullet list on the following lines
-          while (j + 1 < lines.length) {
-            const b = lines[j + 1].match(BULLET_RE);
-            if (!b) break;
-            entries.push(b[1].trim());
-            j++;
-          }
-        }
-        if (kw[1] === 'Tags') {
-          item.tags.push(...entries);
-        } else {
-          for (const e of entries) {
-            const id = parseIdEntry(e);
-            if (id) item[kw[1] === 'Needs' ? 'needs' : 'covers'].push(id);
-            else
-              problems.push({
-                file,
-                line: kwLine,
-                message: `invalid ID "${e}" in ${kw[1]}: list of ${item.id}`,
-              });
-          }
-        }
-      } else if (line.trim() === '') {
-        if (item.description.length > 0) descDone = true;
-        // a blank line directly under the ID (before the description) is allowed
-      } else if (!descDone) {
-        item.description.push(line.trim());
-      }
-      // anything after the description's terminating blank line is informative text
-      j++;
-    }
+    i = parseItemBody(lines, i + 1, item, file, problems);
     items.push(item);
-    i = j; // continue scanning after the lines consumed by this item
   }
   return items;
 }

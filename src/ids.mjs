@@ -3,7 +3,7 @@
  *   e.g.  req:auth/login#1   req:auth/session/login#1   impl:whatever-other-name#2
  */
 
-const SEG_SRC = String.raw`[A-Za-z][A-Za-z0-9_.-]*`;
+const SEG_SRC = '[A-Za-z][A-Za-z0-9_.-]*';
 export const ID_SRC =
   String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(\d+)`;
 export const ID_RE = new RegExp(`^${ID_SRC}$`);

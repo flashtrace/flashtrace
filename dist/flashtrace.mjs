@@ -82,7 +82,7 @@ async function collectFiles(dirs) {
 }
 
 // src/ids.mjs
-var SEG_SRC = String.raw`[A-Za-z][A-Za-z0-9_.-]*`;
+var SEG_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
 var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(\d+)`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
 var mkId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
@@ -116,6 +116,7 @@ var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
+var isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
 function titleAbove(lines, defIndex) {
   for (let k = defIndex - 1; k >= 0; k--) {
     const l = lines[k];
@@ -125,10 +126,59 @@ function titleAbove(lines, defIndex) {
   }
   return null;
 }
+function keywordEntries(lines, j, inline) {
+  if (inline.trim() !== "") {
+    return { entries: inline.split(",").map((s) => s.trim()).filter(Boolean), j };
+  }
+  const entries = [];
+  while (j + 1 < lines.length) {
+    const b = lines[j + 1].match(BULLET_RE);
+    if (!b) break;
+    entries.push(b[1].trim());
+    j++;
+  }
+  return { entries, j };
+}
+function applyKeyword(item, keyword, entries, file, kwLine, problems) {
+  if (keyword === "Tags") {
+    item.tags.push(...entries);
+    return;
+  }
+  const target = keyword === "Needs" ? "needs" : "covers";
+  for (const e of entries) {
+    const id = parseIdEntry(e);
+    if (id) item[target].push(id);
+    else
+      problems.push({
+        file,
+        line: kwLine,
+        message: `invalid ID "${e}" in ${keyword}: list of ${item.id}`
+      });
+  }
+}
+function parseItemBody(lines, start, item, file, problems) {
+  let j = start;
+  let descDone = false;
+  while (j < lines.length && !isBoundary(lines[j])) {
+    const line = lines[j];
+    const kw = line.match(KEYWORD_RE);
+    if (kw) {
+      descDone = true;
+      const collected = keywordEntries(lines, j, kw[2]);
+      applyKeyword(item, kw[1], collected.entries, file, j + 1, problems);
+      j = collected.j;
+    } else if (line.trim() === "") {
+      if (item.description.length > 0) descDone = true;
+    } else if (!descDone) {
+      item.description.push(line.trim());
+    }
+    j++;
+  }
+  return j;
+}
 function parseMarkdown(file, text, problems) {
   const lines = text.split(/\r?\n/);
   const items = [];
-  const isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
   let i = 0;
   while (i < lines.length) {
     const def = lines[i].match(DEF_RE);
@@ -138,48 +188,8 @@ function parseMarkdown(file, text, problems) {
     }
     const item = newItem(mkId(def[1], def[2], def[3], def[4]), "markdown", file, i + 1);
     item.title = titleAbove(lines, i);
-    let j = i + 1;
-    let descDone = false;
-    while (j < lines.length && !isBoundary(lines[j])) {
-      const line = lines[j];
-      const kw = line.match(KEYWORD_RE);
-      if (kw) {
-        descDone = true;
-        const kwLine = j + 1;
-        const entries = [];
-        if (kw[2].trim() !== "") {
-          entries.push(...kw[2].split(",").map((s) => s.trim()).filter(Boolean));
-        } else {
-          while (j + 1 < lines.length) {
-            const b = lines[j + 1].match(BULLET_RE);
-            if (!b) break;
-            entries.push(b[1].trim());
-            j++;
-          }
-        }
-        if (kw[1] === "Tags") {
-          item.tags.push(...entries);
-        } else {
-          for (const e of entries) {
-            const id = parseIdEntry(e);
-            if (id) item[kw[1] === "Needs" ? "needs" : "covers"].push(id);
-            else
-              problems.push({
-                file,
-                line: kwLine,
-                message: `invalid ID "${e}" in ${kw[1]}: list of ${item.id}`
-              });
-          }
-        }
-      } else if (line.trim() === "") {
-        if (item.description.length > 0) descDone = true;
-      } else if (!descDone) {
-        item.description.push(line.trim());
-      }
-      j++;
-    }
+    i = parseItemBody(lines, i + 1, item, file, problems);
     items.push(item);
-    i = j;
   }
   return items;
 }
@@ -187,86 +197,93 @@ function parseMarkdown(file, text, problems) {
 // src/parse-code.mjs
 import path2 from "node:path";
 var TAG_RE = new RegExp(String.raw`\[(>>)?\s*${ID_SRC}\s*\]`, "g");
+var BLOCK_CLOSERS = { c: "*/", html: "-->" };
+function findCommentStart(s, pos, lineMarkers, htmlBlocks) {
+  const candidates = lineMarkers.map((m) => ({ idx: s.indexOf(m, pos), kind: "line", len: m.length }));
+  candidates.push({ idx: s.indexOf("/*", pos), kind: "c", len: 2 });
+  if (htmlBlocks) candidates.push({ idx: s.indexOf("<!--", pos), kind: "html", len: 4 });
+  let best = null;
+  for (const cand of candidates) {
+    if (cand.idx !== -1 && (best === null || cand.idx < best.idx)) best = cand;
+  }
+  return best;
+}
+function readBlockRest(s, pos, closer) {
+  const end = s.indexOf(closer, pos);
+  if (end === -1) return { text: s.slice(pos) + " ", pos: s.length, closed: false };
+  return { text: s.slice(pos, end) + " ", pos: end + closer.length, closed: true };
+}
+function commentText(s, state, lineMarkers, htmlBlocks) {
+  let comment = "";
+  let pos = 0;
+  while (pos < s.length) {
+    if (state.block) {
+      const rest = readBlockRest(s, pos, BLOCK_CLOSERS[state.block]);
+      comment += rest.text;
+      pos = rest.pos;
+      if (rest.closed) state.block = null;
+    } else {
+      const start = findCommentStart(s, pos, lineMarkers, htmlBlocks);
+      if (!start) break;
+      pos = start.idx + start.len;
+      if (start.kind === "line") {
+        comment += s.slice(pos) + " ";
+        pos = s.length;
+      } else {
+        state.block = start.kind;
+      }
+    }
+  }
+  return comment;
+}
+function collectTags(comment, file, line, state, items, problems) {
+  for (const m of comment.matchAll(TAG_RE)) {
+    const id = mkId(m[2], m[3], m[4], m[5]);
+    if (!m[1]) {
+      state.last = newItem(id, "code", file, line);
+      items.push(state.last);
+    } else if (state.last) {
+      state.last.needs.push(id);
+    } else {
+      problems.push({
+        file,
+        line,
+        message: `need tag [>>${id}] has no preceding item tag in this file`
+      });
+    }
+  }
+}
 function parseCode(file, text, problems) {
   const ext = path2.extname(file).toLowerCase();
   const lines = text.split(/\r?\n/);
   const items = [];
-  let last = null;
-  let block = null;
   const lineMarkers = ext === ".sql" ? ["--"] : ["//"];
   const htmlBlocks = ext === ".vue";
+  const state = { last: null, block: null };
   for (let i = 0; i < lines.length; i++) {
-    const s = lines[i];
-    let comment = "";
-    let pos = 0;
-    while (pos < s.length) {
-      if (block === "c" || block === "html") {
-        const closer = block === "c" ? "*/" : "-->";
-        const end = s.indexOf(closer, pos);
-        if (end === -1) {
-          comment += s.slice(pos) + " ";
-          pos = s.length;
-        } else {
-          comment += s.slice(pos, end) + " ";
-          pos = end + closer.length;
-          block = null;
-        }
-      } else {
-        let best = -1;
-        let kind = null;
-        let len = 0;
-        for (const m of lineMarkers) {
-          const idx = s.indexOf(m, pos);
-          if (idx !== -1 && (best === -1 || idx < best)) {
-            best = idx;
-            kind = "line";
-            len = m.length;
-          }
-        }
-        const cb = s.indexOf("/*", pos);
-        if (cb !== -1 && (best === -1 || cb < best)) {
-          best = cb;
-          kind = "c";
-          len = 2;
-        }
-        if (htmlBlocks) {
-          const hb = s.indexOf("<!--", pos);
-          if (hb !== -1 && (best === -1 || hb < best)) {
-            best = hb;
-            kind = "html";
-            len = 4;
-          }
-        }
-        if (best === -1) break;
-        pos = best + len;
-        if (kind === "line") {
-          comment += s.slice(pos) + " ";
-          pos = s.length;
-        } else {
-          block = kind;
-        }
-      }
-    }
-    for (const m of comment.matchAll(TAG_RE)) {
-      const id = mkId(m[2], m[3], m[4], m[5]);
-      if (m[1]) {
-        if (!last)
-          problems.push({
-            file,
-            line: i + 1,
-            message: `need tag [>>${id}] has no preceding item tag in this file`
-          });
-        else last.needs.push(id);
-      } else {
-        last = newItem(id, "code", file, i + 1);
-        items.push(last);
-      }
-    }
+    const comment = commentText(lines[i], state, lineMarkers, htmlBlocks);
+    collectTags(comment, file, i + 1, state, items, problems);
   }
   return items;
 }
 
 // src/analyze.mjs
+function checkItemReferences(it, byId, neededIds, revHint) {
+  for (const n of it.needs) {
+    if (!byId.has(n)) it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
+  }
+  for (const c of it.covers) {
+    const targets = byId.get(c);
+    if (!targets) {
+      it.defects.push(`orphaned: covers ${c}, which does not exist${revHint(c)}`);
+    } else if (!targets.some((t) => t.needs.includes(it.id))) {
+      it.defects.push(`unwanted: covers ${c}, but ${c} does not need ${it.id}`);
+    }
+  }
+  if (it.origin === "code" && !neededIds.has(it.id)) {
+    it.defects.push(`unwanted: no item needs ${it.id}`);
+  }
+}
 function analyze(items) {
   const byId = /* @__PURE__ */ new Map();
   const revsByKey = /* @__PURE__ */ new Map();
@@ -283,22 +300,7 @@ function analyze(items) {
     const revs = revsByKey.get(keyOf(id));
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(", ")})` : "";
   };
-  for (const it of items) {
-    for (const n of it.needs) {
-      if (!byId.has(n)) it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
-    }
-    for (const c of it.covers) {
-      const targets = byId.get(c);
-      if (!targets) {
-        it.defects.push(`orphaned: covers ${c}, which does not exist${revHint(c)}`);
-      } else if (!targets.some((t) => t.needs.includes(it.id))) {
-        it.defects.push(`unwanted: covers ${c}, but ${c} does not need ${it.id}`);
-      }
-    }
-    if (it.origin === "code" && !neededIds.has(it.id)) {
-      it.defects.push(`unwanted: no item needs ${it.id}`);
-    }
-  }
+  for (const it of items) checkItemReferences(it, byId, neededIds, revHint);
   const memo = /* @__PURE__ */ new Map();
   const deep = (id) => {
     if (memo.has(id)) return memo.get(id);
@@ -334,28 +336,32 @@ function makeStyler() {
 function report(items, problems, cwd) {
   const c = makeStyler();
   const rel = (f) => path3.relative(cwd, f) || f;
+  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
   const defective = items.filter((it) => it.defects.length > 0);
   const out = [];
   for (const it of defective) {
-    const title = it.title ? ` ${c.dim(`"${it.title}"`)}` : "";
+    const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
     out.push(
-      `${c.red("\u2718")} ${c.bold(it.id)}${title}  ${c.dim(`${rel(it.file)}:${it.line}`)}`
+      `${c.red("\u2718")} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`
     );
     for (const d of it.defects) out.push(`    ${c.red("\u2022")} ${d}`);
     out.push("");
   }
   for (const p of problems) {
-    out.push(`${c.yellow("\u26A0")} ${p.message}  ${c.dim(`${rel(p.file)}:${p.line}`)}`);
+    out.push(`${c.yellow("\u26A0")} ${p.message}  ${dimLoc(p.file, p.line)}`);
   }
   if (problems.length) out.push("");
   const okCount = items.length - defective.length;
   const notDeep = items.filter((it) => it.defects.length === 0 && !it.deepCovered).length;
   const md = items.filter((i) => i.origin === "markdown").length;
-  out.push(c.bold("Summary"));
-  out.push(`  items       ${items.length}  ${c.dim(`(${md} from markdown, ${items.length - md} from code)`)}`);
-  out.push(`  ok          ${c.green(String(okCount))}`);
-  out.push(`  defective   ${defective.length ? c.red(String(defective.length)) : "0"}`);
-  if (notDeep) out.push(`  ${c.dim(`of the ok items, ${notDeep} are only shallow-covered (a needed item is itself defective)`)}`);
+  const originBreakdown = c.dim(`(${md} from markdown, ${items.length - md} from code)`);
+  out.push(
+    c.bold("Summary"),
+    `  items       ${items.length}  ${originBreakdown}`,
+    `  ok          ${c.green(String(okCount))}`,
+    `  defective   ${defective.length ? c.red(String(defective.length)) : "0"}`
+  );
+  if (notDeep) out.push("  " + c.dim(`of the ok items, ${notDeep} are only shallow-covered (a needed item is itself defective)`));
   if (problems.length) out.push(`  problems    ${c.yellow(String(problems.length))}`);
   out.push("");
   const clean = defective.length === 0 && problems.length === 0;
