@@ -113,7 +113,7 @@ function newItem(id, origin, file, line) {
 
 // src/parse-markdown.mjs
 var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
-var HEADING_RE = /^(#{1,6})\s+(.*\S)\s*$/;
+var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*(.*)$/;
 var BULLET_RE = /^\s*[-*+]\s+(.*\S)\s*$/;
 function titleAbove(lines, defIndex) {
