@@ -82,7 +82,7 @@ async function collectFiles(dirs) {
 }
 
 // src/ids.mjs
-var SEG_SRC = String.raw`[A-Za-z][A-Za-z0-9_.-]*`;
+var SEG_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
 var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(\d+)`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
 var mkId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
