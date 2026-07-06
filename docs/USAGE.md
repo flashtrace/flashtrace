@@ -60,7 +60,7 @@ Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
 // [impl:auth/login#1]           defines a coverage item
 // [>>test:auth/login#1]         attaches a need to the nearest preceding
 //                               item tag in the same file
-// [impl:auth/login#1>>impl:auth/session#1]
+// [impl:auth/login#1 >> impl:auth/session#1]
 //                               attaches a need to the preceding item tag
 //                               with exactly that ID (robust against item
 //                               tags inserted in between)

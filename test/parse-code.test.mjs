@@ -77,7 +77,7 @@ test('explicit need tag without a matching preceding item tag is a problem', () 
   assert.equal(problems.length, 1);
   assert.match(
     problems[0].message,
-    /\[impl:other#1>>utest:other#1\] has no preceding item tag \[impl:other#1\]/,
+    /\[impl:other#1 >> utest:other#1\] has no preceding item tag \[impl:other#1\]/,
   );
 });
 

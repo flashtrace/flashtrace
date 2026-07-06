@@ -79,7 +79,7 @@ function collectTags(comment, file, line, state, items, problems) {
     }
     const id = mkId(m[5], m[6], m[7], m[8]);
     if (m[1]) {
-      // [<source-id>>>...] explicit need tag
+      // [<source-id> >> ...] explicit need tag
       const source = mkId(m[1], m[2], m[3], m[4]);
       const anchor = state.byId.get(source);
       if (anchor) {
@@ -88,7 +88,7 @@ function collectTags(comment, file, line, state, items, problems) {
         problems.push({
           file,
           line,
-          message: `need tag [${source}>>${id}] has no preceding item tag [${source}] in this file`,
+          message: `need tag [${source} >> ${id}] has no preceding item tag [${source}] in this file`,
         });
       }
     } else if (state.last) {

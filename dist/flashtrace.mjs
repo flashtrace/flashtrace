@@ -281,7 +281,7 @@ function collectTags(comment, file, line, state, items, problems) {
         problems.push({
           file,
           line,
-          message: `need tag [${source}>>${id}] has no preceding item tag [${source}] in this file`
+          message: `need tag [${source} >> ${id}] has no preceding item tag [${source}] in this file`
         });
       }
     } else if (state.last) {

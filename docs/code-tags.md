@@ -20,7 +20,7 @@ The explicit form keeps the attachment stable when tags sit further apart:
 export function login(token: SessionToken) {
   // [impl:auth/audit#1]  <- would steal a [>>…] tag placed below
   audit(token);
-  // [impl:auth/login#1>>impl:auth/session#1]
+  // [impl:auth/login#1 >> impl:auth/session#1]
   return openSession(token);
 }
 ```
