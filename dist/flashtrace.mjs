@@ -115,7 +115,7 @@ function newItem(id, origin, file, line) {
 var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
-var BULLET_RE = /^\s*[-*+]\s+(.*\S)\s*$/;
+var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 function titleAbove(lines, defIndex) {
   for (let k = defIndex - 1; k >= 0; k--) {
     const l = lines[k];
