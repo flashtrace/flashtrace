@@ -14,8 +14,9 @@
  * Exit codes: 0 = clean trace, 1 = defects/problems found, 2 = usage error.
  */
 
+import { realpathSync } from 'node:fs';
 import process from 'node:process';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { runCli } from './cli.mjs';
 
@@ -25,7 +26,17 @@ export { parseMarkdown } from './parse-markdown.mjs';
 export { parseCode } from './parse-code.mjs';
 export { analyze } from './analyze.mjs';
 
-const runAsCli =
-  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+function runAsCli() {
+  const argvPath = process.argv[1];
+  if (!argvPath) return false;
+  try {
+    // Package managers (pnpm in particular) expose bins through symlinks, so
+    // argv[1] may be a link while import.meta.url holds the real path (or the
+    // link path under --preserve-symlinks-main). Realpath both sides.
+    return realpathSync(argvPath) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return import.meta.url === pathToFileURL(argvPath).href;
+  }
+}
 
-if (runAsCli) runCli();
+if (runAsCli()) runCli();

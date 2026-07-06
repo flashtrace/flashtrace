@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 // src/main.mjs
+import { realpathSync } from "node:fs";
 import process4 from "node:process";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 // src/cli.mjs
 import { promises as fs2 } from "node:fs";
@@ -439,8 +440,16 @@ ${HELP}`);
 }
 
 // src/main.mjs
-var runAsCli = process4.argv[1] && import.meta.url === pathToFileURL(process4.argv[1]).href;
-if (runAsCli) runCli();
+function runAsCli() {
+  const argvPath = process4.argv[1];
+  if (!argvPath) return false;
+  try {
+    return realpathSync(argvPath) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return import.meta.url === pathToFileURL(argvPath).href;
+  }
+}
+if (runAsCli()) runCli();
 export {
   UsageError,
   analyze,
