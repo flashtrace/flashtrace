@@ -30,6 +30,13 @@ export function findGit() {
   return gitBin;
 }
 
+// code-unit order, locale-independent (unlike localeCompare)
+function compareStrings(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
 async function walk(dir, out) {
   let entries;
   try {
@@ -76,5 +83,5 @@ export async function collectFiles(dirs) {
       const ext = path.extname(f).toLowerCase();
       return MD_EXT.has(ext) || CODE_EXT.has(ext);
     })
-    .sort();
+    .sort(compareStrings);
 }

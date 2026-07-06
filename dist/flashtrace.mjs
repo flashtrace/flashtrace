@@ -30,6 +30,11 @@ function findGit() {
   }
   return gitBin;
 }
+function compareStrings(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
 async function walk(dir, out) {
   let entries;
   try {
@@ -73,7 +78,7 @@ async function collectFiles(dirs) {
   return [...files].filter((f) => {
     const ext = path.extname(f).toLowerCase();
     return MD_EXT.has(ext) || CODE_EXT.has(ext);
-  }).sort();
+  }).sort(compareStrings);
 }
 
 // src/ids.mjs
