@@ -34,6 +34,10 @@ jobs:
     permissions:
       contents: read # read package.json from main via the API
       pull-requests: write # create/update the PR comment
+    env:
+      # The secrets context is not allowed in if conditions (only env is), so
+      # the app-token step's guard checks the secret's presence through this.
+      HAS_RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
     steps:
       # Posting with the app token gives the comment the app's configurable
       # name and avatar instead of github-actions[bot]. Skipped when the
@@ -41,7 +45,7 @@ jobs:
       # on its own PRs), where the comment falls back to GITHUB_TOKEN.
       - name: Create GitHub App token
         id: app-token
-        if: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
+        if: ${{ env.HAS_RELEASE_APP_KEY == 'true' }}
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: ${{ vars.RELEASE_APP_ID }}
