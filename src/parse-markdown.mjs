@@ -12,7 +12,7 @@ import { ID_SRC, mkId, parseIdEntry, newItem } from './ids.mjs';
 
 const DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
-const KEYWORD_RE = /^(Needs|Covers|Tags):\s*(.*)$/;
+const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(.*\S)\s*$/;
 
 function titleAbove(lines, defIndex) {
