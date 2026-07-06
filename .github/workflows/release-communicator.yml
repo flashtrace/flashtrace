@@ -84,16 +84,44 @@ jobs:
             prs=$(gh pr list --repo "$REPO" --base main --state open --json number --jq '.[].number')
           fi
 
+          # PRs merged since the last release sit unreleased on main and ship
+          # with whichever release lands next. When this push anticipated a
+          # bump, that backlog is being released right now, so it is empty.
+          pending=''
+          if [ -z "${merged_level:-}" ]; then
+            list_merged_prs() {
+              gh pr list --repo "$REPO" --base main --state merged --limit 100 "$@" \
+                --json number,title --jq 'sort_by(.number) | .[] | "- #\(.number) \(.title)"'
+            }
+            last_tag=$(gh release list --repo "$REPO" --exclude-drafts --limit 1 \
+              --json tagName --jq '.[0].tagName // empty')
+            if [ -n "$last_tag" ]; then
+              # The release commit is tagged after its PR merges, so comparing
+              # merge times against the tagged commit's time excludes every PR
+              # that already shipped, including the one that cut the release.
+              released_at=$(gh api "repos/$REPO/commits/$last_tag" --jq '.commit.committer.date')
+              pending=$(list_merged_prs --search "merged:>$released_at")
+            else
+              # No release yet: every merged PR is still waiting for one.
+              pending=$(list_merged_prs)
+            fi
+          fi
+
           for pr in $prs; do
             labels=$(gh pr view "$pr" --repo "$REPO" --json labels --jq '[.labels[].name] | join(" ")')
             level=$(pick_level "$labels")
 
             if [ -n "$level" ]; then
               next_version=$(bump "$base_version" "$level")
+              release_note="Merging this PR triggers a **$level** release (label \`release:$level\`): version **$base_version** will (most likely) be bumped to **$next_version**."
+              if [ -n "$pending" ]; then
+                release_note=$(printf '%s\n\nThis release will also include the following previously merged, not yet released PRs:\n\n%s' \
+                  "$release_note" "$pending")
+              fi
               body=$(printf '%s\n\n%s\n\n%s\n\n%s' \
                 "$marker" \
                 "### :rocket: Release Communicator" \
-                "Merging this PR triggers a **$level** release (label \`release:$level\`): version **$base_version** will (most likely) be bumped to **$next_version**." \
+                "$release_note" \
                 "_\"Most likely\" because another release may land on \`main\` first - this comment updates itself when labels, this PR, or \`main\` change._")
             else
               body=$(printf '%s\n\n%s\n\n%s\n\n%s' \
