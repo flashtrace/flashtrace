@@ -1,7 +1,13 @@
 name: Release Communicator
 
 on:
-  pull_request:
+  # pull_request_target instead of pull_request so runs for PRs opened from
+  # forks still receive secrets (the app identity) and a write-capable
+  # GITHUB_TOKEN (the fallback), letting the comment post there too. This is
+  # safe only while the workflow never checks out or executes PR code - it
+  # must keep operating purely on metadata via the API. Do not add a checkout
+  # of the PR head here.
+  pull_request_target:
     types:
       - opened
       - reopened
@@ -23,13 +29,31 @@ jobs:
   communicate:
     name: Update release preview comment
     runs-on: ubuntu-latest
+    # GITHUB_TOKEN permissions only matter for the fallback below; the app
+    # token carries its own scopes.
     permissions:
       contents: read # read package.json from main via the API
       pull-requests: write # create/update the PR comment
     steps:
+      # Posting with the app token gives the comment the app's configurable
+      # name and avatar instead of github-actions[bot]. Skipped when the
+      # secret is unavailable (e.g. a fork of this repo running the workflow
+      # on its own PRs), where the comment falls back to GITHUB_TOKEN.
+      - name: Create GitHub App token
+        id: app-token
+        if: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: read # read package.json from main via the API
+          permission-pull-requests: write # create/update the PR comment
+
       - name: Upsert release comment
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # A skipped app-token step yields an empty output, so this falls
+          # back to GITHUB_TOKEN and the comment posts as github-actions[bot].
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           EVENT_PR: ${{ github.event.pull_request.number }}
         run: |
