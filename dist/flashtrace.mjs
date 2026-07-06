@@ -89,7 +89,7 @@ var mkId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${nam
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => Number(id.slice(id.lastIndexOf("#") + 1));
 function parseIdEntry(raw) {
-  const cleaned = raw.replace(/`/g, "").trim();
+  const cleaned = raw.replaceAll("`", "").trim();
   const m = cleaned.match(ID_RE);
   return m ? mkId(m[1], m[2], m[3], m[4]) : null;
 }
