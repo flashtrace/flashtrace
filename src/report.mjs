@@ -17,13 +17,14 @@ function makeStyler() {
 export function report(items, problems, cwd) {
   const c = makeStyler();
   const rel = (f) => path.relative(cwd, f) || f;
+  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
   const defective = items.filter((it) => it.defects.length > 0);
   const out = [];
 
   for (const it of defective) {
     const title = it.title ? ' ' + c.dim(`"${it.title}"`) : '';
     out.push(
-      `${c.red('✘')} ${c.bold(it.id)}${title}  ${c.dim(`${rel(it.file)}:${it.line}`)}`,
+      `${c.red('✘')} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`,
     );
     for (const d of it.defects) out.push(`    ${c.red('•')} ${d}`);
     out.push('');

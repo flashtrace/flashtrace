@@ -334,12 +334,13 @@ function makeStyler() {
 function report(items, problems, cwd) {
   const c = makeStyler();
   const rel = (f) => path3.relative(cwd, f) || f;
+  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
   const defective = items.filter((it) => it.defects.length > 0);
   const out = [];
   for (const it of defective) {
     const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
     out.push(
-      `${c.red("\u2718")} ${c.bold(it.id)}${title}  ${c.dim(`${rel(it.file)}:${it.line}`)}`
+      `${c.red("\u2718")} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`
     );
     for (const d of it.defects) out.push(`    ${c.red("\u2022")} ${d}`);
     out.push("");
