@@ -29,3 +29,5 @@ Tags: Auth, Security
   Each keyword accepts either a one-line comma-separated list or a bullet list (`-`, `*`, `+`) on the immediately following lines. The two styles must not be mixed within one keyword. IDs may optionally be wrapped in backticks.
 
 An item's definition extends to the next ID line or heading. An item with an empty `Needs` list terminates a tracing chain.
+
+A line containing nothing but a forwarding tag `[<source-id> --> <target-id>]` (optionally wrapped in backticks) redirects the source item's coverage obligation; see [Forwarding / delegation](forwarding.md). Such a line may appear anywhere - inside an item's definition it is not part of the description.

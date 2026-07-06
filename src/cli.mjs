@@ -47,13 +47,16 @@ async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const files = await collectFiles(opts.dirs);
   const problems = [];
+  const forwards = [];
   let items = [];
 
   for (const file of files) {
     const text = await fs.readFile(file, 'utf8');
     const ext = path.extname(file).toLowerCase();
     items.push(
-      ...(MD_EXT.has(ext) ? parseMarkdown(file, text, problems) : parseCode(file, text, problems)),
+      ...(MD_EXT.has(ext)
+        ? parseMarkdown(file, text, problems, forwards)
+        : parseCode(file, text, problems, forwards)),
     );
   }
 
@@ -67,7 +70,7 @@ async function main() {
     );
   }
 
-  analyze(items);
+  analyze(items, forwards, problems);
   const clean = report(items, problems, process.cwd());
   process.exit(clean ? 0 : 1);
 }

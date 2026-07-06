@@ -3,13 +3,16 @@
  *   - `[<id>]` inside a comment defines a coverage item with that ID.
  *   - `[>><id>]` inside a comment attaches a need to the nearest preceding
  *     item tag in the same file (error if there is none).
+ *   - `[<id> --> <id>]` inside a comment forwards the first item's coverage
+ *     obligation to the second (spaces optional).
  */
 
 import path from 'node:path';
 
-import { ID_SRC, mkId, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, mkForward, mkId, newItem } from './ids.mjs';
 
 const TAG_RE = new RegExp(String.raw`\[(>>)?\s*${ID_SRC}\s*\]`, 'g');
+const FORWARD_RE = new RegExp(FORWARD_SRC, 'g');
 const BLOCK_CLOSERS = { c: '*/', html: '-->' };
 
 // earliest comment opener in s at or after pos, or null
@@ -75,7 +78,7 @@ function collectTags(comment, file, line, state, items, problems) {
   }
 }
 
-export function parseCode(file, text, problems) {
+export function parseCode(file, text, problems, forwards = []) {
   const ext = path.extname(file).toLowerCase();
   const lines = text.split(/\r?\n/);
   const items = [];
@@ -86,6 +89,9 @@ export function parseCode(file, text, problems) {
 
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, lineMarkers, htmlBlocks);
+    for (const m of comment.matchAll(FORWARD_RE)) {
+      forwards.push(mkForward(m, 1, file, i + 1));
+    }
     collectTags(comment, file, i + 1, state, items, problems);
   }
   return items;

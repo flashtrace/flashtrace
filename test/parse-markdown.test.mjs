@@ -6,8 +6,9 @@ import { parseMarkdown } from '../src/main.mjs';
 // literals would need escaping and hurt readability.
 function parse(lines) {
   const problems = [];
-  const items = parseMarkdown('spec.md', lines.join('\n'), problems);
-  return { items, problems };
+  const forwards = [];
+  const items = parseMarkdown('spec.md', lines.join('\n'), problems, forwards);
+  return { items, problems, forwards };
 }
 
 test('full item: title, description, needs, covers, tags', () => {
@@ -104,4 +105,35 @@ test('group paths may be nested arbitrarily deep', () => {
 test('a line that is not only an ID does not define an item', () => {
   const { items } = parse(['The ID `req:a#1` mentioned in prose is not a definition.']);
   assert.equal(items.length, 0);
+});
+
+test('standalone forwarding line, plain or backticked, spaces optional', () => {
+  const { items, forwards } = parse([
+    '[req:login#1 --> dsn:auth#2]',
+    '',
+    '`[req:logout#1-->dsn:auth#2]`',
+  ]);
+  assert.equal(items.length, 0);
+  assert.deepEqual(forwards, [
+    { from: 'req:login#1', to: 'dsn:auth#2', file: 'spec.md', line: 1 },
+    { from: 'req:logout#1', to: 'dsn:auth#2', file: 'spec.md', line: 3 },
+  ]);
+});
+
+test('a forwarding line inside an item body is not description', () => {
+  const { items, forwards } = parse([
+    '`req:a#1`',
+    '',
+    'The description.',
+    '[req:a#1 --> dsn:b#1]',
+    'Still the description.',
+  ]);
+  assert.deepEqual(items[0].description, ['The description.', 'Still the description.']);
+  assert.equal(forwards.length, 1);
+  assert.deepEqual(forwards[0], { from: 'req:a#1', to: 'dsn:b#1', file: 'spec.md', line: 4 });
+});
+
+test('a forwarding mentioned in prose is not recognized', () => {
+  const { forwards } = parse(['The tag [req:a#1 --> dsn:b#1] in prose does not forward.']);
+  assert.equal(forwards.length, 0);
 });
