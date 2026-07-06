@@ -1,24 +1,35 @@
 #!/usr/bin/env node
 
 // src/main.mjs
-import process3 from "node:process";
+import process4 from "node:process";
 import { pathToFileURL } from "node:url";
 
 // src/cli.mjs
 import { promises as fs2 } from "node:fs";
 import path4 from "node:path";
-import process2 from "node:process";
+import process3 from "node:process";
 
 // src/errors.mjs
 var UsageError = class extends Error {
 };
 
 // src/files.mjs
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 var MD_EXT = /* @__PURE__ */ new Set([".md", ".markdown"]);
 var CODE_EXT = /* @__PURE__ */ new Set([".ts", ".js", ".mjs", ".sql", ".vue"]);
+var GIT_LOCATIONS = process.platform === "win32" ? [
+  String.raw`C:\Program Files\Git\cmd\git.exe`,
+  String.raw`C:\Program Files (x86)\Git\cmd\git.exe`
+] : ["/usr/bin/git", "/bin/git"];
+var gitBin;
+function findGit() {
+  if (gitBin === void 0) {
+    gitBin = GIT_LOCATIONS.find((p) => existsSync(p)) ?? null;
+  }
+  return gitBin;
+}
 async function walk(dir, out) {
   let entries;
   try {
@@ -45,9 +56,11 @@ async function collectFiles(dirs) {
       continue;
     }
     let list = null;
+    const git = findGit();
     try {
+      if (!git) throw new Error("git not found");
       const out = execFileSync(
-        "git",
+        git,
         ["-C", abs, "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
         { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
       );
@@ -296,9 +309,9 @@ function analyze(items) {
 
 // src/report.mjs
 import path3 from "node:path";
-import process from "node:process";
+import process2 from "node:process";
 function makeStyler() {
-  const on = process.stdout.isTTY && !process.env.NO_COLOR;
+  const on = process2.stdout.isTTY && !process2.env.NO_COLOR;
   const wrap = (code) => (s) => on ? `\x1B[${code}m${s}\x1B[0m` : s;
   return {
     red: wrap("31"),
@@ -361,7 +374,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === "-h" || a === "--help") {
       console.log(HELP);
-      process2.exit(0);
+      process3.exit(0);
     } else if (a === "-t" || a === "--tags") {
       const v = argv[++i];
       if (!v) throw new UsageError(`missing value for ${a}`);
@@ -376,7 +389,7 @@ function parseArgs(argv) {
   return opts;
 }
 async function main() {
-  const opts = parseArgs(process2.argv.slice(2));
+  const opts = parseArgs(process3.argv.slice(2));
   const files = await collectFiles(opts.dirs);
   const problems = [];
   let items = [];
@@ -394,8 +407,8 @@ async function main() {
     );
   }
   analyze(items);
-  const clean = report(items, problems, process2.cwd());
-  process2.exit(clean ? 0 : 1);
+  const clean = report(items, problems, process3.cwd());
+  process3.exit(clean ? 0 : 1);
 }
 function runCli() {
   main().catch((err) => {
@@ -403,15 +416,15 @@ function runCli() {
       console.error(`error: ${err.message}
 
 ${HELP}`);
-      process2.exit(2);
+      process3.exit(2);
     }
     console.error(err);
-    process2.exit(2);
+    process3.exit(2);
   });
 }
 
 // src/main.mjs
-var runAsCli = process3.argv[1] && import.meta.url === pathToFileURL(process3.argv[1]).href;
+var runAsCli = process4.argv[1] && import.meta.url === pathToFileURL(process4.argv[1]).href;
 if (runAsCli) runCli();
 export {
   UsageError,
