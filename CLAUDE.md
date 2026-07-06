@@ -46,3 +46,15 @@ Commited `dist/` must match a fresh build.
 Verify this with `git diff --exit-code -- dist/`.
 
 Never bump `package.json` version manually; releases are PR-label driven per GitHub workflow and bump that automatically.
+
+## Parallel work with git worktrees
+
+One task = one branch = one worktree = one session.
+All rules apply unchanged inside every worktree.
+
+- Create worktrees as siblings of the main checkout: `git worktree add ..\flashtrace-wt\<branch-dir> -b <type>/<description> origin/main`
+- Run `pnpm install` in a fresh worktree before building or testing; node_modules is per-worktree (pnpm's store makes this fast).
+- Branch only from up-to-date `origin/main`. Never commit to `main`, and never check out or modify a branch owned by another worktree.
+- Before opening a PR: `pnpm build`, `pnpm test`, then verify `git diff --exit-code -- dist/` passes.
+- If `dist/` conflicts when merging main into your branch: do NOT hand-resolve. Try to rebase, then rebuild your dist.
+- After your PR merges: `git worktree remove <path>` and delete the branch.
