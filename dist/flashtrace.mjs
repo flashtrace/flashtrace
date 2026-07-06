@@ -129,9 +129,13 @@ function parseMarkdown(file, text, problems) {
   const lines = text.split(/\r?\n/);
   const items = [];
   const isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
-  for (let i = 0; i < lines.length; i++) {
+  let i = 0;
+  while (i < lines.length) {
     const def = lines[i].match(DEF_RE);
-    if (!def) continue;
+    if (!def) {
+      i++;
+      continue;
+    }
     const item = newItem(mkId(def[1], def[2], def[3], def[4]), "markdown", file, i + 1);
     item.title = titleAbove(lines, i);
     let j = i + 1;
@@ -175,7 +179,7 @@ function parseMarkdown(file, text, problems) {
       j++;
     }
     items.push(item);
-    i = j - 1;
+    i = j;
   }
   return items;
 }
