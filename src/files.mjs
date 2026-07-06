@@ -3,7 +3,7 @@
  * `git ls-files`; plain directory walk as fallback outside a git repository.
  */
 
-import { promises as fs } from 'node:fs';
+import { existsSync, promises as fs } from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -11,6 +11,24 @@ import { UsageError } from './errors.mjs';
 
 export const MD_EXT = new Set(['.md', '.markdown']);
 export const CODE_EXT = new Set(['.ts', '.js', '.mjs', '.sql', '.vue']);
+
+// git is looked up in fixed, non-user-writable install locations only, never
+// via PATH (writable PATH entries would allow binary planting).
+const GIT_LOCATIONS = process.platform === 'win32'
+  ? [
+      'C:\\Program Files\\Git\\cmd\\git.exe',
+      'C:\\Program Files (x86)\\Git\\cmd\\git.exe',
+    ]
+  : ['/usr/bin/git', '/bin/git'];
+
+let gitBin; // undefined = not probed yet, null = not found
+
+export function findGit() {
+  if (gitBin === undefined) {
+    gitBin = GIT_LOCATIONS.find((p) => existsSync(p)) ?? null;
+  }
+  return gitBin;
+}
 
 async function walk(dir, out) {
   let entries;
@@ -39,9 +57,11 @@ export async function collectFiles(dirs) {
       continue;
     }
     let list = null;
+    const git = findGit();
     try {
+      if (!git) throw new Error('git not found');
       const out = execFileSync(
-        'git',
+        git,
         ['-C', abs, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
         { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
       );

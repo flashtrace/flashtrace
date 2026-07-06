@@ -6,6 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { findGit } from '../src/files.mjs';
+
 const SCRIPT = fileURLToPath(new URL('../dist/flashtrace.mjs', import.meta.url));
 
 function runCli(cwd, args = []) {
@@ -102,8 +104,9 @@ test('--tags filters markdown items; "_" re-admits untagged ones', async () => {
 });
 
 test('git-ignored files are excluded from the scan', async (t) => {
-  if (spawnSync('git', ['--version']).status !== 0) {
-    t.skip('git not available');
+  const git = findGit();
+  if (!git || spawnSync(git, ['--version']).status !== 0) {
+    t.skip('git not available in a fixed install location');
     return;
   }
   await withProject(
@@ -113,7 +116,7 @@ test('git-ignored files are excluded from the scan', async (t) => {
       'ignored.md': ['`req:bad#1`', '', 'Needs: impl:missing#1'],
     },
     (dir) => {
-      assert.equal(spawnSync('git', ['init', '-q'], { cwd: dir }).status, 0);
+      assert.equal(spawnSync(git, ['init', '-q'], { cwd: dir }).status, 0);
       const res = runCli(dir);
       assert.equal(res.status, 0, res.stdout);
       assert.ok(!res.stdout.includes('req:bad#1'));
