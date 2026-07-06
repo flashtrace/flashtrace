@@ -353,8 +353,11 @@ function report(items, problems, cwd) {
   const notDeep = items.filter((it) => it.defects.length === 0 && !it.deepCovered).length;
   const md = items.filter((i) => i.origin === "markdown").length;
   const originBreakdown = c.dim(`(${md} from markdown, ${items.length - md} from code)`);
-  out.push(c.bold("Summary"), `  items       ${items.length}  ${originBreakdown}`);
-  out.push(`  ok          ${c.green(String(okCount))}`);
+  out.push(
+    c.bold("Summary"),
+    `  items       ${items.length}  ${originBreakdown}`,
+    `  ok          ${c.green(String(okCount))}`
+  );
   out.push(`  defective   ${defective.length ? c.red(String(defective.length)) : "0"}`);
   if (notDeep) out.push("  " + c.dim(`of the ok items, ${notDeep} are only shallow-covered (a needed item is itself defective)`));
   if (problems.length) out.push(`  problems    ${c.yellow(String(problems.length))}`);
