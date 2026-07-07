@@ -85,8 +85,12 @@ async function collectFiles(dirs) {
 // src/ids.mjs
 var SEG_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
 var REV_SRC = String.raw`\d+(?:\.\d+){0,2}`;
+var WILD_SRC = String.raw`(?:\d+\.\d+\.x|\d+\.x\.y|x\.y\.z|\d+\.x|x\.y|x)`;
+var REVREF_SRC = String.raw`(?:${WILD_SRC}|${REV_SRC})`;
 var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(${REV_SRC})`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
+var NEED_ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(${REVREF_SRC})`;
+var NEED_ID_RE = new RegExp(`^${NEED_ID_SRC}$`);
 var FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
 var mkId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
 var mkForward = (m, base, file, line) => ({
@@ -107,9 +111,27 @@ function compareRev(a, b) {
   }
   return 0;
 }
+var WILD_LAYER = /* @__PURE__ */ new Set(["x", "y", "z"]);
+var isWildcardRev = (rev) => /[xyz]/.test(rev);
+function revMatches(pattern, concrete) {
+  const pp = pattern.split(".");
+  const cp = concrete.split(".");
+  if (pp.length !== cp.length) return false;
+  for (let i = 0; i < pp.length; i++) {
+    if (WILD_LAYER.has(pp[i])) continue;
+    if (pp[i] !== cp[i]) return false;
+  }
+  return true;
+}
+var idMatches = (need, id) => keyOf(need) === keyOf(id) && revMatches(revOf(need), revOf(id));
 function parseIdEntry(raw) {
   const cleaned = raw.replaceAll("`", "").trim();
   const m = cleaned.match(ID_RE);
+  return m ? mkId(m[1], m[2], m[3], m[4]) : null;
+}
+function parseNeedEntry(raw) {
+  const cleaned = raw.replaceAll("`", "").trim();
+  const m = cleaned.match(NEED_ID_RE);
   return m ? mkId(m[1], m[2], m[3], m[4]) : null;
 }
 function newItem(id, origin, file, line) {
@@ -170,8 +192,9 @@ function applyKeyword(item, keyword, entries, file, kwLine, problems) {
     return;
   }
   const target = keyword === "Needs" ? "needs" : "covers";
+  const parse = keyword === "Needs" ? parseNeedEntry : parseIdEntry;
   for (const e of entries) {
-    const id = parseIdEntry(e);
+    const id = parse(e);
     if (id) item[target].push(id);
     else
       problems.push({
@@ -230,7 +253,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
 // src/parse-code.mjs
 import path2 from "node:path";
 var TAG_RE = new RegExp(
-  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${ID_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
+  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${NEED_ID_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
   "g"
 );
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
@@ -324,25 +347,26 @@ function parseCode(file, text, problems, forwards = []) {
 }
 
 // src/analyze.mjs
-function checkItemReferences(it, byId, neededIds, revHint, fwdTarget) {
+function checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget) {
   const fwd = fwdTarget.get(it.id);
   if (fwd !== void 0) {
     if (!byId.has(fwd))
       it.defects.push(`uncovered: forwards to ${fwd}, which does not exist${revHint(fwd)}`);
   } else {
     for (const n of it.needs) {
-      if (!byId.has(n)) it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
+      if (matchesOf(n).length === 0)
+        it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
     }
   }
   for (const c of it.covers) {
     const targets = byId.get(c);
     if (!targets) {
       it.defects.push(`orphaned: covers ${c}, which does not exist${revHint(c)}`);
-    } else if (!targets.some((t) => t.needs.includes(it.id))) {
+    } else if (!targets.some((t) => t.needs.some((n) => idMatches(n, it.id)))) {
       it.defects.push(`unwanted: covers ${c}, but ${c} does not need ${it.id}`);
     }
   }
-  if (it.origin === "code" && !neededIds.has(it.id)) {
+  if (it.origin === "code" && !isNeeded(it.id)) {
     it.defects.push(`unwanted: no item needs ${it.id}`);
   }
 }
@@ -398,7 +422,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
   for (const to of fwdTarget.values()) neededIds.add(to);
   return fwdTarget;
 }
-function markDeepCoverage(items, byId, fwdTarget) {
+function markDeepCoverage(items, byId, matchesOf, fwdTarget) {
   const memo = /* @__PURE__ */ new Map();
   const deep = (id) => {
     if (memo.has(id)) return memo.get(id);
@@ -413,21 +437,36 @@ function markDeepCoverage(items, byId, fwdTarget) {
     if (fwd !== void 0) {
       ok = deep(fwd);
     } else {
-      for (const it of group) for (const n of it.needs) if (!deep(n)) ok = false;
+      for (const it of group) for (const n of it.needs) if (!needDeep(n)) ok = false;
     }
     memo.set(id, ok);
     return ok;
+  };
+  const needDeep = (n) => {
+    const matches = matchesOf(n);
+    return matches.length > 0 && matches.some((id) => deep(id));
   };
   for (const it of items) it.deepCovered = deep(it.id);
 }
 function analyze(items, forwards = [], problems = []) {
   const byId = /* @__PURE__ */ new Map();
   const revsByKey = /* @__PURE__ */ new Map();
+  const idsByKey = /* @__PURE__ */ new Map();
   for (const it of items) {
     (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
     (revsByKey.get(it.key) ?? revsByKey.set(it.key, /* @__PURE__ */ new Set()).get(it.key)).add(it.revision);
   }
-  const neededIds = new Set(items.flatMap((it) => it.needs));
+  for (const id of byId.keys())
+    (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
+  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
+  const exactNeeds = /* @__PURE__ */ new Set();
+  const wildcardNeeds = [];
+  for (const it of items)
+    for (const n of it.needs) {
+      if (isWildcardRev(revOf(n))) wildcardNeeds.push(n);
+      else exactNeeds.add(n);
+    }
+  const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((w) => idMatches(w, id));
   for (const [id, group] of byId) {
     if (group.length > 1)
       for (const it of group) it.defects.push(`duplicate: ID ${id} is defined ${group.length} times`);
@@ -436,9 +475,9 @@ function analyze(items, forwards = [], problems = []) {
     const revs = revsByKey.get(keyOf(id));
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(", ")})` : "";
   };
-  const fwdTarget = buildForwardMap(forwards, byId, neededIds, revHint, problems);
-  for (const it of items) checkItemReferences(it, byId, neededIds, revHint, fwdTarget);
-  markDeepCoverage(items, byId, fwdTarget);
+  const fwdTarget = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
+  for (const it of items) checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget);
+  markDeepCoverage(items, byId, matchesOf, fwdTarget);
 }
 
 // src/report.mjs

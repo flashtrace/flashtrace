@@ -82,6 +82,25 @@ test('invalid ID in a Needs list is reported as a problem', () => {
   assert.equal(problems[0].file, 'spec.md');
 });
 
+test('a wildcard revision is accepted in Needs but not in Covers', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Needs: impl:a#2.x, impl:b#2.3.x',
+    '',
+    'Covers: feat:x#1.y',
+  ]);
+  assert.deepEqual(items[0].needs, ['impl:a#2.x', 'impl:b#2.3.x']);
+  assert.deepEqual(items[0].covers, []);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "feat:x#1\.y" in Covers/);
+});
+
+test('a wildcard revision is not accepted in an item definition', () => {
+  const { items } = parse(['`req:a#2.x`']);
+  assert.equal(items.length, 0);
+});
+
 test('an item definition ends at the next ID line or heading', () => {
   const { items } = parse([
     '`req:a#1`',

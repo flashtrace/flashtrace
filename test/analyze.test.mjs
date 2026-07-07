@@ -113,6 +113,77 @@ test('defining the same full ID twice flags both as duplicates', () => {
   for (const it of items) assert.match(it.defects[0], /^duplicate: ID req:a#1/);
 });
 
+test('a wildcard need is satisfied by any matching concrete item', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#2.x'],
+    code: ['// [impl:a#2.5]'],
+  });
+  for (const it of items) assert.deepEqual(it.defects, []);
+  assert.equal(byId(items, 'req:a#1').deepCovered, true);
+});
+
+test('a wildcard matches only within the same layer count', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#2.x'],
+    code: ['// [impl:a#2.5.0]'],
+  });
+  assert.match(byId(items, 'req:a#1').defects[0], /^uncovered: needs impl:a#2\.x/);
+  // the near-miss item is not what the wildcard asked for, so it stays unwanted
+  assert.match(byId(items, 'impl:a#2.5.0').defects[0], /^unwanted: no item needs/);
+});
+
+test('three-layer wildcards match any tail of the same shape', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#2.3.x, impl:b#2.x.y'],
+    code: ['// [impl:a#2.3.7]', '// [impl:b#2.9.4]'],
+  });
+  for (const it of items) assert.deepEqual(it.defects, []);
+  assert.equal(byId(items, 'req:a#1').deepCovered, true);
+});
+
+test('a covers entry satisfies a wildcard need on its target', () => {
+  const items = run({
+    md: [
+      '`feat:auth#1`',
+      '',
+      'Needs: impl:a#2.x',
+      '',
+      '`impl:a#2.5`',
+      '',
+      'Covers: feat:auth#1',
+    ],
+  });
+  for (const it of items) assert.deepEqual(it.defects, []);
+});
+
+test('a wildcard need is shallow-covered but not deep when its match is defective', () => {
+  const items = run({
+    md: [
+      '`req:a#1`',
+      '',
+      'Needs: dsn:b#2.x',
+      '',
+      '`dsn:b#2.5`',
+      '',
+      'Needs: impl:c#1',
+    ],
+  });
+  const reqA = byId(items, 'req:a#1');
+  assert.deepEqual(reqA.defects, []); // its wildcard need is matched
+  assert.equal(reqA.deepCovered, false); // but dsn:b#2.5 is itself uncovered
+  assert.match(byId(items, 'dsn:b#2.5').defects[0], /^uncovered: needs impl:c#1/);
+});
+
+test('a wildcard need matching nothing is uncovered with a revision hint', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#9.x'],
+    code: ['// [impl:a#2.5]'],
+  });
+  const [defect] = byId(items, 'req:a#1').defects;
+  assert.match(defect, /^uncovered: needs impl:a#9\.x/);
+  assert.match(defect, /existing revision\(s\) of impl:a: 2\.5/);
+});
+
 test('a code item nobody needs is unwanted', () => {
   const items = run({ code: ['// [impl:stray#1]'] });
   assert.match(byId(items, 'impl:stray#1').defects[0], /^unwanted: no item needs/);

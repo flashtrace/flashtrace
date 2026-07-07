@@ -10,7 +10,7 @@
  *     the first item's coverage obligation to the second (spaces optional).
  */
 
-import { FORWARD_SRC, ID_SRC, mkForward, mkId, parseIdEntry, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, mkForward, mkId, parseIdEntry, parseNeedEntry, newItem } from './ids.mjs';
 
 const DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
@@ -61,8 +61,10 @@ function applyKeyword(item, keyword, entries, file, kwLine, problems) {
     return;
   }
   const target = keyword === 'Needs' ? 'needs' : 'covers';
+  // Needs may reference a wildcard revision (2.x); Covers must be concrete.
+  const parse = keyword === 'Needs' ? parseNeedEntry : parseIdEntry;
   for (const e of entries) {
-    const id = parseIdEntry(e);
+    const id = parse(e);
     if (id) item[target].push(id);
     else
       problems.push({

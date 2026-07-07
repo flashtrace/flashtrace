@@ -81,6 +81,21 @@ test('explicit need tag without a matching preceding item tag is a problem', () 
   );
 });
 
+test('a need tag may reference a wildcard revision', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [impl:a#1]',
+    '// [>>utest:a#2.x]',
+    '// [impl:a#1 >> utest:b#2.3.x]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['utest:a#2.x', 'utest:b#2.3.x']);
+});
+
+test('a wildcard revision is not accepted in an item tag', () => {
+  const { items } = parse('src.ts', ['// [impl:a#2.x]']);
+  assert.equal(items.length, 0);
+});
+
 test('tags outside comments are ignored', () => {
   const { items } = parse('src.ts', ['const s = "[impl:a#1]";']);
   assert.equal(items.length, 0);
