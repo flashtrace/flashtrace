@@ -1,4 +1,4 @@
-import { keyOf } from './ids.mjs';
+import { compareRev, keyOf } from './ids.mjs';
 
 // a forwarded item (source of an [A --> B] tag) has its own needs excused; its
 // coverage obligation is redirected to the target, checked here instead
@@ -126,7 +126,7 @@ export function analyze(items, forwards = [], problems = []) {
 
   const revHint = (id) => {
     const revs = revsByKey.get(keyOf(id));
-    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(', ')})` : '';
+    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(', ')})` : '';
   };
 
   const fwdTarget = buildForwardMap(forwards, byId, neededIds, revHint, problems);

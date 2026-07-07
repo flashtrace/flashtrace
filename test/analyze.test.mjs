@@ -41,6 +41,45 @@ test('a missing need is uncovered, with a revision-mismatch hint', () => {
   assert.match(defect, /1/);
 });
 
+test('matching stays exact per layer: 2.4 does not satisfy a need for 2.4.0', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#2.4.0'],
+    code: ['// [impl:a#2.4]'],
+  });
+  const [defect] = byId(items, 'req:a#1').defects;
+  assert.match(defect, /^uncovered: needs impl:a#2\.4\.0/);
+  // the near-miss revision is offered as a hint
+  assert.match(defect, /revision mismatch/);
+  assert.match(defect, /2\.4(?!\.)/);
+});
+
+test('an exact multi-layer revision need is covered', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#2.4.0'],
+    code: ['// [impl:a#2.4.0]'],
+  });
+  for (const it of items) assert.deepEqual(it.defects, []);
+  assert.equal(byId(items, 'req:a#1').deepCovered, true);
+});
+
+test('revision-mismatch hints are ordered semver-aware', () => {
+  const items = run({
+    md: [
+      '`req:a#1`',
+      '',
+      'Needs: impl:a#9',
+      '',
+      '`impl:a#2.10`',
+      '',
+      '`impl:a#2.9`',
+      '',
+      '`impl:a#2.9.0`',
+    ],
+  });
+  const [defect] = byId(items, 'req:a#1').defects;
+  assert.match(defect, /existing revision\(s\) of impl:a: 2\.9, 2\.9\.0, 2\.10/);
+});
+
 test('covering a non-existent item is orphaned', () => {
   const items = run({ md: ['`req:a#1`', '', 'Covers: feat:x#1'] });
   assert.match(byId(items, 'req:a#1').defects[0], /^orphaned: covers feat:x#1/);

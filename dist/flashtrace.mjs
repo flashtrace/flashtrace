@@ -84,7 +84,8 @@ async function collectFiles(dirs) {
 
 // src/ids.mjs
 var SEG_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
-var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(\d+)`;
+var REV_SRC = String.raw`\d+(?:\.\d+){0,2}`;
+var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(${REV_SRC})`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
 var FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
 var mkId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
@@ -95,7 +96,17 @@ var mkForward = (m, base, file, line) => ({
   line
 });
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
-var revOf = (id) => Number(id.slice(id.lastIndexOf("#") + 1));
+var revOf = (id) => id.slice(id.lastIndexOf("#") + 1);
+function compareRev(a, b) {
+  const pa = a.split(".");
+  const pb = b.split(".");
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    if (i >= pa.length) return -1;
+    if (i >= pb.length) return 1;
+    if (pa[i] !== pb[i]) return Number(pa[i]) - Number(pb[i]);
+  }
+  return 0;
+}
 function parseIdEntry(raw) {
   const cleaned = raw.replaceAll("`", "").trim();
   const m = cleaned.match(ID_RE);
@@ -423,7 +434,7 @@ function analyze(items, forwards = [], problems = []) {
   }
   const revHint = (id) => {
     const revs = revsByKey.get(keyOf(id));
-    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(", ")})` : "";
+    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(", ")})` : "";
   };
   const fwdTarget = buildForwardMap(forwards, byId, neededIds, revHint, problems);
   for (const it of items) checkItemReferences(it, byId, neededIds, revHint, fwdTarget);
