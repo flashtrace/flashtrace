@@ -98,6 +98,37 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes
 
+      # A new release should refresh the docs website, which builds its docs
+      # from flashtrace's latest release tag. Dispatch a repository_dispatch
+      # event to the site repo, whose deploy workflow listens for this type.
+      # A dedicated token scoped to the site repo carries the contents:write
+      # that the dispatch API requires, rather than widening the release token
+      # above. Best-effort: a missing app install (or site repo) must never
+      # fail an otherwise-successful release - the site can also be rebuilt
+      # from its own workflow_dispatch or the next release.
+      - name: Create website dispatch token
+        id: website-token
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: flashtrace.github.io
+          permission-contents: write
+
+      - name: Trigger website redeploy
+        if: steps.website-token.outputs.token != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.website-token.outputs.token }}
+          TAG: v${{ steps.version.outputs.version }}
+        run: |
+          gh api --method POST \
+            "repos/${{ github.repository_owner }}/flashtrace.github.io/dispatches" \
+            -f event_type=flashtrace-release \
+            -f "client_payload[tag]=$TAG"
+
       - name: Update npm for trusted publishing
         # OIDC trusted publishing requires npm >= 11.5.1; Node 22 ships an older npm.
         run: npm install -g npm@latest
