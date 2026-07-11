@@ -1,0 +1,98 @@
+name: SEA binaries
+
+# Builds the self-contained flashtrace executables (Node Single Executable
+# Applications) for every supported platform and assembles their SHA256SUMS.
+# Called by the release workflow with the freshly pushed release tag; also
+# manually dispatchable as a dry run that only produces workflow artifacts.
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build (defaults to the triggering ref)
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to build (defaults to the triggering ref)
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }} binary
+    strategy:
+      matrix:
+        include:
+          - platform: linux-x64
+            runner: ubuntu-latest
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+          - platform: darwin-x64
+            runner: macos-13
+          - platform: darwin-arm64
+            runner: macos-latest
+          - platform: win32-x64
+            runner: windows-latest
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build SEA binary
+        run: pnpm build:sea
+
+      - name: Smoke test the binary
+        run: pnpm test:sea
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: binary-${{ matrix.platform }}
+          path: dist-sea/flashtrace-v*
+          if-no-files-found: error
+
+  # The checksums ship as a release asset and are also baked into the
+  # ecosystem wrappers at publish time (see docs/wrappers.md).
+  checksums:
+    name: Assemble SHA256SUMS
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download binary artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: binary-*
+          merge-multiple: true
+          path: assets
+
+      - name: Generate SHA256SUMS
+        working-directory: assets
+        run: sha256sum flashtrace-* | tee SHA256SUMS
+
+      - name: Upload SHA256SUMS artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: SHA256SUMS
+          path: assets/SHA256SUMS
+          if-no-files-found: error
