@@ -70,6 +70,32 @@ test('needs as bullet list, IDs optionally backticked', () => {
   assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
 });
 
+// Every bullet marker (-, *, +) must be accepted, and each item ID may be
+// written bare or wrapped in backticks - independently within one list.
+for (const marker of ['-', '*', '+']) {
+  test(`needs as "${marker}" bullet list, IDs bare or backticked`, () => {
+    const { items, problems } = parse([
+      '`req:a#1`',
+      '',
+      'Needs:',
+      `${marker} \`impl:a#1\``,
+      `${marker} utest:a#1`,
+    ]);
+    assert.equal(problems.length, 0);
+    assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
+  });
+}
+
+test('inline comma-separated needs, IDs bare or backticked', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Needs: `impl:a#1`, utest:a#1',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
+});
+
 test('invalid ID in a Needs list is reported as a problem', () => {
   const { items, problems } = parse([
     '`req:a#1`',
