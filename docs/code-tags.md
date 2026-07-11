@@ -15,8 +15,8 @@ Tags are written inside comments. The comment style is chosen per file extension
 | SQL | `--` | `/* … */` | `.sql` |
 | Dash (line only) | `--` | – | `.adb` `.ads` `.vhd` `.vhdl` |
 | Lua | `--` | `--[[ … ]]` | `.lua` |
-| Haskell | `--` | `{- … -}` | `.hs` |
-| ML-family | `//` (F#) | `(* … *)` | `.ml` `.mli` `.fs` `.fsi` `.fsx` |
+| Haskell | `--` | `{- … -}` (nestable) | `.hs` |
+| ML-family | `//` (F#) | `(* … *)` (nestable) | `.ml` `.mli` `.fs` `.fsi` `.fsx` |
 | Pascal | `//` | `{ … }`, `(* … *)` | `.pas` `.dpr` |
 | CSS | – | `/* … */` | `.css` |
 | HTML/XML | – | `<!-- … -->` | `.xml` `.svg` |

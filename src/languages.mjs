@@ -25,14 +25,15 @@ const hash = { line: ['#'], block: [] };
 const powershell = { line: ['#'], block: [['<#', '#>']] };
 const sql = { line: ['--'], block: [['/*', '*/']] };
 const lua = { line: ['--'], block: [['--[[', ']]']] };
-const haskell = { line: ['--'], block: [['{-', '-}']] };
+const haskell = { line: ['--'], block: [['{-', '-}', true]] };
 const css = { line: [], block: [['/*', '*/']] };
 const xml = { line: [], block: [['<!--', '-->']] };
 const semicolon = { line: [';'], block: [] };
 const percent = { line: ['%'], block: [] };
 const dashLine = { line: ['--'], block: [] };
-const ml = { line: [], block: [['(*', '*)']] };
-const fsharp = { line: ['//'], block: [['(*', '*)']] };
+// OCaml/F# (* *) nest per spec; Pascal's (* *) does not, so it keeps a plain pair.
+const ml = { line: [], block: [['(*', '*)', true]] };
+const fsharp = { line: ['//'], block: [['(*', '*)', true]] };
 const pascal = { line: ['//'], block: [['{', '}'], ['(*', '*)']] };
 const hcl = { line: ['#', '//'], block: [['/*', '*/']] };
 

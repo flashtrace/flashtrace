@@ -246,6 +246,29 @@ test('OCaml uses (* *) block comments', () => {
   assert.deepEqual(items[0].needs, ['utest:ml/m#1']);
 });
 
+test('OCaml (* *) block comments nest', () => {
+  const { items } = parse('m.ml', [
+    '(* outer (* inner *) [impl:ml/still#1] *)',
+    'let x = 1',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:ml/still#1']);
+});
+
+test('Haskell {- -} block comments nest', () => {
+  const { items } = parse('M.hs', [
+    '{- outer {- inner -} [impl:hs/still#1] -}',
+    'x = 1',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:hs/still#1']);
+});
+
+test('Pascal (* *) does not nest (closes at the first *))', () => {
+  const { items } = parse('u.pas', [
+    '(* outer (* inner *) [impl:p/code-not-tag#1] *)',
+  ]);
+  assert.equal(items.length, 0);
+});
+
 test('Pascal recognises both { } and (* *) block comments', () => {
   const { items } = parse('u.pas', [
     '{ [impl:p/a#1] }',
