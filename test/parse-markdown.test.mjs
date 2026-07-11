@@ -333,6 +333,20 @@ test('a keyword header row without a delimiter row is not a table', () => {
   assert.deepEqual(items[0].needs, []);
 });
 
+// GFM degrades a table whose delimiter row has a deviating cell count to
+// plain text; the tracer must agree with the rendered document.
+test('a delimiter row with a mismatched cell count is not a table', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| A | Needs |',
+    '|---|',
+    '| x | impl:a#1 |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, []);
+});
+
 test('a keyword table terminates the description like a keyword line', () => {
   const { items } = parse([
     '`req:a#1`',

@@ -39,7 +39,7 @@ A table column headed by a bare keyword name (`Needs`, `Covers`, or `Tags` - no 
 | Logout  | impl:auth/logout#1 |             | Bob   |
 ```
 
-- Every table row must start and end with `|`; the header row must be followed by a delimiter row (cells of dashes, alignment colons allowed).
+- Every table row must start and end with `|`; the header row must be followed by a delimiter row with the same number of cells (dashes, alignment colons allowed) - as in GitHub-flavored Markdown, a count mismatch degrades the block to plain text.
 - The keyword column may sit at any position, and one table may combine several keyword columns. All other columns are ignored by the tracer.
 - A cell holds at most one entry; empty (or missing) cells are skipped. Multiple entries simply mean multiple rows.
 - A table whose header contains no keyword cell is ordinary informative text.

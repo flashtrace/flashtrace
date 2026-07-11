@@ -77,7 +77,9 @@ function takeKeywordTable(lines, j, item, file, problems) {
   });
   if (columns.length === 0) return null;
   const delim = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
-  if (!delim?.every((c) => DELIM_CELL_RE.test(c))) return null;
+  // GFM: a delimiter row with a deviating cell count degrades the whole
+  // block to prose, so the tracer must not read it as a table either
+  if (delim?.length !== header.length || !delim.every((c) => DELIM_CELL_RE.test(c))) return null;
   j++;
   while (j + 1 < lines.length) {
     const cells = rowCells(lines[j + 1]);
