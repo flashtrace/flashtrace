@@ -29,6 +29,13 @@ var lua = { line: ["--"], block: [["--[[", "]]"]] };
 var haskell = { line: ["--"], block: [["{-", "-}"]] };
 var css = { line: [], block: [["/*", "*/"]] };
 var xml = { line: [], block: [["<!--", "-->"]] };
+var semicolon = { line: [";"], block: [] };
+var percent = { line: ["%"], block: [] };
+var dashLine = { line: ["--"], block: [] };
+var ml = { line: [], block: [["(*", "*)"]] };
+var fsharp = { line: ["//"], block: [["(*", "*)"]] };
+var pascal = { line: ["//"], block: [["{", "}"], ["(*", "*)"]] };
+var hcl = { line: ["#", "//"], block: [["/*", "*/"]] };
 var html = {
   default: xml,
   regions: [
@@ -77,8 +84,46 @@ var BY_EXT = {
   ".r": hash,
   ".pl": hash,
   ".pm": hash,
+  ".ex": hash,
+  ".exs": hash,
+  ".tcl": hash,
+  ".jl": hash,
+  ".nim": hash,
+  ".graphql": hash,
+  ".gql": hash,
+  ".coffee": hash,
   ".ps1": powershell,
   ".psm1": powershell,
+  ".tf": hcl,
+  ".tfvars": hcl,
+  ".hcl": hcl,
+  // semicolon (Lisp family)
+  ".clj": semicolon,
+  ".cljs": semicolon,
+  ".cljc": semicolon,
+  ".edn": semicolon,
+  ".el": semicolon,
+  ".lisp": semicolon,
+  ".scm": semicolon,
+  ".ss": semicolon,
+  // percent (Erlang, LaTeX)
+  ".erl": percent,
+  ".hrl": percent,
+  ".tex": percent,
+  ".sty": percent,
+  // dash line-only (Ada, VHDL)
+  ".adb": dashLine,
+  ".ads": dashLine,
+  ".vhd": dashLine,
+  ".vhdl": dashLine,
+  // ML-family
+  ".ml": ml,
+  ".mli": ml,
+  ".fs": fsharp,
+  ".fsi": fsharp,
+  ".fsx": fsharp,
+  ".pas": pascal,
+  ".dpr": pascal,
   // dashes and others
   ".sql": sql,
   ".lua": lua,

@@ -25,6 +25,13 @@ const lua = { line: ['--'], block: [['--[[', ']]']] };
 const haskell = { line: ['--'], block: [['{-', '-}']] };
 const css = { line: [], block: [['/*', '*/']] };
 const xml = { line: [], block: [['<!--', '-->']] };
+const semicolon = { line: [';'], block: [] };
+const percent = { line: ['%'], block: [] };
+const dashLine = { line: ['--'], block: [] };
+const ml = { line: [], block: [['(*', '*)']] };
+const fsharp = { line: ['//'], block: [['(*', '*)']] };
+const pascal = { line: ['//'], block: [['{', '}'], ['(*', '*)']] };
+const hcl = { line: ['#', '//'], block: [['/*', '*/']] };
 
 // HTML-family files: HTML comments in markup, but JS comments inside <script>
 // and CSS comments inside <style>. Region enter/exit patterns are global so the
@@ -51,7 +58,20 @@ const BY_EXT = {
   // hash line comments
   '.py': hash, '.rb': hash, '.sh': hash, '.bash': hash, '.zsh': hash,
   '.yaml': hash, '.yml': hash, '.toml': hash, '.r': hash, '.pl': hash, '.pm': hash,
+  '.ex': hash, '.exs': hash, '.tcl': hash, '.jl': hash, '.nim': hash,
+  '.graphql': hash, '.gql': hash, '.coffee': hash,
   '.ps1': powershell, '.psm1': powershell,
+  '.tf': hcl, '.tfvars': hcl, '.hcl': hcl,
+  // semicolon (Lisp family)
+  '.clj': semicolon, '.cljs': semicolon, '.cljc': semicolon, '.edn': semicolon,
+  '.el': semicolon, '.lisp': semicolon, '.scm': semicolon, '.ss': semicolon,
+  // percent (Erlang, LaTeX)
+  '.erl': percent, '.hrl': percent, '.tex': percent, '.sty': percent,
+  // dash line-only (Ada, VHDL)
+  '.adb': dashLine, '.ads': dashLine, '.vhd': dashLine, '.vhdl': dashLine,
+  // ML-family
+  '.ml': ml, '.mli': ml, '.fs': fsharp, '.fsi': fsharp, '.fsx': fsharp,
+  '.pas': pascal, '.dpr': pascal,
   // dashes and others
   '.sql': sql,
   '.lua': lua,

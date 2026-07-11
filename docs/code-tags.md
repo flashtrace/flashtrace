@@ -6,11 +6,17 @@ Tags are written inside comments. The comment style is chosen per file extension
 |---|---|---|---|
 | C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.dart` `.php` `.proto` `.scss` `.less` |
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
-| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pl` `.pm` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pl` `.pm` `.ex` `.exs` `.tcl` `.jl` `.nim` `.graphql` `.gql` `.coffee` |
 | PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
+| HCL | `#` `//` | `/* … */` | `.tf` `.tfvars` `.hcl` |
+| Semicolon | `;` | – | `.clj` `.cljs` `.cljc` `.edn` `.el` `.lisp` `.scm` `.ss` |
+| Percent | `%` | – | `.erl` `.hrl` `.tex` `.sty` |
 | SQL | `--` | `/* … */` | `.sql` |
+| Dash (line only) | `--` | – | `.adb` `.ads` `.vhd` `.vhdl` |
 | Lua | `--` | `--[[ … ]]` | `.lua` |
 | Haskell | `--` | `{- … -}` | `.hs` |
+| ML-family | `//` (F#) | `(* … *)` | `.ml` `.mli` `.fs` `.fsi` `.fsx` |
+| Pascal | `//` | `{ … }`, `(* … *)` | `.pas` `.dpr` |
 | CSS | – | `/* … */` | `.css` |
 | HTML/XML | – | `<!-- … -->` | `.xml` `.svg` |
 | HTML + embedded | – | `<!-- … -->` (markup) | `.html` `.htm` `.vue` `.svelte` |

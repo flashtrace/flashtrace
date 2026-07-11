@@ -206,6 +206,49 @@ test('CSS honours /* */ but not //', () => {
   assert.equal(items[0].id, 'impl:ui/theme#1');
 });
 
+test('semicolon-comment languages (Clojure) recognise ; tags', () => {
+  const { items } = parse('core.clj', ['; [impl:app/core#1]']);
+  assert.deepEqual(items.map((i) => i.id), ['impl:app/core#1']);
+});
+
+test('percent-comment languages (Erlang) recognise % tags', () => {
+  const { items } = parse('mod.erl', ['% [impl:erl/mod#1]']);
+  assert.deepEqual(items.map((i) => i.id), ['impl:erl/mod#1']);
+});
+
+test('OCaml uses (* *) block comments', () => {
+  const { items } = parse('m.ml', ['(* [impl:ml/m#1] [>>utest:ml/m#1] *)']);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:ml/m#1']);
+});
+
+test('Pascal recognises both { } and (* *) block comments', () => {
+  const { items } = parse('u.pas', [
+    '{ [impl:p/a#1] }',
+    '(* [impl:p/b#1] *)',
+    '// [impl:p/c#1]',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:p/a#1', 'impl:p/b#1', 'impl:p/c#1']);
+});
+
+test('Pascal (* *) block comment spans multiple lines', () => {
+  const { items } = parse('u.pas', [
+    '(* [impl:p/a#1]',
+    '   [>>utest:p/a#1] *)',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:p/a#1']);
+});
+
+test('HCL honours #, // and /* */ comments', () => {
+  const { items } = parse('main.tf', [
+    '# [impl:tf/a#1]',
+    '// [impl:tf/b#1]',
+    '/* [impl:tf/c#1] */',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:tf/a#1', 'impl:tf/b#1', 'impl:tf/c#1']);
+});
+
 test('forwarding tag in a comment, spaces around --> optional', () => {
   const { items, problems, forwards } = parse('src.ts', [
     '// [req:login#1 --> dsn:auth#2]',
