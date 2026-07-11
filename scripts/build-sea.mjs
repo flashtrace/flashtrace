@@ -1,6 +1,8 @@
 /**
  * Builds a self-contained flashtrace executable for the current platform
- * using Node's Single Executable Application (SEA) support.
+ * using Node's Single Executable Application (SEA) support. SEA embeds Node
+ * itself, giving a single binary that is executable everywhere - requirement
+ * tracing that works anywhere, with nothing to install on the host.
  *
  * Steps:
  *   1. Bundle src/sea-entry.mjs to CommonJS (the only format SEA accepts),

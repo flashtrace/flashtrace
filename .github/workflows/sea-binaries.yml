@@ -70,8 +70,8 @@ jobs:
           path: dist-sea/flashtrace-v*
           if-no-files-found: error
 
-  # The checksums ship as a release asset and are also baked into the
-  # ecosystem wrappers at publish time (see docs/wrappers.md).
+  # The checksums ship as a release asset so every downloaded binary can be
+  # verified with `sha256sum --check` (see docs/binaries.md).
   checksums:
     name: Assemble SHA256SUMS
     needs: build
