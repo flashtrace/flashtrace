@@ -81,14 +81,16 @@ function nextEvent(s, pos, grammar, state) {
 }
 
 // consume text while a block comment is open, honoring nested openers when the
-// grammar marks the pair nestable (Rust, Swift, Kotlin, Scala, ...). Mutates
-// block.depth; returns the comment text and where scanning resumes.
-function readBlockRest(s, pos, block) {
+// grammar marks the pair nestable (Rust, Swift, Kotlin, Scala, ...). Scanning
+// stops at `limit` (used to cap a block at a region exit); mutates block.depth
+// and returns the comment text and where scanning resumes.
+function readBlockRest(s, pos, block, limit = s.length) {
   const { open, close, nestable } = block;
+  const within = (idx) => (idx !== -1 && idx < limit ? idx : -1);
   let i = pos;
-  while (i < s.length) {
-    const closeIdx = s.indexOf(close, i);
-    const openIdx = nestable ? s.indexOf(open, i) : -1;
+  while (i < limit) {
+    const closeIdx = within(s.indexOf(close, i));
+    const openIdx = within(nestable ? s.indexOf(open, i) : -1);
     if (closeIdx === -1 && openIdx === -1) break;
     if (openIdx !== -1 && (closeIdx === -1 || openIdx < closeIdx)) {
       block.depth++;
@@ -99,37 +101,75 @@ function readBlockRest(s, pos, block) {
     i = closeIdx + close.length;
     if (block.depth === 0) return { text: s.slice(pos, closeIdx) + ' ', pos: i, closed: true };
   }
-  return { text: s.slice(pos) + ' ', pos: s.length, closed: false };
+  return { text: s.slice(pos, limit) + ' ', pos: limit, closed: false };
+}
+
+// the region's exit match at or after pos on this line, or null
+function regionExitAt(s, pos, region) {
+  const m = matchAt(region.exit, s, pos);
+  return m ? { idx: m.index, len: m[0].length } : null;
+}
+
+// advance over an open block comment, capped at the region exit if one is ahead;
+// returns { text, pos } and updates state.block / state.region.
+function consumeBlock(s, pos, state, exit) {
+  const rest = readBlockRest(s, pos, state.block, exit ? exit.idx : s.length);
+  if (rest.closed) {
+    state.block = null;
+    return { text: rest.text, pos: rest.pos };
+  }
+  if (exit) {
+    // exit reached before the block closed: end block and region together
+    state.block = null;
+    state.region = null;
+    return { text: rest.text, pos: exit.idx + exit.len };
+  }
+  return { text: rest.text, pos: rest.pos };
+}
+
+// consume a line comment from pos: to the region exit if one is ahead (the
+// region then ends), otherwise to end of line. `done` means stop scanning.
+function consumeLine(s, pos, state, exit) {
+  if (exit) {
+    state.region = null;
+    return { text: s.slice(pos, exit.idx) + ' ', pos: exit.idx + exit.len, done: false };
+  }
+  return { text: s.slice(pos) + ' ', pos: s.length, done: true };
 }
 
 // comment text of one line. state.block carries an open block comment (its
-// open/close tokens and nesting depth) across lines; state.region carries the active composite region
-// across lines. Region boundaries are only recognized outside comments, so an
-// HTML comment such as `<!-- <script> -->` never opens a script region.
+// open/close tokens and nesting depth) across lines; state.region carries the
+// active composite region across lines. A region *enter* is only recognized
+// outside comments (so `<!-- <script> -->` never opens a script region), but a
+// region *exit* is a hard boundary that ends the region even mid-comment, the
+// way a browser terminates a raw-text element at the first `</script>`.
 function commentText(s, state, grammar) {
   let comment = '';
   let pos = 0;
   while (pos < s.length) {
+    const exit = state.region ? regionExitAt(s, pos, state.region) : null;
+
     if (state.block) {
-      const rest = readBlockRest(s, pos, state.block);
-      comment += rest.text;
-      pos = rest.pos;
-      if (rest.closed) state.block = null;
+      const r = consumeBlock(s, pos, state, exit);
+      comment += r.text;
+      pos = r.pos;
       continue;
     }
+
     const ev = nextEvent(s, pos, grammar, state);
     if (!ev) break;
     pos = ev.idx + ev.len;
     if (ev.kind === 'line') {
-      comment += s.slice(pos) + ' ';
-      break;
+      const r = consumeLine(s, pos, state, exit);
+      comment += r.text;
+      pos = r.pos;
+      if (r.done) break;
     } else if (ev.kind === 'block') {
       state.block = { open: ev.open, close: ev.close, nestable: ev.nestable, depth: 1 };
     } else if (ev.kind === 'enter') {
       state.region = ev.region;
     } else {
-      // 'exit': a block comment cannot straddle a region boundary
-      state.region = null;
+      state.region = null; // 'exit'
       state.block = null;
     }
   }

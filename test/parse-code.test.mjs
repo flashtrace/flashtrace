@@ -358,3 +358,27 @@ test('plain .html files scan markup, script and style regions', () => {
     ['impl:web/page#1', 'impl:web/script#1', 'impl:web/style#1'],
   );
 });
+
+test('a line comment before </script> does not swallow the region exit', () => {
+  const { items } = parse('page.html', [
+    '<script>// setup</script>',
+    '<p>// [impl:phantom#1]</p>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('an unclosed block comment before </script> still ends the region', () => {
+  const { items } = parse('page.html', [
+    '<script>/* note </script>',
+    '<p>// [impl:phantom#1]</p>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('a tag before </script> on the same line is still captured', () => {
+  const { items } = parse('page.html', [
+    '<script>// [impl:web/inline#1]</script>',
+    '<p>plain markup</p>',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:web/inline#1']);
+});

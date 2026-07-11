@@ -423,12 +423,13 @@ function nextEvent(s, pos, grammar, state) {
   for (const ev of regionEvents(s, pos, grammar, state)) consider(ev.idx, ev);
   return best;
 }
-function readBlockRest(s, pos, block) {
+function readBlockRest(s, pos, block, limit = s.length) {
   const { open, close, nestable } = block;
+  const within = (idx) => idx !== -1 && idx < limit ? idx : -1;
   let i = pos;
-  while (i < s.length) {
-    const closeIdx = s.indexOf(close, i);
-    const openIdx = nestable ? s.indexOf(open, i) : -1;
+  while (i < limit) {
+    const closeIdx = within(s.indexOf(close, i));
+    const openIdx = within(nestable ? s.indexOf(open, i) : -1);
     if (closeIdx === -1 && openIdx === -1) break;
     if (openIdx !== -1 && (closeIdx === -1 || openIdx < closeIdx)) {
       block.depth++;
@@ -439,25 +440,51 @@ function readBlockRest(s, pos, block) {
     i = closeIdx + close.length;
     if (block.depth === 0) return { text: s.slice(pos, closeIdx) + " ", pos: i, closed: true };
   }
-  return { text: s.slice(pos) + " ", pos: s.length, closed: false };
+  return { text: s.slice(pos, limit) + " ", pos: limit, closed: false };
+}
+function regionExitAt(s, pos, region) {
+  const m = matchAt(region.exit, s, pos);
+  return m ? { idx: m.index, len: m[0].length } : null;
+}
+function consumeBlock(s, pos, state, exit) {
+  const rest = readBlockRest(s, pos, state.block, exit ? exit.idx : s.length);
+  if (rest.closed) {
+    state.block = null;
+    return { text: rest.text, pos: rest.pos };
+  }
+  if (exit) {
+    state.block = null;
+    state.region = null;
+    return { text: rest.text, pos: exit.idx + exit.len };
+  }
+  return { text: rest.text, pos: rest.pos };
+}
+function consumeLine(s, pos, state, exit) {
+  if (exit) {
+    state.region = null;
+    return { text: s.slice(pos, exit.idx) + " ", pos: exit.idx + exit.len, done: false };
+  }
+  return { text: s.slice(pos) + " ", pos: s.length, done: true };
 }
 function commentText(s, state, grammar) {
   let comment = "";
   let pos = 0;
   while (pos < s.length) {
+    const exit = state.region ? regionExitAt(s, pos, state.region) : null;
     if (state.block) {
-      const rest = readBlockRest(s, pos, state.block);
-      comment += rest.text;
-      pos = rest.pos;
-      if (rest.closed) state.block = null;
+      const r = consumeBlock(s, pos, state, exit);
+      comment += r.text;
+      pos = r.pos;
       continue;
     }
     const ev = nextEvent(s, pos, grammar, state);
     if (!ev) break;
     pos = ev.idx + ev.len;
     if (ev.kind === "line") {
-      comment += s.slice(pos) + " ";
-      break;
+      const r = consumeLine(s, pos, state, exit);
+      comment += r.text;
+      pos = r.pos;
+      if (r.done) break;
     } else if (ev.kind === "block") {
       state.block = { open: ev.open, close: ev.close, nestable: ev.nestable, depth: 1 };
     } else if (ev.kind === "enter") {
