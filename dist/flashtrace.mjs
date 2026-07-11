@@ -18,8 +18,73 @@ var UsageError = class extends Error {
 import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+
+// src/languages.mjs
+var cLike = { line: ["//"], block: [["/*", "*/"]] };
+var hash = { line: ["#"], block: [] };
+var powershell = { line: ["#"], block: [["<#", "#>"]] };
+var sql = { line: ["--"], block: [["/*", "*/"]] };
+var lua = { line: ["--"], block: [["--[[", "]]"]] };
+var haskell = { line: ["--"], block: [["{-", "-}"]] };
+var css = { line: [], block: [["/*", "*/"]] };
+var xml = { line: [], block: [["<!--", "-->"]] };
+var vue = { line: ["//"], block: [["/*", "*/"], ["<!--", "-->"]] };
+var BY_EXT = {
+  // C-family: // line, /* */ block
+  ".ts": cLike,
+  ".js": cLike,
+  ".mjs": cLike,
+  ".cjs": cLike,
+  ".jsx": cLike,
+  ".tsx": cLike,
+  ".cts": cLike,
+  ".mts": cLike,
+  ".c": cLike,
+  ".h": cLike,
+  ".cpp": cLike,
+  ".cc": cLike,
+  ".hpp": cLike,
+  ".cs": cLike,
+  ".java": cLike,
+  ".go": cLike,
+  ".rs": cLike,
+  ".swift": cLike,
+  ".kt": cLike,
+  ".kts": cLike,
+  ".scala": cLike,
+  ".dart": cLike,
+  ".php": cLike,
+  ".proto": cLike,
+  ".scss": cLike,
+  ".less": cLike,
+  // hash line comments
+  ".py": hash,
+  ".rb": hash,
+  ".sh": hash,
+  ".bash": hash,
+  ".zsh": hash,
+  ".yaml": hash,
+  ".yml": hash,
+  ".toml": hash,
+  ".r": hash,
+  ".pl": hash,
+  ".pm": hash,
+  ".ps1": powershell,
+  ".psm1": powershell,
+  // dashes and others
+  ".sql": sql,
+  ".lua": lua,
+  ".hs": haskell,
+  ".css": css,
+  ".xml": xml,
+  ".svg": xml,
+  ".vue": vue
+};
+var CODE_EXT = new Set(Object.keys(BY_EXT));
+var grammarFor = (ext) => BY_EXT[ext] ?? null;
+
+// src/files.mjs
 var MD_EXT = /* @__PURE__ */ new Set([".md", ".markdown"]);
-var CODE_EXT = /* @__PURE__ */ new Set([".ts", ".js", ".mjs", ".sql", ".vue"]);
 var GIT_LOCATIONS = process.platform === "win32" ? [
   String.raw`C:\Program Files\Git\cmd\git.exe`,
   String.raw`C:\Program Files (x86)\Git\cmd\git.exe`
@@ -257,14 +322,16 @@ var TAG_RE = new RegExp(
   "g"
 );
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
-var BLOCK_CLOSERS = { c: "*/", html: "-->" };
-function findCommentStart(s, pos, lineMarkers, htmlBlocks) {
-  const candidates = lineMarkers.map((m) => ({ idx: s.indexOf(m, pos), kind: "line", len: m.length }));
-  candidates.push({ idx: s.indexOf("/*", pos), kind: "c", len: 2 });
-  if (htmlBlocks) candidates.push({ idx: s.indexOf("<!--", pos), kind: "html", len: 4 });
+function findCommentStart(s, pos, grammar) {
   let best = null;
-  for (const cand of candidates) {
-    if (cand.idx !== -1 && (best === null || cand.idx < best.idx)) best = cand;
+  const consider = (idx, ev) => {
+    if (idx !== -1 && (best === null || idx < best.idx)) best = { ...ev, idx };
+  };
+  for (const marker of grammar.line) {
+    consider(s.indexOf(marker, pos), { kind: "line", len: marker.length });
+  }
+  for (const [open, close] of grammar.block) {
+    consider(s.indexOf(open, pos), { kind: "block", len: open.length, closer: close });
   }
   return best;
 }
@@ -273,24 +340,24 @@ function readBlockRest(s, pos, closer) {
   if (end === -1) return { text: s.slice(pos) + " ", pos: s.length, closed: false };
   return { text: s.slice(pos, end) + " ", pos: end + closer.length, closed: true };
 }
-function commentText(s, state, lineMarkers, htmlBlocks) {
+function commentText(s, state, grammar) {
   let comment = "";
   let pos = 0;
   while (pos < s.length) {
     if (state.block) {
-      const rest = readBlockRest(s, pos, BLOCK_CLOSERS[state.block]);
+      const rest = readBlockRest(s, pos, state.block);
       comment += rest.text;
       pos = rest.pos;
       if (rest.closed) state.block = null;
     } else {
-      const start = findCommentStart(s, pos, lineMarkers, htmlBlocks);
+      const start = findCommentStart(s, pos, grammar);
       if (!start) break;
       pos = start.idx + start.len;
       if (start.kind === "line") {
         comment += s.slice(pos) + " ";
         pos = s.length;
       } else {
-        state.block = start.kind;
+        state.block = start.closer;
       }
     }
   }
@@ -329,15 +396,15 @@ function collectTags(comment, file, line, state, items, problems) {
     }
   }
 }
+var FALLBACK = { line: ["//"], block: [["/*", "*/"]] };
 function parseCode(file, text, problems, forwards = []) {
   const ext = path2.extname(file).toLowerCase();
+  const grammar = grammarFor(ext) ?? FALLBACK;
   const lines = text.split(/\r?\n/);
   const items = [];
-  const lineMarkers = ext === ".sql" ? ["--"] : ["//"];
-  const htmlBlocks = ext === ".vue";
   const state = { last: null, byId: /* @__PURE__ */ new Map(), block: null };
   for (let i = 0; i < lines.length; i++) {
-    const comment = commentText(lines[i], state, lineMarkers, htmlBlocks);
+    const comment = commentText(lines[i], state, grammar);
     for (const m of comment.matchAll(FORWARD_RE)) {
       forwards.push(mkForward(m, 1, file, i + 1));
     }

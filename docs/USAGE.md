@@ -11,8 +11,9 @@ flashtrace [options] [directory-or-file ...]
 ```
 
 Scans the given directories/files (default: current directory) for Markdown
-(`.md`, `.markdown`) and code files (`.ts`, `.js`, `.mjs`, `.sql`, `.vue`).
-Files ignored by git are excluded.
+(`.md`, `.markdown`) and code files across many languages (C-family, Python,
+Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
+[Code tags](code-tags.md) for the full list). Files ignored by git are excluded.
 
 | Option | Effect |
 |---|---|

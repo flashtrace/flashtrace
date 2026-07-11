@@ -128,6 +128,51 @@ test('SQL uses -- comments and does not honour //', () => {
   assert.equal(items[0].id, 'impl:db/schema#1');
 });
 
+test('hash-comment languages (Python) recognise # tags', () => {
+  const { items } = parse('app.py', [
+    '# [impl:app/main#1]',
+    'x = "// [impl:not-a-tag#1]"  # not a comment tag context',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:app/main#1');
+});
+
+test('C-like extras (Go) use // and /* */', () => {
+  const { items } = parse('main.go', [
+    '// [impl:svc/run#1]',
+    '/* [>>utest:svc/run#1] */',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:svc/run#1']);
+});
+
+test('Lua uses -- line and --[[ ]] block comments', () => {
+  const { items } = parse('mod.lua', [
+    '-- [impl:lua/mod#1]',
+    '--[[ [>>utest:lua/mod#1] ]]',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:lua/mod#1']);
+});
+
+test('PowerShell uses # line and <# #> block comments', () => {
+  const { items } = parse('deploy.ps1', [
+    '# [impl:ops/deploy#1]',
+    '<# [>>utest:ops/deploy#1] #>',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:ops/deploy#1']);
+});
+
+test('CSS honours /* */ but not //', () => {
+  const { items } = parse('theme.css', [
+    '/* [impl:ui/theme#1] */',
+    '// [impl:not-a-tag#1]',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:ui/theme#1');
+});
+
 test('forwarding tag in a comment, spaces around --> optional', () => {
   const { items, problems, forwards } = parse('src.ts', [
     '// [req:login#1 --> dsn:auth#2]',

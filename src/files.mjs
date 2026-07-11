@@ -8,9 +8,10 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 import { UsageError } from './errors.mjs';
+import { CODE_EXT } from './languages.mjs';
 
 export const MD_EXT = new Set(['.md', '.markdown']);
-export const CODE_EXT = new Set(['.ts', '.js', '.mjs', '.sql', '.vue']);
+export { CODE_EXT };
 
 // git is looked up in fixed, non-user-writable install locations only, never
 // via PATH (writable PATH entries would allow binary planting).

@@ -1,6 +1,19 @@
-# Code tags (`.ts`, `.js`, `.mjs`, `.sql`, `.vue`)
+# Code tags
 
-Tags are written inside comments - `//`, `/* … */`, `<!-- … -->` (Vue), or `--` (SQL). Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
+Tags are written inside comments. The comment style is chosen per file extension, so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
+
+| Comment family | Line | Block | Extensions |
+|---|---|---|---|
+| C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.rs` `.swift` `.kt` `.kts` `.scala` `.dart` `.php` `.proto` `.scss` `.less` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pl` `.pm` |
+| PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
+| SQL | `--` | `/* … */` | `.sql` |
+| Lua | `--` | `--[[ … ]]` | `.lua` |
+| Haskell | `--` | `{- … -}` | `.hs` |
+| CSS | – | `/* … */` | `.css` |
+| HTML/XML | – | `<!-- … -->` | `.xml` `.svg` `.vue` |
+
+Vue single-file components additionally recognise `//` and `/* … */` so tags inside `<script>` blocks are found.
 
 - `[<type>:[<group>/…]<name>#<revision>]` - defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
 - `[>><type>:[<group>/…]<name>#<revision>]` - attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.
