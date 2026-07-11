@@ -77,16 +77,15 @@ function needEdges(it, byId, matchesOf, c, dimLoc) {
   return lines;
 }
 
-// role-appropriate edges: a markdown item its needs, a code item who wants it,
-// a forwarding source its target (its own needs are excused)
+// role-appropriate edges: a markdown item its needs, a forwarding source its
+// target (its own needs are excused), and every item who wants it - so a code
+// item's own needs stay visible on their targets, whatever origin those have
 function edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc) {
   const lines = [];
   if (it.forwardsTo !== null) lines.push(forwardEdge(it, byId, c, dimLoc));
   else if (it.origin === 'markdown') lines.push(...needEdges(it, byId, matchesOf, c, dimLoc));
-  if (it.origin === 'code') {
-    for (const w of wantedBy.get(it) ?? [])
-      lines.push(`    ${c.dim('wanted by')} ${w.id}  ${dimLoc(w.file, w.line)}`);
-  }
+  for (const w of wantedBy.get(it) ?? [])
+    lines.push(`    ${c.dim('wanted by')} ${w.id}  ${dimLoc(w.file, w.line)}`);
   return lines;
 }
 

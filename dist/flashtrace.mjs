@@ -775,10 +775,8 @@ function edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc) {
   const lines = [];
   if (it.forwardsTo !== null) lines.push(forwardEdge(it, byId, c, dimLoc));
   else if (it.origin === "markdown") lines.push(...needEdges(it, byId, matchesOf, c, dimLoc));
-  if (it.origin === "code") {
-    for (const w of wantedBy.get(it) ?? [])
-      lines.push(`    ${c.dim("wanted by")} ${w.id}  ${dimLoc(w.file, w.line)}`);
-  }
+  for (const w of wantedBy.get(it) ?? [])
+    lines.push(`    ${c.dim("wanted by")} ${w.id}  ${dimLoc(w.file, w.line)}`);
   return lines;
 }
 function renderVerbose(items, out, c, dimLoc) {

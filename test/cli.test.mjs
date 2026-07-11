@@ -159,6 +159,18 @@ test('-v renders a forwarding source as an arrow edge to its target', async () =
   });
 });
 
+test('-v shows a code item\'s need on a markdown target as wanted by', async () => {
+  const files = {
+    'spec.md': ['`req:top#1`', '', 'Needs: impl:a#1', '', '`dsn:spec#1`'],
+    'login.ts': ['// [impl:a#1]', '// [>>dsn:spec#1]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /✔ dsn:spec#1\s+spec\.md:5\s+\[deep-covered\]\n\s+wanted by impl:a#1\s+login\.ts:1/);
+  });
+});
+
 test('-v marks an item with a defective downstream chain as shallow-covered', async () => {
   const files = {
     'spec.md': ['`req:a#1`', '', 'Needs: req:b#1', '', '`req:b#1`', '', 'Needs: impl:missing#1'],

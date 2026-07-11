@@ -28,7 +28,7 @@ Each item carries a status marker matching the three states the summary distingu
 Below its status line, an item shows its role-appropriate trace edges:
 
 - a **Markdown item** lists one `needs <ref>` line per `Needs` entry: `✔` with the location of the covering item, or `✘ missing`. A wildcard reference additionally shows each resolved revision as `(→ <resolved-id>)`.
-- a **code item** lists `wanted by <id>` for every item that needs it; its own needs (from `>>` need tags) are not listed — they appear as `wanted by` on their targets, and a missing one only as its `uncovered` defect.
+- **every item** lists `wanted by <id>` for each item that needs it. A code item's own needs (from `>>` need tags) are not listed on the item itself — they appear as `wanted by` on their targets (of any origin), and a missing one only as its `uncovered` defect.
 - a **forwarding source** shows `→ <target-id>` instead of its needs, which are excused (see [Forwarding](forwarding.md)).
 
 ```
