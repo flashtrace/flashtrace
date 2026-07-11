@@ -6,7 +6,7 @@ import process4 from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // src/cli.mjs
-import { promises as fs2 } from "node:fs";
+import { promises as fs2, readFileSync } from "node:fs";
 import path4 from "node:path";
 import process3 from "node:process";
 
@@ -548,14 +548,22 @@ Options:
   -t, --tags <t1,t2,...>   only import markdown items carrying one of these
                            tags; add "_" to also include untagged items
   -h, --help               show this help
+  -v, --version            print the version number
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
+function packageVersion() {
+  const pkg = new URL("../package.json", import.meta.url);
+  return JSON.parse(readFileSync(pkg, "utf8")).version;
+}
 function parseArgs(argv) {
   const opts = { dirs: [], tags: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "-h" || a === "--help") {
       console.log(HELP);
+      process3.exit(0);
+    } else if (a === "-v" || a === "--version") {
+      console.log(packageVersion());
       process3.exit(0);
     } else if (a === "-t" || a === "--tags") {
       const v = argv[++i];
