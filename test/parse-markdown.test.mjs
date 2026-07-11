@@ -96,6 +96,32 @@ test('inline comma-separated needs, IDs bare or backticked', () => {
   assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
 });
 
+// Covers shares the same list machinery as Needs: every bullet marker and
+// bare/backticked IDs must work identically, inline or as a bullet list.
+for (const marker of ['-', '*', '+']) {
+  test(`covers as "${marker}" bullet list, IDs bare or backticked`, () => {
+    const { items, problems } = parse([
+      '`req:a#1`',
+      '',
+      'Covers:',
+      `${marker} \`feat:a#1\``,
+      `${marker} feat:b#1`,
+    ]);
+    assert.equal(problems.length, 0);
+    assert.deepEqual(items[0].covers, ['feat:a#1', 'feat:b#1']);
+  });
+}
+
+test('inline comma-separated covers, IDs bare or backticked', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Covers: `feat:a#1`, feat:b#1',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].covers, ['feat:a#1', 'feat:b#1']);
+});
+
 test('invalid ID in a Needs list is reported as a problem', () => {
   const { items, problems } = parse([
     '`req:a#1`',
