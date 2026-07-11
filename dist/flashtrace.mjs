@@ -157,7 +157,6 @@ var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
-var TABLE_ROW_RE = /^\s*\|(.*)\|\s*$/;
 var DELIM_CELL_RE = /^:?-+:?$/;
 var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
 var isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
@@ -189,8 +188,11 @@ function keywordEntries(lines, j, inline) {
   return { entries, j };
 }
 function rowCells(line) {
-  const m = line.match(TABLE_ROW_RE);
-  return m ? m[1].split("|").map((s) => s.trim()) : null;
+  let s = line.trim();
+  if (!s.includes("|")) return null;
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|")) s = s.slice(0, -1);
+  return s.split("|").map((c) => c.trim());
 }
 function takeKeywordTable(lines, j, item, file, problems) {
   const header = rowCells(lines[j]);
@@ -203,7 +205,7 @@ function takeKeywordTable(lines, j, item, file, problems) {
   const delim = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
   if (delim?.length !== header.length || !delim.every((c) => DELIM_CELL_RE.test(c))) return null;
   j++;
-  while (j + 1 < lines.length) {
+  while (j + 1 < lines.length && !isBoundary(lines[j + 1])) {
     const cells = rowCells(lines[j + 1]);
     if (!cells) break;
     j++;

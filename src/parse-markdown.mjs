@@ -17,7 +17,6 @@ const DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
-const TABLE_ROW_RE = /^\s*\|(.*)\|\s*$/;
 const DELIM_CELL_RE = /^:?-+:?$/;
 // group 1 is the optional backtick; the \1 backreference keeps it balanced,
 // so the two ID captures start at group 2
@@ -58,10 +57,14 @@ function keywordEntries(lines, j, inline) {
   return { entries, j };
 }
 
-// cells of a `| a | b |` table row (leading/trailing pipe required), or null
+// cells of a `| a | b |` table row, or null; as in GFM, one leading and one
+// trailing pipe are optional, but a row must contain at least one pipe
 function rowCells(line) {
-  const m = line.match(TABLE_ROW_RE);
-  return m ? m[1].split('|').map((s) => s.trim()) : null;
+  let s = line.trim();
+  if (!s.includes('|')) return null;
+  if (s.startsWith('|')) s = s.slice(1);
+  if (s.endsWith('|')) s = s.slice(0, -1);
+  return s.split('|').map((c) => c.trim());
 }
 
 // a table whose header row contains keyword cells ("Needs", "Covers", "Tags")
@@ -81,7 +84,9 @@ function takeKeywordTable(lines, j, item, file, problems) {
   // block to prose, so the tracer must not read it as a table either
   if (delim?.length !== header.length || !delim.every((c) => DELIM_CELL_RE.test(c))) return null;
   j++;
-  while (j + 1 < lines.length) {
+  // like GFM, the table ends at a new block-level element (here: a heading
+  // or an item definition), even when that line contains a pipe
+  while (j + 1 < lines.length && !isBoundary(lines[j + 1])) {
     const cells = rowCells(lines[j + 1]);
     if (!cells) break;
     j++;

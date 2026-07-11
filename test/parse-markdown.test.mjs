@@ -333,6 +333,36 @@ test('a keyword header row without a delimiter row is not a table', () => {
   assert.deepEqual(items[0].needs, []);
 });
 
+// GFM renders tables without leading/trailing pipes too; the tracer must
+// recognize them as well - only at least one pipe per row is required.
+test('keyword table without leading/trailing pipes', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Feature | Needs | Owner',
+    '--- | --- | ---',
+    'Login | impl:a#1 | Alice',
+    'Logout | utest:a#1 | Bob',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
+});
+
+test('a pipe-bearing heading ends the table like any block element', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Needs |',
+    '--- |',
+    'impl:a#1 |',
+    '## Next | chapter',
+    '`req:b#1`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
 // GFM degrades a table whose delimiter row has a deviating cell count to
 // plain text; the tracer must agree with the rendered document.
 test('a delimiter row with a mismatched cell count is not a table', () => {
