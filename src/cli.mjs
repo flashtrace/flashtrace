@@ -1,4 +1,4 @@
-import { promises as fs, readFileSync } from 'node:fs';
+import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -25,16 +25,7 @@ Options:
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
 
-// The version lives only in package.json: the release workflow bumps it there
-// after dist/ is built, so it must be read at runtime rather than baked into
-// the bundle (which would also let esbuild inline it). Both src/cli.mjs and
-// dist/flashtrace.mjs sit one level below the package root.
-function packageVersion() {
-  const pkg = new URL('../package.json', import.meta.url);
-  return JSON.parse(readFileSync(pkg, 'utf8')).version;
-}
-
-function parseArgs(argv) {
+function parseArgs(argv, version) {
   const opts = { dirs: [], tags: null, verbose: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -44,7 +35,7 @@ function parseArgs(argv) {
     } else if (a === '-v' || a === '--verbose') {
       opts.verbose = true;
     } else if (a === '-V' || a === '--version') {
-      console.log(packageVersion());
+      console.log(version());
       process.exit(0);
     } else if (a === '-t' || a === '--tags') {
       const v = argv[++i];
@@ -60,8 +51,8 @@ function parseArgs(argv) {
   return opts;
 }
 
-async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+async function main(version) {
+  const opts = parseArgs(process.argv.slice(2), version);
   const files = await collectFiles(opts.dirs);
   const problems = [];
   const forwards = [];
@@ -92,8 +83,10 @@ async function main() {
   process.exit(clean ? 0 : 1);
 }
 
-export function runCli() {
-  main().catch((err) => {
+// Each entry point supplies its own version source: src/main.mjs reads it
+// from package.json at runtime, src/sea-entry.mjs bakes it in at build time.
+export function runCli({ version }) {
+  main(version).catch((err) => {
     if (err instanceof UsageError) {
       console.error(`error: ${err.message}\n\n${HELP}`);
       process.exit(2);

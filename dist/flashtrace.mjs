@@ -6,7 +6,7 @@ import process4 from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // src/cli.mjs
-import { promises as fs2, readFileSync } from "node:fs";
+import { promises as fs2 } from "node:fs";
 import path4 from "node:path";
 import process3 from "node:process";
 
@@ -895,11 +895,7 @@ Options:
   -h, --help               show this help
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
-function packageVersion() {
-  const pkg = new URL("../package.json", import.meta.url);
-  return JSON.parse(readFileSync(pkg, "utf8")).version;
-}
-function parseArgs(argv) {
+function parseArgs(argv, version) {
   const opts = { dirs: [], tags: null, verbose: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -909,7 +905,7 @@ function parseArgs(argv) {
     } else if (a === "-v" || a === "--verbose") {
       opts.verbose = true;
     } else if (a === "-V" || a === "--version") {
-      console.log(packageVersion());
+      console.log(version());
       process3.exit(0);
     } else if (a === "-t" || a === "--tags") {
       const v = argv[++i];
@@ -924,8 +920,8 @@ function parseArgs(argv) {
   if (opts.dirs.length === 0) opts.dirs.push(".");
   return opts;
 }
-async function main() {
-  const opts = parseArgs(process3.argv.slice(2));
+async function main(version) {
+  const opts = parseArgs(process3.argv.slice(2), version);
   const files = await collectFiles(opts.dirs);
   const problems = [];
   const forwards = [];
@@ -947,8 +943,8 @@ async function main() {
   const clean = report(items, problems, process3.cwd(), { verbose: opts.verbose });
   process3.exit(clean ? 0 : 1);
 }
-function runCli() {
-  main().catch((err) => {
+function runCli({ version }) {
+  main(version).catch((err) => {
     if (err instanceof UsageError) {
       console.error(`error: ${err.message}
 
@@ -958,6 +954,13 @@ ${HELP}`);
     console.error(err);
     process3.exit(2);
   });
+}
+
+// src/version.mjs
+import { readFileSync } from "node:fs";
+function packageVersion() {
+  const pkg = new URL("../package.json", import.meta.url);
+  return JSON.parse(readFileSync(pkg, "utf8")).version;
 }
 
 // src/main.mjs
@@ -970,7 +973,7 @@ function runAsCli() {
     return import.meta.url === pathToFileURL(argvPath).href;
   }
 }
-if (runAsCli()) runCli();
+if (runAsCli()) runCli({ version: packageVersion });
 export {
   UsageError,
   analyze,

@@ -19,6 +19,7 @@ import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { runCli } from './cli.mjs';
+import { packageVersion } from './version.mjs';
 
 export { UsageError } from './errors.mjs';
 export { collectFiles } from './files.mjs';
@@ -39,4 +40,4 @@ function runAsCli() {
   }
 }
 
-if (runAsCli()) runCli();
+if (runAsCli()) runCli({ version: packageVersion });
