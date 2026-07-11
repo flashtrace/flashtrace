@@ -1,6 +1,30 @@
-# Code tags (`.ts`, `.js`, `.mjs`, `.sql`, `.vue`)
+# Code tags
 
-Tags are written inside comments - `//`, `/* … */`, `<!-- … -->` (Vue), or `--` (SQL). Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
+Tags are written inside comments. The comment style is chosen per file extension, so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
+
+| Comment family | Line | Block | Extensions |
+|---|---|---|---|
+| C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.dart` `.proto` `.scss` `.less` |
+| C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
+| PHP | `//` `#` | `/* … */` | `.php` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.jl` `.nim` `.graphql` `.gql` `.coffee` |
+| PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
+| HCL | `#` `//` | `/* … */` | `.tf` `.tfvars` `.hcl` |
+| Semicolon | `;` | – | `.clj` `.cljs` `.cljc` `.edn` `.el` `.lisp` `.scm` `.ss` |
+| Percent | `%` | – | `.erl` `.hrl` `.tex` `.sty` |
+| SQL | `--` | `/* … */` | `.sql` |
+| Dash (line only) | `--` | – | `.adb` `.ads` `.vhd` `.vhdl` |
+| Lua | `--` | `--[[ … ]]` | `.lua` |
+| Haskell | `--` | `{- … -}` (nestable) | `.hs` |
+| ML-family | `//` (F#) | `(* … *)` (nestable) | `.ml` `.mli` `.fs` `.fsi` `.fsx` |
+| Pascal | `//` | `{ … }`, `(* … *)` | `.pas` `.dpr` |
+| CSS | – | `/* … */` | `.css` |
+| HTML/XML | – | `<!-- … -->` | `.xml` `.svg` |
+| HTML + embedded | – | `<!-- … -->` (markup) | `.html` `.htm` `.vue` `.svelte` |
+
+HTML-family files switch comment style by region: `<!-- … -->` in markup, C-like comments (`//`, `/* … */`) inside `<script>`, and CSS comments (`/* … */`) inside `<style>`. So a `//` in template text or a URL is *not* treated as a comment - only a real HTML comment is. A region ends at the first `</script>`/`</style>` (as a browser tokenizes it), so a literal `</script>` meant as script text should be written `<\/script>`.
+
+The embedded grammar follows the tag's `type`/`lang` attribute: `<script type="application/json">` is scanned with no comments (so a `//` in a JSON string is not one), `<script type="text/x-template">` as HTML markup, and `<style lang="scss">` / `less` / `sass` also honour `//`.
 
 - `[<type>:[<group>/…]<name>#<revision>]` - defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
 - `[>><type>:[<group>/…]<name>#<revision>]` - attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.

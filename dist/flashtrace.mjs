@@ -18,8 +18,145 @@ var UsageError = class extends Error {
 import { existsSync, promises as fs } from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+
+// src/languages.mjs
+var cLike = { line: ["//"], block: [["/*", "*/"]] };
+var cLikeNested = { line: ["//"], block: [["/*", "*/", true]] };
+var php = { line: ["//", "#"], block: [["/*", "*/"]] };
+var hash = { line: ["#"], block: [] };
+var powershell = { line: ["#"], block: [["<#", "#>"]] };
+var sql = { line: ["--"], block: [["/*", "*/"]] };
+var lua = { line: ["--"], block: [["--[[", "]]"]] };
+var haskell = { line: ["--"], block: [["{-", "-}", true]] };
+var css = { line: [], block: [["/*", "*/"]] };
+var xml = { line: [], block: [["<!--", "-->"]] };
+var none = { line: [], block: [] };
+var semicolon = { line: [";"], block: [] };
+var percent = { line: ["%"], block: [] };
+var dashLine = { line: ["--"], block: [] };
+var ml = { line: [], block: [["(*", "*)", true]] };
+var fsharp = { line: ["//"], block: [["(*", "*)", true]] };
+var pascal = { line: ["//"], block: [["{", "}"], ["(*", "*)"]] };
+var hcl = { line: ["#", "//"], block: [["/*", "*/"]] };
+function attrOf(tag, name) {
+  const m = new RegExp(String.raw`\s${name}\s*=\s*["']?([^"'\s>]+)`, "i").exec(tag);
+  return m ? m[1].toLowerCase() : "";
+}
+function scriptGrammar(tag) {
+  const type = attrOf(tag, "type");
+  if (/json|importmap/.test(type)) return none;
+  if (/template|html/.test(type)) return xml;
+  if (/coffee/.test(attrOf(tag, "lang"))) return hash;
+  return cLike;
+}
+function styleGrammar(tag) {
+  return /s[ac]ss|less|stylus|styl/.test(attrOf(tag, "lang")) ? cLike : css;
+}
+var html = {
+  default: xml,
+  regions: [
+    { enter: /<script\b[^>]*>/gi, exit: /<\/script\s*>/gi, grammar: scriptGrammar },
+    { enter: /<style\b[^>]*>/gi, exit: /<\/style\s*>/gi, grammar: styleGrammar }
+  ]
+};
+var BY_EXT = {
+  // C-family: // line, /* */ block
+  ".ts": cLike,
+  ".js": cLike,
+  ".mjs": cLike,
+  ".cjs": cLike,
+  ".jsx": cLike,
+  ".tsx": cLike,
+  ".cts": cLike,
+  ".mts": cLike,
+  ".c": cLike,
+  ".h": cLike,
+  ".cpp": cLike,
+  ".cc": cLike,
+  ".hpp": cLike,
+  ".cs": cLike,
+  ".java": cLike,
+  ".go": cLike,
+  ".dart": cLike,
+  ".php": php,
+  ".proto": cLike,
+  ".scss": cLike,
+  ".less": cLike,
+  // C-family with nested block comments
+  ".rs": cLikeNested,
+  ".swift": cLikeNested,
+  ".kt": cLikeNested,
+  ".kts": cLikeNested,
+  ".scala": cLikeNested,
+  // hash line comments
+  ".py": hash,
+  ".rb": hash,
+  ".sh": hash,
+  ".bash": hash,
+  ".zsh": hash,
+  ".yaml": hash,
+  ".yml": hash,
+  ".toml": hash,
+  ".r": hash,
+  ".pm": hash,
+  ".ex": hash,
+  ".exs": hash,
+  ".tcl": hash,
+  ".jl": hash,
+  ".nim": hash,
+  ".graphql": hash,
+  ".gql": hash,
+  ".coffee": hash,
+  ".ps1": powershell,
+  ".psm1": powershell,
+  ".tf": hcl,
+  ".tfvars": hcl,
+  ".hcl": hcl,
+  // semicolon (Lisp family)
+  ".clj": semicolon,
+  ".cljs": semicolon,
+  ".cljc": semicolon,
+  ".edn": semicolon,
+  ".el": semicolon,
+  ".lisp": semicolon,
+  ".scm": semicolon,
+  ".ss": semicolon,
+  // percent (Erlang, LaTeX)
+  ".erl": percent,
+  ".hrl": percent,
+  ".tex": percent,
+  ".sty": percent,
+  // dash line-only (Ada, VHDL)
+  ".adb": dashLine,
+  ".ads": dashLine,
+  ".vhd": dashLine,
+  ".vhdl": dashLine,
+  // ML-family
+  ".ml": ml,
+  ".mli": ml,
+  ".fs": fsharp,
+  ".fsi": fsharp,
+  ".fsx": fsharp,
+  ".pas": pascal,
+  ".dpr": pascal,
+  // dashes and others
+  ".sql": sql,
+  ".lua": lua,
+  ".hs": haskell,
+  ".css": css,
+  ".xml": xml,
+  ".svg": xml,
+  // composite: HTML markup with embedded <script>/<style> regions
+  ".vue": html,
+  ".html": html,
+  ".htm": html,
+  ".svelte": html
+};
+var CODE_EXT = new Set(Object.keys(BY_EXT));
+var grammarFor = (ext) => BY_EXT[ext] ?? null;
+
+// src/files.mjs
 var MD_EXT = /* @__PURE__ */ new Set([".md", ".markdown"]);
-var CODE_EXT = /* @__PURE__ */ new Set([".ts", ".js", ".mjs", ".sql", ".vue"]);
 var GIT_LOCATIONS = process.platform === "win32" ? [
   String.raw`C:\Program Files\Git\cmd\git.exe`,
   String.raw`C:\Program Files (x86)\Git\cmd\git.exe`
@@ -257,41 +394,121 @@ var TAG_RE = new RegExp(
   "g"
 );
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
-var BLOCK_CLOSERS = { c: "*/", html: "-->" };
-function findCommentStart(s, pos, lineMarkers, htmlBlocks) {
-  const candidates = lineMarkers.map((m) => ({ idx: s.indexOf(m, pos), kind: "line", len: m.length }));
-  candidates.push({ idx: s.indexOf("/*", pos), kind: "c", len: 2 });
-  if (htmlBlocks) candidates.push({ idx: s.indexOf("<!--", pos), kind: "html", len: 4 });
-  let best = null;
-  for (const cand of candidates) {
-    if (cand.idx !== -1 && (best === null || cand.idx < best.idx)) best = cand;
+function activeLeaf(grammar, state) {
+  if (state.region) return state.region.grammar;
+  return grammar.regions ? grammar.default : grammar;
+}
+function matchAt(re, s, pos) {
+  re.lastIndex = pos;
+  return re.exec(s);
+}
+function* regionEvents(s, pos, grammar, state) {
+  if (!grammar.regions) return;
+  if (state.region) {
+    const m = matchAt(state.region.exit, s, pos);
+    if (m) yield { idx: m.index, kind: "exit", len: m[0].length };
+    return;
   }
+  for (const r of grammar.regions) {
+    const m = matchAt(r.enter, s, pos);
+    if (m) {
+      const leaf = typeof r.grammar === "function" ? r.grammar(m[0]) : r.grammar;
+      yield { idx: m.index, kind: "enter", len: m[0].length, region: { exit: r.exit, grammar: leaf } };
+    }
+  }
+}
+function nextEvent(s, pos, grammar, state) {
+  const leaf = activeLeaf(grammar, state);
+  let best = null;
+  const consider = (idx, ev) => {
+    if (idx === -1) return;
+    if (best === null || idx < best.idx || idx === best.idx && ev.len > best.len) {
+      best = { ...ev, idx };
+    }
+  };
+  for (const marker of leaf.line) {
+    consider(s.indexOf(marker, pos), { kind: "line", len: marker.length });
+  }
+  for (const [open, close, nestable] of leaf.block) {
+    consider(s.indexOf(open, pos), {
+      kind: "block",
+      len: open.length,
+      open,
+      close,
+      nestable: Boolean(nestable)
+    });
+  }
+  for (const ev of regionEvents(s, pos, grammar, state)) consider(ev.idx, ev);
   return best;
 }
-function readBlockRest(s, pos, closer) {
-  const end = s.indexOf(closer, pos);
-  if (end === -1) return { text: s.slice(pos) + " ", pos: s.length, closed: false };
-  return { text: s.slice(pos, end) + " ", pos: end + closer.length, closed: true };
+function readBlockRest(s, pos, block, limit = s.length) {
+  const { open, close, nestable } = block;
+  const within = (idx) => idx !== -1 && idx < limit ? idx : -1;
+  let i = pos;
+  while (i < limit) {
+    const closeIdx = within(s.indexOf(close, i));
+    const openIdx = within(nestable ? s.indexOf(open, i) : -1);
+    if (closeIdx === -1 && openIdx === -1) break;
+    if (openIdx !== -1 && (closeIdx === -1 || openIdx < closeIdx)) {
+      block.depth++;
+      i = openIdx + open.length;
+      continue;
+    }
+    block.depth--;
+    i = closeIdx + close.length;
+    if (block.depth === 0) return { text: s.slice(pos, closeIdx) + " ", pos: i, closed: true };
+  }
+  return { text: s.slice(pos, limit) + " ", pos: limit, closed: false };
 }
-function commentText(s, state, lineMarkers, htmlBlocks) {
+function regionExitAt(s, pos, region) {
+  const m = matchAt(region.exit, s, pos);
+  return m ? { idx: m.index, len: m[0].length } : null;
+}
+function consumeBlock(s, pos, state, exit) {
+  const rest = readBlockRest(s, pos, state.block, exit ? exit.idx : s.length);
+  if (rest.closed) {
+    state.block = null;
+    return { text: rest.text, pos: rest.pos };
+  }
+  if (exit) {
+    state.block = null;
+    state.region = null;
+    return { text: rest.text, pos: exit.idx + exit.len };
+  }
+  return { text: rest.text, pos: rest.pos };
+}
+function consumeLine(s, pos, state, exit) {
+  if (exit) {
+    state.region = null;
+    return { text: s.slice(pos, exit.idx) + " ", pos: exit.idx + exit.len, done: false };
+  }
+  return { text: s.slice(pos) + " ", pos: s.length, done: true };
+}
+function commentText(s, state, grammar) {
   let comment = "";
   let pos = 0;
   while (pos < s.length) {
+    const exit = state.region ? regionExitAt(s, pos, state.region) : null;
     if (state.block) {
-      const rest = readBlockRest(s, pos, BLOCK_CLOSERS[state.block]);
-      comment += rest.text;
-      pos = rest.pos;
-      if (rest.closed) state.block = null;
+      const r = consumeBlock(s, pos, state, exit);
+      comment += r.text;
+      pos = r.pos;
+      continue;
+    }
+    const ev = nextEvent(s, pos, grammar, state);
+    if (!ev) break;
+    pos = ev.idx + ev.len;
+    if (ev.kind === "line") {
+      const r = consumeLine(s, pos, state, exit);
+      comment += r.text;
+      pos = r.pos;
+      if (r.done) break;
+    } else if (ev.kind === "block") {
+      state.block = { open: ev.open, close: ev.close, nestable: ev.nestable, depth: 1 };
+    } else if (ev.kind === "enter") {
+      state.region = ev.region;
     } else {
-      const start = findCommentStart(s, pos, lineMarkers, htmlBlocks);
-      if (!start) break;
-      pos = start.idx + start.len;
-      if (start.kind === "line") {
-        comment += s.slice(pos) + " ";
-        pos = s.length;
-      } else {
-        state.block = start.kind;
-      }
+      state.region = null;
     }
   }
   return comment;
@@ -331,13 +548,12 @@ function collectTags(comment, file, line, state, items, problems) {
 }
 function parseCode(file, text, problems, forwards = []) {
   const ext = path2.extname(file).toLowerCase();
+  const grammar = grammarFor(ext) ?? cLike;
   const lines = text.split(/\r?\n/);
   const items = [];
-  const lineMarkers = ext === ".sql" ? ["--"] : ["//"];
-  const htmlBlocks = ext === ".vue";
-  const state = { last: null, byId: /* @__PURE__ */ new Map(), block: null };
+  const state = { last: null, byId: /* @__PURE__ */ new Map(), block: null, region: null };
   for (let i = 0; i < lines.length; i++) {
-    const comment = commentText(lines[i], state, lineMarkers, htmlBlocks);
+    const comment = commentText(lines[i], state, grammar);
     for (const m of comment.matchAll(FORWARD_RE)) {
       forwards.push(mkForward(m, 1, file, i + 1));
     }

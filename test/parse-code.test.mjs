@@ -119,6 +119,39 @@ test('multiple tags in one comment line', () => {
   assert.deepEqual(items[0].needs, ['utest:a#1']);
 });
 
+test('non-nesting block comment (.ts) closes at the first */', () => {
+  const { items } = parse('src.ts', [
+    '/* [impl:a#1] /* still-comment */ [impl:code-not-tag#1] */',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:a#1']);
+});
+
+test('nested block comments (Rust) close only at the matching */', () => {
+  const { items } = parse('lib.rs', [
+    '/* [impl:outer#1] /* [impl:inner#1] */ [impl:still#1] */',
+    'let x = "[impl:code-not-tag#1]";',
+  ]);
+  assert.deepEqual(
+    items.map((i) => i.id),
+    ['impl:outer#1', 'impl:inner#1', 'impl:still#1'],
+  );
+});
+
+test('nested block comment spanning multiple lines (Swift)', () => {
+  const { items } = parse('View.swift', [
+    '/* [impl:a#1]',
+    '   /* nested',
+    '   [impl:b#1] */',
+    '   [impl:c#1]',
+    '*/',
+    'let d = 1 // [impl:e#1]',
+  ]);
+  assert.deepEqual(
+    items.map((i) => i.id),
+    ['impl:a#1', 'impl:b#1', 'impl:c#1', 'impl:e#1'],
+  );
+});
+
 test('SQL uses -- comments and does not honour //', () => {
   const { items } = parse('schema.sql', [
     '-- [impl:db/schema#1]',
@@ -126,6 +159,141 @@ test('SQL uses -- comments and does not honour //', () => {
   ]);
   assert.equal(items.length, 1);
   assert.equal(items[0].id, 'impl:db/schema#1');
+});
+
+test('hash-comment languages (Python) recognise # tags', () => {
+  const { items } = parse('app.py', [
+    '# [impl:app/main#1]',
+    'x = "// [impl:not-a-tag#1]"  # not a comment tag context',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:app/main#1');
+});
+
+test('C-like extras (Go) use // and /* */', () => {
+  const { items } = parse('main.go', [
+    '// [impl:svc/run#1]',
+    '/* [>>utest:svc/run#1] */',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:svc/run#1']);
+});
+
+test('PHP accepts // and # line comments and /* */', () => {
+  const { items } = parse('index.php', [
+    '// [impl:php/a#1]',
+    '# [impl:php/b#1]',
+    '/* [impl:php/c#1] */',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:php/a#1', 'impl:php/b#1', 'impl:php/c#1']);
+});
+
+test('Lua uses -- line and --[[ ]] block comments', () => {
+  const { items } = parse('mod.lua', [
+    '-- [impl:lua/mod#1]',
+    '--[[ [>>utest:lua/mod#1] ]]',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:lua/mod#1']);
+});
+
+test('Lua --[[ ]] block comment opens and spans multiple lines', () => {
+  // --[[ shares its prefix with the -- line marker; the block opener must win
+  // the tie, otherwise the block never opens and the inner tags are missed.
+  const { items } = parse('mod.lua', [
+    '--[[',
+    '  [impl:lua/block#1]',
+    '  [>>utest:lua/block#1]',
+    ']]',
+    'print("done")',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:lua/block#1');
+  assert.deepEqual(items[0].needs, ['utest:lua/block#1']);
+});
+
+test('PowerShell uses # line and <# #> block comments', () => {
+  const { items } = parse('deploy.ps1', [
+    '# [impl:ops/deploy#1]',
+    '<# [>>utest:ops/deploy#1] #>',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:ops/deploy#1']);
+});
+
+test('CSS honours /* */ but not //', () => {
+  const { items } = parse('theme.css', [
+    '/* [impl:ui/theme#1] */',
+    '// [impl:not-a-tag#1]',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:ui/theme#1');
+});
+
+test('semicolon-comment languages (Clojure) recognise ; tags', () => {
+  const { items } = parse('core.clj', ['; [impl:app/core#1]']);
+  assert.deepEqual(items.map((i) => i.id), ['impl:app/core#1']);
+});
+
+test('percent-comment languages (Erlang) recognise % tags', () => {
+  const { items } = parse('mod.erl', ['% [impl:erl/mod#1]']);
+  assert.deepEqual(items.map((i) => i.id), ['impl:erl/mod#1']);
+});
+
+test('OCaml uses (* *) block comments', () => {
+  const { items } = parse('m.ml', ['(* [impl:ml/m#1] [>>utest:ml/m#1] *)']);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:ml/m#1']);
+});
+
+test('OCaml (* *) block comments nest', () => {
+  const { items } = parse('m.ml', [
+    '(* outer (* inner *) [impl:ml/still#1] *)',
+    'let x = 1',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:ml/still#1']);
+});
+
+test('Haskell {- -} block comments nest', () => {
+  const { items } = parse('M.hs', [
+    '{- outer {- inner -} [impl:hs/still#1] -}',
+    'x = 1',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:hs/still#1']);
+});
+
+test('Pascal (* *) does not nest (closes at the first *))', () => {
+  const { items } = parse('u.pas', [
+    '(* outer (* inner *) [impl:p/code-not-tag#1] *)',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('Pascal recognises both { } and (* *) block comments', () => {
+  const { items } = parse('u.pas', [
+    '{ [impl:p/a#1] }',
+    '(* [impl:p/b#1] *)',
+    '// [impl:p/c#1]',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:p/a#1', 'impl:p/b#1', 'impl:p/c#1']);
+});
+
+test('Pascal (* *) block comment spans multiple lines', () => {
+  const { items } = parse('u.pas', [
+    '(* [impl:p/a#1]',
+    '   [>>utest:p/a#1] *)',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:p/a#1']);
+});
+
+test('HCL honours #, // and /* */ comments', () => {
+  const { items } = parse('main.tf', [
+    '# [impl:tf/a#1]',
+    '// [impl:tf/b#1]',
+    '/* [impl:tf/c#1] */',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:tf/a#1', 'impl:tf/b#1', 'impl:tf/c#1']);
 });
 
 test('forwarding tag in a comment, spaces around --> optional', () => {
@@ -165,4 +333,122 @@ test('Vue supports HTML comments', () => {
   assert.equal(items.length, 1);
   assert.equal(items[0].id, 'impl:ui/button#1');
   assert.equal(items[0].line, 2);
+});
+
+test('Vue template does not treat // as a comment', () => {
+  const { items } = parse('Link.vue', [
+    '<template>',
+    '  <a href="https://example.com/[impl:not-a-tag#1]">x</a>',
+    '</template>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('Vue <script> uses JS comments, <style> uses CSS comments', () => {
+  const { items } = parse('Button.vue', [
+    '<template><button>ok</button></template>',
+    '<script setup lang="ts">',
+    '// [impl:ui/button#1]',
+    '// [>>utest:ui/button#1]',
+    '</script>',
+    '<style scoped>',
+    '/* [impl:ui/button-style#1] */',
+    '</style>',
+  ]);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].id, 'impl:ui/button#1');
+  assert.deepEqual(items[0].needs, ['utest:ui/button#1']);
+  assert.equal(items[1].id, 'impl:ui/button-style#1');
+});
+
+test('Vue <style> does not treat // as a comment', () => {
+  const { items } = parse('Button.vue', [
+    '<style>',
+    '.x { background: url(//cdn/[impl:not-a-tag#1].png); }',
+    '</style>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('an HTML comment containing <script> does not open a script region', () => {
+  const { items } = parse('page.html', [
+    '<!-- <script> [impl:page/head#1] -->',
+    '<p>// [impl:not-a-tag#1]</p>',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:page/head#1');
+});
+
+test('plain .html files scan markup, script and style regions', () => {
+  const { items } = parse('index.html', [
+    '<!-- [impl:web/page#1] -->',
+    '<script>// [impl:web/script#1]</script>',
+    '<style>/* [impl:web/style#1] */</style>',
+  ]);
+  assert.deepEqual(
+    items.map((i) => i.id),
+    ['impl:web/page#1', 'impl:web/script#1', 'impl:web/style#1'],
+  );
+});
+
+test('a line comment before </script> does not swallow the region exit', () => {
+  const { items } = parse('page.html', [
+    '<script>// setup</script>',
+    '<p>// [impl:phantom#1]</p>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('an unclosed block comment before </script> still ends the region', () => {
+  const { items } = parse('page.html', [
+    '<script>/* note </script>',
+    '<p>// [impl:phantom#1]</p>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('a tag before </script> on the same line is still captured', () => {
+  const { items } = parse('page.html', [
+    '<script>// [impl:web/inline#1]</script>',
+    '<p>plain markup</p>',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:web/inline#1']);
+});
+
+test('<script type="application/json"> is scanned without comments', () => {
+  const { items } = parse('page.html', [
+    '<script type="application/json">',
+    '{ "url": "//cdn.example.com/[impl:phantom#1].js" }',
+    '</script>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('<script type="text/x-template"> is scanned as HTML markup', () => {
+  const { items } = parse('page.html', [
+    '<script type="text/x-template">',
+    '  <!-- [impl:ui/tpl#1] -->',
+    '  <a href="//x/[impl:not-a-tag#1]">go</a>',
+    '</script>',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:ui/tpl#1']);
+});
+
+test('<style lang="scss"> honours // line comments', () => {
+  const { items } = parse('Button.vue', [
+    '<style lang="scss">',
+    '// [impl:ui/scss#1]',
+    '.x { color: red; } /* [impl:ui/scss-block#1] */',
+    '</style>',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:ui/scss#1', 'impl:ui/scss-block#1']);
+});
+
+test('a plain <style> still treats // as not-a-comment', () => {
+  const { items } = parse('Button.vue', [
+    '<style>',
+    '.x { background: url(//cdn/[impl:not-a-tag#1].png); }',
+    '</style>',
+  ]);
+  assert.equal(items.length, 0);
 });
