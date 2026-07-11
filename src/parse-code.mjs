@@ -51,7 +51,11 @@ function* regionEvents(s, pos, grammar, state) {
   }
   for (const r of grammar.regions) {
     const m = matchAt(r.enter, s, pos);
-    if (m) yield { idx: m.index, kind: 'enter', len: m[0].length, region: r };
+    if (m) {
+      // r.grammar may be a resolver picking the leaf from the opening tag
+      const leaf = typeof r.grammar === 'function' ? r.grammar(m[0]) : r.grammar;
+      yield { idx: m.index, kind: 'enter', len: m[0].length, region: { exit: r.exit, grammar: leaf } };
+    }
   }
 }
 

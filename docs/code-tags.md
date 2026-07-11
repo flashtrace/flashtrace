@@ -24,6 +24,8 @@ Tags are written inside comments. The comment style is chosen per file extension
 
 HTML-family files switch comment style by region: `<!-- … -->` in markup, C-like comments (`//`, `/* … */`) inside `<script>`, and CSS comments (`/* … */`) inside `<style>`. So a `//` in template text or a URL is *not* treated as a comment - only a real HTML comment is. A region ends at the first `</script>`/`</style>` (as a browser tokenizes it), so a literal `</script>` meant as script text should be written `<\/script>`.
 
+The embedded grammar follows the tag's `type`/`lang` attribute: `<script type="application/json">` is scanned with no comments (so a `//` in a JSON string is not one), `<script type="text/x-template">` as HTML markup, and `<style lang="scss">` / `less` / `sass` also honour `//`.
+
 - `[<type>:[<group>/…]<name>#<revision>]` - defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
 - `[>><type>:[<group>/…]<name>#<revision>]` - attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.
 - `[<source-id> >> <target-id>]` - attaches the need `<target-id>` to the *preceding item tag with exactly* `<source-id>` in the **same file** (spaces around `>>` optional). If no such item tag precedes it, this is reported as an error. Unlike the implicit form, it stays attached to its item even when another item tag is later inserted in between.

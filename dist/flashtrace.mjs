@@ -30,6 +30,7 @@ var lua = { line: ["--"], block: [["--[[", "]]"]] };
 var haskell = { line: ["--"], block: [["{-", "-}", true]] };
 var css = { line: [], block: [["/*", "*/"]] };
 var xml = { line: [], block: [["<!--", "-->"]] };
+var none = { line: [], block: [] };
 var semicolon = { line: [";"], block: [] };
 var percent = { line: ["%"], block: [] };
 var dashLine = { line: ["--"], block: [] };
@@ -37,11 +38,25 @@ var ml = { line: [], block: [["(*", "*)", true]] };
 var fsharp = { line: ["//"], block: [["(*", "*)", true]] };
 var pascal = { line: ["//"], block: [["{", "}"], ["(*", "*)"]] };
 var hcl = { line: ["#", "//"], block: [["/*", "*/"]] };
+function attrOf(tag, name) {
+  const m = new RegExp(String.raw`\s${name}\s*=\s*["']?([^"'\s>]+)`, "i").exec(tag);
+  return m ? m[1].toLowerCase() : "";
+}
+function scriptGrammar(tag) {
+  const type = attrOf(tag, "type");
+  if (/json|importmap/.test(type)) return none;
+  if (/template|html/.test(type)) return xml;
+  if (/coffee/.test(attrOf(tag, "lang"))) return hash;
+  return cLike;
+}
+function styleGrammar(tag) {
+  return /s[ac]ss|less|stylus|styl/.test(attrOf(tag, "lang")) ? cLike : css;
+}
 var html = {
   default: xml,
   regions: [
-    { enter: /<script\b[^>]*>/gi, exit: /<\/script\s*>/gi, grammar: cLike },
-    { enter: /<style\b[^>]*>/gi, exit: /<\/style\s*>/gi, grammar: css }
+    { enter: /<script\b[^>]*>/gi, exit: /<\/script\s*>/gi, grammar: scriptGrammar },
+    { enter: /<style\b[^>]*>/gi, exit: /<\/style\s*>/gi, grammar: styleGrammar }
   ]
 };
 var BY_EXT = {
@@ -396,7 +411,10 @@ function* regionEvents(s, pos, grammar, state) {
   }
   for (const r of grammar.regions) {
     const m = matchAt(r.enter, s, pos);
-    if (m) yield { idx: m.index, kind: "enter", len: m[0].length, region: r };
+    if (m) {
+      const leaf = typeof r.grammar === "function" ? r.grammar(m[0]) : r.grammar;
+      yield { idx: m.index, kind: "enter", len: m[0].length, region: { exit: r.exit, grammar: leaf } };
+    }
   }
 }
 function nextEvent(s, pos, grammar, state) {

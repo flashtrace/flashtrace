@@ -414,3 +414,41 @@ test('a tag before </script> on the same line is still captured', () => {
   ]);
   assert.deepEqual(items.map((i) => i.id), ['impl:web/inline#1']);
 });
+
+test('<script type="application/json"> is scanned without comments', () => {
+  const { items } = parse('page.html', [
+    '<script type="application/json">',
+    '{ "url": "//cdn.example.com/[impl:phantom#1].js" }',
+    '</script>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('<script type="text/x-template"> is scanned as HTML markup', () => {
+  const { items } = parse('page.html', [
+    '<script type="text/x-template">',
+    '  <!-- [impl:ui/tpl#1] -->',
+    '  <a href="//x/[impl:not-a-tag#1]">go</a>',
+    '</script>',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:ui/tpl#1']);
+});
+
+test('<style lang="scss"> honours // line comments', () => {
+  const { items } = parse('Button.vue', [
+    '<style lang="scss">',
+    '// [impl:ui/scss#1]',
+    '.x { color: red; } /* [impl:ui/scss-block#1] */',
+    '</style>',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:ui/scss#1', 'impl:ui/scss-block#1']);
+});
+
+test('a plain <style> still treats // as not-a-comment', () => {
+  const { items } = parse('Button.vue', [
+    '<style>',
+    '.x { background: url(//cdn/[impl:not-a-tag#1].png); }',
+    '</style>',
+  ]);
+  assert.equal(items.length, 0);
+});
