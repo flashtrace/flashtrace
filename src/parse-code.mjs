@@ -15,7 +15,7 @@
 import path from 'node:path';
 
 import { FORWARD_SRC, ID_SRC, NEED_ID_SRC, mkForward, mkId, newItem } from './ids.mjs';
-import { grammarFor } from './languages.mjs';
+import { cLike, grammarFor } from './languages.mjs';
 
 // Alternation: need tag with optional explicit source (groups 1-4 source,
 // 5-8 target), or plain item tag (groups 9-12). The need target uses
@@ -169,8 +169,9 @@ function commentText(s, state, grammar) {
     } else if (ev.kind === 'enter') {
       state.region = ev.region;
     } else {
-      state.region = null; // 'exit'
-      state.block = null;
+      // 'exit' - reached only outside a block comment (the block branch above
+      // continues), so there is no open block to clear here.
+      state.region = null;
     }
   }
   return comment;
@@ -213,13 +214,12 @@ function collectTags(comment, file, line, state, items, problems) {
   }
 }
 
-// Unknown extensions never reach parseCode via the CLI (collectFiles filters on
-// CODE_EXT), but direct callers and future extensions fall back to C-like.
-const FALLBACK = { line: ['//'], block: [['/*', '*/']] };
 
 export function parseCode(file, text, problems, forwards = []) {
   const ext = path.extname(file).toLowerCase();
-  const grammar = grammarFor(ext) ?? FALLBACK;
+  // Unknown extensions never reach here via the CLI (collectFiles filters on
+  // CODE_EXT); direct callers and future extensions fall back to C-like.
+  const grammar = grammarFor(ext) ?? cLike;
   const lines = text.split(/\r?\n/);
   const items = [];
   // last: nearest preceding item tag in this file; byId: preceding item tags

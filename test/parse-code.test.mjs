@@ -179,6 +179,15 @@ test('C-like extras (Go) use // and /* */', () => {
   assert.deepEqual(items[0].needs, ['utest:svc/run#1']);
 });
 
+test('PHP accepts // and # line comments and /* */', () => {
+  const { items } = parse('index.php', [
+    '// [impl:php/a#1]',
+    '# [impl:php/b#1]',
+    '/* [impl:php/c#1] */',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:php/a#1', 'impl:php/b#1', 'impl:php/c#1']);
+});
+
 test('Lua uses -- line and --[[ ]] block comments', () => {
   const { items } = parse('mod.lua', [
     '-- [impl:lua/mod#1]',

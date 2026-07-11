@@ -22,6 +22,7 @@ import { execFileSync } from "node:child_process";
 // src/languages.mjs
 var cLike = { line: ["//"], block: [["/*", "*/"]] };
 var cLikeNested = { line: ["//"], block: [["/*", "*/", true]] };
+var php = { line: ["//", "#"], block: [["/*", "*/"]] };
 var hash = { line: ["#"], block: [] };
 var powershell = { line: ["#"], block: [["<#", "#>"]] };
 var sql = { line: ["--"], block: [["/*", "*/"]] };
@@ -62,7 +63,7 @@ var BY_EXT = {
   ".java": cLike,
   ".go": cLike,
   ".dart": cLike,
-  ".php": cLike,
+  ".php": php,
   ".proto": cLike,
   ".scss": cLike,
   ".less": cLike,
@@ -491,7 +492,6 @@ function commentText(s, state, grammar) {
       state.region = ev.region;
     } else {
       state.region = null;
-      state.block = null;
     }
   }
   return comment;
@@ -529,10 +529,9 @@ function collectTags(comment, file, line, state, items, problems) {
     }
   }
 }
-var FALLBACK = { line: ["//"], block: [["/*", "*/"]] };
 function parseCode(file, text, problems, forwards = []) {
   const ext = path2.extname(file).toLowerCase();
-  const grammar = grammarFor(ext) ?? FALLBACK;
+  const grammar = grammarFor(ext) ?? cLike;
   const lines = text.split(/\r?\n/);
   const items = [];
   const state = { last: null, byId: /* @__PURE__ */ new Map(), block: null, region: null };

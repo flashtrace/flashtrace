@@ -4,8 +4,9 @@ Tags are written inside comments. The comment style is chosen per file extension
 
 | Comment family | Line | Block | Extensions |
 |---|---|---|---|
-| C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.dart` `.php` `.proto` `.scss` `.less` |
+| C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.dart` `.proto` `.scss` `.less` |
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
+| PHP | `//` `#` | `/* … */` | `.php` |
 | Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pl` `.pm` `.ex` `.exs` `.tcl` `.jl` `.nim` `.graphql` `.gql` `.coffee` |
 | PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
 | HCL | `#` `//` | `/* … */` | `.tf` `.tfvars` `.hcl` |

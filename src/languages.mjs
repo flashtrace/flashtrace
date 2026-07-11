@@ -14,10 +14,13 @@
  * for code-file collection.
  */
 
-// Shared leaf grammars, reused across the extension map below.
-const cLike = { line: ['//'], block: [['/*', '*/']] };
+// Shared leaf grammars, reused across the extension map below. cLike is also the
+// fallback grammar for unknown extensions (see parse-code.mjs).
+export const cLike = { line: ['//'], block: [['/*', '*/']] };
 // Like cLike, but /* */ nests (Rust, Swift, Kotlin, Scala).
 const cLikeNested = { line: ['//'], block: [['/*', '*/', true]] };
+// PHP accepts // and # line comments plus /* */.
+const php = { line: ['//', '#'], block: [['/*', '*/']] };
 const hash = { line: ['#'], block: [] };
 const powershell = { line: ['#'], block: [['<#', '#>']] };
 const sql = { line: ['--'], block: [['/*', '*/']] };
@@ -50,7 +53,7 @@ const BY_EXT = {
   '.jsx': cLike, '.tsx': cLike, '.cts': cLike, '.mts': cLike,
   '.c': cLike, '.h': cLike, '.cpp': cLike, '.cc': cLike, '.hpp': cLike,
   '.cs': cLike, '.java': cLike, '.go': cLike,
-  '.dart': cLike, '.php': cLike, '.proto': cLike,
+  '.dart': cLike, '.php': php, '.proto': cLike,
   '.scss': cLike, '.less': cLike,
   // C-family with nested block comments
   '.rs': cLikeNested, '.swift': cLikeNested,
