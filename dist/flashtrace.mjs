@@ -285,7 +285,9 @@ function newItem(id, origin, file, line) {
     needs: [],
     covers: [],
     tags: [],
-    defects: []
+    defects: [],
+    forwardsTo: null
+    // effective forwarding target, set by analyze
   };
 }
 
