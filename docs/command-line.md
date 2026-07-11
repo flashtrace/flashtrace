@@ -55,7 +55,17 @@ The file is fully self-contained — inline CSS and vanilla JavaScript, the repo
 
 The page shows:
 
-- a header with the summary counts, a prominent `ok` / `not ok` verdict, the scanned paths, the active `--tags` filter (when given), and the flashtrace version. There is no timestamp.
+- a header with the summary counts, a prominent `ok` / `not ok` verdict, the scanned paths, the active `--tags` filter (when given), the repository state, and the flashtrace version. There is no timestamp.
 - a tab bar switching between **Show problems** (the default report's content: one block per defective item plus the parse problems) and **Show all (verbose)** (the verbose report's content: every item grouped by file with its status mark and trace edges, as specified above).
 
 Both views are always contained in the file; `-v` only affects the stdout report.
+
+### Repository state
+
+The header describes the state of the repository containing the first scanned path, and the headline carries that repository's directory name:
+
+- when a git tag points exactly at `HEAD`, the line shows the tag name — a local tag acts as the release label;
+- otherwise it shows the latest commit's subject with its abbreviated hash;
+- when the working tree has uncommitted changes, `uncommitted +<hash>` is appended: a 7-hex-digit fingerprint over the porcelain status and the diff against `HEAD`, identical for identical working-tree states — it distinguishes reports from different tree states without breaking determinism.
+
+Outside a git repository the line and the headline's repository name are omitted. When the git binary is not found in its fixed install locations, the header states that explicitly instead of guessing.

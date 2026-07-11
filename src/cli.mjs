@@ -9,6 +9,7 @@ import { parseCode } from './parse-code.mjs';
 import { analyze } from './analyze.mjs';
 import { buildReportModel } from './report-model.mjs';
 import { renderHtml } from './report-html.mjs';
+import { repoState } from './repo-state.mjs';
 import { report, printVerdict } from './report.mjs';
 
 const HELP = `Usage: flashtrace [options] [directory-or-file ...]
@@ -124,10 +125,15 @@ async function main() {
 
   if (!opts.html?.only) report(model, { verbose: opts.verbose });
   if (opts.html) {
+    // the first scanned input path anchors the repository state: that is the
+    // project the report describes
+    const anchor = path.resolve(opts.dirs[0]);
+    const anchorDir = (await fs.stat(anchor)).isFile() ? path.dirname(anchor) : anchor;
     const meta = {
       version: packageVersion(),
       scannedPaths: opts.dirs,
       tags: opts.tags,
+      repoState: repoState(anchorDir),
     };
     const outPath = path.resolve(cwd, opts.html.path);
     await fs.mkdir(path.dirname(outPath), { recursive: true });

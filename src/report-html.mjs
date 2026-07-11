@@ -211,9 +211,24 @@ h2.file {
     return parts.length ? parts.join('') : '<p class="empty">No items found.</p>';
   }
 
+  // the repository state line: a release tag or the latest commit, with a
+  // fingerprint of any uncommitted changes; omitted outside a git repository
+  function repoLine(rs) {
+    if (rs.kind === 'no-git') {
+      return '<p class="metaline">git not found \\u2014 repository state unavailable</p>';
+    }
+    let line = rs.kind === 'release'
+      ? esc(rs.tag)
+      : esc(rs.subject) + ' <span class="loc">(' + esc(rs.shortSha) + ')</span>';
+    if (rs.dirty) line += '<span class="loc">, uncommitted +' + esc(rs.fingerprint) + '</span>';
+    return '<p class="metaline">repository: ' + line + '</p>';
+  }
+
   function renderHeader() {
     const s = model.summary;
-    const parts = ['<h1>flashtrace report</h1>'];
+    const rs = meta.repoState;
+    const repo = rs && rs.repo ? ' <span class="repo">\\u00b7 ' + esc(rs.repo) + '</span>' : '';
+    const parts = ['<h1>flashtrace report' + repo + '</h1>'];
     parts.push('<div class="verdict ' + (s.clean ? 'ok">ok' : 'bad">not ok') + '</div>');
     parts.push('<p class="counts"><span class="num">' + s.items + '</span> items ' +
       '<span class="loc">(' + s.fromMarkdown + ' from markdown, ' + s.fromCode + ' from code)</span>' +
@@ -227,6 +242,7 @@ h2.file {
     }
     parts.push('<p class="metaline">scanned: ' + meta.scannedPaths.map(esc).join(', ') + '</p>');
     if (meta.tags) parts.push('<p class="metaline">tags filter: ' + meta.tags.map(esc).join(', ') + '</p>');
+    if (rs && rs.kind !== 'none') parts.push(repoLine(rs));
     parts.push('<p class="metaline">flashtrace v' + esc(meta.version) + '</p>');
     document.getElementById('header').innerHTML = parts.join('');
   }

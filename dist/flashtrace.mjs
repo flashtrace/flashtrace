@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // src/cli.mjs
 import { promises as fs2, readFileSync } from "node:fs";
-import path4 from "node:path";
+import path5 from "node:path";
 import process3 from "node:process";
 
 // src/errors.mjs
@@ -633,15 +633,15 @@ function dropCyclicForwards(fwdTarget, declBySource, problems) {
   for (const start of fwdTarget.keys()) {
     if (done.has(start)) continue;
     const seen = /* @__PURE__ */ new Map();
-    const path5 = [];
+    const path6 = [];
     let cur = start;
     while (fwdTarget.has(cur) && !done.has(cur) && !seen.has(cur)) {
-      seen.set(cur, path5.length);
-      path5.push(cur);
+      seen.set(cur, path6.length);
+      path6.push(cur);
       cur = fwdTarget.get(cur);
     }
     if (seen.has(cur)) {
-      const cycle = path5.slice(seen.get(cur));
+      const cycle = path6.slice(seen.get(cur));
       const chain = [...cycle, cur].join(" --> ");
       for (const id of cycle) {
         const f = declBySource.get(id);
@@ -649,7 +649,7 @@ function dropCyclicForwards(fwdTarget, declBySource, problems) {
         fwdTarget.delete(id);
       }
     }
-    for (const id of path5) done.add(id);
+    for (const id of path6) done.add(id);
   }
 }
 function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
@@ -1041,9 +1041,24 @@ h2.file {
     return parts.length ? parts.join('') : '<p class="empty">No items found.</p>';
   }
 
+  // the repository state line: a release tag or the latest commit, with a
+  // fingerprint of any uncommitted changes; omitted outside a git repository
+  function repoLine(rs) {
+    if (rs.kind === 'no-git') {
+      return '<p class="metaline">git not found \\u2014 repository state unavailable</p>';
+    }
+    let line = rs.kind === 'release'
+      ? esc(rs.tag)
+      : esc(rs.subject) + ' <span class="loc">(' + esc(rs.shortSha) + ')</span>';
+    if (rs.dirty) line += '<span class="loc">, uncommitted +' + esc(rs.fingerprint) + '</span>';
+    return '<p class="metaline">repository: ' + line + '</p>';
+  }
+
   function renderHeader() {
     const s = model.summary;
-    const parts = ['<h1>flashtrace report</h1>'];
+    const rs = meta.repoState;
+    const repo = rs && rs.repo ? ' <span class="repo">\\u00b7 ' + esc(rs.repo) + '</span>' : '';
+    const parts = ['<h1>flashtrace report' + repo + '</h1>'];
     parts.push('<div class="verdict ' + (s.clean ? 'ok">ok' : 'bad">not ok') + '</div>');
     parts.push('<p class="counts"><span class="num">' + s.items + '</span> items ' +
       '<span class="loc">(' + s.fromMarkdown + ' from markdown, ' + s.fromCode + ' from code)</span>' +
@@ -1057,6 +1072,7 @@ h2.file {
     }
     parts.push('<p class="metaline">scanned: ' + meta.scannedPaths.map(esc).join(', ') + '</p>');
     if (meta.tags) parts.push('<p class="metaline">tags filter: ' + meta.tags.map(esc).join(', ') + '</p>');
+    if (rs && rs.kind !== 'none') parts.push(repoLine(rs));
     parts.push('<p class="metaline">flashtrace v' + esc(meta.version) + '</p>');
     document.getElementById('header').innerHTML = parts.join('');
   }
@@ -1076,6 +1092,45 @@ h2.file {
 </body>
 </html>
 `;
+}
+
+// src/repo-state.mjs
+import { execFileSync as execFileSync2 } from "node:child_process";
+import { createHash } from "node:crypto";
+import path4 from "node:path";
+function repoState(anchorDir) {
+  const git = findGit();
+  if (!git) return { kind: "no-git" };
+  const run = (args) => execFileSync2(git, ["-C", anchorDir, ...args], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"]
+  });
+  let toplevel;
+  try {
+    toplevel = run(["rev-parse", "--show-toplevel"]).trim();
+  } catch {
+    return { kind: "none" };
+  }
+  const status = run(["status", "--porcelain", "-z"]);
+  const state = { repo: path4.basename(toplevel), dirty: status.length > 0 };
+  if (state.dirty) {
+    let diff = "";
+    try {
+      diff = run(["diff", "HEAD"]);
+    } catch {
+    }
+    state.fingerprint = createHash("sha256").update(status).update(diff).digest("hex").slice(0, 7);
+  }
+  try {
+    return { kind: "release", tag: run(["describe", "--exact-match", "--tags", "HEAD"]).trim(), ...state };
+  } catch {
+  }
+  try {
+    const [shortSha, subject] = run(["log", "-1", "--format=%h%x00%s"]).trim().split("\0");
+    return { kind: "commit", shortSha, subject, ...state };
+  } catch {
+    return { kind: "none" };
+  }
 }
 
 // src/report.mjs
@@ -1249,7 +1304,7 @@ async function main() {
   let items = [];
   for (const file of files) {
     const text = await fs2.readFile(file, "utf8");
-    const ext = path4.extname(file).toLowerCase();
+    const ext = path5.extname(file).toLowerCase();
     items.push(
       ...MD_EXT.has(ext) ? parseMarkdown(file, text, problems, forwards) : parseCode(file, text, problems, forwards)
     );
@@ -1265,15 +1320,18 @@ async function main() {
   const model = buildReportModel(items, problems, cwd);
   if (!opts.html?.only) report(model, { verbose: opts.verbose });
   if (opts.html) {
+    const anchor = path5.resolve(opts.dirs[0]);
+    const anchorDir = (await fs2.stat(anchor)).isFile() ? path5.dirname(anchor) : anchor;
     const meta = {
       version: packageVersion(),
       scannedPaths: opts.dirs,
-      tags: opts.tags
+      tags: opts.tags,
+      repoState: repoState(anchorDir)
     };
-    const outPath = path4.resolve(cwd, opts.html.path);
-    await fs2.mkdir(path4.dirname(outPath), { recursive: true });
+    const outPath = path5.resolve(cwd, opts.html.path);
+    await fs2.mkdir(path5.dirname(outPath), { recursive: true });
     await fs2.writeFile(outPath, renderHtml(model, meta));
-    console.log(`report written to ${path4.relative(cwd, outPath) || outPath}`);
+    console.log(`report written to ${path5.relative(cwd, outPath) || outPath}`);
   }
   printVerdict(model.summary.clean);
   process3.exit(model.summary.clean ? 0 : 1);

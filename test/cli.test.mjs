@@ -545,6 +545,54 @@ test('the HTML report shows the scanned paths and the --tags filter', async () =
   );
 });
 
+test('the HTML header reflects the repository state', async (t) => {
+  const git = findGit();
+  if (!git || spawnSync(git, ['--version']).status !== 0) {
+    t.skip('git not available in a fixed install location');
+    return;
+  }
+  const g = (dir, ...args) => spawnSync(git, ['-C', dir, ...args], { encoding: 'utf8' });
+  // *.html is git-ignored so the written reports never dirty the tree
+  const files = { '.gitignore': ['*.html'], 'spec.md': ['`req:a#1`'] };
+  await withProject(files, async (dir) => {
+    const state = async () => {
+      const res = runCli(dir, ['--html-only=r.html']);
+      assert.equal(res.status, 0, res.stderr);
+      const html = await fs.readFile(path.join(dir, 'r.html'), 'utf8');
+      return JSON.parse(html.match(/id="data">(.*?)<\/script>/s)[1]).meta.repoState;
+    };
+
+    assert.equal((await state()).kind, 'none'); // not a repository
+
+    assert.equal(g(dir, 'init', '-q').status, 0);
+    assert.equal(g(dir, 'add', '.').status, 0);
+    assert.equal(
+      g(dir, '-c', 'user.name=t', '-c', 'user.email=t@t.test', 'commit', '-q', '-m', 'first commit').status,
+      0,
+    );
+    const committed = await state();
+    assert.equal(committed.kind, 'commit');
+    assert.equal(committed.subject, 'first commit');
+    assert.match(committed.shortSha, /^[0-9a-f]{7,}$/);
+    assert.equal(committed.dirty, false);
+    assert.equal(committed.repo, path.basename(dir));
+
+    assert.equal(g(dir, 'tag', 'v1.0').status, 0);
+    const released = await state();
+    assert.equal(released.kind, 'release');
+    assert.equal(released.tag, 'v1.0');
+    assert.equal(released.dirty, false);
+
+    await fs.appendFile(path.join(dir, 'spec.md'), 'more text\n');
+    const dirty = await state();
+    assert.equal(dirty.kind, 'release');
+    assert.equal(dirty.dirty, true);
+    assert.match(dirty.fingerprint, /^[0-9a-f]{7}$/);
+    // the fingerprint depends only on the working-tree state
+    assert.equal((await state()).fingerprint, dirty.fingerprint);
+  });
+});
+
 test('git-ignored files are excluded from the scan', async (t) => {
   const git = findGit();
   if (!git || spawnSync(git, ['--version']).status !== 0) {
