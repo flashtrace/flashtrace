@@ -15,8 +15,10 @@ Ask refining questions before you start writing.
 |---|---|
 | src/ | Source code |
 | test/ | Test code |
+| scripts/ | Build and release tooling (run with plain node) |
 | docs/ | Exact Documentation ("spec-driven") - written in Markdown |
 | dist/ | Generated build output |
+| dist-sea/ | Generated native binaries (SEA); not committed |
 | .github/ | Continuous integration workflows |
 
 Keep dev dependencies to a minimum.
@@ -28,6 +30,8 @@ Keep (runtime) dependencies to zero.
 |---|---|
 | `pnpm build` | Run esbuild, bundling from 'src/' to 'dist/'. |
 | `pnpm test` | Run all tests under 'test/'. |
+| `pnpm build:sea` | Build the native binary (SEA) for the current platform into 'dist-sea/'. |
+| `pnpm test:sea` | Smoke-test the native binary built by `pnpm build:sea`. |
 
 ## Your workflow
 
