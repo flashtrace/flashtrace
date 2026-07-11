@@ -72,6 +72,19 @@ test('unknown option: exit 2 with message on stderr', async () => {
   });
 });
 
+test('--version prints the package.json version and exits 0', async () => {
+  const { version } = JSON.parse(
+    await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'),
+  );
+  await withProject({}, (dir) => {
+    for (const flag of ['--version', '-v']) {
+      const res = runCli(dir, [flag]);
+      assert.equal(res.status, 0, res.stderr);
+      assert.equal(res.stdout.trim(), version);
+    }
+  });
+});
+
 test('non-existent input path: exit 2', async () => {
   await withProject({}, (dir) => {
     const res = runCli(dir, ['does-not-exist']);

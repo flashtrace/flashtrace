@@ -1,4 +1,4 @@
-import { promises as fs } from 'node:fs';
+import { promises as fs, readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -19,8 +19,18 @@ Options:
   -t, --tags <t1,t2,...>   only import markdown items carrying one of these
                            tags; add "_" to also include untagged items
   -h, --help               show this help
+  -v, --version            print the version number
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
+
+// The version lives only in package.json: the release workflow bumps it there
+// after dist/ is built, so it must be read at runtime rather than baked into
+// the bundle (which would also let esbuild inline it). Both src/cli.mjs and
+// dist/flashtrace.mjs sit one level below the package root.
+function packageVersion() {
+  const pkg = new URL('../package.json', import.meta.url);
+  return JSON.parse(readFileSync(pkg, 'utf8')).version;
+}
 
 function parseArgs(argv) {
   const opts = { dirs: [], tags: null };
@@ -28,6 +38,9 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === '-h' || a === '--help') {
       console.log(HELP);
+      process.exit(0);
+    } else if (a === '-v' || a === '--version') {
+      console.log(packageVersion());
       process.exit(0);
     } else if (a === '-t' || a === '--tags') {
       const v = argv[++i];
