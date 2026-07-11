@@ -19,6 +19,8 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 |---|---|
 | `-t, --tags <t1,t2,...>` | Only import Markdown items carrying one of these tags; add `_` to also include untagged items. Code items are always kept. |
 | `-v, --verbose` | List every item with its coverage status and trace edges, not only the defective ones. See [Command line](command-line.md). |
+| `--html[=<path>]` | Also write a self-contained HTML report (default path: `flashtrace.html`). See [Command line](command-line.md). |
+| `--html-only[=<path>]` | Write the HTML report instead of the stdout report. |
 | `-V, --version` | Print the version number and exit. |
 | `-h, --help` | Show help. |
 

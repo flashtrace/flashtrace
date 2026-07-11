@@ -8,7 +8,9 @@
  *   src/parse-markdown.mjs Markdown item parser
  *   src/parse-code.mjs     comment-aware code tag scanner
  *   src/analyze.mjs        coverage analysis
+ *   src/report-model.mjs   renderer-independent report model
  *   src/report.mjs         terminal report
+ *   src/report-html.mjs    self-contained HTML report
  *   src/cli.mjs            argument parsing and main flow
  *
  * Exit codes: 0 = clean trace, 1 = defects/problems found, 2 = usage error.

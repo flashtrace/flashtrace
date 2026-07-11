@@ -7,6 +7,9 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
+      --html[=<path>]      also write a self-contained HTML report
+                           (default path: flashtrace.html)
+      --html-only[=<path>] write the HTML report instead of the stdout report
   -V, --version            print the version number
   -h, --help
 ```
@@ -41,3 +44,18 @@ Below its status line, an item shows its role-appropriate trace edges:
 ✔ impl:login#2.4  login.ts:1  [deep-covered]
     wanted by req:login#1  spec.md:2
 ```
+
+## HTML report
+
+`--html` writes an HTML report in addition to the stdout report; `--html-only` writes it instead of the stdout report. The default output file is `flashtrace.html` in the current working directory. A custom path must be attached with `=` (`--html=out/report.html`) — a space-separated value would be ambiguous with a scan directory; missing parent directories are created, an existing file is overwritten. Giving both flags is a usage error.
+
+With either flag, stdout carries a `report written to <path>` line directly before the final `ok` / `not ok`; with `--html-only` these two lines are the entire output. Exit codes are unchanged.
+
+The file is fully self-contained — inline CSS and vanilla JavaScript, the report data embedded as JSON, no external requests — so it can be opened from disk, kept, and shared as a single file. Its output is deterministic: the same tree state produces a byte-identical file.
+
+The page shows:
+
+- a header with the summary counts, a prominent `ok` / `not ok` verdict, the scanned paths, the active `--tags` filter (when given), and the flashtrace version. There is no timestamp.
+- a tab bar switching between **Show problems** (the default report's content: one block per defective item plus the parse problems) and **Show all (verbose)** (the verbose report's content: every item grouped by file with its status mark and trace edges, as specified above).
+
+Both views are always contained in the file; `-v` only affects the stdout report.

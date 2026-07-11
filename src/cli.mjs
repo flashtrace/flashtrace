@@ -8,7 +8,8 @@ import { parseMarkdown } from './parse-markdown.mjs';
 import { parseCode } from './parse-code.mjs';
 import { analyze } from './analyze.mjs';
 import { buildReportModel } from './report-model.mjs';
-import { report } from './report.mjs';
+import { renderHtml } from './report-html.mjs';
+import { report, printVerdict } from './report.mjs';
 
 const HELP = `Usage: flashtrace [options] [directory-or-file ...]
 
@@ -21,6 +22,9 @@ Options:
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
+      --html[=<path>]      also write a self-contained HTML report
+                           (default path: flashtrace.html)
+      --html-only[=<path>] write the HTML report instead of the stdout report
   -V, --version            print the version number
   -h, --help               show this help
 
@@ -48,8 +52,16 @@ function rejectValue(name, inline) {
   if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
 }
 
+// --html and --html-only take their path =-attached (--html=out/report.html):
+// a space-separated value would be ambiguous with a scan directory
+function parseHtmlFlag(name, inline, opts) {
+  if (inline === '') throw new UsageError(`missing path in ${name}=`);
+  if (opts.html) throw new UsageError('use either --html or --html-only');
+  opts.html = { only: name === '--html-only', path: inline ?? 'flashtrace.html' };
+}
+
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null, verbose: false };
+  const opts = { dirs: [], tags: null, verbose: false, html: null };
   for (let i = 0; i < argv.length; i++) {
     const [a, inline] = splitLongOption(argv[i]);
     if (a === '-h' || a === '--help') {
@@ -67,6 +79,8 @@ function parseArgs(argv) {
       const v = inline ?? argv[++i];
       if (!v) throw new UsageError(`missing value for ${a}`);
       opts.tags = v.split(',').map((s) => s.trim()).filter(Boolean);
+    } else if (a === '--html' || a === '--html-only') {
+      parseHtmlFlag(a, inline, opts);
     } else if (a.startsWith('-')) {
       throw new UsageError(`unknown option: ${a}`);
     } else {
@@ -105,9 +119,23 @@ async function main() {
   }
 
   analyze(items, forwards, problems);
-  const model = buildReportModel(items, problems, process.cwd());
-  const clean = report(model, { verbose: opts.verbose });
-  process.exit(clean ? 0 : 1);
+  const cwd = process.cwd();
+  const model = buildReportModel(items, problems, cwd);
+
+  if (!opts.html?.only) report(model, { verbose: opts.verbose });
+  if (opts.html) {
+    const meta = {
+      version: packageVersion(),
+      scannedPaths: opts.dirs,
+      tags: opts.tags,
+    };
+    const outPath = path.resolve(cwd, opts.html.path);
+    await fs.mkdir(path.dirname(outPath), { recursive: true });
+    await fs.writeFile(outPath, renderHtml(model, meta));
+    console.log(`report written to ${path.relative(cwd, outPath) || outPath}`);
+  }
+  printVerdict(model.summary.clean);
+  process.exit(model.summary.clean ? 0 : 1);
 }
 
 export function runCli() {

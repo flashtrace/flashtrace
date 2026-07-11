@@ -101,9 +101,12 @@ export function report(model, opts = {}) {
   if (model.problems.length) out.push('');
 
   renderSummary(model.summary, out, c);
-
-  const { clean } = model.summary;
-  out.push(clean ? c.green(c.bold('ok')) : c.red(c.bold('not ok')));
   console.log(out.join('\n'));
-  return clean;
+}
+
+// the final verdict line; printed separately so a "report written to" note
+// can sit between the report body and the verdict
+export function printVerdict(clean) {
+  const c = makeStyler();
+  console.log(clean ? c.green(c.bold('ok')) : c.red(c.bold('not ok')));
 }

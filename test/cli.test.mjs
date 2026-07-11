@@ -463,6 +463,88 @@ test('CLI runs when invoked through a symlink (pnpm-style bin)', async () => {
   }
 });
 
+test('--html writes flashtrace.html alongside the full stdout report', async () => {
+  await withProject(
+    { 'spec.md': ['`req:login#1`', '', 'Needs: impl:missing#1'] },
+    async (dir) => {
+      const res = runCli(dir, ['--html']);
+      assert.equal(res.status, 1);
+      assert.match(res.stdout, /uncovered: needs impl:missing#1/);
+      assert.match(res.stdout, /report written to flashtrace\.html/);
+      assert.ok(res.stdout.trim().endsWith('not ok'));
+      const html = await fs.readFile(path.join(dir, 'flashtrace.html'), 'utf8');
+      assert.ok(html.includes('req:login#1'));
+      assert.ok(html.includes('Show problems'));
+      assert.ok(html.includes('Show all (verbose)'));
+    },
+  );
+});
+
+test('--html=<path> writes to the given path, creating parent directories', async () => {
+  await withProject({ 'spec.md': ['`req:login#1`'] }, async (dir) => {
+    const res = runCli(dir, ['--html=sub/custom.html']);
+    assert.equal(res.status, 0, res.stderr);
+    const html = await fs.readFile(path.join(dir, 'sub', 'custom.html'), 'utf8');
+    assert.ok(html.includes('req:login#1'));
+  });
+});
+
+test('--html-only prints only the confirmation and the verdict', async () => {
+  await withProject(
+    { 'spec.md': ['`req:login#1`', '', 'Needs: impl:missing#1'] },
+    async (dir) => {
+      const res = runCli(dir, ['--html-only']);
+      assert.equal(res.status, 1);
+      assert.match(res.stdout, /^report written to flashtrace\.html\r?\nnot ok\r?\n$/);
+      await fs.access(path.join(dir, 'flashtrace.html'));
+    },
+  );
+  await withProject({ 'spec.md': ['`req:login#1`'] }, async (dir) => {
+    const res = runCli(dir, ['--html-only']);
+    assert.equal(res.status, 0, res.stderr);
+    assert.match(res.stdout, /^report written to flashtrace\.html\r?\nok\r?\n$/);
+  });
+});
+
+test('--html with --html-only, or an empty =path, is a usage error', async () => {
+  await withProject({ 'spec.md': ['`req:login#1`'] }, (dir) => {
+    const both = runCli(dir, ['--html', '--html-only']);
+    assert.equal(both.status, 2);
+    assert.match(both.stderr, /either --html or --html-only/);
+
+    const empty = runCli(dir, ['--html=']);
+    assert.equal(empty.status, 2);
+    assert.match(empty.stderr, /missing path/);
+  });
+});
+
+test('the HTML report is byte-identical across runs on the same tree', async () => {
+  await withProject(
+    { 'spec.md': ['`req:login#1`', '', 'Needs: impl:missing#1'] },
+    async (dir) => {
+      runCli(dir, ['--html-only=a.html']);
+      runCli(dir, ['--html-only=b.html']);
+      const a = await fs.readFile(path.join(dir, 'a.html'));
+      const b = await fs.readFile(path.join(dir, 'b.html'));
+      assert.ok(a.equals(b));
+    },
+  );
+});
+
+test('the HTML report shows the scanned paths and the --tags filter', async () => {
+  await withProject(
+    { 'spec.md': ['# A', '`req:a#1`', '', 'Tags: Auth'] },
+    async (dir) => {
+      const res = runCli(dir, ['--html-only', '-t', 'Auth', '.']);
+      assert.equal(res.status, 0, res.stderr);
+      const html = await fs.readFile(path.join(dir, 'flashtrace.html'), 'utf8');
+      const data = JSON.parse(html.match(/id="data">(.*?)<\/script>/s)[1]);
+      assert.deepEqual(data.meta.scannedPaths, ['.']);
+      assert.deepEqual(data.meta.tags, ['Auth']);
+    },
+  );
+});
+
 test('git-ignored files are excluded from the scan', async (t) => {
   const git = findGit();
   if (!git || spawnSync(git, ['--version']).status !== 0) {
