@@ -102,8 +102,10 @@ function renderVerbose(items, out, c, dimLoc) {
     prevFile = it.file;
     const { mark, tag } = statusOf(it, c);
     const title = it.title ? ' ' + c.dim(`"${it.title}"`) : '';
-    out.push(`${mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}  ${tag}`);
-    out.push(...edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc));
+    out.push(
+      `${mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}  ${tag}`,
+      ...edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc),
+    );
     for (const d of it.defects) out.push(`    ${c.red('•')} ${d}`);
   }
   if (sorted.length) out.push('');
