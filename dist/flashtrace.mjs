@@ -442,30 +442,35 @@ function markDeepCoverage(items, byId, matchesOf, fwdTarget) {
     memo.set(id, ok);
     return ok;
   };
-  const needDeep = (n) => {
-    const matches = matchesOf(n);
-    return matches.length > 0 && matches.some((id) => deep(id));
-  };
+  const needDeep = (n) => matchesOf(n).some((id) => deep(id));
   for (const it of items) it.deepCovered = deep(it.id);
+}
+function groupIdsByKey(byId) {
+  const idsByKey = /* @__PURE__ */ new Map();
+  for (const id of byId.keys())
+    (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
+  return idsByKey;
+}
+function splitNeeds(items) {
+  const exact = /* @__PURE__ */ new Set();
+  const wildcard = [];
+  for (const it of items)
+    for (const n of it.needs) {
+      if (isWildcardRev(revOf(n))) wildcard.push(n);
+      else exact.add(n);
+    }
+  return { exact, wildcard };
 }
 function analyze(items, forwards = [], problems = []) {
   const byId = /* @__PURE__ */ new Map();
   const revsByKey = /* @__PURE__ */ new Map();
-  const idsByKey = /* @__PURE__ */ new Map();
   for (const it of items) {
     (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
     (revsByKey.get(it.key) ?? revsByKey.set(it.key, /* @__PURE__ */ new Set()).get(it.key)).add(it.revision);
   }
-  for (const id of byId.keys())
-    (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
+  const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  const exactNeeds = /* @__PURE__ */ new Set();
-  const wildcardNeeds = [];
-  for (const it of items)
-    for (const n of it.needs) {
-      if (isWildcardRev(revOf(n))) wildcardNeeds.push(n);
-      else exactNeeds.add(n);
-    }
+  const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((w) => idMatches(w, id));
   for (const [id, group] of byId) {
     if (group.length > 1)

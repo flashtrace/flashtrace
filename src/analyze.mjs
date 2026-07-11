@@ -111,37 +111,48 @@ function markDeepCoverage(items, byId, matchesOf, fwdTarget) {
     memo.set(id, ok);
     return ok;
   };
-  const needDeep = (n) => {
-    const matches = matchesOf(n);
-    return matches.length > 0 && matches.some((id) => deep(id));
-  };
+  const needDeep = (n) => matchesOf(n).some((id) => deep(id));
   for (const it of items) it.deepCovered = deep(it.id);
+}
+
+// defined IDs grouped by their key (everything but the revision), so a wildcard
+// need can be resolved against the revisions sharing its key
+function groupIdsByKey(byId) {
+  const idsByKey = new Map();
+  for (const id of byId.keys())
+    (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
+  return idsByKey;
+}
+
+// split all need references into exact IDs (fast membership) and wildcard
+// patterns (matched individually)
+function splitNeeds(items) {
+  const exact = new Set();
+  const wildcard = [];
+  for (const it of items)
+    for (const n of it.needs) {
+      if (isWildcardRev(revOf(n))) wildcard.push(n);
+      else exact.add(n);
+    }
+  return { exact, wildcard };
 }
 
 export function analyze(items, forwards = [], problems = []) {
   const byId = new Map();
   const revsByKey = new Map();
-  const idsByKey = new Map(); // defined IDs grouped by key, for wildcard lookup
   for (const it of items) {
     (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
     (revsByKey.get(it.key) ?? revsByKey.set(it.key, new Set()).get(it.key)).add(it.revision);
   }
-  for (const id of byId.keys())
-    (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
+  const idsByKey = groupIdsByKey(byId);
 
   // defined items satisfying a (possibly wildcard) need reference; for a
   // concrete reference this is just the exact ID if it exists
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
 
-  // is a code item wanted? split needs into an exact set (fast path) and the
-  // wildcard patterns; forwarding targets are added to the exact set below
-  const exactNeeds = new Set();
-  const wildcardNeeds = [];
-  for (const it of items)
-    for (const n of it.needs) {
-      if (isWildcardRev(revOf(n))) wildcardNeeds.push(n);
-      else exactNeeds.add(n);
-    }
+  // is a code item wanted? an exact need matches by ID, a wildcard by pattern;
+  // forwarding targets are added to the exact set below
+  const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((w) => idMatches(w, id));
 
   for (const [id, group] of byId) {
