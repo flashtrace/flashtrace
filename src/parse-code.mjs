@@ -214,7 +214,6 @@ function collectTags(comment, file, line, state, items, problems) {
   }
 }
 
-
 export function parseCode(file, text, problems, forwards = []) {
   const ext = path.extname(file).toLowerCase();
   // Unknown extensions never reach here via the CLI (collectFiles filters on
