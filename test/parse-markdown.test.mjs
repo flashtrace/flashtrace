@@ -238,3 +238,155 @@ test('a forwarding mentioned in prose is not recognized', () => {
   const { forwards } = parse(['The tag [req:a#1 --> dsn:b#1] in prose does not forward.']);
   assert.equal(forwards.length, 0);
 });
+
+test('needs from a table column among irrelevant columns, IDs bare or backticked', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Needs | Owner |',
+    '|---|---|---|',
+    '| Login | `impl:a#1` | Alice |',
+    '| Logout | utest:a#1 | Bob |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
+});
+
+test('one table may feed Needs, Covers, and Tags columns at once', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs | Covers | Tags |',
+    '| :--- | ----: | :-: |',
+    '| impl:a#1 | feat:a#1 | Auth |',
+    '| utest:a#1 | | Security |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
+  assert.deepEqual(items[0].covers, ['feat:a#1']);
+  assert.deepEqual(items[0].tags, ['Auth', 'Security']);
+});
+
+test('empty and missing keyword cells are skipped', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Needs |',
+    '|---|---|',
+    '| Login | impl:a#1 |',
+    '| Empty cell | |',
+    '| Row too short |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
+test('invalid ID in a table cell is reported with the row line', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| impl:ok#1 |',
+    '| not/valid |',
+  ]);
+  assert.deepEqual(items[0].needs, ['impl:ok#1']);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "not\/valid" in Needs/);
+  assert.equal(problems[0].line, 6);
+});
+
+test('a wildcard revision is accepted in a Needs column but not in a Covers column', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs | Covers |',
+    '|---|---|',
+    '| impl:a#2.x | feat:x#1.y |',
+  ]);
+  assert.deepEqual(items[0].needs, ['impl:a#2.x']);
+  assert.deepEqual(items[0].covers, []);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "feat:x#1\.y" in Covers/);
+});
+
+test('a table without a keyword header cell stays plain text', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Owner |',
+    '|---|---|',
+    '| Login | impl:a#1 |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, []);
+});
+
+test('a keyword header row without a delimiter row is not a table', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '| impl:a#1 |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, []);
+});
+
+// GFM renders tables without leading/trailing pipes too; the tracer must
+// recognize them as well - only at least one pipe per row is required.
+test('keyword table without leading/trailing pipes', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Feature | Needs | Owner',
+    '--- | --- | ---',
+    'Login | impl:a#1 | Alice',
+    'Logout | utest:a#1 | Bob',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
+});
+
+test('a pipe-bearing heading ends the table like any block element', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Needs |',
+    '--- |',
+    'impl:a#1 |',
+    '## Next | chapter',
+    '`req:b#1`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
+// GFM degrades a table whose delimiter row has a deviating cell count to
+// plain text; the tracer must agree with the rendered document.
+test('a delimiter row with a mismatched cell count is not a table', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| A | Needs |',
+    '|---|',
+    '| x | impl:a#1 |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, []);
+});
+
+test('a keyword table terminates the description like a keyword line', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    '',
+    'The description.',
+    '| Needs |',
+    '|---|',
+    '| impl:a#1 |',
+    'Not description anymore.',
+  ]);
+  assert.deepEqual(items[0].description, ['The description.']);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+});

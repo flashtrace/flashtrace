@@ -4,8 +4,9 @@
  *   - Title: the heading (#...) directly above the ID (only blank lines in between).
  *   - Description: the lines following the ID (one blank line directly under the
  *     ID is allowed) up to the next blank line.
- *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated or as a
- *     bullet list on the following lines. Needs/Covers list full, explicit IDs.
+ *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated, as a
+ *     bullet list on the following lines, or as a table column whose header
+ *     cell is the bare keyword name. Needs/Covers list full, explicit IDs.
  *   - A line containing only `[<id> --> <id>]` (optionally backticked) forwards
  *     the first item's coverage obligation to the second (spaces optional).
  */
@@ -16,6 +17,7 @@ const DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
+const DELIM_CELL_RE = /^:?-+:?$/;
 // group 1 is the optional backtick; the \1 backreference keeps it balanced,
 // so the two ID captures start at group 2
 const FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
@@ -55,6 +57,46 @@ function keywordEntries(lines, j, inline) {
   return { entries, j };
 }
 
+// cells of a `| a | b |` table row, or null; as in GFM, one leading and one
+// trailing pipe are optional, but a row must contain at least one pipe
+function rowCells(line) {
+  let s = line.trim();
+  if (!s.includes('|')) return null;
+  if (s.startsWith('|')) s = s.slice(1);
+  if (s.endsWith('|')) s = s.slice(0, -1);
+  return s.split('|').map((c) => c.trim());
+}
+
+// a table whose header row contains keyword cells ("Needs", "Covers", "Tags")
+// contributes each row's cell in those columns as one entry; empty cells and
+// all other columns are ignored. Returns the index of the last consumed line,
+// or null if `lines[j]` does not start such a table.
+function takeKeywordTable(lines, j, item, file, problems) {
+  const header = rowCells(lines[j]);
+  if (!header) return null;
+  const columns = [];
+  header.forEach((cell, col) => {
+    if (cell === 'Needs' || cell === 'Covers' || cell === 'Tags') columns.push([col, cell]);
+  });
+  if (columns.length === 0) return null;
+  const delim = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
+  // GFM: a delimiter row with a deviating cell count degrades the whole
+  // block to prose, so the tracer must not read it as a table either
+  if (delim?.length !== header.length || !delim.every((c) => DELIM_CELL_RE.test(c))) return null;
+  j++;
+  // like GFM, the table ends at a new block-level element (here: a heading
+  // or an item definition), even when that line contains a pipe
+  while (j + 1 < lines.length && !isBoundary(lines[j + 1])) {
+    const cells = rowCells(lines[j + 1]);
+    if (!cells) break;
+    j++;
+    for (const [col, keyword] of columns) {
+      if (cells[col]) applyKeyword(item, keyword, [cells[col]], file, j + 1, problems);
+    }
+  }
+  return j;
+}
+
 function applyKeyword(item, keyword, entries, file, kwLine, problems) {
   if (keyword === 'Tags') {
     item.tags.push(...entries);
@@ -87,11 +129,15 @@ function parseItemBody(lines, start, item, file, problems, forwards) {
       continue;
     }
     const kw = line.match(KEYWORD_RE);
+    const tableEnd = kw ? null : takeKeywordTable(lines, j, item, file, problems);
     if (kw) {
       descDone = true;
       const collected = keywordEntries(lines, j, kw[2]);
       applyKeyword(item, kw[1], collected.entries, file, j + 1, problems);
       j = collected.j;
+    } else if (tableEnd !== null) {
+      descDone = true;
+      j = tableEnd;
     } else if (line.trim() === '') {
       if (item.description.length > 0) descDone = true;
       // a blank line directly under the ID (before the description) is allowed

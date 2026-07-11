@@ -26,7 +26,25 @@ Tags: Auth, Security
   - `Covers:` - the exact IDs of the items this item covers (concrete revisions only).
   - `Tags:` - free-form tag names for additional grouping/filtering.
 
-  Each keyword accepts either a one-line comma-separated list or a bullet list (`-`, `*`, `+`) on the immediately following lines. The two styles must not be mixed within one keyword. IDs may optionally be wrapped in backticks.
+  Each keyword accepts a one-line comma-separated list, a bullet list (`-`, `*`, `+`) on the immediately following lines, or a table column (see below). The inline and bullet styles must not be mixed within one keyword. IDs may optionally be wrapped in backticks.
+
+## Keyword entries from tables
+
+A table column headed by a bare keyword name (`Needs`, `Covers`, or `Tags` - no colon) contributes each row's cell in that column as one entry:
+
+```markdown
+| Feature | Needs              | Covers      | Owner |
+|---------|--------------------|-------------|-------|
+| Login   | impl:auth/login#1  | feat:auth#1 | Alice |
+| Logout  | impl:auth/logout#1 |             | Bob   |
+```
+
+- As in GitHub-flavored Markdown, the leading and trailing `|` of a row are optional, but every row must contain at least one `|`. The header row must be followed by a delimiter row with the same number of cells (dashes, alignment colons allowed) - a count mismatch degrades the block to plain text.
+- The keyword column may sit at any position, and one table may combine several keyword columns. All other columns are ignored by the tracer.
+- A cell holds at most one entry; empty (or missing) cells are skipped. Multiple entries simply mean multiple rows.
+- A table whose header contains no keyword cell is ordinary informative text.
+
+Like a keyword line, a keyword table may appear anywhere in the item's definition and terminates the description.
 
 An item's definition extends to the next ID line or heading. An item with an empty `Needs` list terminates a tracing chain.
 

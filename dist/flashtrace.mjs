@@ -296,6 +296,7 @@ var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
+var DELIM_CELL_RE = /^:?-+:?$/;
 var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
 var isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
 function takeForward(line, file, n, forwards) {
@@ -325,6 +326,34 @@ function keywordEntries(lines, j, inline) {
   }
   return { entries, j };
 }
+function rowCells(line) {
+  let s = line.trim();
+  if (!s.includes("|")) return null;
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|")) s = s.slice(0, -1);
+  return s.split("|").map((c) => c.trim());
+}
+function takeKeywordTable(lines, j, item, file, problems) {
+  const header = rowCells(lines[j]);
+  if (!header) return null;
+  const columns = [];
+  header.forEach((cell, col) => {
+    if (cell === "Needs" || cell === "Covers" || cell === "Tags") columns.push([col, cell]);
+  });
+  if (columns.length === 0) return null;
+  const delim = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
+  if (delim?.length !== header.length || !delim.every((c) => DELIM_CELL_RE.test(c))) return null;
+  j++;
+  while (j + 1 < lines.length && !isBoundary(lines[j + 1])) {
+    const cells = rowCells(lines[j + 1]);
+    if (!cells) break;
+    j++;
+    for (const [col, keyword] of columns) {
+      if (cells[col]) applyKeyword(item, keyword, [cells[col]], file, j + 1, problems);
+    }
+  }
+  return j;
+}
 function applyKeyword(item, keyword, entries, file, kwLine, problems) {
   if (keyword === "Tags") {
     item.tags.push(...entries);
@@ -353,11 +382,15 @@ function parseItemBody(lines, start, item, file, problems, forwards) {
       continue;
     }
     const kw = line.match(KEYWORD_RE);
+    const tableEnd = kw ? null : takeKeywordTable(lines, j, item, file, problems);
     if (kw) {
       descDone = true;
       const collected = keywordEntries(lines, j, kw[2]);
       applyKeyword(item, kw[1], collected.entries, file, j + 1, problems);
       j = collected.j;
+    } else if (tableEnd !== null) {
+      descDone = true;
+      j = tableEnd;
     } else if (line.trim() === "") {
       if (item.description.length > 0) descDone = true;
     } else if (!descDone) {
