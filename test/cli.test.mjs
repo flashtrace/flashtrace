@@ -194,6 +194,59 @@ test('-v lists covers edges, valid or missing', async () => {
   });
 });
 
+test('-v lists a forwarding source\'s own covers alongside its arrow edge', async () => {
+  // forwarding excuses the source's needs but not its Covers, which stay
+  // checked and must still appear as edges in the verbose report
+  const files = {
+    'spec.md': [
+      '`req:base#1`',
+      '',
+      'Needs: req:src#1',
+      '',
+      '`req:src#1`',
+      '',
+      'Covers: req:base#1',
+      '',
+      '`[req:src#1 --> dsn:tgt#1]`',
+      '',
+      '`dsn:tgt#1`',
+    ],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /→ dsn:tgt#1\s+✔ spec\.md:11/);
+    assert.match(res.stdout, /covers req:base#1\s+✔ spec\.md:1/);
+  });
+});
+
+test('-v honors --tags: filtered-out items are absent from the list', async () => {
+  const files = {
+    'spec.md': [
+      '# A',
+      '`req:a#1`',
+      '',
+      'Needs: impl:a#1',
+      'Tags: Auth',
+      '',
+      '# B',
+      '`req:b#1`',
+      '',
+      'Needs: impl:a#1',
+      'Tags: Other',
+    ],
+    'a.ts': ['// [impl:a#1]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v', '-t', 'Auth']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /✔ req:a#1 "A"\s+spec\.md:2\s+\[deep-covered\]/);
+    assert.match(res.stdout, /needs impl:a#1\s+✔ a\.ts:1/);
+    assert.ok(!res.stdout.includes('req:b#1'), res.stdout);
+    assert.match(res.stdout, /items\s+2\b/); // req:a + impl:a, req:b filtered out
+  });
+});
+
 test('-v marks an item with a defective downstream chain as shallow-covered', async () => {
   const files = {
     'spec.md': ['`req:a#1`', '', 'Needs: req:b#1', '', '`req:b#1`', '', 'Needs: impl:missing#1'],
