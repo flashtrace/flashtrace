@@ -21,7 +21,7 @@ Tags are written inside comments. The comment style is chosen per file extension
 | HTML/XML | – | `<!-- … -->` | `.xml` `.svg` |
 | HTML + embedded | – | `<!-- … -->` (markup) | `.html` `.htm` `.vue` `.svelte` |
 
-HTML-family files switch comment style by region: `<!-- … -->` in markup, C-like comments (`//`, `/* … */`) inside `<script>`, and CSS comments (`/* … */`) inside `<style>`. So a `//` in template text or a URL is *not* treated as a comment - only a real HTML comment is.
+HTML-family files switch comment style by region: `<!-- … -->` in markup, C-like comments (`//`, `/* … */`) inside `<script>`, and CSS comments (`/* … */`) inside `<style>`. So a `//` in template text or a URL is *not* treated as a comment - only a real HTML comment is. A region ends at the first `</script>`/`</style>` (as a browser tokenizes it), so a literal `</script>` meant as script text should be written `<\/script>`.
 
 - `[<type>:[<group>/…]<name>#<revision>]` - defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
 - `[>><type>:[<group>/…]<name>#<revision>]` - attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.
