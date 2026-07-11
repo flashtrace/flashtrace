@@ -669,6 +669,13 @@ function groupIdsByKey(byId) {
     (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
   return idsByKey;
 }
+function buildResolver(items) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const it of items) (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
+  const idsByKey = groupIdsByKey(byId);
+  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
+  return { byId, matchesOf };
+}
 function splitNeeds(items) {
   const exact = /* @__PURE__ */ new Set();
   const wildcard = [];
@@ -680,14 +687,10 @@ function splitNeeds(items) {
   return { exact, wildcard };
 }
 function analyze(items, forwards = [], problems = []) {
-  const byId = /* @__PURE__ */ new Map();
+  const { byId, matchesOf } = buildResolver(items);
   const revsByKey = /* @__PURE__ */ new Map();
-  for (const it of items) {
-    (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
+  for (const it of items)
     (revsByKey.get(it.key) ?? revsByKey.set(it.key, /* @__PURE__ */ new Set()).get(it.key)).add(it.revision);
-  }
-  const idsByKey = groupIdsByKey(byId);
-  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((w) => idMatches(w, id));
   for (const [id, group] of byId) {
@@ -725,15 +728,6 @@ function statusOf(it, c) {
   if (it.defects.length > 0) return { mark: c.red("\u2718"), tag: c.red("[defective]") };
   if (!it.deepCovered) return { mark: c.yellow("~"), tag: c.yellow("[shallow-covered]") };
   return { mark: c.green("\u2714"), tag: c.green("[deep-covered]") };
-}
-function buildResolver(items) {
-  const byId = /* @__PURE__ */ new Map();
-  for (const it of items) (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
-  const idsByKey = /* @__PURE__ */ new Map();
-  for (const id of byId.keys())
-    (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
-  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  return { byId, matchesOf };
 }
 function buildWantedBy(items, byId, matchesOf) {
   const wantedBy = /* @__PURE__ */ new Map();

@@ -124,6 +124,17 @@ function groupIdsByKey(byId) {
   return idsByKey;
 }
 
+// items grouped by ID plus need resolution over them: matchesOf(ref) returns
+// the defined IDs satisfying a (possibly wildcard) reference. Shared with the
+// verbose report so rendered edges cannot drift from what analyze checked.
+export function buildResolver(items) {
+  const byId = new Map();
+  for (const it of items) (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
+  const idsByKey = groupIdsByKey(byId);
+  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
+  return { byId, matchesOf };
+}
+
 // split all need references into exact IDs (fast membership) and wildcard
 // patterns (matched individually)
 function splitNeeds(items) {
@@ -138,17 +149,10 @@ function splitNeeds(items) {
 }
 
 export function analyze(items, forwards = [], problems = []) {
-  const byId = new Map();
+  const { byId, matchesOf } = buildResolver(items);
   const revsByKey = new Map();
-  for (const it of items) {
-    (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
+  for (const it of items)
     (revsByKey.get(it.key) ?? revsByKey.set(it.key, new Set()).get(it.key)).add(it.revision);
-  }
-  const idsByKey = groupIdsByKey(byId);
-
-  // defined items satisfying a (possibly wildcard) need reference; for a
-  // concrete reference this is just the exact ID if it exists
-  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
 
   // is a code item wanted? an exact need matches by ID, a wildcard by pattern;
   // forwarding targets are added to the exact set below

@@ -1,7 +1,8 @@
 import path from 'node:path';
 import process from 'node:process';
 
-import { idMatches, isWildcardRev, keyOf, revOf } from './ids.mjs';
+import { buildResolver } from './analyze.mjs';
+import { isWildcardRev, revOf } from './ids.mjs';
 
 function makeStyler() {
   const on = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -21,18 +22,6 @@ function statusOf(it, c) {
   if (it.defects.length > 0) return { mark: c.red('✘'), tag: c.red('[defective]') };
   if (!it.deepCovered) return { mark: c.yellow('~'), tag: c.yellow('[shallow-covered]') };
   return { mark: c.green('✔'), tag: c.green('[deep-covered]') };
-}
-
-// need-resolution indexes mirroring analyze's matchesOf, but local to the
-// verbose renderer so the default path pays nothing for them
-function buildResolver(items) {
-  const byId = new Map();
-  for (const it of items) (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
-  const idsByKey = new Map();
-  for (const id of byId.keys())
-    (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
-  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  return { byId, matchesOf };
 }
 
 function buildWantedBy(items, byId, matchesOf) {
