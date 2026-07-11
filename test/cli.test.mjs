@@ -171,6 +171,29 @@ test('-v shows a code item\'s need on a markdown target as wanted by', async () 
   });
 });
 
+test('-v lists covers edges, valid or missing', async () => {
+  const files = {
+    'spec.md': [
+      '`req:parent#1`',
+      '',
+      'Needs: req:child#1',
+      '',
+      '`req:child#1`',
+      '',
+      'Needs: impl:c#1',
+      'Covers: req:parent#1, req:gone#1',
+    ],
+    'c.ts': ['// [impl:c#1]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 1);
+    assert.match(res.stdout, /covers req:parent#1\s+✔ spec\.md:1/);
+    assert.match(res.stdout, /covers req:gone#1\s+✘ missing/);
+    assert.match(res.stdout, /orphaned: covers req:gone#1/);
+  });
+});
+
 test('-v marks an item with a defective downstream chain as shallow-covered', async () => {
   const files = {
     'spec.md': ['`req:a#1`', '', 'Needs: req:b#1', '', '`req:b#1`', '', 'Needs: impl:missing#1'],

@@ -29,7 +29,8 @@ Below its status line, an item shows its role-appropriate trace edges:
 
 - a **Markdown item** lists one `needs <ref>` line per `Needs` entry: `✔` with the location of the covering item, or `✘ missing`. A wildcard reference additionally shows each resolved revision as `(→ <resolved-id>)`.
 - **every item** lists `wanted by <id>` for each item that needs it. A code item's own needs (from `>>` need tags) are not listed on the item itself — they appear as `wanted by` on their targets (of any origin), and a missing one only as its `uncovered` defect.
-- a **forwarding source** shows `→ <target-id>` instead of its needs, which are excused (see [Forwarding](forwarding.md)).
+- **every item** lists `covers <id>` for each of its `Covers` entries: `✔` with the location of the covered item, or `✘ missing`. The relation's validation (orphaned, unwanted) is reported through the defect bullets.
+- a **forwarding source** shows `→ <target-id>` instead of its needs, which are excused (see [Forwarding](forwarding.md)); its `Covers` entries are listed unchanged.
 
 ```
 ✔ req:login#1 "Login"  spec.md:2  [deep-covered]

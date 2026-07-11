@@ -77,13 +77,27 @@ function needEdges(it, byId, matchesOf, c, dimLoc) {
   return lines;
 }
 
+// covers references are concrete IDs; the relation's validation (orphaned,
+// unwanted) is carried by the defect bullets, the edge shows existence
+function coverEdges(it, byId, c, dimLoc) {
+  const lines = [];
+  for (const cv of it.covers) {
+    const target = byId.get(cv)?.[0];
+    if (!target) lines.push(`    ${c.dim('covers')} ${cv}  ${c.red('✘ missing')}`);
+    else lines.push(`    ${c.dim('covers')} ${cv}  ${c.green('✔')} ${dimLoc(target.file, target.line)}`);
+  }
+  return lines;
+}
+
 // role-appropriate edges: a markdown item its needs, a forwarding source its
-// target (its own needs are excused), and every item who wants it - so a code
-// item's own needs stay visible on their targets, whatever origin those have
+// target (its own needs are excused, its covers are not), every item its
+// covers and who wants it - so a code item's own needs stay visible on their
+// targets, whatever origin those have
 function edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc) {
   const lines = [];
   if (it.forwardsTo !== null) lines.push(forwardEdge(it, byId, c, dimLoc));
   else if (it.origin === 'markdown') lines.push(...needEdges(it, byId, matchesOf, c, dimLoc));
+  lines.push(...coverEdges(it, byId, c, dimLoc));
   for (const w of wantedBy.get(it) ?? [])
     lines.push(`    ${c.dim('wanted by')} ${w.id}  ${dimLoc(w.file, w.line)}`);
   return lines;
