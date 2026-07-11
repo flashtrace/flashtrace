@@ -34,7 +34,7 @@ test('full item: title, description, needs, covers, tags', () => {
   const item = items[0];
   assert.equal(item.id, 'req:auth/login#1');
   assert.equal(item.key, 'req:auth/login');
-  assert.equal(item.revision, 1);
+  assert.equal(item.revision, '1');
   assert.equal(item.origin, 'markdown');
   assert.equal(item.file, 'spec.md');
   assert.equal(item.line, 2);
@@ -82,6 +82,25 @@ test('invalid ID in a Needs list is reported as a problem', () => {
   assert.equal(problems[0].file, 'spec.md');
 });
 
+test('a wildcard revision is accepted in Needs but not in Covers', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Needs: impl:a#2.x, impl:b#2.3.x',
+    '',
+    'Covers: feat:x#1.y',
+  ]);
+  assert.deepEqual(items[0].needs, ['impl:a#2.x', 'impl:b#2.3.x']);
+  assert.deepEqual(items[0].covers, []);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "feat:x#1\.y" in Covers/);
+});
+
+test('a wildcard revision is not accepted in an item definition', () => {
+  const { items } = parse(['`req:a#2.x`']);
+  assert.equal(items.length, 0);
+});
+
 test('an item definition ends at the next ID line or heading', () => {
   const { items } = parse([
     '`req:a#1`',
@@ -94,6 +113,36 @@ test('an item definition ends at the next ID line or heading', () => {
   assert.equal(items.length, 2);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
   assert.deepEqual(items[1].needs, []);
+});
+
+test('revisions may carry up to three semver-style layers', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '`req:b#2.4`',
+    '',
+    '`req:c#2.4.0`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(
+    items.map((it) => it.id),
+    ['req:a#1', 'req:b#2.4', 'req:c#2.4.0'],
+  );
+  assert.deepEqual(
+    items.map((it) => it.revision),
+    ['1', '2.4', '2.4.0'],
+  );
+  assert.equal(items[1].key, 'req:b');
+});
+
+test('a fourth revision layer is not a valid ID definition', () => {
+  const { items } = parse(['`req:a#1.2.3.4`']);
+  assert.equal(items.length, 0);
+});
+
+test('a revision with a pre-release appendix is not a valid ID definition', () => {
+  const { items } = parse(['`req:a#1.0.0-rc.1`']);
+  assert.equal(items.length, 0);
 });
 
 test('group paths may be nested arbitrarily deep', () => {

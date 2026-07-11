@@ -12,12 +12,15 @@
 
 import path from 'node:path';
 
-import { FORWARD_SRC, ID_SRC, mkForward, mkId, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, NEED_ID_SRC, mkForward, mkId, newItem } from './ids.mjs';
 
 // Alternation: need tag with optional explicit source (groups 1-4 source,
-// 5-8 target), or plain item tag (groups 9-12).
+// 5-8 target), or plain item tag (groups 9-12). The need target uses
+// NEED_ID_SRC so it may carry a wildcard revision; the source and item tags
+// stay concrete (ID_SRC). NEED_ID_SRC captures the same four groups as ID_SRC,
+// so the group numbering is unchanged.
 const TAG_RE = new RegExp(
-  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${ID_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
+  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${NEED_ID_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
   'g',
 );
 const FORWARD_RE = new RegExp(FORWARD_SRC, 'g');

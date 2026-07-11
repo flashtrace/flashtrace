@@ -1,26 +1,29 @@
-import { keyOf } from './ids.mjs';
+import { compareRev, idMatches, isWildcardRev, keyOf, revOf } from './ids.mjs';
 
 // a forwarded item (source of an [A --> B] tag) has its own needs excused; its
-// coverage obligation is redirected to the target, checked here instead
-function checkItemReferences(it, byId, neededIds, revHint, fwdTarget) {
+// coverage obligation is redirected to the target, checked here instead.
+// matchesOf(ref) returns the defined items satisfying a (possibly wildcard)
+// need; isNeeded(id) tells whether any need - exact or wildcard - wants that id
+function checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget) {
   const fwd = fwdTarget.get(it.id);
   if (fwd !== undefined) {
     if (!byId.has(fwd))
       it.defects.push(`uncovered: forwards to ${fwd}, which does not exist${revHint(fwd)}`);
   } else {
     for (const n of it.needs) {
-      if (!byId.has(n)) it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
+      if (matchesOf(n).length === 0)
+        it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
     }
   }
   for (const c of it.covers) {
     const targets = byId.get(c);
     if (!targets) {
       it.defects.push(`orphaned: covers ${c}, which does not exist${revHint(c)}`);
-    } else if (!targets.some((t) => t.needs.includes(it.id))) {
+    } else if (!targets.some((t) => t.needs.some((n) => idMatches(n, it.id)))) {
       it.defects.push(`unwanted: covers ${c}, but ${c} does not need ${it.id}`);
     }
   }
-  if (it.origin === 'code' && !neededIds.has(it.id)) {
+  if (it.origin === 'code' && !isNeeded(it.id)) {
     it.defects.push(`unwanted: no item needs ${it.id}`);
   }
 }
@@ -86,8 +89,9 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
 }
 
 // deep coverage: all needs exist and are themselves deep-covered (cycle-safe);
-// a forwarded ID follows its target instead of its own needs
-function markDeepCoverage(items, byId, fwdTarget) {
+// a forwarded ID follows its target instead of its own needs. A need may be a
+// wildcard: it is deep-covered when at least one matching item is deep-covered.
+function markDeepCoverage(items, byId, matchesOf, fwdTarget) {
   const memo = new Map();
   const deep = (id) => {
     if (memo.has(id)) return memo.get(id);
@@ -102,12 +106,35 @@ function markDeepCoverage(items, byId, fwdTarget) {
     if (fwd !== undefined) {
       ok = deep(fwd);
     } else {
-      for (const it of group) for (const n of it.needs) if (!deep(n)) ok = false;
+      for (const it of group) for (const n of it.needs) if (!needDeep(n)) ok = false;
     }
     memo.set(id, ok);
     return ok;
   };
+  const needDeep = (n) => matchesOf(n).some((id) => deep(id));
   for (const it of items) it.deepCovered = deep(it.id);
+}
+
+// defined IDs grouped by their key (everything but the revision), so a wildcard
+// need can be resolved against the revisions sharing its key
+function groupIdsByKey(byId) {
+  const idsByKey = new Map();
+  for (const id of byId.keys())
+    (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
+  return idsByKey;
+}
+
+// split all need references into exact IDs (fast membership) and wildcard
+// patterns (matched individually)
+function splitNeeds(items) {
+  const exact = new Set();
+  const wildcard = [];
+  for (const it of items)
+    for (const n of it.needs) {
+      if (isWildcardRev(revOf(n))) wildcard.push(n);
+      else exact.add(n);
+    }
+  return { exact, wildcard };
 }
 
 export function analyze(items, forwards = [], problems = []) {
@@ -117,7 +144,16 @@ export function analyze(items, forwards = [], problems = []) {
     (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
     (revsByKey.get(it.key) ?? revsByKey.set(it.key, new Set()).get(it.key)).add(it.revision);
   }
-  const neededIds = new Set(items.flatMap((it) => it.needs));
+  const idsByKey = groupIdsByKey(byId);
+
+  // defined items satisfying a (possibly wildcard) need reference; for a
+  // concrete reference this is just the exact ID if it exists
+  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
+
+  // is a code item wanted? an exact need matches by ID, a wildcard by pattern;
+  // forwarding targets are added to the exact set below
+  const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
+  const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((w) => idMatches(w, id));
 
   for (const [id, group] of byId) {
     if (group.length > 1)
@@ -126,12 +162,12 @@ export function analyze(items, forwards = [], problems = []) {
 
   const revHint = (id) => {
     const revs = revsByKey.get(keyOf(id));
-    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort((a, b) => a - b).join(', ')})` : '';
+    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(', ')})` : '';
   };
 
-  const fwdTarget = buildForwardMap(forwards, byId, neededIds, revHint, problems);
+  const fwdTarget = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
 
-  for (const it of items) checkItemReferences(it, byId, neededIds, revHint, fwdTarget);
+  for (const it of items) checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget);
 
-  markDeepCoverage(items, byId, fwdTarget);
+  markDeepCoverage(items, byId, matchesOf, fwdTarget);
 }

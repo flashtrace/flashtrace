@@ -27,8 +27,11 @@ Exit codes: `0` clean, `1` defects or problems found, `2` usage error.
 <type>:[<group>/[<group>/...]]<name>#<revision>
 ```
 
-Examples: `req:auth/login#1`, `impl:session-store#2`. The type is free-form
-(e.g. `req`, `impl`, `test`); the revision is a number.
+Examples: `req:auth/login#1`, `impl:session-store#2.4`. The type is free-form
+(e.g. `req`, `impl`, `test`); the revision is a semver-style version with one to
+three layers (`X`, `X.Y` or `X.Y.Z`). Matching is exact, so `2.4` never equals
+`2.4.0`; a `Needs` reference may opt into a range with a wildcard revision
+(`2.x`, `2.3.x`, `2.x.y`). See the [Revisions](revisions.md) spec.
 
 ## Defining items in Markdown
 

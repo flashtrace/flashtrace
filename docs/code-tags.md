@@ -5,6 +5,8 @@ Tags are written inside comments - `//`, `/* … */`, `<!-- … -->` (Vue), or `
 - `[<type>:[<group>/…]<name>#<revision>]` - defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
 - `[>><type>:[<group>/…]<name>#<revision>]` - attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.
 - `[<source-id> >> <target-id>]` - attaches the need `<target-id>` to the *preceding item tag with exactly* `<source-id>` in the **same file** (spaces around `>>` optional). If no such item tag precedes it, this is reported as an error. Unlike the implicit form, it stays attached to its item even when another item tag is later inserted in between.
+
+The need target of either form may use a [wildcard revision](revisions.md#wildcard-revisions) (e.g. `[>>utest:auth/login#2.x]`); the item tag and the `<source-id>` anchor must name a concrete revision.
 - `[<source-id> --> <target-id>]` - forwards the source item's coverage obligation to the target; see [Forwarding / delegation](forwarding.md). It defines no item and does not anchor `[>>…]` tags.
 
 ```ts
