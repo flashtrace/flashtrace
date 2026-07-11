@@ -285,7 +285,9 @@ function newItem(id, origin, file, line) {
     needs: [],
     covers: [],
     tags: [],
-    defects: []
+    defects: [],
+    forwardsTo: null
+    // effective forwarding target, set by analyze
   };
 }
 
@@ -667,6 +669,13 @@ function groupIdsByKey(byId) {
     (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
   return idsByKey;
 }
+function buildResolver(items) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const it of items) (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
+  const idsByKey = groupIdsByKey(byId);
+  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
+  return { byId, matchesOf };
+}
 function splitNeeds(items) {
   const exact = /* @__PURE__ */ new Set();
   const wildcard = [];
@@ -678,14 +687,10 @@ function splitNeeds(items) {
   return { exact, wildcard };
 }
 function analyze(items, forwards = [], problems = []) {
-  const byId = /* @__PURE__ */ new Map();
+  const { byId, matchesOf } = buildResolver(items);
   const revsByKey = /* @__PURE__ */ new Map();
-  for (const it of items) {
-    (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
+  for (const it of items)
     (revsByKey.get(it.key) ?? revsByKey.set(it.key, /* @__PURE__ */ new Set()).get(it.key)).add(it.revision);
-  }
-  const idsByKey = groupIdsByKey(byId);
-  const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((w) => idMatches(w, id));
   for (const [id, group] of byId) {
@@ -697,7 +702,10 @@ function analyze(items, forwards = [], problems = []) {
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(", ")})` : "";
   };
   const fwdTarget = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
-  for (const it of items) checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget);
+  for (const it of items) {
+    it.forwardsTo = fwdTarget.get(it.id) ?? null;
+    checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget);
+  }
   markDeepCoverage(items, byId, matchesOf, fwdTarget);
 }
 
@@ -716,24 +724,94 @@ function makeStyler() {
     bold: wrap("1")
   };
 }
-function report(items, problems, cwd) {
-  const c = makeStyler();
-  const rel = (f) => path3.relative(cwd, f) || f;
-  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
-  const defective = items.filter((it) => it.defects.length > 0);
-  const out = [];
+function statusOf(it, c) {
+  if (it.defects.length > 0) return { mark: c.red("\u2718"), tag: c.red("[defective]") };
+  if (!it.deepCovered) return { mark: c.yellow("~"), tag: c.yellow("[shallow-covered]") };
+  return { mark: c.green("\u2714"), tag: c.green("[deep-covered]") };
+}
+function buildWantedBy(items, byId, matchesOf) {
+  const wantedBy = /* @__PURE__ */ new Map();
+  for (const it of items)
+    for (const n of it.needs)
+      for (const id of matchesOf(n))
+        for (const m of byId.get(id))
+          (wantedBy.get(m) ?? wantedBy.set(m, /* @__PURE__ */ new Set()).get(m)).add(it);
+  return wantedBy;
+}
+function byFileLine(a, b) {
+  if (a.file !== b.file) return a.file < b.file ? -1 : 1;
+  return a.line - b.line;
+}
+function forwardEdge(it, byId, c, dimLoc) {
+  const target = byId.get(it.forwardsTo)?.[0];
+  if (!target) return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${c.red("\u2718 missing")}`;
+  return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${statusOf(target, c).mark} ${dimLoc(target.file, target.line)}`;
+}
+function needEdges(it, byId, matchesOf, c, dimLoc) {
+  const lines = [];
+  for (const n of it.needs) {
+    const ids = matchesOf(n);
+    if (ids.length === 0) {
+      lines.push(`    ${c.dim("needs")} ${n}  ${c.red("\u2718 missing")}`);
+      continue;
+    }
+    const wild = isWildcardRev(revOf(n));
+    for (const id of ids) {
+      const m = byId.get(id)[0];
+      const arrow = c.dim(`(\u2192 ${id})`);
+      const ref = wild ? `${n} ${arrow}` : n;
+      lines.push(`    ${c.dim("needs")} ${ref}  ${statusOf(m, c).mark} ${dimLoc(m.file, m.line)}`);
+    }
+  }
+  return lines;
+}
+function coverEdges(it, byId, c, dimLoc) {
+  const lines = [];
+  for (const cv of it.covers) {
+    const target = byId.get(cv)?.[0];
+    if (!target) lines.push(`    ${c.dim("covers")} ${cv}  ${c.red("\u2718 missing")}`);
+    else lines.push(`    ${c.dim("covers")} ${cv}  ${c.green("\u2714")} ${dimLoc(target.file, target.line)}`);
+  }
+  return lines;
+}
+function edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc) {
+  const lines = [];
+  if (it.forwardsTo !== null) lines.push(forwardEdge(it, byId, c, dimLoc));
+  else if (it.origin === "markdown") lines.push(...needEdges(it, byId, matchesOf, c, dimLoc));
+  lines.push(...coverEdges(it, byId, c, dimLoc));
+  for (const w of wantedBy.get(it) ?? [])
+    lines.push(`    ${c.dim("wanted by")} ${w.id}  ${dimLoc(w.file, w.line)}`);
+  return lines;
+}
+function renderVerbose(items, out, c, dimLoc) {
+  const { byId, matchesOf } = buildResolver(items);
+  const wantedBy = buildWantedBy(items, byId, matchesOf);
+  const sorted = [...items].sort(byFileLine);
+  let prevFile = null;
+  for (const it of sorted) {
+    if (prevFile !== null && it.file !== prevFile) out.push("");
+    prevFile = it.file;
+    const { mark, tag } = statusOf(it, c);
+    const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
+    out.push(
+      `${mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}  ${tag}`,
+      ...edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc)
+    );
+    for (const d of it.defects) out.push(`    ${c.red("\u2022")} ${d}`);
+  }
+  if (sorted.length) out.push("");
+}
+function renderDefective(defective, out, c, dimLoc) {
   for (const it of defective) {
     const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
     out.push(
-      `${c.red("\u2718")} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`
+      `${statusOf(it, c).mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`
     );
     for (const d of it.defects) out.push(`    ${c.red("\u2022")} ${d}`);
     out.push("");
   }
-  for (const p of problems) {
-    out.push(`${c.yellow("\u26A0")} ${p.message}  ${dimLoc(p.file, p.line)}`);
-  }
-  if (problems.length) out.push("");
+}
+function renderSummary(items, defective, problems, out, c) {
   const okCount = items.length - defective.length;
   const notDeep = items.filter((it) => it.defects.length === 0 && !it.deepCovered).length;
   const md = items.filter((i) => i.origin === "markdown").length;
@@ -747,6 +825,21 @@ function report(items, problems, cwd) {
   if (notDeep) out.push("  " + c.dim(`of the ok items, ${notDeep} are only shallow-covered (an item further down the tracing chain is defective)`));
   if (problems.length) out.push(`  problems    ${c.yellow(String(problems.length))}`);
   out.push("");
+}
+function report(items, problems, cwd, opts = {}) {
+  const { verbose = false } = opts;
+  const c = makeStyler();
+  const rel = (f) => path3.relative(cwd, f) || f;
+  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
+  const defective = items.filter((it) => it.defects.length > 0);
+  const out = [];
+  if (verbose) renderVerbose(items, out, c, dimLoc);
+  else renderDefective(defective, out, c, dimLoc);
+  for (const p of problems) {
+    out.push(`${c.yellow("\u26A0")} ${p.message}  ${dimLoc(p.file, p.line)}`);
+  }
+  if (problems.length) out.push("");
+  renderSummary(items, defective, problems, out, c);
   const clean = defective.length === 0 && problems.length === 0;
   out.push(clean ? c.green(c.bold("ok")) : c.red(c.bold("not ok")));
   console.log(out.join("\n"));
@@ -763,8 +856,10 @@ by git are excluded.
 Options:
   -t, --tags <t1,t2,...>   only import markdown items carrying one of these
                            tags; add "_" to also include untagged items
+  -v, --verbose            list every item with its coverage status and trace
+                           edges, not only the defective ones
+  -V, --version            print the version number
   -h, --help               show this help
-  -v, --version            print the version number
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
 function packageVersion() {
@@ -772,13 +867,15 @@ function packageVersion() {
   return JSON.parse(readFileSync(pkg, "utf8")).version;
 }
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null };
+  const opts = { dirs: [], tags: null, verbose: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "-h" || a === "--help") {
       console.log(HELP);
       process3.exit(0);
-    } else if (a === "-v" || a === "--version") {
+    } else if (a === "-v" || a === "--verbose") {
+      opts.verbose = true;
+    } else if (a === "-V" || a === "--version") {
       console.log(packageVersion());
       process3.exit(0);
     } else if (a === "-t" || a === "--tags") {
@@ -814,7 +911,7 @@ async function main() {
     );
   }
   analyze(items, forwards, problems);
-  const clean = report(items, problems, process3.cwd());
+  const clean = report(items, problems, process3.cwd(), { verbose: opts.verbose });
   process3.exit(clean ? 0 : 1);
 }
 function runCli() {

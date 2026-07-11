@@ -77,7 +77,7 @@ test('--version prints the package.json version and exits 0', async () => {
     await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'),
   );
   await withProject({}, (dir) => {
-    for (const flag of ['--version', '-v']) {
+    for (const flag of ['--version', '-V']) {
       const res = runCli(dir, [flag]);
       assert.equal(res.status, 0, res.stderr);
       assert.equal(res.stdout.trim(), version);
@@ -114,6 +114,246 @@ test('--tags filters markdown items; "_" re-admits untagged ones', async () => {
     assert.equal(withUntagged.status, 0);
     assert.match(withUntagged.stdout, /items\s+2\b/);
   });
+});
+
+test('-v lists clean items with needs and wanted-by edges; default omits them', async () => {
+  const files = {
+    'spec.md': ['# Login', '`req:login#1`', '', 'Needs: impl:login#1'],
+    'login.ts': ['// [impl:login#1]'],
+  };
+  await withProject(files, (dir) => {
+    const dflt = runCli(dir);
+    assert.equal(dflt.status, 0);
+    assert.ok(!dflt.stdout.includes('req:login#1'));
+
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /✔ req:login#1 "Login"\s+spec\.md:2\s+\[deep-covered\]/);
+    assert.match(res.stdout, /needs impl:login#1\s+✔ login\.ts:1/);
+    assert.match(res.stdout, /wanted by req:login#1\s+spec\.md:2/);
+    assert.ok(res.stdout.trim().endsWith('ok'));
+  });
+});
+
+test('-v resolves a wildcard need and shows the matched revision', async () => {
+  const files = {
+    'spec.md': ['`req:login#1`', '', 'Needs: impl:login#2.x'],
+    'login.ts': ['// [impl:login#2.4]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['--verbose']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /needs impl:login#2\.x \(→ impl:login#2\.4\)\s+✔ login\.ts:1/);
+  });
+});
+
+test('-v renders a forwarding source as an arrow edge to its target', async () => {
+  const files = {
+    'spec.md': ['`req:login#1`', '', '`[req:login#1 --> dsn:auth#2]`', '', '`dsn:auth#2`'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /✔ req:login#1\s+spec\.md:1\s+\[deep-covered\]/);
+    assert.match(res.stdout, /→ dsn:auth#2\s+✔ spec\.md:5/);
+  });
+});
+
+test('-v shows a code item\'s need on a markdown target as wanted by', async () => {
+  const files = {
+    'spec.md': ['`req:top#1`', '', 'Needs: impl:a#1', '', '`dsn:spec#1`'],
+    'login.ts': ['// [impl:a#1]', '// [>>dsn:spec#1]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /✔ dsn:spec#1\s+spec\.md:5\s+\[deep-covered\]\n\s+wanted by impl:a#1\s+login\.ts:1/);
+  });
+});
+
+test('-v lists covers edges, valid or missing', async () => {
+  const files = {
+    'spec.md': [
+      '`req:parent#1`',
+      '',
+      'Needs: req:child#1',
+      '',
+      '`req:child#1`',
+      '',
+      'Needs: impl:c#1',
+      'Covers: req:parent#1, req:gone#1',
+    ],
+    'c.ts': ['// [impl:c#1]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 1);
+    assert.match(res.stdout, /covers req:parent#1\s+✔ spec\.md:1/);
+    assert.match(res.stdout, /covers req:gone#1\s+✘ missing/);
+    assert.match(res.stdout, /orphaned: covers req:gone#1/);
+  });
+});
+
+test('-v lists a forwarding source\'s own covers alongside its arrow edge', async () => {
+  // forwarding excuses the source's needs but not its Covers, which stay
+  // checked and must still appear as edges in the verbose report
+  const files = {
+    'spec.md': [
+      '`req:base#1`',
+      '',
+      'Needs: req:src#1',
+      '',
+      '`req:src#1`',
+      '',
+      'Covers: req:base#1',
+      '',
+      '`[req:src#1 --> dsn:tgt#1]`',
+      '',
+      '`dsn:tgt#1`',
+    ],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /→ dsn:tgt#1\s+✔ spec\.md:11/);
+    assert.match(res.stdout, /covers req:base#1\s+✔ spec\.md:1/);
+  });
+});
+
+test('-v honors --tags: filtered-out items are absent from the list', async () => {
+  const files = {
+    'spec.md': [
+      '# A',
+      '`req:a#1`',
+      '',
+      'Needs: impl:a#1',
+      'Tags: Auth',
+      '',
+      '# B',
+      '`req:b#1`',
+      '',
+      'Needs: impl:a#1',
+      'Tags: Other',
+    ],
+    'a.ts': ['// [impl:a#1]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v', '-t', 'Auth']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /✔ req:a#1 "A"\s+spec\.md:2\s+\[deep-covered\]/);
+    assert.match(res.stdout, /needs impl:a#1\s+✔ a\.ts:1/);
+    assert.ok(!res.stdout.includes('req:b#1'), res.stdout);
+    assert.match(res.stdout, /items\s+2\b/); // req:a + impl:a, req:b filtered out
+  });
+});
+
+test('-v marks an item with a defective downstream chain as shallow-covered', async () => {
+  const files = {
+    'spec.md': ['`req:a#1`', '', 'Needs: req:b#1', '', '`req:b#1`', '', 'Needs: impl:missing#1'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 1);
+    assert.match(res.stdout, /~ req:a#1\s+spec\.md:1\s+\[shallow-covered\]/);
+    // the need edge carries a's obligation, so it shows b's own (defective)
+    // mark - the broken chain is diagnosable without scanning the whole report
+    assert.match(res.stdout, /needs req:b#1\s+✘ spec\.md:5/);
+    assert.match(res.stdout, /✘ req:b#1\s+spec\.md:5\s+\[defective\]/);
+  });
+});
+
+test('-v marks a forwarding to a nonexistent target as missing', async () => {
+  await withProject(
+    { 'spec.md': ['`req:a#1`', '', '`[req:a#1 --> dsn:gone#1]`'] },
+    (dir) => {
+      const res = runCli(dir, ['-v']);
+      assert.equal(res.status, 1);
+      assert.match(res.stdout, /✘ req:a#1\s+spec\.md:1\s+\[defective\]/);
+      assert.match(res.stdout, /→ dsn:gone#1\s+✘ missing/);
+      assert.match(res.stdout, /uncovered: forwards to dsn:gone#1/);
+    },
+  );
+});
+
+test('-v shows a forwarding edge with the target\'s own status mark', async () => {
+  // target dsn:auth#2 exists but is itself shallow (its need is defective),
+  // so the source is shallow and its → edge must show ~, not a bare ✔
+  const files = {
+    'spec.md': [
+      '`req:login#1`',
+      '',
+      '`[req:login#1 --> dsn:auth#2]`',
+      '',
+      '`dsn:auth#2`',
+      '',
+      'Needs: dsn:auth#3',
+      '',
+      '`dsn:auth#3`',
+      '',
+      'Needs: impl:missing#1',
+    ],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 1);
+    assert.match(res.stdout, /~ req:login#1\s+spec\.md:1\s+\[shallow-covered\]/);
+    assert.match(res.stdout, /→ dsn:auth#2\s+~ spec\.md:5/);
+  });
+});
+
+test('-v still renders parse problems', async () => {
+  await withProject(
+    { 'orphan.ts': ['// [>>utest:a#1]'] },
+    (dir) => {
+      const res = runCli(dir, ['-v']);
+      assert.equal(res.status, 1);
+      assert.match(res.stdout, /⚠ .*no preceding item tag/);
+      assert.match(res.stdout, /problems\s+1\b/);
+    },
+  );
+});
+
+test('-v groups items by file then line, with a blank line between files', async () => {
+  const files = {
+    'a.md': ['`req:one#1`', '', '', '', '`req:two#1`'],
+    'b.md': ['`req:three#1`'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    const one = res.stdout.indexOf('req:one#1');
+    const two = res.stdout.indexOf('req:two#1');
+    const three = res.stdout.indexOf('req:three#1');
+    assert.ok(one >= 0 && one < two && two < three, res.stdout);
+    assert.match(res.stdout, /req:two#1\s+a\.md:5\s+\[deep-covered\]\n\n✔ req:three#1/);
+  });
+});
+
+test('-v lists every revision a wildcard need resolves to', async () => {
+  const files = {
+    'spec.md': ['`req:login#1`', '', 'Needs: impl:login#2.x'],
+    'login.ts': ['// [impl:login#2.4]', '// [impl:login#2.5]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /needs impl:login#2\.x \(→ impl:login#2\.4\)\s+✔ login\.ts:1/);
+    assert.match(res.stdout, /needs impl:login#2\.x \(→ impl:login#2\.5\)\s+✔ login\.ts:2/);
+  });
+});
+
+test('-v keeps defect details and the exit code of a defective run', async () => {
+  await withProject(
+    { 'spec.md': ['`req:login#1`', '', 'Needs: impl:missing#1'] },
+    (dir) => {
+      const res = runCli(dir, ['-v']);
+      assert.equal(res.status, 1);
+      assert.match(res.stdout, /✘ req:login#1\s+spec\.md:1\s+\[defective\]/);
+      assert.match(res.stdout, /needs impl:missing#1\s+✘ missing/);
+      assert.match(res.stdout, /uncovered: needs impl:missing#1/);
+      assert.ok(res.stdout.trim().endsWith('not ok'));
+    },
+  );
 });
 
 // Returns a path that reaches SCRIPT through a link, as pnpm bins do. File

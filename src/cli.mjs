@@ -18,8 +18,10 @@ by git are excluded.
 Options:
   -t, --tags <t1,t2,...>   only import markdown items carrying one of these
                            tags; add "_" to also include untagged items
+  -v, --verbose            list every item with its coverage status and trace
+                           edges, not only the defective ones
+  -V, --version            print the version number
   -h, --help               show this help
-  -v, --version            print the version number
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
 
@@ -33,13 +35,15 @@ function packageVersion() {
 }
 
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null };
+  const opts = { dirs: [], tags: null, verbose: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-h' || a === '--help') {
       console.log(HELP);
       process.exit(0);
-    } else if (a === '-v' || a === '--version') {
+    } else if (a === '-v' || a === '--verbose') {
+      opts.verbose = true;
+    } else if (a === '-V' || a === '--version') {
       console.log(packageVersion());
       process.exit(0);
     } else if (a === '-t' || a === '--tags') {
@@ -84,7 +88,7 @@ async function main() {
   }
 
   analyze(items, forwards, problems);
-  const clean = report(items, problems, process.cwd());
+  const clean = report(items, problems, process.cwd(), { verbose: opts.verbose });
   process.exit(clean ? 0 : 1);
 }
 

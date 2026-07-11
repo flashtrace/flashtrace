@@ -112,5 +112,6 @@ export function newItem(id, origin, file, line) {
     covers: [],
     tags: [],
     defects: [],
+    forwardsTo: null, // effective forwarding target, set by analyze
   };
 }
