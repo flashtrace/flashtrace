@@ -77,7 +77,7 @@ test('--version prints the package.json version and exits 0', async () => {
     await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'),
   );
   await withProject({}, (dir) => {
-    for (const flag of ['--version', '-v']) {
+    for (const flag of ['--version', '-V']) {
       const res = runCli(dir, [flag]);
       assert.equal(res.status, 0, res.stderr);
       assert.equal(res.stdout.trim(), version);
@@ -114,6 +114,63 @@ test('--tags filters markdown items; "_" re-admits untagged ones', async () => {
     assert.equal(withUntagged.status, 0);
     assert.match(withUntagged.stdout, /items\s+2\b/);
   });
+});
+
+test('-v lists clean items with needs and wanted-by edges; default omits them', async () => {
+  const files = {
+    'spec.md': ['# Login', '`req:login#1`', '', 'Needs: impl:login#1'],
+    'login.ts': ['// [impl:login#1]'],
+  };
+  await withProject(files, (dir) => {
+    const dflt = runCli(dir);
+    assert.equal(dflt.status, 0);
+    assert.ok(!dflt.stdout.includes('req:login#1'));
+
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /✔ req:login#1 "Login"\s+spec\.md:2\s+\[deep-covered\]/);
+    assert.match(res.stdout, /needs impl:login#1\s+✔ login\.ts:1/);
+    assert.match(res.stdout, /wanted by req:login#1\s+spec\.md:2/);
+    assert.ok(res.stdout.trim().endsWith('ok'));
+  });
+});
+
+test('-v resolves a wildcard need and shows the matched revision', async () => {
+  const files = {
+    'spec.md': ['`req:login#1`', '', 'Needs: impl:login#2.x'],
+    'login.ts': ['// [impl:login#2.4]'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['--verbose']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /needs impl:login#2\.x \(→ impl:login#2\.4\)\s+✔ login\.ts:1/);
+  });
+});
+
+test('-v renders a forwarding source as an arrow edge to its target', async () => {
+  const files = {
+    'spec.md': ['`req:login#1`', '', '`[req:login#1 --> dsn:auth#2]`', '', '`dsn:auth#2`'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /~ req:login#1|✔ req:login#1/);
+    assert.match(res.stdout, /→ dsn:auth#2\s+✔ spec\.md:5/);
+  });
+});
+
+test('-v keeps defect details and the exit code of a defective run', async () => {
+  await withProject(
+    { 'spec.md': ['`req:login#1`', '', 'Needs: impl:missing#1'] },
+    (dir) => {
+      const res = runCli(dir, ['-v']);
+      assert.equal(res.status, 1);
+      assert.match(res.stdout, /✘ req:login#1\s+spec\.md:1\s+\[defective\]/);
+      assert.match(res.stdout, /needs impl:missing#1\s+✘ missing/);
+      assert.match(res.stdout, /uncovered: needs impl:missing#1/);
+      assert.ok(res.stdout.trim().endsWith('not ok'));
+    },
+  );
 });
 
 // Returns a path that reaches SCRIPT through a link, as pnpm bins do. File

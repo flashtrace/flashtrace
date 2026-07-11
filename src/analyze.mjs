@@ -167,7 +167,10 @@ export function analyze(items, forwards = [], problems = []) {
 
   const fwdTarget = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
 
-  for (const it of items) checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget);
+  for (const it of items) {
+    it.forwardsTo = fwdTarget.get(it.id) ?? null; // effective forwarding target, for renderers
+    checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget);
+  }
 
   markDeepCoverage(items, byId, matchesOf, fwdTarget);
 }
