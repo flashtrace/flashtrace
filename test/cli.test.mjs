@@ -154,7 +154,7 @@ test('-v renders a forwarding source as an arrow edge to its target', async () =
   await withProject(files, (dir) => {
     const res = runCli(dir, ['-v']);
     assert.equal(res.status, 0);
-    assert.match(res.stdout, /~ req:login#1|✔ req:login#1/);
+    assert.match(res.stdout, /✔ req:login#1\s+spec\.md:1\s+\[deep-covered\]/);
     assert.match(res.stdout, /→ dsn:auth#2\s+✔ spec\.md:5/);
   });
 });
