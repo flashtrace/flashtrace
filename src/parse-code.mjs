@@ -66,22 +66,39 @@ function nextEvent(s, pos, grammar, state) {
   for (const marker of leaf.line) {
     consider(s.indexOf(marker, pos), { kind: 'line', len: marker.length });
   }
-  for (const [open, close] of leaf.block) {
-    consider(s.indexOf(open, pos), { kind: 'block', len: open.length, closer: close });
+  for (const [open, close, nestable] of leaf.block) {
+    consider(s.indexOf(open, pos), {
+      kind: 'block', len: open.length, open, close, nestable: Boolean(nestable),
+    });
   }
   for (const ev of regionEvents(s, pos, grammar, state)) consider(ev.idx, ev);
   return best;
 }
 
-// consume the open block comment; returns its text and where scanning resumes
-function readBlockRest(s, pos, closer) {
-  const end = s.indexOf(closer, pos);
-  if (end === -1) return { text: s.slice(pos) + ' ', pos: s.length, closed: false };
-  return { text: s.slice(pos, end) + ' ', pos: end + closer.length, closed: true };
+// consume text while a block comment is open, honoring nested openers when the
+// grammar marks the pair nestable (Rust, Swift, Kotlin, Scala, ...). Mutates
+// block.depth; returns the comment text and where scanning resumes.
+function readBlockRest(s, pos, block) {
+  const { open, close, nestable } = block;
+  let i = pos;
+  while (i < s.length) {
+    const closeIdx = s.indexOf(close, i);
+    const openIdx = nestable ? s.indexOf(open, i) : -1;
+    if (closeIdx === -1 && openIdx === -1) break;
+    if (openIdx !== -1 && (closeIdx === -1 || openIdx < closeIdx)) {
+      block.depth++;
+      i = openIdx + open.length;
+      continue;
+    }
+    block.depth--;
+    i = closeIdx + close.length;
+    if (block.depth === 0) return { text: s.slice(pos, closeIdx) + ' ', pos: i, closed: true };
+  }
+  return { text: s.slice(pos) + ' ', pos: s.length, closed: false };
 }
 
 // comment text of one line. state.block carries an open block comment (its
-// closer string) across lines; state.region carries the active composite region
+// open/close tokens and nesting depth) across lines; state.region carries the active composite region
 // across lines. Region boundaries are only recognized outside comments, so an
 // HTML comment such as `<!-- <script> -->` never opens a script region.
 function commentText(s, state, grammar) {
@@ -102,7 +119,7 @@ function commentText(s, state, grammar) {
       comment += s.slice(pos) + ' ';
       break;
     } else if (ev.kind === 'block') {
-      state.block = ev.closer;
+      state.block = { open: ev.open, close: ev.close, nestable: ev.nestable, depth: 1 };
     } else if (ev.kind === 'enter') {
       state.region = ev.region;
     } else {
@@ -161,8 +178,8 @@ export function parseCode(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const items = [];
   // last: nearest preceding item tag in this file; byId: preceding item tags
-  // by ID; block: open block-comment closer string (e.g. '*/', '-->') or null;
-  // region: active composite region (script/style) or null.
+  // by ID; block: open block-comment descriptor ({ open, close, nestable,
+  // depth }) or null; region: active composite region (script/style) or null.
   const state = { last: null, byId: new Map(), block: null, region: null };
 
   for (let i = 0; i < lines.length; i++) {

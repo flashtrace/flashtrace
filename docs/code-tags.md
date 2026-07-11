@@ -4,7 +4,8 @@ Tags are written inside comments. The comment style is chosen per file extension
 
 | Comment family | Line | Block | Extensions |
 |---|---|---|---|
-| C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.rs` `.swift` `.kt` `.kts` `.scala` `.dart` `.php` `.proto` `.scss` `.less` |
+| C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.dart` `.php` `.proto` `.scss` `.less` |
+| C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
 | Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pl` `.pm` |
 | PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
 | SQL | `--` | `/* … */` | `.sql` |

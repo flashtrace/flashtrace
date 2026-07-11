@@ -21,6 +21,7 @@ import { execFileSync } from "node:child_process";
 
 // src/languages.mjs
 var cLike = { line: ["//"], block: [["/*", "*/"]] };
+var cLikeNested = { line: ["//"], block: [["/*", "*/", true]] };
 var hash = { line: ["#"], block: [] };
 var powershell = { line: ["#"], block: [["<#", "#>"]] };
 var sql = { line: ["--"], block: [["/*", "*/"]] };
@@ -53,16 +54,17 @@ var BY_EXT = {
   ".cs": cLike,
   ".java": cLike,
   ".go": cLike,
-  ".rs": cLike,
-  ".swift": cLike,
-  ".kt": cLike,
-  ".kts": cLike,
-  ".scala": cLike,
   ".dart": cLike,
   ".php": cLike,
   ".proto": cLike,
   ".scss": cLike,
   ".less": cLike,
+  // C-family with nested block comments
+  ".rs": cLikeNested,
+  ".swift": cLikeNested,
+  ".kt": cLikeNested,
+  ".kts": cLikeNested,
+  ".scala": cLikeNested,
   // hash line comments
   ".py": hash,
   ".rb": hash,
@@ -361,16 +363,35 @@ function nextEvent(s, pos, grammar, state) {
   for (const marker of leaf.line) {
     consider(s.indexOf(marker, pos), { kind: "line", len: marker.length });
   }
-  for (const [open, close] of leaf.block) {
-    consider(s.indexOf(open, pos), { kind: "block", len: open.length, closer: close });
+  for (const [open, close, nestable] of leaf.block) {
+    consider(s.indexOf(open, pos), {
+      kind: "block",
+      len: open.length,
+      open,
+      close,
+      nestable: Boolean(nestable)
+    });
   }
   for (const ev of regionEvents(s, pos, grammar, state)) consider(ev.idx, ev);
   return best;
 }
-function readBlockRest(s, pos, closer) {
-  const end = s.indexOf(closer, pos);
-  if (end === -1) return { text: s.slice(pos) + " ", pos: s.length, closed: false };
-  return { text: s.slice(pos, end) + " ", pos: end + closer.length, closed: true };
+function readBlockRest(s, pos, block) {
+  const { open, close, nestable } = block;
+  let i = pos;
+  while (i < s.length) {
+    const closeIdx = s.indexOf(close, i);
+    const openIdx = nestable ? s.indexOf(open, i) : -1;
+    if (closeIdx === -1 && openIdx === -1) break;
+    if (openIdx !== -1 && (closeIdx === -1 || openIdx < closeIdx)) {
+      block.depth++;
+      i = openIdx + open.length;
+      continue;
+    }
+    block.depth--;
+    i = closeIdx + close.length;
+    if (block.depth === 0) return { text: s.slice(pos, closeIdx) + " ", pos: i, closed: true };
+  }
+  return { text: s.slice(pos) + " ", pos: s.length, closed: false };
 }
 function commentText(s, state, grammar) {
   let comment = "";
@@ -390,7 +411,7 @@ function commentText(s, state, grammar) {
       comment += s.slice(pos) + " ";
       break;
     } else if (ev.kind === "block") {
-      state.block = ev.closer;
+      state.block = { open: ev.open, close: ev.close, nestable: ev.nestable, depth: 1 };
     } else if (ev.kind === "enter") {
       state.region = ev.region;
     } else {

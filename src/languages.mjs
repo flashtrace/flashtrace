@@ -2,7 +2,9 @@
  * Comment grammars per file extension.
  *
  * A leaf grammar is a comment vocabulary: zero or more line markers and zero or
- * more [open, close] block-comment pairs. A composite grammar layers region
+ * more [open, close] block-comment pairs. A block pair may carry a third truthy
+ * element to mark it nestable (`[open, close, true]`), for languages whose block
+ * comments nest (Rust, Swift, Kotlin, Scala). A composite grammar layers region
  * rules on top of a default leaf grammar, so a single file can switch comment
  * style by region - e.g. an HTML/Vue file is HTML by default but uses JS
  * comments inside <script> and CSS comments inside <style>.
@@ -14,6 +16,8 @@
 
 // Shared leaf grammars, reused across the extension map below.
 const cLike = { line: ['//'], block: [['/*', '*/']] };
+// Like cLike, but /* */ nests (Rust, Swift, Kotlin, Scala).
+const cLikeNested = { line: ['//'], block: [['/*', '*/', true]] };
 const hash = { line: ['#'], block: [] };
 const powershell = { line: ['#'], block: [['<#', '#>']] };
 const sql = { line: ['--'], block: [['/*', '*/']] };
@@ -38,10 +42,12 @@ const BY_EXT = {
   '.ts': cLike, '.js': cLike, '.mjs': cLike, '.cjs': cLike,
   '.jsx': cLike, '.tsx': cLike, '.cts': cLike, '.mts': cLike,
   '.c': cLike, '.h': cLike, '.cpp': cLike, '.cc': cLike, '.hpp': cLike,
-  '.cs': cLike, '.java': cLike, '.go': cLike, '.rs': cLike,
-  '.swift': cLike, '.kt': cLike, '.kts': cLike, '.scala': cLike,
+  '.cs': cLike, '.java': cLike, '.go': cLike,
   '.dart': cLike, '.php': cLike, '.proto': cLike,
   '.scss': cLike, '.less': cLike,
+  // C-family with nested block comments
+  '.rs': cLikeNested, '.swift': cLikeNested,
+  '.kt': cLikeNested, '.kts': cLikeNested, '.scala': cLikeNested,
   // hash line comments
   '.py': hash, '.rb': hash, '.sh': hash, '.bash': hash, '.zsh': hash,
   '.yaml': hash, '.yml': hash, '.toml': hash, '.r': hash, '.pl': hash, '.pm': hash,

@@ -119,6 +119,39 @@ test('multiple tags in one comment line', () => {
   assert.deepEqual(items[0].needs, ['utest:a#1']);
 });
 
+test('non-nesting block comment (.ts) closes at the first */', () => {
+  const { items } = parse('src.ts', [
+    '/* [impl:a#1] /* still-comment */ [impl:code-not-tag#1] */',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:a#1']);
+});
+
+test('nested block comments (Rust) close only at the matching */', () => {
+  const { items } = parse('lib.rs', [
+    '/* [impl:outer#1] /* [impl:inner#1] */ [impl:still#1] */',
+    'let x = "[impl:code-not-tag#1]";',
+  ]);
+  assert.deepEqual(
+    items.map((i) => i.id),
+    ['impl:outer#1', 'impl:inner#1', 'impl:still#1'],
+  );
+});
+
+test('nested block comment spanning multiple lines (Swift)', () => {
+  const { items } = parse('View.swift', [
+    '/* [impl:a#1]',
+    '   /* nested',
+    '   [impl:b#1] */',
+    '   [impl:c#1]',
+    '*/',
+    'let d = 1 // [impl:e#1]',
+  ]);
+  assert.deepEqual(
+    items.map((i) => i.id),
+    ['impl:a#1', 'impl:b#1', 'impl:c#1', 'impl:e#1'],
+  );
+});
+
 test('SQL uses -- comments and does not honour //', () => {
   const { items } = parse('schema.sql', [
     '-- [impl:db/schema#1]',
