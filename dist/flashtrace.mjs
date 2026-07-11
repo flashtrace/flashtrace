@@ -28,7 +28,13 @@ var lua = { line: ["--"], block: [["--[[", "]]"]] };
 var haskell = { line: ["--"], block: [["{-", "-}"]] };
 var css = { line: [], block: [["/*", "*/"]] };
 var xml = { line: [], block: [["<!--", "-->"]] };
-var vue = { line: ["//"], block: [["/*", "*/"], ["<!--", "-->"]] };
+var html = {
+  default: xml,
+  regions: [
+    { enter: /<script\b[^>]*>/gi, exit: /<\/script\s*>/gi, grammar: cLike },
+    { enter: /<style\b[^>]*>/gi, exit: /<\/style\s*>/gi, grammar: css }
+  ]
+};
 var BY_EXT = {
   // C-family: // line, /* */ block
   ".ts": cLike,
@@ -78,7 +84,11 @@ var BY_EXT = {
   ".css": css,
   ".xml": xml,
   ".svg": xml,
-  ".vue": vue
+  // composite: HTML markup with embedded <script>/<style> regions
+  ".vue": html,
+  ".html": html,
+  ".htm": html,
+  ".svelte": html
 };
 var CODE_EXT = new Set(Object.keys(BY_EXT));
 var grammarFor = (ext) => BY_EXT[ext] ?? null;
@@ -322,17 +332,39 @@ var TAG_RE = new RegExp(
   "g"
 );
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
-function findCommentStart(s, pos, grammar) {
+function activeLeaf(grammar, state) {
+  if (state.region) return state.region.grammar;
+  return grammar.regions ? grammar.default : grammar;
+}
+function matchAt(re, s, pos) {
+  re.lastIndex = pos;
+  return re.exec(s);
+}
+function* regionEvents(s, pos, grammar, state) {
+  if (!grammar.regions) return;
+  if (state.region) {
+    const m = matchAt(state.region.exit, s, pos);
+    if (m) yield { idx: m.index, kind: "exit", len: m[0].length };
+    return;
+  }
+  for (const r of grammar.regions) {
+    const m = matchAt(r.enter, s, pos);
+    if (m) yield { idx: m.index, kind: "enter", len: m[0].length, region: r };
+  }
+}
+function nextEvent(s, pos, grammar, state) {
+  const leaf = activeLeaf(grammar, state);
   let best = null;
   const consider = (idx, ev) => {
     if (idx !== -1 && (best === null || idx < best.idx)) best = { ...ev, idx };
   };
-  for (const marker of grammar.line) {
+  for (const marker of leaf.line) {
     consider(s.indexOf(marker, pos), { kind: "line", len: marker.length });
   }
-  for (const [open, close] of grammar.block) {
+  for (const [open, close] of leaf.block) {
     consider(s.indexOf(open, pos), { kind: "block", len: open.length, closer: close });
   }
+  for (const ev of regionEvents(s, pos, grammar, state)) consider(ev.idx, ev);
   return best;
 }
 function readBlockRest(s, pos, closer) {
@@ -349,16 +381,21 @@ function commentText(s, state, grammar) {
       comment += rest.text;
       pos = rest.pos;
       if (rest.closed) state.block = null;
+      continue;
+    }
+    const ev = nextEvent(s, pos, grammar, state);
+    if (!ev) break;
+    pos = ev.idx + ev.len;
+    if (ev.kind === "line") {
+      comment += s.slice(pos) + " ";
+      break;
+    } else if (ev.kind === "block") {
+      state.block = ev.closer;
+    } else if (ev.kind === "enter") {
+      state.region = ev.region;
     } else {
-      const start = findCommentStart(s, pos, grammar);
-      if (!start) break;
-      pos = start.idx + start.len;
-      if (start.kind === "line") {
-        comment += s.slice(pos) + " ";
-        pos = s.length;
-      } else {
-        state.block = start.closer;
-      }
+      state.region = null;
+      state.block = null;
     }
   }
   return comment;
@@ -402,7 +439,7 @@ function parseCode(file, text, problems, forwards = []) {
   const grammar = grammarFor(ext) ?? FALLBACK;
   const lines = text.split(/\r?\n/);
   const items = [];
-  const state = { last: null, byId: /* @__PURE__ */ new Map(), block: null };
+  const state = { last: null, byId: /* @__PURE__ */ new Map(), block: null, region: null };
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, grammar);
     for (const m of comment.matchAll(FORWARD_RE)) {

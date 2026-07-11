@@ -1,10 +1,15 @@
 /*
  * Comment grammars per file extension.
  *
- * A grammar is a comment vocabulary: zero or more line markers and zero or more
- * [open, close] block-comment pairs. `grammarFor(ext)` resolves a file extension
- * to its grammar; `CODE_EXT` is the set of every extension we know how to scan
- * and is the single source of truth for code-file collection.
+ * A leaf grammar is a comment vocabulary: zero or more line markers and zero or
+ * more [open, close] block-comment pairs. A composite grammar layers region
+ * rules on top of a default leaf grammar, so a single file can switch comment
+ * style by region - e.g. an HTML/Vue file is HTML by default but uses JS
+ * comments inside <script> and CSS comments inside <style>.
+ *
+ * `grammarFor(ext)` resolves a file extension to its grammar; `CODE_EXT` is the
+ * set of every extension we know how to scan and is the single source of truth
+ * for code-file collection.
  */
 
 // Shared leaf grammars, reused across the extension map below.
@@ -16,9 +21,17 @@ const lua = { line: ['--'], block: [['--[[', ']]']] };
 const haskell = { line: ['--'], block: [['{-', '-}']] };
 const css = { line: [], block: [['/*', '*/']] };
 const xml = { line: [], block: [['<!--', '-->']] };
-// A Vue single-file component mixes HTML, JS and CSS comment styles; until the
-// per-region model lands it is scanned as the union of those markers.
-const vue = { line: ['//'], block: [['/*', '*/'], ['<!--', '-->']] };
+
+// HTML-family files: HTML comments in markup, but JS comments inside <script>
+// and CSS comments inside <style>. Region enter/exit patterns are global so the
+// scanner can resume matching from an arbitrary offset (see parse-code.mjs).
+const html = {
+  default: xml,
+  regions: [
+    { enter: /<script\b[^>]*>/gi, exit: /<\/script\s*>/gi, grammar: cLike },
+    { enter: /<style\b[^>]*>/gi, exit: /<\/style\s*>/gi, grammar: css },
+  ],
+};
 
 const BY_EXT = {
   // C-family: // line, /* */ block
@@ -39,7 +52,8 @@ const BY_EXT = {
   '.hs': haskell,
   '.css': css,
   '.xml': xml, '.svg': xml,
-  '.vue': vue,
+  // composite: HTML markup with embedded <script>/<style> regions
+  '.vue': html, '.html': html, '.htm': html, '.svelte': html,
 };
 
 export const CODE_EXT = new Set(Object.keys(BY_EXT));

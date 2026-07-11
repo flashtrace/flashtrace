@@ -11,9 +11,10 @@ Tags are written inside comments. The comment style is chosen per file extension
 | Lua | `--` | `--[[ … ]]` | `.lua` |
 | Haskell | `--` | `{- … -}` | `.hs` |
 | CSS | – | `/* … */` | `.css` |
-| HTML/XML | – | `<!-- … -->` | `.xml` `.svg` `.vue` |
+| HTML/XML | – | `<!-- … -->` | `.xml` `.svg` |
+| HTML + embedded | – | `<!-- … -->` (markup) | `.html` `.htm` `.vue` `.svelte` |
 
-Vue single-file components additionally recognise `//` and `/* … */` so tags inside `<script>` blocks are found.
+HTML-family files switch comment style by region: `<!-- … -->` in markup, C-like comments (`//`, `/* … */`) inside `<script>`, and CSS comments (`/* … */`) inside `<style>`. So a `//` in template text or a URL is *not* treated as a comment - only a real HTML comment is.
 
 - `[<type>:[<group>/…]<name>#<revision>]` - defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
 - `[>><type>:[<group>/…]<name>#<revision>]` - attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.

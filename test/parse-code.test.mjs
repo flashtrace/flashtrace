@@ -211,3 +211,59 @@ test('Vue supports HTML comments', () => {
   assert.equal(items[0].id, 'impl:ui/button#1');
   assert.equal(items[0].line, 2);
 });
+
+test('Vue template does not treat // as a comment', () => {
+  const { items } = parse('Link.vue', [
+    '<template>',
+    '  <a href="https://example.com/[impl:not-a-tag#1]">x</a>',
+    '</template>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('Vue <script> uses JS comments, <style> uses CSS comments', () => {
+  const { items } = parse('Button.vue', [
+    '<template><button>ok</button></template>',
+    '<script setup lang="ts">',
+    '// [impl:ui/button#1]',
+    '// [>>utest:ui/button#1]',
+    '</script>',
+    '<style scoped>',
+    '/* [impl:ui/button-style#1] */',
+    '</style>',
+  ]);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].id, 'impl:ui/button#1');
+  assert.deepEqual(items[0].needs, ['utest:ui/button#1']);
+  assert.equal(items[1].id, 'impl:ui/button-style#1');
+});
+
+test('Vue <style> does not treat // as a comment', () => {
+  const { items } = parse('Button.vue', [
+    '<style>',
+    '.x { background: url(//cdn/[impl:not-a-tag#1].png); }',
+    '</style>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('an HTML comment containing <script> does not open a script region', () => {
+  const { items } = parse('page.html', [
+    '<!-- <script> [impl:page/head#1] -->',
+    '<p>// [impl:not-a-tag#1]</p>',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:page/head#1');
+});
+
+test('plain .html files scan markup, script and style regions', () => {
+  const { items } = parse('index.html', [
+    '<!-- [impl:web/page#1] -->',
+    '<script>// [impl:web/script#1]</script>',
+    '<style>/* [impl:web/style#1] */</style>',
+  ]);
+  assert.deepEqual(
+    items.map((i) => i.id),
+    ['impl:web/page#1', 'impl:web/script#1', 'impl:web/style#1'],
+  );
+});
