@@ -7,6 +7,7 @@ import { MD_EXT, collectFiles } from './files.mjs';
 import { parseMarkdown } from './parse-markdown.mjs';
 import { parseCode } from './parse-code.mjs';
 import { analyze } from './analyze.mjs';
+import { buildReportModel } from './report-model.mjs';
 import { report } from './report.mjs';
 
 const HELP = `Usage: flashtrace [options] [directory-or-file ...]
@@ -104,7 +105,8 @@ async function main() {
   }
 
   analyze(items, forwards, problems);
-  const clean = report(items, problems, process.cwd(), { verbose: opts.verbose });
+  const model = buildReportModel(items, problems, process.cwd());
+  const clean = report(model, { verbose: opts.verbose });
   process.exit(clean ? 0 : 1);
 }
 

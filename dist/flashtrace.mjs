@@ -749,25 +749,12 @@ function analyze(items, forwards = [], problems = []) {
   markDeepCoverage(items, byId, matchesOf, fwdTarget);
 }
 
-// src/report.mjs
+// src/report-model.mjs
 import path3 from "node:path";
-import process2 from "node:process";
-function makeStyler() {
-  const on = process2.stdout.isTTY && !process2.env.NO_COLOR;
-  const wrap = (code) => (s) => on ? `\x1B[${code}m${s}\x1B[0m` : s;
-  return {
-    red: wrap("31"),
-    green: wrap("32"),
-    yellow: wrap("33"),
-    cyan: wrap("36"),
-    dim: wrap("2"),
-    bold: wrap("1")
-  };
-}
-function statusOf(it, c) {
-  if (it.defects.length > 0) return { mark: c.red("\u2718"), tag: c.red("[defective]") };
-  if (!it.deepCovered) return { mark: c.yellow("~"), tag: c.yellow("[shallow-covered]") };
-  return { mark: c.green("\u2714"), tag: c.green("[deep-covered]") };
+function statusOf(it) {
+  if (it.defects.length > 0) return "defective";
+  if (!it.deepCovered) return "shallow-covered";
+  return "deep-covered";
 }
 function buildWantedBy(items, byId, matchesOf) {
   const wantedBy = /* @__PURE__ */ new Map();
@@ -782,105 +769,166 @@ function byFileLine(a, b) {
   if (a.file !== b.file) return a.file < b.file ? -1 : 1;
   return a.line - b.line;
 }
-function forwardEdge(it, byId, c, dimLoc) {
-  const target = byId.get(it.forwardsTo)?.[0];
-  if (!target) return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${c.red("\u2718 missing")}`;
-  return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${statusOf(target, c).mark} ${dimLoc(target.file, target.line)}`;
+function targetOf(it, rel) {
+  return { file: rel(it.file), line: it.line, status: statusOf(it) };
 }
-function needEdges(it, byId, matchesOf, c, dimLoc) {
-  const lines = [];
+function needEdges(it, byId, matchesOf, rel) {
+  const edges = [];
   for (const n of it.needs) {
     const ids = matchesOf(n);
     if (ids.length === 0) {
-      lines.push(`    ${c.dim("needs")} ${n}  ${c.red("\u2718 missing")}`);
+      edges.push({ kind: "needs", ref: n, target: null });
       continue;
     }
     const wild = isWildcardRev(revOf(n));
     for (const id of ids) {
-      const m = byId.get(id)[0];
-      const arrow = c.dim(`(\u2192 ${id})`);
-      const ref = wild ? `${n} ${arrow}` : n;
-      lines.push(`    ${c.dim("needs")} ${ref}  ${statusOf(m, c).mark} ${dimLoc(m.file, m.line)}`);
+      const edge = { kind: "needs", ref: n, target: targetOf(byId.get(id)[0], rel) };
+      if (wild) edge.resolvedId = id;
+      edges.push(edge);
     }
   }
-  return lines;
+  return edges;
 }
-function coverEdges(it, byId, c, dimLoc) {
-  const lines = [];
+function edgesOf(it, byId, matchesOf, wantedBy, rel) {
+  const edges = [];
+  if (it.forwardsTo !== null) {
+    const target = byId.get(it.forwardsTo)?.[0];
+    edges.push({ kind: "forwards", ref: it.forwardsTo, target: target ? targetOf(target, rel) : null });
+  } else if (it.origin === "markdown") {
+    edges.push(...needEdges(it, byId, matchesOf, rel));
+  }
   for (const cv of it.covers) {
     const target = byId.get(cv)?.[0];
-    if (!target) lines.push(`    ${c.dim("covers")} ${cv}  ${c.red("\u2718 missing")}`);
-    else lines.push(`    ${c.dim("covers")} ${cv}  ${c.green("\u2714")} ${dimLoc(target.file, target.line)}`);
+    edges.push({ kind: "covers", ref: cv, target: target ? targetOf(target, rel) : null });
   }
-  return lines;
-}
-function edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc) {
-  const lines = [];
-  if (it.forwardsTo !== null) lines.push(forwardEdge(it, byId, c, dimLoc));
-  else if (it.origin === "markdown") lines.push(...needEdges(it, byId, matchesOf, c, dimLoc));
-  lines.push(...coverEdges(it, byId, c, dimLoc));
   for (const w of wantedBy.get(it) ?? [])
-    lines.push(`    ${c.dim("wanted by")} ${w.id}  ${dimLoc(w.file, w.line)}`);
-  return lines;
+    edges.push({ kind: "wantedBy", ref: w.id, target: { file: rel(w.file), line: w.line } });
+  return edges;
 }
-function renderVerbose(items, out, c, dimLoc) {
+function buildReportModel(items, problems, cwd) {
   const { byId, matchesOf } = buildResolver(items);
   const wantedBy = buildWantedBy(items, byId, matchesOf);
-  const sorted = [...items].sort(byFileLine);
+  const rel = (f) => path3.relative(cwd, f) || f;
+  const modelItems = [...items].sort(byFileLine).map((it) => ({
+    id: it.id,
+    title: it.title,
+    file: rel(it.file),
+    line: it.line,
+    origin: it.origin,
+    tags: it.tags,
+    status: statusOf(it),
+    defects: it.defects,
+    edges: edgesOf(it, byId, matchesOf, wantedBy, rel)
+  }));
+  const defective = items.filter((it) => it.defects.length > 0).length;
+  const shallowOnly = items.filter((it) => it.defects.length === 0 && !it.deepCovered).length;
+  const fromMarkdown = items.filter((it) => it.origin === "markdown").length;
+  return {
+    items: modelItems,
+    problems: problems.map((p) => ({ file: rel(p.file), line: p.line, message: p.message })),
+    summary: {
+      items: items.length,
+      fromMarkdown,
+      fromCode: items.length - fromMarkdown,
+      ok: items.length - defective,
+      defective,
+      shallowOnly,
+      problems: problems.length,
+      clean: defective === 0 && problems.length === 0
+    }
+  };
+}
+
+// src/report.mjs
+import process2 from "node:process";
+function makeStyler() {
+  const on = process2.stdout.isTTY && !process2.env.NO_COLOR;
+  const wrap = (code) => (s) => on ? `\x1B[${code}m${s}\x1B[0m` : s;
+  return {
+    red: wrap("31"),
+    green: wrap("32"),
+    yellow: wrap("33"),
+    cyan: wrap("36"),
+    dim: wrap("2"),
+    bold: wrap("1")
+  };
+}
+function markOf(status, c) {
+  if (status === "defective") return c.red("\u2718");
+  if (status === "shallow-covered") return c.yellow("~");
+  return c.green("\u2714");
+}
+function tagOf(status, c) {
+  if (status === "defective") return c.red("[defective]");
+  if (status === "shallow-covered") return c.yellow("[shallow-covered]");
+  return c.green("[deep-covered]");
+}
+function edgeLine(e, c, dimLoc) {
+  const missing = c.red("\u2718 missing");
+  const at = (t) => `${markOf(t.status, c)} ${dimLoc(t)}`;
+  switch (e.kind) {
+    case "forwards":
+      return `    ${c.cyan("\u2192")} ${e.ref}  ${e.target ? at(e.target) : missing}`;
+    case "needs": {
+      const ref = e.resolvedId ? `${e.ref} ${c.dim(`(\u2192 ${e.resolvedId})`)}` : e.ref;
+      return `    ${c.dim("needs")} ${ref}  ${e.target ? at(e.target) : missing}`;
+    }
+    // an existing covers target shows bare existence, not its status: covers
+    // is not part of this item's own coverage chain
+    case "covers":
+      return `    ${c.dim("covers")} ${e.ref}  ${e.target ? `${c.green("\u2714")} ${dimLoc(e.target)}` : missing}`;
+    case "wantedBy":
+      return `    ${c.dim("wanted by")} ${e.ref}  ${dimLoc(e.target)}`;
+  }
+}
+function renderVerbose(items, out, c, dimLoc) {
   let prevFile = null;
-  for (const it of sorted) {
+  for (const it of items) {
     if (prevFile !== null && it.file !== prevFile) out.push("");
     prevFile = it.file;
-    const { mark, tag } = statusOf(it, c);
     const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
     out.push(
-      `${mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}  ${tag}`,
-      ...edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc)
+      `${markOf(it.status, c)} ${c.bold(it.id)}${title}  ${dimLoc(it)}  ${tagOf(it.status, c)}`,
+      ...it.edges.map((e) => edgeLine(e, c, dimLoc))
     );
     for (const d of it.defects) out.push(`    ${c.red("\u2022")} ${d}`);
   }
-  if (sorted.length) out.push("");
+  if (items.length) out.push("");
 }
-function renderDefective(defective, out, c, dimLoc) {
-  for (const it of defective) {
+function renderDefective(items, out, c, dimLoc) {
+  for (const it of items) {
+    if (it.status !== "defective") continue;
     const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
-    out.push(
-      `${statusOf(it, c).mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`
-    );
+    out.push(`${markOf(it.status, c)} ${c.bold(it.id)}${title}  ${dimLoc(it)}`);
     for (const d of it.defects) out.push(`    ${c.red("\u2022")} ${d}`);
     out.push("");
   }
 }
-function renderSummary(items, defective, problems, out, c) {
-  const okCount = items.length - defective.length;
-  const notDeep = items.filter((it) => it.defects.length === 0 && !it.deepCovered).length;
-  const md = items.filter((i) => i.origin === "markdown").length;
-  const originBreakdown = c.dim(`(${md} from markdown, ${items.length - md} from code)`);
+function renderSummary(s, out, c) {
+  const originBreakdown = c.dim(`(${s.fromMarkdown} from markdown, ${s.fromCode} from code)`);
   out.push(
     c.bold("Summary"),
-    `  items       ${items.length}  ${originBreakdown}`,
-    `  ok          ${c.green(String(okCount))}`,
-    `  defective   ${defective.length ? c.red(String(defective.length)) : "0"}`
+    `  items       ${s.items}  ${originBreakdown}`,
+    `  ok          ${c.green(String(s.ok))}`,
+    `  defective   ${s.defective ? c.red(String(s.defective)) : "0"}`
   );
-  if (notDeep) out.push("  " + c.dim(`of the ok items, ${notDeep} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (problems.length) out.push(`  problems    ${c.yellow(String(problems.length))}`);
+  if (s.shallowOnly) out.push("  " + c.dim(`of the ok items, ${s.shallowOnly} are only shallow-covered (an item further down the tracing chain is defective)`));
+  if (s.problems) out.push(`  problems    ${c.yellow(String(s.problems))}`);
   out.push("");
 }
-function report(items, problems, cwd, opts = {}) {
+function report(model, opts = {}) {
   const { verbose = false } = opts;
   const c = makeStyler();
-  const rel = (f) => path3.relative(cwd, f) || f;
-  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
-  const defective = items.filter((it) => it.defects.length > 0);
+  const dimLoc = (t) => c.dim(`${t.file}:${t.line}`);
   const out = [];
-  if (verbose) renderVerbose(items, out, c, dimLoc);
-  else renderDefective(defective, out, c, dimLoc);
-  for (const p of problems) {
-    out.push(`${c.yellow("\u26A0")} ${p.message}  ${dimLoc(p.file, p.line)}`);
+  if (verbose) renderVerbose(model.items, out, c, dimLoc);
+  else renderDefective(model.items, out, c, dimLoc);
+  for (const p of model.problems) {
+    out.push(`${c.yellow("\u26A0")} ${p.message}  ${dimLoc(p)}`);
   }
-  if (problems.length) out.push("");
-  renderSummary(items, defective, problems, out, c);
-  const clean = defective.length === 0 && problems.length === 0;
+  if (model.problems.length) out.push("");
+  renderSummary(model.summary, out, c);
+  const { clean } = model.summary;
   out.push(clean ? c.green(c.bold("ok")) : c.red(c.bold("not ok")));
   console.log(out.join("\n"));
   return clean;
@@ -963,7 +1011,8 @@ async function main() {
     );
   }
   analyze(items, forwards, problems);
-  const clean = report(items, problems, process3.cwd(), { verbose: opts.verbose });
+  const model = buildReportModel(items, problems, process3.cwd());
+  const clean = report(model, { verbose: opts.verbose });
   process3.exit(clean ? 0 : 1);
 }
 function runCli() {

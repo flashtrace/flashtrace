@@ -1,8 +1,4 @@
-import path from 'node:path';
 import process from 'node:process';
-
-import { buildResolver } from './analyze.mjs';
-import { isWildcardRev, revOf } from './ids.mjs';
 
 function makeStyler() {
   const on = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -17,153 +13,96 @@ function makeStyler() {
   };
 }
 
-// marker + label for the three states the summary distinguishes
-function statusOf(it, c) {
-  if (it.defects.length > 0) return { mark: c.red('✘'), tag: c.red('[defective]') };
-  if (!it.deepCovered) return { mark: c.yellow('~'), tag: c.yellow('[shallow-covered]') };
-  return { mark: c.green('✔'), tag: c.green('[deep-covered]') };
+// marker + label for the three states the model distinguishes
+function markOf(status, c) {
+  if (status === 'defective') return c.red('✘');
+  if (status === 'shallow-covered') return c.yellow('~');
+  return c.green('✔');
 }
 
-function buildWantedBy(items, byId, matchesOf) {
-  const wantedBy = new Map(); // item -> items whose needs it satisfies
-  for (const it of items)
-    for (const n of it.needs)
-      for (const id of matchesOf(n))
-        for (const m of byId.get(id))
-          (wantedBy.get(m) ?? wantedBy.set(m, new Set()).get(m)).add(it);
-  return wantedBy;
+function tagOf(status, c) {
+  if (status === 'defective') return c.red('[defective]');
+  if (status === 'shallow-covered') return c.yellow('[shallow-covered]');
+  return c.green('[deep-covered]');
 }
 
-function byFileLine(a, b) {
-  if (a.file !== b.file) return a.file < b.file ? -1 : 1;
-  return a.line - b.line;
-}
-
-// a need or forwarding edge carries this item's coverage obligation, so it
-// shows the target's own status mark - not a bare ✔ - making a shallow-covered
-// item's broken chain diagnosable in place
-function forwardEdge(it, byId, c, dimLoc) {
-  const target = byId.get(it.forwardsTo)?.[0];
-  if (!target) return `    ${c.cyan('→')} ${it.forwardsTo}  ${c.red('✘ missing')}`;
-  return `    ${c.cyan('→')} ${it.forwardsTo}  ${statusOf(target, c).mark} ${dimLoc(target.file, target.line)}`;
-}
-
-// one line per need: the covering item's own status mark and location, or
-// missing; a wildcard reference shows each resolved revision
-function needEdges(it, byId, matchesOf, c, dimLoc) {
-  const lines = [];
-  for (const n of it.needs) {
-    const ids = matchesOf(n);
-    if (ids.length === 0) {
-      lines.push(`    ${c.dim('needs')} ${n}  ${c.red('✘ missing')}`);
-      continue;
+function edgeLine(e, c, dimLoc) {
+  const missing = c.red('✘ missing');
+  const at = (t) => `${markOf(t.status, c)} ${dimLoc(t)}`;
+  switch (e.kind) {
+    case 'forwards':
+      return `    ${c.cyan('→')} ${e.ref}  ${e.target ? at(e.target) : missing}`;
+    case 'needs': {
+      const ref = e.resolvedId ? `${e.ref} ${c.dim(`(→ ${e.resolvedId})`)}` : e.ref;
+      return `    ${c.dim('needs')} ${ref}  ${e.target ? at(e.target) : missing}`;
     }
-    const wild = isWildcardRev(revOf(n));
-    for (const id of ids) {
-      const m = byId.get(id)[0];
-      const arrow = c.dim(`(→ ${id})`);
-      const ref = wild ? `${n} ${arrow}` : n;
-      lines.push(`    ${c.dim('needs')} ${ref}  ${statusOf(m, c).mark} ${dimLoc(m.file, m.line)}`);
-    }
+    // an existing covers target shows bare existence, not its status: covers
+    // is not part of this item's own coverage chain
+    case 'covers':
+      return `    ${c.dim('covers')} ${e.ref}  ${e.target ? `${c.green('✔')} ${dimLoc(e.target)}` : missing}`;
+    case 'wantedBy':
+      return `    ${c.dim('wanted by')} ${e.ref}  ${dimLoc(e.target)}`;
   }
-  return lines;
-}
-
-// covers references are concrete IDs; the relation's validation (orphaned,
-// unwanted) is carried by the defect bullets, the edge shows existence
-function coverEdges(it, byId, c, dimLoc) {
-  const lines = [];
-  for (const cv of it.covers) {
-    const target = byId.get(cv)?.[0];
-    if (!target) lines.push(`    ${c.dim('covers')} ${cv}  ${c.red('✘ missing')}`);
-    else lines.push(`    ${c.dim('covers')} ${cv}  ${c.green('✔')} ${dimLoc(target.file, target.line)}`);
-  }
-  return lines;
-}
-
-// role-appropriate edges: a markdown item its needs, a forwarding source its
-// target (its own needs are excused, its covers are not), every item its
-// covers and who wants it - so a code item's own needs stay visible on their
-// targets, whatever origin those have
-function edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc) {
-  const lines = [];
-  if (it.forwardsTo !== null) lines.push(forwardEdge(it, byId, c, dimLoc));
-  else if (it.origin === 'markdown') lines.push(...needEdges(it, byId, matchesOf, c, dimLoc));
-  lines.push(...coverEdges(it, byId, c, dimLoc));
-  for (const w of wantedBy.get(it) ?? [])
-    lines.push(`    ${c.dim('wanted by')} ${w.id}  ${dimLoc(w.file, w.line)}`);
-  return lines;
 }
 
 // full item list for --verbose: every item with status and trace edges,
 // grouped by file, then line
 function renderVerbose(items, out, c, dimLoc) {
-  const { byId, matchesOf } = buildResolver(items);
-  const wantedBy = buildWantedBy(items, byId, matchesOf);
-  const sorted = [...items].sort(byFileLine);
   let prevFile = null;
-  for (const it of sorted) {
+  for (const it of items) {
     if (prevFile !== null && it.file !== prevFile) out.push('');
     prevFile = it.file;
-    const { mark, tag } = statusOf(it, c);
     const title = it.title ? ' ' + c.dim(`"${it.title}"`) : '';
     out.push(
-      `${mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}  ${tag}`,
-      ...edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc),
+      `${markOf(it.status, c)} ${c.bold(it.id)}${title}  ${dimLoc(it)}  ${tagOf(it.status, c)}`,
+      ...it.edges.map((e) => edgeLine(e, c, dimLoc)),
     );
     for (const d of it.defects) out.push(`    ${c.red('•')} ${d}`);
   }
-  if (sorted.length) out.push('');
+  if (items.length) out.push('');
 }
 
 // the default report: one block per defective item only
-function renderDefective(defective, out, c, dimLoc) {
-  for (const it of defective) {
+function renderDefective(items, out, c, dimLoc) {
+  for (const it of items) {
+    if (it.status !== 'defective') continue;
     const title = it.title ? ' ' + c.dim(`"${it.title}"`) : '';
-    out.push(
-      `${statusOf(it, c).mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`,
-    );
+    out.push(`${markOf(it.status, c)} ${c.bold(it.id)}${title}  ${dimLoc(it)}`);
     for (const d of it.defects) out.push(`    ${c.red('•')} ${d}`);
     out.push('');
   }
 }
 
-function renderSummary(items, defective, problems, out, c) {
-  const okCount = items.length - defective.length;
-  const notDeep = items.filter((it) => it.defects.length === 0 && !it.deepCovered).length;
-  const md = items.filter((i) => i.origin === 'markdown').length;
-  const originBreakdown = c.dim(`(${md} from markdown, ${items.length - md} from code)`);
-
+function renderSummary(s, out, c) {
+  const originBreakdown = c.dim(`(${s.fromMarkdown} from markdown, ${s.fromCode} from code)`);
   out.push(
     c.bold('Summary'),
-    `  items       ${items.length}  ${originBreakdown}`,
-    `  ok          ${c.green(String(okCount))}`,
-    `  defective   ${defective.length ? c.red(String(defective.length)) : '0'}`,
+    `  items       ${s.items}  ${originBreakdown}`,
+    `  ok          ${c.green(String(s.ok))}`,
+    `  defective   ${s.defective ? c.red(String(s.defective)) : '0'}`,
   );
-  if (notDeep) out.push('  ' + c.dim(`of the ok items, ${notDeep} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (problems.length) out.push(`  problems    ${c.yellow(String(problems.length))}`);
+  if (s.shallowOnly) out.push('  ' + c.dim(`of the ok items, ${s.shallowOnly} are only shallow-covered (an item further down the tracing chain is defective)`));
+  if (s.problems) out.push(`  problems    ${c.yellow(String(s.problems))}`);
   out.push('');
 }
 
-export function report(items, problems, cwd, opts = {}) {
+export function report(model, opts = {}) {
   const { verbose = false } = opts;
   const c = makeStyler();
-  const rel = (f) => path.relative(cwd, f) || f;
-  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
-  const defective = items.filter((it) => it.defects.length > 0);
+  const dimLoc = (t) => c.dim(`${t.file}:${t.line}`);
   const out = [];
 
-  if (verbose) renderVerbose(items, out, c, dimLoc);
-  else renderDefective(defective, out, c, dimLoc);
+  if (verbose) renderVerbose(model.items, out, c, dimLoc);
+  else renderDefective(model.items, out, c, dimLoc);
 
-  for (const p of problems) {
-    out.push(`${c.yellow('⚠')} ${p.message}  ${dimLoc(p.file, p.line)}`);
+  for (const p of model.problems) {
+    out.push(`${c.yellow('⚠')} ${p.message}  ${dimLoc(p)}`);
   }
-  if (problems.length) out.push('');
+  if (model.problems.length) out.push('');
 
-  renderSummary(items, defective, problems, out, c);
+  renderSummary(model.summary, out, c);
 
-  const clean = defective.length === 0 && problems.length === 0;
+  const { clean } = model.summary;
   out.push(clean ? c.green(c.bold('ok')) : c.red(c.bold('not ok')));
   console.log(out.join('\n'));
   return clean;
