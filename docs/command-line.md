@@ -7,8 +7,8 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
+  -V, --version            print the version number
   -h, --help
-  -v, --version            print the version number
 ```
 
 Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note) ending in `ok` / `not ok`.

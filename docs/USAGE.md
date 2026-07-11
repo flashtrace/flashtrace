@@ -19,8 +19,8 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 |---|---|
 | `-t, --tags <t1,t2,...>` | Only import Markdown items carrying one of these tags; add `_` to also include untagged items. Code items are always kept. |
 | `-v, --verbose` | List every item with its coverage status and trace edges, not only the defective ones. See [Command line](command-line.md). |
+| `-V, --version` | Print the version number and exit. |
 | `-h, --help` | Show help. |
-| `-v, --version` | Print the version number and exit. |
 
 Exit codes: `0` clean, `1` defects or problems found, `2` usage error.
 
