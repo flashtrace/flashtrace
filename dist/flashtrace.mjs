@@ -86,7 +86,7 @@ async function collectFiles(dirs) {
 var SEG_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
 var REV_SRC = String.raw`\d+(?:\.\d+){0,2}`;
 var WILD_SRC = String.raw`(?:\d+\.\d+\.x|\d+\.x\.y|x\.y\.z|\d+\.x|x\.y|x)`;
-var REVREF_SRC = String.raw`(?:${WILD_SRC}|${REV_SRC})`;
+var REVREF_SRC = `(?:${WILD_SRC}|${REV_SRC})`;
 var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(${REV_SRC})`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
 var NEED_ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(${REVREF_SRC})`;

@@ -17,7 +17,7 @@ const REV_SRC = String.raw`\d+(?:\.\d+){0,2}`;
 // concrete numeric prefix it starts with.
 const WILD_SRC = String.raw`(?:\d+\.\d+\.x|\d+\.x\.y|x\.y\.z|\d+\.x|x\.y|x)`;
 // a revision *reference* (used only in Needs): concrete or wildcard
-const REVREF_SRC = String.raw`(?:${WILD_SRC}|${REV_SRC})`;
+const REVREF_SRC = `(?:${WILD_SRC}|${REV_SRC})`;
 export const ID_SRC =
   String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(${REV_SRC})`;
 export const ID_RE = new RegExp(`^${ID_SRC}$`);
