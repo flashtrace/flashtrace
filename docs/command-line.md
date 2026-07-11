@@ -27,10 +27,10 @@ Each item carries a status marker matching the three states the summary distingu
 
 Below its status line, an item shows its role-appropriate trace edges:
 
-- a **Markdown item** lists one `needs <ref>` line per `Needs` entry: `✔` with the location of the covering item, or `✘ missing`. A wildcard reference additionally shows each resolved revision as `(→ <resolved-id>)`.
+- a **Markdown item** lists one `needs <ref>` line per `Needs` entry: the covering item's own status mark (`✔` / `~` / `✘`) with its location, or `✘ missing` if nothing satisfies it. Because a need carries the item's coverage obligation, this mark makes a shallow-covered item's broken chain visible in place — a `~` or `✘` here points straight at the failing dependency. A wildcard reference additionally shows each resolved revision as `(→ <resolved-id>)`.
 - **every item** lists `wanted by <id>` for each item that needs it. A code item's own needs (from `>>` need tags) are not listed on the item itself — they appear as `wanted by` on their targets (of any origin), and a missing one only as its `uncovered` defect.
-- **every item** lists `covers <id>` for each of its `Covers` entries: `✔` with the location of the covered item, or `✘ missing`. The relation's validation (orphaned, unwanted) is reported through the defect bullets.
-- a **forwarding source** shows `→ <target-id>` instead of its needs, which are excused (see [Forwarding](forwarding.md)); its `Covers` entries are listed unchanged.
+- **every item** lists `covers <id>` for each of its `Covers` entries: `✔` with the location of the covered item, or `✘ missing`. Covers is not part of the item's own coverage chain, so this mark reflects only existence; the relation's validation (orphaned, unwanted) is reported through the defect bullets.
+- a **forwarding source** shows `→ <target-id>` instead of its needs, which are excused (see [Forwarding](forwarding.md)); the mark is the target's own status, since the source's coverage follows it. Its `Covers` entries are listed unchanged.
 
 ```
 ✔ req:login#1 "Login"  spec.md:2  [deep-covered]

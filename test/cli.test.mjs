@@ -202,7 +202,9 @@ test('-v marks an item with a defective downstream chain as shallow-covered', as
     const res = runCli(dir, ['-v']);
     assert.equal(res.status, 1);
     assert.match(res.stdout, /~ req:a#1\s+spec\.md:1\s+\[shallow-covered\]/);
-    assert.match(res.stdout, /needs req:b#1\s+✔ spec\.md:5/);
+    // the need edge carries a's obligation, so it shows b's own (defective)
+    // mark - the broken chain is diagnosable without scanning the whole report
+    assert.match(res.stdout, /needs req:b#1\s+✘ spec\.md:5/);
     assert.match(res.stdout, /✘ req:b#1\s+spec\.md:5\s+\[defective\]/);
   });
 });
@@ -218,6 +220,32 @@ test('-v marks a forwarding to a nonexistent target as missing', async () => {
       assert.match(res.stdout, /uncovered: forwards to dsn:gone#1/);
     },
   );
+});
+
+test('-v shows a forwarding edge with the target\'s own status mark', async () => {
+  // target dsn:auth#2 exists but is itself shallow (its need is defective),
+  // so the source is shallow and its → edge must show ~, not a bare ✔
+  const files = {
+    'spec.md': [
+      '`req:login#1`',
+      '',
+      '`[req:login#1 --> dsn:auth#2]`',
+      '',
+      '`dsn:auth#2`',
+      '',
+      'Needs: dsn:auth#3',
+      '',
+      '`dsn:auth#3`',
+      '',
+      'Needs: impl:missing#1',
+    ],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 1);
+    assert.match(res.stdout, /~ req:login#1\s+spec\.md:1\s+\[shallow-covered\]/);
+    assert.match(res.stdout, /→ dsn:auth#2\s+~ spec\.md:5/);
+  });
 });
 
 test('-v still renders parse problems', async () => {

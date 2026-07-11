@@ -39,14 +39,17 @@ function byFileLine(a, b) {
   return a.line - b.line;
 }
 
+// a need or forwarding edge carries this item's coverage obligation, so it
+// shows the target's own status mark - not a bare ✔ - making a shallow-covered
+// item's broken chain diagnosable in place
 function forwardEdge(it, byId, c, dimLoc) {
   const target = byId.get(it.forwardsTo)?.[0];
   if (!target) return `    ${c.cyan('→')} ${it.forwardsTo}  ${c.red('✘ missing')}`;
-  return `    ${c.cyan('→')} ${it.forwardsTo}  ${c.green('✔')} ${dimLoc(target.file, target.line)}`;
+  return `    ${c.cyan('→')} ${it.forwardsTo}  ${statusOf(target, c).mark} ${dimLoc(target.file, target.line)}`;
 }
 
-// one line per need: satisfied with the covering item's location, or missing;
-// a wildcard reference shows each resolved revision
+// one line per need: the covering item's own status mark and location, or
+// missing; a wildcard reference shows each resolved revision
 function needEdges(it, byId, matchesOf, c, dimLoc) {
   const lines = [];
   for (const n of it.needs) {
@@ -60,7 +63,7 @@ function needEdges(it, byId, matchesOf, c, dimLoc) {
       const m = byId.get(id)[0];
       const arrow = c.dim(`(→ ${id})`);
       const ref = wild ? `${n} ${arrow}` : n;
-      lines.push(`    ${c.dim('needs')} ${ref}  ${c.green('✔')} ${dimLoc(m.file, m.line)}`);
+      lines.push(`    ${c.dim('needs')} ${ref}  ${statusOf(m, c).mark} ${dimLoc(m.file, m.line)}`);
     }
   }
   return lines;

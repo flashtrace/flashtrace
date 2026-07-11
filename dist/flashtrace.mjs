@@ -745,7 +745,7 @@ function byFileLine(a, b) {
 function forwardEdge(it, byId, c, dimLoc) {
   const target = byId.get(it.forwardsTo)?.[0];
   if (!target) return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${c.red("\u2718 missing")}`;
-  return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${c.green("\u2714")} ${dimLoc(target.file, target.line)}`;
+  return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${statusOf(target, c).mark} ${dimLoc(target.file, target.line)}`;
 }
 function needEdges(it, byId, matchesOf, c, dimLoc) {
   const lines = [];
@@ -760,7 +760,7 @@ function needEdges(it, byId, matchesOf, c, dimLoc) {
       const m = byId.get(id)[0];
       const arrow = c.dim(`(\u2192 ${id})`);
       const ref = wild ? `${n} ${arrow}` : n;
-      lines.push(`    ${c.dim("needs")} ${ref}  ${c.green("\u2714")} ${dimLoc(m.file, m.line)}`);
+      lines.push(`    ${c.dim("needs")} ${ref}  ${statusOf(m, c).mark} ${dimLoc(m.file, m.line)}`);
     }
   }
   return lines;
