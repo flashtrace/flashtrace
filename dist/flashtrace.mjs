@@ -403,7 +403,10 @@ function nextEvent(s, pos, grammar, state) {
   const leaf = activeLeaf(grammar, state);
   let best = null;
   const consider = (idx, ev) => {
-    if (idx !== -1 && (best === null || idx < best.idx)) best = { ...ev, idx };
+    if (idx === -1) return;
+    if (best === null || idx < best.idx || idx === best.idx && ev.len > best.len) {
+      best = { ...ev, idx };
+    }
   };
   for (const marker of leaf.line) {
     consider(s.indexOf(marker, pos), { kind: "line", len: marker.length });

@@ -188,6 +188,21 @@ test('Lua uses -- line and --[[ ]] block comments', () => {
   assert.deepEqual(items[0].needs, ['utest:lua/mod#1']);
 });
 
+test('Lua --[[ ]] block comment opens and spans multiple lines', () => {
+  // --[[ shares its prefix with the -- line marker; the block opener must win
+  // the tie, otherwise the block never opens and the inner tags are missed.
+  const { items } = parse('mod.lua', [
+    '--[[',
+    '  [impl:lua/block#1]',
+    '  [>>utest:lua/block#1]',
+    ']]',
+    'print("done")',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:lua/block#1');
+  assert.deepEqual(items[0].needs, ['utest:lua/block#1']);
+});
+
 test('PowerShell uses # line and <# #> block comments', () => {
   const { items } = parse('deploy.ps1', [
     '# [impl:ops/deploy#1]',
