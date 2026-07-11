@@ -83,7 +83,6 @@ var BY_EXT = {
   ".yml": hash,
   ".toml": hash,
   ".r": hash,
-  ".pl": hash,
   ".pm": hash,
   ".ex": hash,
   ".exs": hash,

@@ -61,7 +61,7 @@ const BY_EXT = {
   '.kt': cLikeNested, '.kts': cLikeNested, '.scala': cLikeNested,
   // hash line comments
   '.py': hash, '.rb': hash, '.sh': hash, '.bash': hash, '.zsh': hash,
-  '.yaml': hash, '.yml': hash, '.toml': hash, '.r': hash, '.pl': hash, '.pm': hash,
+  '.yaml': hash, '.yml': hash, '.toml': hash, '.r': hash, '.pm': hash,
   '.ex': hash, '.exs': hash, '.tcl': hash, '.jl': hash, '.nim': hash,
   '.graphql': hash, '.gql': hash, '.coffee': hash,
   '.ps1': powershell, '.psm1': powershell,
