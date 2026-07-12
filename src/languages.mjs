@@ -40,7 +40,7 @@ const xml = { line: [], block: [['<!--', '-->']] };
 // A comment-less grammar, for embedded content that has no comments (JSON).
 const none = { line: [], block: [] };
 const semicolon = { line: [';'], block: [] };
-// Scheme adds nestable #| |# datum-style block comments on top of ; lines.
+// Scheme and Racket add nestable #| |# block comments on top of ; lines.
 const scheme = { line: [';'], block: [['#|', '|#', true]] };
 const percent = { line: ['%'], block: [] };
 const dashLine = { line: ['--'], block: [] };
@@ -105,8 +105,8 @@ const BY_EXT = {
   // semicolon (Lisp family)
   '.clj': semicolon, '.cljs': semicolon, '.cljc': semicolon, '.edn': semicolon,
   '.el': semicolon, '.lisp': semicolon,
-  // Scheme: ; lines plus nestable #| |# blocks
-  '.scm': scheme, '.ss': scheme,
+  // Scheme/Racket: ; lines plus nestable #| |# blocks
+  '.scm': scheme, '.ss': scheme, '.rkt': scheme,
   // percent (Erlang, LaTeX)
   '.erl': percent, '.hrl': percent, '.tex': percent, '.sty': percent,
   // dash line-only (Ada, VHDL)

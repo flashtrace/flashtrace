@@ -124,9 +124,10 @@ var BY_EXT = {
   ".edn": semicolon,
   ".el": semicolon,
   ".lisp": semicolon,
-  // Scheme: ; lines plus nestable #| |# blocks
+  // Scheme/Racket: ; lines plus nestable #| |# blocks
   ".scm": scheme,
   ".ss": scheme,
+  ".rkt": scheme,
   // percent (Erlang, LaTeX)
   ".erl": percent,
   ".hrl": percent,

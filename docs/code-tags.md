@@ -14,7 +14,7 @@ Tags are written inside comments. The comment style is chosen per file extension
 | PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
 | HCL | `#` `//` | `/* … */` | `.tf` `.tfvars` `.hcl` |
 | Semicolon | `;` | – | `.clj` `.cljs` `.cljc` `.edn` `.el` `.lisp` |
-| Scheme | `;` | `#\| … \|#` (nestable) | `.scm` `.ss` |
+| Scheme/Racket | `;` | `#\| … \|#` (nestable) | `.scm` `.ss` `.rkt` |
 | Percent | `%` | – | `.erl` `.hrl` `.tex` `.sty` |
 | SQL | `--` | `/* … */` | `.sql` |
 | Dash (line only) | `--` | – | `.adb` `.ads` `.vhd` `.vhdl` |

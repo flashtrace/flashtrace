@@ -302,6 +302,15 @@ test('Scheme uses ; line and #| |# block comments, which nest', () => {
   assert.deepEqual(items[0].needs, ['utest:scm/lib#1']);
 });
 
+test('Racket (.rkt) shares the Scheme grammar', () => {
+  const { items } = parse('lib.rkt', [
+    '; [impl:rkt/lib#1]',
+    '#| [>>utest:rkt/lib#1] |#',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:rkt/lib#1']);
+});
+
 test('PowerShell uses # line and <# #> block comments', () => {
   const { items } = parse('deploy.ps1', [
     '# [impl:ops/deploy#1]',
