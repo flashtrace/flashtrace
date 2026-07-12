@@ -269,6 +269,30 @@ test('Nim uses # line and #[ ]# block comments, which nest', () => {
   assert.deepEqual(items[0].needs, ['utest:nim/mod#1']);
 });
 
+test('Nim ##[ ]## doc block comments are recognized and nest', () => {
+  const { items } = parse('mod.nim', [
+    '# [impl:nim/doc#1]',
+    '##[ outer ##[ inner ]## [>>utest:nim/doc#1] ]##',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:nim/doc#1']);
+});
+
+test('Nim ##[ ]## doc block opens and spans multiple lines', () => {
+  // ##[ shares a prefix with both the # line marker and the #[ opener; the
+  // longest match at the tie must win for the doc block to open as one.
+  const { items } = parse('mod.nim', [
+    '##[',
+    '  [impl:nim/docblock#1]',
+    '  [>>utest:nim/docblock#1]',
+    ']##',
+    'x = 1',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:nim/docblock#1');
+  assert.deepEqual(items[0].needs, ['utest:nim/docblock#1']);
+});
+
 test('Scheme uses ; line and #| |# block comments, which nest', () => {
   const { items } = parse('lib.scm', [
     '; [impl:scm/lib#1]',

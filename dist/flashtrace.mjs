@@ -26,7 +26,7 @@ var php = { line: ["//", "#"], block: [["/*", "*/"]] };
 var hash = { line: ["#"], block: [] };
 var coffee = { line: ["#"], block: [["###", "###"]] };
 var julia = { line: ["#"], block: [["#=", "=#", true]] };
-var nim = { line: ["#"], block: [["#[", "]#", true]] };
+var nim = { line: ["#"], block: [["#[", "]#", true], ["##[", "]##", true]] };
 var powershell = { line: ["#"], block: [["<#", "#>"]] };
 var sql = { line: ["--"], block: [["/*", "*/"]] };
 var lua = { line: ["--"], block: [["--[[", "]]"]] };

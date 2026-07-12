@@ -28,7 +28,9 @@ const hash = { line: ['#'], block: [] };
 // Nim's #[ ]# nest per their specs; CoffeeScript's ### ### does not.
 const coffee = { line: ['#'], block: [['###', '###']] };
 const julia = { line: ['#'], block: [['#=', '=#', true]] };
-const nim = { line: ['#'], block: [['#[', ']#', true]] };
+// Nim also has ##[ ]## doc blocks; the longer opener wins the tie against both
+// # and #[ at the same position, so doc blocks are recognized as such.
+const nim = { line: ['#'], block: [['#[', ']#', true], ['##[', ']##', true]] };
 const powershell = { line: ['#'], block: [['<#', '#>']] };
 const sql = { line: ['--'], block: [['/*', '*/']] };
 const lua = { line: ['--'], block: [['--[[', ']]']] };

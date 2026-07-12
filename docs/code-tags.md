@@ -10,7 +10,7 @@ Tags are written inside comments. The comment style is chosen per file extension
 | Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.graphql` `.gql` |
 | CoffeeScript | `#` | `### … ###` | `.coffee` |
 | Julia | `#` | `#= … =#` (nestable) | `.jl` |
-| Nim | `#` | `#[ … ]#` (nestable) | `.nim` |
+| Nim | `#` | `#[ … ]#` `##[ … ]##` (nestable) | `.nim` |
 | PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
 | HCL | `#` `//` | `/* … */` | `.tf` `.tfvars` `.hcl` |
 | Semicolon | `;` | – | `.clj` `.cljs` `.cljc` `.edn` `.el` `.lisp` |
