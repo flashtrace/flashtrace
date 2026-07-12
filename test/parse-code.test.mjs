@@ -524,6 +524,19 @@ test('<script type="text/x-template"> is scanned as HTML markup', () => {
   assert.deepEqual(items.map((i) => i.id), ['impl:ui/tpl#1']);
 });
 
+test('<script lang="coffee"> uses # line and ### ### block comments', () => {
+  const { items } = parse('page.html', [
+    '<script lang="coffee">',
+    '# [impl:web/coffee#1]',
+    '###',
+    '  [>>utest:web/coffee#1]',
+    '###',
+    '</script>',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:web/coffee#1']);
+});
+
 test('<style lang="scss"> honours // line comments', () => {
   const { items } = parse('Button.vue', [
     '<style lang="scss">',
