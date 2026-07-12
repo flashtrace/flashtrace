@@ -33,13 +33,15 @@ function edgeLine(e, c, dimLoc) {
     case 'forwards':
       return `    ${c.cyan('→')} ${e.ref}  ${e.target ? at(e.target) : missing}`;
     case 'needs': {
-      const ref = e.resolvedId ? `${e.ref} ${c.dim(`(→ ${e.resolvedId})`)}` : e.ref;
-      return `    ${c.dim('needs')} ${ref}  ${e.target ? at(e.target) : missing}`;
+      const arrow = e.resolvedId ? ' ' + c.dim(`(→ ${e.resolvedId})`) : '';
+      return `    ${c.dim('needs')} ${e.ref}${arrow}  ${e.target ? at(e.target) : missing}`;
     }
     // an existing covers target shows bare existence, not its status: covers
     // is not part of this item's own coverage chain
-    case 'covers':
-      return `    ${c.dim('covers')} ${e.ref}  ${e.target ? `${c.green('✔')} ${dimLoc(e.target)}` : missing}`;
+    case 'covers': {
+      const exists = e.target ? `${c.green('✔')} ${dimLoc(e.target)}` : missing;
+      return `    ${c.dim('covers')} ${e.ref}  ${exists}`;
+    }
     case 'wantedBy':
       return `    ${c.dim('wanted by')} ${e.ref}  ${dimLoc(e.target)}`;
   }

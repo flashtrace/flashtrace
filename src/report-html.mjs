@@ -11,7 +11,7 @@ export function renderHtml(model, meta) {
   // JSON unicode escape, which decodes back to "<" when the block is
   // JSON.parsed. "<" only occurs inside JSON string values, so the blanket
   // replacement is safe.
-  const data = JSON.stringify({ model, meta }).replaceAll('<', '\\u003c');
+  const data = JSON.stringify({ model, meta }).replaceAll('<', String.raw`\u003c`);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -144,27 +144,27 @@ h2.file {
   const esc = (s) => String(s).replace(/[&<>"']/g, (ch) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const CLASS = { 'deep-covered': 'ok', 'shallow-covered': 'warn', 'defective': 'bad' };
-  const GLYPH = { 'deep-covered': '\\u2714', 'shallow-covered': '~', 'defective': '\\u2718' };
+  const GLYPH = { 'deep-covered': '✔', 'shallow-covered': '~', 'defective': '✘' };
   const mark = (status) => '<span class="mark ' + CLASS[status] + '">' + GLYPH[status] + '</span>';
   const loc = (t) => '<span class="loc">' + esc(t.file) + ':' + t.line + '</span>';
   const idSpan = (id) => '<span class="id">' + esc(id) + '</span>';
-  const MISSING = '<span class="mark bad">\\u2718 missing</span>';
+  const MISSING = '<span class="mark bad">✘ missing</span>';
   const at = (t) => mark(t.status) + ' ' + loc(t);
 
   function edgeHtml(e) {
     switch (e.kind) {
       case 'forwards':
-        return '<div class="edge"><span class="arrow">\\u2192</span> ' + idSpan(e.ref) +
+        return '<div class="edge"><span class="arrow">→</span> ' + idSpan(e.ref) +
           '  ' + (e.target ? at(e.target) : MISSING) + '</div>';
       case 'needs': {
         const ref = idSpan(e.ref) +
-          (e.resolvedId ? ' <span class="rel">(\\u2192 ' + esc(e.resolvedId) + ')</span>' : '');
+          (e.resolvedId ? ' <span class="rel">(→ ' + esc(e.resolvedId) + ')</span>' : '');
         return '<div class="edge"><span class="rel">needs</span> ' + ref +
           '  ' + (e.target ? at(e.target) : MISSING) + '</div>';
       }
       case 'covers':
         return '<div class="edge"><span class="rel">covers</span> ' + idSpan(e.ref) +
-          '  ' + (e.target ? '<span class="mark ok">\\u2714</span> ' + loc(e.target) : MISSING) + '</div>';
+          '  ' + (e.target ? '<span class="mark ok">✔</span> ' + loc(e.target) : MISSING) + '</div>';
       case 'wantedBy':
         return '<div class="edge"><span class="rel">wanted by</span> ' + idSpan(e.ref) +
           '  ' + loc(e.target) + '</div>';
@@ -180,12 +180,12 @@ h2.file {
     let html = '<div class="item"><div class="head">' + mark(it.status) + ' ' +
       idSpan(it.id) + title + '  ' + loc(it) + tag + '</div>';
     if (withEdges) for (const e of it.edges) html += edgeHtml(e);
-    for (const d of it.defects) html += '<div class="defect">\\u2022 ' + esc(d) + '</div>';
+    for (const d of it.defects) html += '<div class="defect">• ' + esc(d) + '</div>';
     return html + '</div>';
   }
 
   const problemHtml = (p) =>
-    '<div class="problem">\\u26a0 ' + esc(p.message) + '  ' + loc(p) + '</div>';
+    '<div class="problem">⚠ ' + esc(p.message) + '  ' + loc(p) + '</div>';
 
   // the default report's content: defective items and parse problems only
   function renderProblems() {
@@ -215,7 +215,7 @@ h2.file {
   // fingerprint of any uncommitted changes; omitted outside a git repository
   function repoLine(rs) {
     if (rs.kind === 'no-git') {
-      return '<p class="metaline">git not found \\u2014 repository state unavailable</p>';
+      return '<p class="metaline">git not found — repository state unavailable</p>';
     }
     let line = rs.kind === 'release'
       ? esc(rs.tag)
@@ -227,14 +227,14 @@ h2.file {
   function renderHeader() {
     const s = model.summary;
     const rs = meta.repoState;
-    const repo = rs && rs.repo ? ' <span class="repo">\\u00b7 ' + esc(rs.repo) + '</span>' : '';
+    const repo = rs && rs.repo ? ' <span class="repo">· ' + esc(rs.repo) + '</span>' : '';
     const parts = ['<h1>flashtrace report' + repo + '</h1>'];
     parts.push('<div class="verdict ' + (s.clean ? 'ok">ok' : 'bad">not ok') + '</div>');
     parts.push('<p class="counts"><span class="num">' + s.items + '</span> items ' +
       '<span class="loc">(' + s.fromMarkdown + ' from markdown, ' + s.fromCode + ' from code)</span>' +
-      ' \\u00b7 <span class="num mark ok">' + s.ok + '</span> ok' +
-      ' \\u00b7 <span class="num' + (s.defective ? ' mark bad' : '') + '">' + s.defective + '</span> defective' +
-      (s.problems ? ' \\u00b7 <span class="num mark warn">' + s.problems + '</span> problems' : '') +
+      ' · <span class="num mark ok">' + s.ok + '</span> ok' +
+      ' · <span class="num' + (s.defective ? ' mark bad' : '') + '">' + s.defective + '</span> defective' +
+      (s.problems ? ' · <span class="num mark warn">' + s.problems + '</span> problems' : '') +
       '</p>');
     if (s.shallowOnly) {
       parts.push('<p class="note">of the ok items, ' + s.shallowOnly +
