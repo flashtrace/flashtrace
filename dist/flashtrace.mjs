@@ -24,6 +24,9 @@ var cLike = { line: ["//"], block: [["/*", "*/"]] };
 var cLikeNested = { line: ["//"], block: [["/*", "*/", true]] };
 var php = { line: ["//", "#"], block: [["/*", "*/"]] };
 var hash = { line: ["#"], block: [] };
+var coffee = { line: ["#"], block: [["###", "###"]] };
+var julia = { line: ["#"], block: [["#=", "=#", true]] };
+var nim = { line: ["#"], block: [["#[", "]#", true]] };
 var powershell = { line: ["#"], block: [["<#", "#>"]] };
 var sql = { line: ["--"], block: [["/*", "*/"]] };
 var lua = { line: ["--"], block: [["--[[", "]]"]] };
@@ -32,6 +35,7 @@ var css = { line: [], block: [["/*", "*/"]] };
 var xml = { line: [], block: [["<!--", "-->"]] };
 var none = { line: [], block: [] };
 var semicolon = { line: [";"], block: [] };
+var scheme = { line: [";"], block: [["#|", "|#", true]] };
 var percent = { line: ["%"], block: [] };
 var dashLine = { line: ["--"], block: [] };
 var ml = { line: [], block: [["(*", "*)", true]] };
@@ -46,7 +50,7 @@ function scriptGrammar(tag) {
   const type = attrOf(tag, "type");
   if (/json|importmap/.test(type)) return none;
   if (/template|html/.test(type)) return xml;
-  if (/coffee/.test(attrOf(tag, "lang"))) return hash;
+  if (/coffee/.test(attrOf(tag, "lang"))) return coffee;
   return cLike;
 }
 function styleGrammar(tag) {
@@ -102,11 +106,12 @@ var BY_EXT = {
   ".ex": hash,
   ".exs": hash,
   ".tcl": hash,
-  ".jl": hash,
-  ".nim": hash,
   ".graphql": hash,
   ".gql": hash,
-  ".coffee": hash,
+  // hash line comments plus a block pair of their own
+  ".jl": julia,
+  ".nim": nim,
+  ".coffee": coffee,
   ".ps1": powershell,
   ".psm1": powershell,
   ".tf": hcl,
@@ -119,8 +124,9 @@ var BY_EXT = {
   ".edn": semicolon,
   ".el": semicolon,
   ".lisp": semicolon,
-  ".scm": semicolon,
-  ".ss": semicolon,
+  // Scheme: ; lines plus nestable #| |# blocks
+  ".scm": scheme,
+  ".ss": scheme,
   // percent (Erlang, LaTeX)
   ".erl": percent,
   ".hrl": percent,

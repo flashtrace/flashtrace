@@ -212,6 +212,72 @@ test('Lua --[[ ]] block comment opens and spans multiple lines', () => {
   assert.deepEqual(items[0].needs, ['utest:lua/block#1']);
 });
 
+test('CoffeeScript uses # line and ### ### block comments', () => {
+  const { items } = parse('app.coffee', [
+    '# [impl:cs/app#1]',
+    '### [>>utest:cs/app#1] ###',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:cs/app#1']);
+});
+
+test('CoffeeScript ### block comment opens and spans multiple lines', () => {
+  // ### shares its prefix with the # line marker; the block opener must win
+  // the tie, otherwise the block never opens and the inner tags are missed.
+  const { items } = parse('app.coffee', [
+    '###',
+    '  [impl:cs/block#1]',
+    '  [>>utest:cs/block#1]',
+    '###',
+    'run()',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:cs/block#1');
+  assert.deepEqual(items[0].needs, ['utest:cs/block#1']);
+});
+
+test('Julia uses # line and #= =# block comments, which nest', () => {
+  const { items } = parse('mod.jl', [
+    '# [impl:jl/mod#1]',
+    '#= outer #= inner =# [>>utest:jl/mod#1] =#',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:jl/mod#1']);
+});
+
+test('Julia #= =# block comment opens and spans multiple lines', () => {
+  // #= shares its prefix with the # line marker; the block opener must win
+  // the tie for the block to open.
+  const { items } = parse('mod.jl', [
+    '#=',
+    '  [impl:jl/block#1]',
+    '  [>>utest:jl/block#1]',
+    '=#',
+    'x = 1',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:jl/block#1');
+  assert.deepEqual(items[0].needs, ['utest:jl/block#1']);
+});
+
+test('Nim uses # line and #[ ]# block comments, which nest', () => {
+  const { items } = parse('mod.nim', [
+    '# [impl:nim/mod#1]',
+    '#[ outer #[ inner ]# [>>utest:nim/mod#1] ]#',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:nim/mod#1']);
+});
+
+test('Scheme uses ; line and #| |# block comments, which nest', () => {
+  const { items } = parse('lib.scm', [
+    '; [impl:scm/lib#1]',
+    '#| outer #| inner |# [>>utest:scm/lib#1] |#',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:scm/lib#1']);
+});
+
 test('PowerShell uses # line and <# #> block comments', () => {
   const { items } = parse('deploy.ps1', [
     '# [impl:ops/deploy#1]',

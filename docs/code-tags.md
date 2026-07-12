@@ -7,10 +7,14 @@ Tags are written inside comments. The comment style is chosen per file extension
 | C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.dart` `.proto` `.scss` `.less` |
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
 | PHP | `//` `#` | `/* … */` | `.php` |
-| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.jl` `.nim` `.graphql` `.gql` `.coffee` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.graphql` `.gql` |
+| CoffeeScript | `#` | `### … ###` | `.coffee` |
+| Julia | `#` | `#= … =#` (nestable) | `.jl` |
+| Nim | `#` | `#[ … ]#` (nestable) | `.nim` |
 | PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
 | HCL | `#` `//` | `/* … */` | `.tf` `.tfvars` `.hcl` |
-| Semicolon | `;` | – | `.clj` `.cljs` `.cljc` `.edn` `.el` `.lisp` `.scm` `.ss` |
+| Semicolon | `;` | – | `.clj` `.cljs` `.cljc` `.edn` `.el` `.lisp` |
+| Scheme | `;` | `#\| … \|#` (nestable) | `.scm` `.ss` |
 | Percent | `%` | – | `.erl` `.hrl` `.tex` `.sty` |
 | SQL | `--` | `/* … */` | `.sql` |
 | Dash (line only) | `--` | – | `.adb` `.ads` `.vhd` `.vhdl` |
