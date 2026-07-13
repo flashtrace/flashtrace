@@ -24,6 +24,13 @@ const cLikeNested = { line: ['//'], block: [['/*', '*/', true]] };
 // PHP accepts // and # line comments plus /* */.
 const php = { line: ['//', '#'], block: [['/*', '*/']] };
 const hash = { line: ['#'], block: [] };
+// Hash line comments plus the language's own block pair. Julia's #= =# and
+// Nim's #[ ]# nest per their specs; CoffeeScript's ### ### does not.
+const coffee = { line: ['#'], block: [['###', '###']] };
+const julia = { line: ['#'], block: [['#=', '=#', true]] };
+// Nim also has ##[ ]## doc blocks; the longer opener wins the tie against both
+// # and #[ at the same position, so doc blocks are recognized as such.
+const nim = { line: ['#'], block: [['#[', ']#', true], ['##[', ']##', true]] };
 const powershell = { line: ['#'], block: [['<#', '#>']] };
 const sql = { line: ['--'], block: [['/*', '*/']] };
 const lua = { line: ['--'], block: [['--[[', ']]']] };
@@ -33,6 +40,8 @@ const xml = { line: [], block: [['<!--', '-->']] };
 // A comment-less grammar, for embedded content that has no comments (JSON).
 const none = { line: [], block: [] };
 const semicolon = { line: [';'], block: [] };
+// Scheme and Racket add nestable #| |# block comments on top of ; lines.
+const scheme = { line: [';'], block: [['#|', '|#', true]] };
 const percent = { line: ['%'], block: [] };
 const dashLine = { line: ['--'], block: [] };
 // OCaml/F# (* *) nest per spec; Pascal's (* *) does not, so it keeps a plain pair.
@@ -54,7 +63,7 @@ function scriptGrammar(tag) {
   const type = attrOf(tag, 'type');
   if (/json|importmap/.test(type)) return none; // JSON / import maps: no comments
   if (/template|html/.test(type)) return xml; // inline HTML templates
-  if (/coffee/.test(attrOf(tag, 'lang'))) return hash; // CoffeeScript
+  if (/coffee/.test(attrOf(tag, 'lang'))) return coffee; // CoffeeScript
   return cLike; // JS / TS / JSX / module / ...
 }
 function styleGrammar(tag) {
@@ -87,13 +96,17 @@ const BY_EXT = {
   // hash line comments
   '.py': hash, '.rb': hash, '.sh': hash, '.bash': hash, '.zsh': hash,
   '.yaml': hash, '.yml': hash, '.toml': hash, '.r': hash, '.pm': hash,
-  '.ex': hash, '.exs': hash, '.tcl': hash, '.jl': hash, '.nim': hash,
-  '.graphql': hash, '.gql': hash, '.coffee': hash,
+  '.ex': hash, '.exs': hash, '.tcl': hash,
+  '.graphql': hash, '.gql': hash,
+  // hash line comments plus a block pair of their own
+  '.jl': julia, '.nim': nim, '.coffee': coffee,
   '.ps1': powershell, '.psm1': powershell,
   '.tf': hcl, '.tfvars': hcl, '.hcl': hcl,
   // semicolon (Lisp family)
   '.clj': semicolon, '.cljs': semicolon, '.cljc': semicolon, '.edn': semicolon,
-  '.el': semicolon, '.lisp': semicolon, '.scm': semicolon, '.ss': semicolon,
+  '.el': semicolon, '.lisp': semicolon,
+  // Scheme/Racket: ; lines plus nestable #| |# blocks
+  '.scm': scheme, '.ss': scheme, '.rkt': scheme,
   // percent (Erlang, LaTeX)
   '.erl': percent, '.hrl': percent, '.tex': percent, '.sty': percent,
   // dash line-only (Ada, VHDL)
