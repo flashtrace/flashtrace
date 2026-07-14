@@ -22,6 +22,9 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 | `-V, --version` | Print the version number and exit. |
 | `-h, --help` | Show help. |
 
+Long options also accept `=`-attached values, e.g. `--tags=a,b`; values
+containing spaces must be shell-quoted (`--tags="a , b"`).
+
 Exit codes: `0` clean, `1` defects or problems found, `2` usage error.
 
 ## Item IDs
