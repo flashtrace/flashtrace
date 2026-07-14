@@ -36,23 +36,21 @@ function packageVersion() {
   return JSON.parse(readFileSync(pkg, 'utf8')).version;
 }
 
+// a long option splits at the first "=" into name and attached value; short
+// options keep POSIX semantics and never carry one
+function splitLongOption(token) {
+  const eq = token.startsWith('--') ? token.indexOf('=') : -1;
+  return eq === -1 ? [token, null] : [token.slice(0, eq), token.slice(eq + 1)];
+}
+
+function rejectValue(name, inline) {
+  if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
+}
+
 function parseArgs(argv) {
   const opts = { dirs: [], tags: null, verbose: false };
-  const rejectValue = (name, inline) => {
-    if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
-  };
   for (let i = 0; i < argv.length; i++) {
-    let a = argv[i];
-    // a long option splits at the first "=" into name and attached value;
-    // short options keep POSIX semantics and never carry one
-    let inline = null;
-    if (a.startsWith('--')) {
-      const eq = a.indexOf('=');
-      if (eq !== -1) {
-        inline = a.slice(eq + 1);
-        a = a.slice(0, eq);
-      }
-    }
+    const [a, inline] = splitLongOption(argv[i]);
     if (a === '-h' || a === '--help') {
       rejectValue(a, inline);
       console.log(HELP);
