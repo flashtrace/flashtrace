@@ -23,6 +23,8 @@ Options:
   -V, --version            print the version number
   -h, --help               show this help
 
+Long options also accept "="-attached values, e.g. --tags=a,b.
+
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
 
 // The version lives only in package.json: the release workflow bumps it there
@@ -36,18 +38,34 @@ function packageVersion() {
 
 function parseArgs(argv) {
   const opts = { dirs: [], tags: null, verbose: false };
+  const rejectValue = (name, inline) => {
+    if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
+  };
   for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
+    let a = argv[i];
+    // a long option splits at the first "=" into name and attached value;
+    // short options keep POSIX semantics and never carry one
+    let inline = null;
+    if (a.startsWith('--')) {
+      const eq = a.indexOf('=');
+      if (eq !== -1) {
+        inline = a.slice(eq + 1);
+        a = a.slice(0, eq);
+      }
+    }
     if (a === '-h' || a === '--help') {
+      rejectValue(a, inline);
       console.log(HELP);
       process.exit(0);
     } else if (a === '-v' || a === '--verbose') {
+      rejectValue(a, inline);
       opts.verbose = true;
     } else if (a === '-V' || a === '--version') {
+      rejectValue(a, inline);
       console.log(packageVersion());
       process.exit(0);
     } else if (a === '-t' || a === '--tags') {
-      const v = argv[++i];
+      const v = inline ?? argv[++i];
       if (!v) throw new UsageError(`missing value for ${a}`);
       opts.tags = v.split(',').map((s) => s.trim()).filter(Boolean);
     } else if (a.startsWith('-')) {
