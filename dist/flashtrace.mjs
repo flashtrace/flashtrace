@@ -901,25 +901,37 @@ Options:
   -V, --version            print the version number
   -h, --help               show this help
 
+Long options also accept "="-attached values, e.g. --tags=a,b.
+
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
 function packageVersion() {
   const pkg = new URL("../package.json", import.meta.url);
   return JSON.parse(readFileSync(pkg, "utf8")).version;
 }
+function splitLongOption(token) {
+  const eq = token.startsWith("--") ? token.indexOf("=") : -1;
+  return eq === -1 ? [token, null] : [token.slice(0, eq), token.slice(eq + 1)];
+}
+function rejectValue(name, inline) {
+  if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
+}
 function parseArgs(argv) {
   const opts = { dirs: [], tags: null, verbose: false };
   for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
+    const [a, inline] = splitLongOption(argv[i]);
     if (a === "-h" || a === "--help") {
+      rejectValue(a, inline);
       console.log(HELP);
       process3.exit(0);
     } else if (a === "-v" || a === "--verbose") {
+      rejectValue(a, inline);
       opts.verbose = true;
     } else if (a === "-V" || a === "--version") {
+      rejectValue(a, inline);
       console.log(packageVersion());
       process3.exit(0);
     } else if (a === "-t" || a === "--tags") {
-      const v = argv[++i];
+      const v = inline ?? argv[++i];
       if (!v) throw new UsageError(`missing value for ${a}`);
       opts.tags = v.split(",").map((s) => s.trim()).filter(Boolean);
     } else if (a.startsWith("-")) {
