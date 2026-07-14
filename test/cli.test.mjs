@@ -93,19 +93,21 @@ test('non-existent input path: exit 2', async () => {
   });
 });
 
+// fixture shared by the --tags tests: one Auth-tagged item, one untagged item
+const TAGS_FIXTURE = {
+  'spec.md': [
+    '# A',
+    '`req:a#1`',
+    '',
+    'Tags: Auth',
+    '',
+    '# B',
+    '`req:b#1`',
+  ],
+};
+
 test('--tags filters markdown items; "_" re-admits untagged ones', async () => {
-  const files = {
-    'spec.md': [
-      '# A',
-      '`req:a#1`',
-      '',
-      'Tags: Auth',
-      '',
-      '# B',
-      '`req:b#1`',
-    ],
-  };
-  await withProject(files, (dir) => {
+  await withProject(TAGS_FIXTURE, (dir) => {
     const tagged = runCli(dir, ['-t', 'Auth']);
     assert.equal(tagged.status, 0);
     assert.match(tagged.stdout, /items\s+1\b/);
@@ -113,6 +115,82 @@ test('--tags filters markdown items; "_" re-admits untagged ones', async () => {
     const withUntagged = runCli(dir, ['-t', 'Auth,_']);
     assert.equal(withUntagged.status, 0);
     assert.match(withUntagged.stdout, /items\s+2\b/);
+  });
+});
+
+test('--tags=<value> behaves like the space-separated form', async () => {
+  await withProject(TAGS_FIXTURE, (dir) => {
+    const tagged = runCli(dir, ['--tags=Auth']);
+    assert.equal(tagged.status, 0);
+    assert.match(tagged.stdout, /items\s+1\b/);
+
+    const withUntagged = runCli(dir, ['--tags=Auth,_']);
+    assert.equal(withUntagged.status, 0);
+    assert.match(withUntagged.stdout, /items\s+2\b/);
+  });
+});
+
+test('--tags values tolerate whitespace around commas in both forms', async () => {
+  // shell-quoted values like --tags="Auth , _" reach the CLI as one token
+  // containing spaces; runCli passes argv directly, mimicking that
+  await withProject(TAGS_FIXTURE, (dir) => {
+    for (const args of [['--tags', 'Auth , _'], ['--tags=Auth , _']]) {
+      const res = runCli(dir, args);
+      assert.equal(res.status, 0, res.stderr);
+      assert.match(res.stdout, /items\s+2\b/);
+    }
+  });
+});
+
+test('--tags drops empty segments from the value', async () => {
+  await withProject(TAGS_FIXTURE, (dir) => {
+    const res = runCli(dir, ['--tags=Auth,,_,']);
+    assert.equal(res.status, 0, res.stderr);
+    assert.match(res.stdout, /items\s+2\b/);
+  });
+});
+
+test('--tags= splits at the first "=" only, keeping "=" in the value', async () => {
+  const files = {
+    'spec.md': ['# A', '`req:a#1`', '', 'Tags: a=b', '', '# B', '`req:b#1`'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, ['--tags=a=b']);
+    assert.equal(res.status, 0, res.stderr);
+    assert.match(res.stdout, /items\s+1\b/);
+  });
+});
+
+test('--tags= with an empty value: exit 2, missing value', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['--tags=']);
+    assert.equal(res.status, 2);
+    assert.match(res.stderr, /missing value for --tags/);
+  });
+});
+
+test('a boolean long option rejects an =-attached value', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['--verbose=1']);
+    assert.equal(res.status, 2);
+    assert.match(res.stderr, /option --verbose does not take a value/);
+  });
+});
+
+test('unknown option with "=" is reported by name, without the value', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['--frobnicate=x']);
+    assert.equal(res.status, 2);
+    assert.match(res.stderr, /unknown option: --frobnicate\b/);
+    assert.ok(!res.stderr.includes('--frobnicate=x'), res.stderr);
+  });
+});
+
+test('short options do not take =-attached values', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['-t=a,b']);
+    assert.equal(res.status, 2);
+    assert.match(res.stderr, /unknown option/);
   });
 });
 
