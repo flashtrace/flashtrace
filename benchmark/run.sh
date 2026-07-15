@@ -14,6 +14,8 @@
 #   QJS   path to qjs           (default benchmark/out/quickjs/build/qjs)
 #   LLRT  path to llrt binary   (optional; cell skipped when absent)
 #   RUNS  timed runs per cell   (default 10)
+#   RUNS_S/RUNS_M/RUNS_L  per-corpus override of RUNS (a JIT-less run on L
+#         takes minutes; the spike used RUNS_L=3 - see RESULTS.md)
 #   COLD  1/0 force-enable/disable cold-cache runs (default: auto-detect
 #         whether /proc/sys/vm/drop_caches is writable)
 #
@@ -108,13 +110,15 @@ hyperfine --warmup 3 --runs "$RUNS" --export-json "$RESULTS/startup.json" "${cel
 
 for corpus in S M L; do
   dir="$CORPUS_ROOT/$corpus"
-  echo "== corpus $corpus: warm full runs"
+  runsVar="RUNS_$corpus"
+  runs="${!runsVar:-$RUNS}"
+  echo "== corpus $corpus: warm full runs ($runs runs/cell)"
   mapfile -t cells < <(hf_cells full-warm "$corpus" .)
-  ( cd "$dir" && hyperfine -i --warmup 2 --runs "$RUNS" --export-json "$RESULTS/$corpus-warm.json" "${cells[@]}" )
+  ( cd "$dir" && hyperfine -i --warmup 1 --runs "$runs" --export-json "$RESULTS/$corpus-warm.json" "${cells[@]}" )
   if [ "$COLD" = 1 ]; then
-    echo "== corpus $corpus: cold full runs"
+    echo "== corpus $corpus: cold full runs ($runs runs/cell)"
     mapfile -t cold_cells < <(hf_cells full-cold "$corpus" .)
-    ( cd "$dir" && hyperfine -i --runs "$RUNS" \
+    ( cd "$dir" && hyperfine -i --runs "$runs" \
         --prepare 'sync; echo 3 > /proc/sys/vm/drop_caches' \
         --export-json "$RESULTS/$corpus-cold.json" "${cold_cells[@]}" )
   fi
