@@ -142,7 +142,7 @@ echo "== peak RSS + artifact sizes"
   echo "shimmed bundle (qjs),$(stat -c%s "$QJS_BUNDLE")"
   echo "standalone qjs binary,$(stat -c%s "$QJS_BIN")"
   echo "node executable,$(stat -c%s "$(command -v node)")"
-  [ -n "$LLRT" ] && [ -x "$LLRT" ] && echo "llrt executable,$(stat -c%s "$LLRT")"
+  if [ -n "$LLRT" ] && [ -x "$LLRT" ]; then echo "llrt executable,$(stat -c%s "$LLRT")"; fi
 } > "$RESULTS/rss-size.csv"
 
 echo "== environment"
@@ -151,7 +151,7 @@ echo "== environment"
   echo "repo: $(git -C "$REPO" rev-parse HEAD)"
   echo "node: $(node --version)"
   echo "qjs: $("$QJS" --version)"
-  [ -n "$LLRT" ] && [ -x "$LLRT" ] && echo "llrt: $("$LLRT" --version 2>&1 | head -1)"
+  if [ -n "$LLRT" ] && [ -x "$LLRT" ]; then echo "llrt: $("$LLRT" --version 2>&1 | head -1)"; fi
   echo "hyperfine: $(hyperfine --version)"
   echo "esbuild: $(node -e 'console.log(require("esbuild/package.json").version)' 2>/dev/null || echo n/a)"
   echo "cc: $(cc --version | head -1)"
