@@ -75,21 +75,29 @@ export function relative(from, to) {
   return [...up, ...tp.slice(i)].join('/');
 }
 
+// trailing slashes are ignored by Node's basename/dirname/extname
+function stripTrailing(path) {
+  let end = path.length;
+  while (end > 1 && path[end - 1] === '/') end--;
+  return path.slice(0, end);
+}
+
 export function extname(path) {
-  const slash = path.lastIndexOf('/');
-  const base = slash === -1 ? path : path.slice(slash + 1);
+  const base = basename(path);
   const dot = base.lastIndexOf('.');
-  // Node: no dot, or the dot is the first character of the basename -> ''
-  if (dot <= 0) return '';
+  // Node: no dot, dot as first char of the basename, or a '..' basename -> ''
+  if (dot <= 0 || base === '..') return '';
   return base.slice(dot);
 }
 
 export function basename(path) {
+  path = stripTrailing(path);
   const slash = path.lastIndexOf('/');
   return slash === -1 ? path : path.slice(slash + 1);
 }
 
 export function dirname(path) {
+  path = stripTrailing(path);
   const slash = path.lastIndexOf('/');
   if (slash === -1) return '.';
   if (slash === 0) return '/';

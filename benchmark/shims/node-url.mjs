@@ -14,10 +14,10 @@ import { resolve } from './node-path.mjs';
 export const QJS_STANDALONE_URL = 'file://<evalScript>';
 export const QJS_STANDALONE_PATH = '<evalScript>';
 
-// keep in sync with what pathToFileURL must escape; only chars that are
-// special in URLs and legal in POSIX paths
+// encodeURI handles %, whitespace and non-ASCII (UTF-8 percent-encoding) but
+// leaves ? and # alone, which must not terminate the path
 function encodePath(p) {
-  return p.replace(/%/g, '%25').replace(/\?/g, '%3F').replace(/#/g, '%23').replace(/\n/g, '%0A');
+  return encodeURI(p).replace(/[?#]/g, (c) => (c === '?' ? '%3F' : '%23'));
 }
 
 export function fileURLToPath(url) {
