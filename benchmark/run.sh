@@ -49,7 +49,7 @@ node "$HERE/build.mjs" >/dev/null
 
 echo "== compiling standalone binary (timed)"
 hyperfine --warmup 1 --runs "$RUNS" --export-json "$RESULTS/compile.json" \
-  --command-name "-|compile|qjs-bin" \
+  "--command-name=all|compile|qjs-bin" \
   "'$QJS' -c '$QJS_BUNDLE' -o '$QJS_BIN'"
 
 # runtime table: name -> command prefix (invoked as: <cmd> <arg...>)
@@ -97,15 +97,16 @@ for corpus in S M L; do
   done
 done
 
-hf_cells() { # $1 phase, $2 corpus, $3 arg; echoes -n/-c pairs for qualified runtimes
+hf_cells() { # $1 phase, $2 corpus, $3 arg; echoes name/command arg pairs for qualified runtimes
   for rt in "${RUNTIMES[@]}"; do
     [ "${OK[$rt]}" = 1 ] || continue
-    printf -- "--command-name\n%s|%s|%s\n%s %s\n" "$2" "$1" "$rt" "${CMD[$rt]}" "$3"
+    # =-attached: a bare value would be taken for a flag when it starts with '-'
+    printf -- "--command-name=%s|%s|%s\n%s %s\n" "$2" "$1" "$rt" "${CMD[$rt]}" "$3"
   done
 }
 
 echo "== startup probe (--version)"
-mapfile -t cells < <(hf_cells startup - --version)
+mapfile -t cells < <(hf_cells startup all --version)
 hyperfine --warmup 3 --runs "$RUNS" --export-json "$RESULTS/startup.json" "${cells[@]}"
 
 for corpus in S M L; do
