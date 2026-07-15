@@ -1,0 +1,6 @@
+S qjs: OK (byte-identical, exit 1)
+S qjs-bin: OK (byte-identical, exit 1)
+M qjs: OK (byte-identical, exit 1)
+M qjs-bin: OK (byte-identical, exit 1)
+L qjs: OK (byte-identical, exit 1)
+L qjs-bin: OK (byte-identical, exit 1)

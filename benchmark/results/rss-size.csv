@@ -1,0 +1,17 @@
+corpus,runtime,peak_rss_kib
+S,node,61656
+S,qjs,10204
+S,qjs-bin,10180
+M,node,69120
+M,qjs,10180
+M,qjs-bin,10180
+L,node,185352
+L,qjs,85936
+L,qjs-bin,85716
+
+artifact,bytes
+dist/flashtrace.mjs,32956
+qjs interpreter,1373056
+shimmed bundle (qjs),40884
+standalone qjs binary,1410436
+node executable,124679552

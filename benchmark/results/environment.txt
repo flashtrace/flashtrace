@@ -1,0 +1,17 @@
+date: 2026-07-15T18:18:47Z
+repo: 8ba688a73430e184640c9e601668136c8106980e
+node: v22.22.2
+qjs: 0.15.1
+hyperfine: hyperfine 1.20.0
+esbuild: 0.28.1
+cc: cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+kernel: Linux 6.18.5, arch: x86_64
+cpu: Intel(R) Xeon(R) Processor @ 2.80GHz, 4 cores
+runs per cell: 10, cold runs: 1
+generated: 2026-07-15T16:22:33Z
+S: flashtrace working tree at c9ecc52cc21d95d4e51fae07b0a5f1fd63a9d990
+M: gen-corpus.mjs --files 3000 --seed 1002
+L: gen-corpus.mjs --files 60000 --seed 1003
+S: 26 files, 200K
+M: 3000 files, 23M
+L: 60000 files, 447M
