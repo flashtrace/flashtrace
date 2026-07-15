@@ -1,1 +1,4 @@
 out/
+# results are committed explicitly once a matrix run is complete;
+# ignoring the dir keeps half-written JSONs out of intermediate commits
+results/
