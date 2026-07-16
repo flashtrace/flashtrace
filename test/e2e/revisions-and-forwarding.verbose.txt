@@ -1,0 +1,27 @@
+✔ impl:session/api#1.3  api.ts:1  [deep-covered]
+
+✔ feat:session#1 "Session handling"  spec.md:3  [deep-covered]
+    needs req:session/store#2.4.0  ✔ spec.md:11
+    needs req:session/api#1  ✔ spec.md:20
+✔ req:session/store#2.4.0 "Session store requirement"  spec.md:11  [deep-covered]
+    needs impl:session/store#2.x.y (→ impl:session/store#2.4.1)  ✔ store.ts:1
+    needs utest:session/store#1.x (→ utest:session/store#1.2)  ✔ tests/store.test.ts:1
+    wanted by feat:session#1  spec.md:3
+✔ req:session/api#1 "Session API requirement"  spec.md:20  [deep-covered]
+    → dsn:session/api#2  ✔ spec.md:28
+    wanted by feat:session#1  spec.md:3
+✔ dsn:session/api#2 "Session API design"  spec.md:28  [deep-covered]
+    → impl:session/api#1.3  ✔ api.ts:1
+
+✔ impl:session/store#2.4.1  store.ts:1  [deep-covered]
+    wanted by req:session/store#2.4.0  spec.md:11
+
+✔ utest:session/store#1.2  tests/store.test.ts:1  [deep-covered]
+    wanted by req:session/store#2.4.0  spec.md:11
+
+Summary
+  items       7  (4 from markdown, 3 from code)
+  ok          7
+  defective   0
+
+ok

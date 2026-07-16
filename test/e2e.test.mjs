@@ -29,6 +29,8 @@ const UPDATE = process.env.FLASHTRACE_UPDATE_SNAPSHOTS === '1';
 const CASES = [
   { example: 'basic', variant: 'default', args: [], status: 0 },
   { example: 'basic', variant: 'verbose', args: ['-v'], status: 0 },
+  { example: 'revisions-and-forwarding', variant: 'default', args: [], status: 0 },
+  { example: 'revisions-and-forwarding', variant: 'verbose', args: ['-v'], status: 0 },
 ];
 
 async function runInTempCopy(example, args) {
