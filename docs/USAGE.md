@@ -103,19 +103,3 @@ counted separately in the summary.
 Malformed input (invalid IDs in Needs/Covers lists, a `[>>...]` tag with no
 preceding item tag, an explicit `[<source-id> >> <id>]` tag whose source item
 tag does not precede it) is reported as a **problem** ⚠ alongside the defects.
-
-## Examples
-
-Self-contained example projects live under [examples/](examples/), each with a
-README stating what it demonstrates. They double as fixtures for the end-to-end
-test suite, so every example is traced - and its exact report output verified -
-on every test run:
-
-- [basic](examples/basic/) - the smallest complete setup: one Markdown
-  requirement covered by one TypeScript item tag.
-- [revisions-and-forwarding](examples/revisions-and-forwarding/) - exact
-  multi-layer revisions, wildcard needs and a forwarding chain.
-- [polyglot-web](examples/polyglot-web/) - keyword tables, tag filtering and
-  code tags across TypeScript, Python, SQL, HTML and Vue.
-- [diagnostics](examples/diagnostics/) - an intentionally defective project
-  showing every defect and problem kind flashtrace reports.
