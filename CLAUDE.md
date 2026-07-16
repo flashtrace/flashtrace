@@ -16,6 +16,7 @@ Ask refining questions before you start writing.
 | src/ | Source code |
 | test/ | Test code |
 | docs/ | Exact Documentation ("spec-driven") - written in Markdown |
+| examples/ | Self-contained example projects; fixtures for the end-to-end tests |
 | dist/ | Generated build output |
 | .github/ | Continuous integration workflows |
 
