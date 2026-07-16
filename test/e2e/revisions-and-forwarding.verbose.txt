@@ -5,7 +5,7 @@
     needs req:session/api#1  ✔ spec.md:20
 ✔ req:session/store#2.4.0 "Session store requirement"  spec.md:11  [deep-covered]
     needs impl:session/store#2.x.y (→ impl:session/store#2.4.1)  ✔ store.ts:1
-    needs utest:session/store#1.x (→ utest:session/store#1.2)  ✔ tests/store.test.ts:1
+    needs utest:session/store#1.x (→ utest:session/store#1.2)  ✔ tests/store.spec.ts:1
     wanted by feat:session#1  spec.md:3
 ✔ req:session/api#1 "Session API requirement"  spec.md:20  [deep-covered]
     → dsn:session/api#2  ✔ spec.md:28
@@ -16,7 +16,7 @@
 ✔ impl:session/store#2.4.1  store.ts:1  [deep-covered]
     wanted by req:session/store#2.4.0  spec.md:11
 
-✔ utest:session/store#1.2  tests/store.test.ts:1  [deep-covered]
+✔ utest:session/store#1.2  tests/store.spec.ts:1  [deep-covered]
     wanted by req:session/store#2.4.0  spec.md:11
 
 Summary
