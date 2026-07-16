@@ -34,6 +34,8 @@ const CASES = [
   { example: 'polyglot-web', variant: 'default', args: [], status: 0 },
   { example: 'polyglot-web', variant: 'verbose', args: ['-v'], status: 0 },
   { example: 'polyglot-web', variant: 'tags', args: ['--tags', 'web,data'], status: 0 },
+  { example: 'diagnostics', variant: 'default', args: [], status: 1 },
+  { example: 'diagnostics', variant: 'verbose', args: ['-v'], status: 1 },
 ];
 
 async function runInTempCopy(example, args) {

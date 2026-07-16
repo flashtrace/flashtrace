@@ -1,0 +1,34 @@
+✘ req:alpha#1 "Alpha requirement"  spec.md:12
+    • uncovered: needs impl:alpha#2, which does not exist (revision mismatch: existing revision(s) of impl:alpha: 1)
+
+✘ req:beta#1 "Beta requirement"  spec.md:28
+    • orphaned: covers feat:beta#1, which does not exist
+
+✘ req:gamma#1 "Gamma requirement"  spec.md:36
+    • unwanted: covers feat:gamma#1, but feat:gamma#1 does not need req:gamma#1
+
+✘ req:epsilon#1 "Epsilon requirement"  spec.md:50
+    • duplicate: ID req:epsilon#1 is defined 2 times
+
+✘ req:epsilon#1 "Epsilon requirement (defined again)"  spec.md:56
+    • duplicate: ID req:epsilon#1 is defined 2 times
+
+✘ req:zeta#1 "Zeta requirement"  spec.md:62
+    • duplicate: forwarding for req:zeta#1 is declared 2 times
+
+✘ impl:delta#1  unwanted.ts:1
+    • unwanted: no item needs impl:delta#1
+
+⚠ need tag [>>utest:orphan#1] has no preceding item tag in this file  orphan-need.ts:1
+⚠ forwarding from req:ghost#1, which does not exist  spec.md:95
+⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:83
+⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:91
+
+Summary
+  items       13  (12 from markdown, 1 from code)
+  ok          6
+  defective   7
+  of the ok items, 1 are only shallow-covered (an item further down the tracing chain is defective)
+  problems    4
+
+not ok
