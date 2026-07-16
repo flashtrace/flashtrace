@@ -1,4 +1,10 @@
 // [utest:session/store#1.2]
-import { persist } from '../store';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
 
-persist('probe', '{}');
+import { persist, restore } from '../store';
+
+test('persists and restores a session', () => {
+  persist('probe', '{}');
+  assert.equal(restore('probe'), '{}');
+});

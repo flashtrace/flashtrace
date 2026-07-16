@@ -4,3 +4,7 @@ const sessions = new Map<string, string>();
 export function persist(id: string, data: string): void {
   sessions.set(id, data);
 }
+
+export function restore(id: string): string | undefined {
+  return sessions.get(id);
+}
