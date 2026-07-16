@@ -1,0 +1,6 @@
+Summary
+  items       10  (3 from markdown, 7 from code)
+  ok          10
+  defective   0
+
+ok

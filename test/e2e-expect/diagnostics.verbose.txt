@@ -1,0 +1,45 @@
+~ feat:alpha#1 "Alpha feature"  spec.md:3  [shallow-covered]
+    needs req:alpha#1  ✘ spec.md:12
+✘ req:alpha#1 "Alpha requirement"  spec.md:12  [defective]
+    needs impl:alpha#1  ✘ missing
+    wanted by feat:alpha#1  spec.md:3
+    • uncovered: needs impl:alpha#1, which does not exist
+✘ req:beta#1 "Beta requirement"  spec.md:21  [defective]
+    covers feat:beta#1  ✘ missing
+    • orphaned: covers feat:beta#1, which does not exist
+✘ req:gamma#1 "Gamma requirement"  spec.md:29  [defective]
+    covers feat:gamma#1  ✔ spec.md:37
+    • unwanted: covers feat:gamma#1, but feat:gamma#1 does not need req:gamma#1
+✔ feat:gamma#1 "Gamma feature"  spec.md:37  [deep-covered]
+✘ req:delta#1 "Delta requirement"  spec.md:43  [defective]
+    needs impl:delta#2  ✘ missing
+    • uncovered: needs impl:delta#2, which does not exist (revision mismatch: existing revision(s) of impl:delta: 1)
+✘ req:epsilon#1 "Epsilon requirement"  spec.md:52  [defective]
+    • duplicate: ID req:epsilon#1 is defined 2 times
+✘ req:epsilon#1 "Epsilon requirement (defined again)"  spec.md:58  [defective]
+    • duplicate: ID req:epsilon#1 is defined 2 times
+✘ req:zeta#1 "Zeta requirement"  spec.md:64  [defective]
+    → dsn:zeta#1  ✔ spec.md:74
+    • duplicate: forwarding for req:zeta#1 is declared 2 times
+✔ dsn:zeta#1 "Zeta design"  spec.md:74  [deep-covered]
+✔ req:eta#1 "Eta requirement"  spec.md:80  [deep-covered]
+✔ req:theta#1 "Theta requirement"  spec.md:89  [deep-covered]
+
+✘ impl:delta#1  unwanted.ts:2  [defective]
+    • unwanted: no item needs impl:delta#1
+✘ impl:omega#1  unwanted.ts:6  [defective]
+    • unwanted: no item needs impl:omega#1
+
+⚠ need tag [>>utest:orphan#1] has no preceding item tag in this file  orphan-need.ts:1
+⚠ forwarding from req:ghost#1, which does not exist  spec.md:97
+⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:85
+⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:93
+
+Summary
+  items       14  (12 from markdown, 2 from code)
+  ok          5
+  defective   9
+  of the ok items, 1 are only shallow-covered (an item further down the tracing chain is defective)
+  problems    4
+
+not ok
