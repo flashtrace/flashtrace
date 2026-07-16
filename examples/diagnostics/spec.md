@@ -11,17 +11,10 @@ Needs: req:alpha#1
 
 `req:alpha#1`
 
-Uncovered: demands revision 2 of the implementation while only revision 1
-exists, so the report adds a revision-mismatch hint.
+Uncovered: needs an implementation that is defined nowhere, at no revision,
+so the report states a plainly missing need without any hint.
 
-Needs: impl:alpha#2
-
-# Alpha implementation (previous revision)
-
-`impl:alpha#1`
-
-Defined at revision 1 so the uncovered report above can point at the
-mismatch.
+Needs: impl:alpha#1
 
 # Beta requirement
 
@@ -44,6 +37,15 @@ Covers: feat:gamma#1
 `feat:gamma#1`
 
 Needs nothing, so the incoming cover from req:gamma#1 is unwanted.
+
+# Delta requirement
+
+`req:delta#1`
+
+Uncovered: demands revision 2 of the delta implementation while only
+revision 1 exists (in old.ts), so the report adds a revision-mismatch hint.
+
+Needs: impl:delta#2
 
 # Epsilon requirement
 
