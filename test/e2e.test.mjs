@@ -1,7 +1,7 @@
 /*
  * End-to-end suite: runs the built CLI over the example projects under
  * examples/ and compares full stdout byte-for-byte against the snapshot
- * files in test/e2e/. Each example is copied to a fresh temp directory first,
+ * files in test/e2e-expect/. Each example is copied to a fresh temp directory first,
  * so the run is isolated from this repository's git metadata and file
  * collection uses the deterministic walk + sort path.
  *
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT = fileURLToPath(new URL('../dist/flashtrace.mjs', import.meta.url));
 const EXAMPLES = fileURLToPath(new URL('../examples', import.meta.url));
-const SNAPSHOTS = fileURLToPath(new URL('./e2e', import.meta.url));
+const SNAPSHOTS = fileURLToPath(new URL('./e2e-expect', import.meta.url));
 
 const UPDATE = process.env.FLASHTRACE_UPDATE_SNAPSHOTS === '1';
 

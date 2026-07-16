@@ -1,4 +1,4 @@
 # Example fixtures and e2e snapshots are compared byte-for-byte against CLI
 # output; force LF so autocrlf checkouts cannot corrupt them.
 examples/** text eol=lf
-test/e2e/** text eol=lf
+test/e2e-expect/** text eol=lf
