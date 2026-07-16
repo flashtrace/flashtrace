@@ -43,7 +43,7 @@ Needs nothing, so the incoming cover from req:gamma#1 is unwanted.
 `req:delta#1`
 
 Uncovered: demands revision 2 of the delta implementation while only
-revision 1 exists (in old.ts), so the report adds a revision-mismatch hint.
+revision 1 exists (in unwanted.ts), so the report adds a revision-mismatch hint.
 
 Needs: impl:delta#2
 

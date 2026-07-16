@@ -1,6 +1,3 @@
-✘ impl:delta#1  old.ts:1
-    • unwanted: no item needs impl:delta#1
-
 ✘ req:alpha#1 "Alpha requirement"  spec.md:12
     • uncovered: needs impl:alpha#1, which does not exist
 
@@ -22,15 +19,21 @@
 ✘ req:zeta#1 "Zeta requirement"  spec.md:64
     • duplicate: forwarding for req:zeta#1 is declared 2 times
 
+✘ impl:delta#1  unwanted.ts:2
+    • unwanted: no item needs impl:delta#1
+
+✘ impl:omega#1  unwanted.ts:6
+    • unwanted: no item needs impl:omega#1
+
 ⚠ need tag [>>utest:orphan#1] has no preceding item tag in this file  orphan-need.ts:1
 ⚠ forwarding from req:ghost#1, which does not exist  spec.md:97
 ⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:85
 ⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:93
 
 Summary
-  items       13  (12 from markdown, 1 from code)
+  items       14  (12 from markdown, 2 from code)
   ok          5
-  defective   8
+  defective   9
   of the ok items, 1 are only shallow-covered (an item further down the tracing chain is defective)
   problems    4
 

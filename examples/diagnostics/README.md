@@ -10,7 +10,7 @@ From [spec.md](spec.md):
   revision. feat:alpha#1 sits on top of it and is only shallow-covered: its
   own need is met, but the chain below is broken.
 - uncovered with revision-mismatch hint - req:delta#1 needs impl:delta#2;
-  only revision 1 exists (in [old.ts](old.ts)), so the report adds a
+  only revision 1 exists (in [unwanted.ts](unwanted.ts)), so the report adds a
   revision-mismatch hint.
 - orphaned - req:beta#1 covers feat:beta#1, an ID defined nowhere.
 - unwanted covers - req:gamma#1 covers feat:gamma#1, but feat:gamma#1 does
@@ -26,7 +26,9 @@ From [spec.md](spec.md):
 
 From the code files:
 
-- unwanted code item - [old.ts](old.ts) defines impl:delta#1, which no item
+- unwanted code item - [unwanted.ts](unwanted.ts) defines impl:omega#1, which no item
+  needs (not even in any other revision)
+- unwanted revision - [unwanted.ts](unwanted.ts) defines impl:delta#1, which no item
   needs: req:delta#1 demands revision 2, and revision matching is exact.
 - need tag without a preceding item tag - [orphan-need.ts](orphan-need.ts)
   opens with a need tag, so there is no item tag it could attach to.
