@@ -1,7 +1,8 @@
 /*
  * Markdown parser (.md, .markdown):
  *   - An item is defined by a line containing only its ID in backticks: `req:auth/login#1`
- *   - Title: the heading (#...) directly above the ID (only blank lines in between).
+ *   - Title: the heading directly above the ID (only blank lines in between),
+ *     either ATX (#...) or setext (a paragraph line underlined with === / ---).
  *   - Description: the lines following the ID (one blank line directly under the
  *     ID is allowed) up to the next blank line.
  *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated, as a
@@ -15,6 +16,10 @@ import { FORWARD_SRC, ID_SRC, mkForward, mkId, parseIdEntry, parseNeedEntry, new
 
 const DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
+// Setext heading underline: a run of only `=` (level 1) or only `-` (level 2),
+// with up to three leading spaces and optional trailing whitespace per
+// CommonMark. A row carrying pipes (a table delimiter) never matches.
+const SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 const DELIM_CELL_RE = /^:?-+:?$/;
@@ -31,12 +36,33 @@ function takeForward(line, file, n, forwards) {
   return !!f;
 }
 
+// A setext underline forms a heading only when a paragraph line sits directly
+// above it (CommonMark). That excludes the lookalikes the issue names: a
+// thematic break (blank line above the run), a table delimiter row (its run
+// carries pipes, so SETEXT_UNDERLINE_RE never matches it), and a bullet list
+// (a run whose neighbour above is a bullet, not a paragraph).
+function isParagraphLine(l) {
+  return (
+    l.trim() !== '' &&
+    !HEADING_RE.test(l) &&
+    !DEF_RE.test(l) &&
+    !BULLET_RE.test(l) &&
+    !SETEXT_UNDERLINE_RE.test(l)
+  );
+}
+
 function titleAbove(lines, defIndex) {
   for (let k = defIndex - 1; k >= 0; k--) {
     const l = lines[k];
     if (l.trim() === '') continue; // blank lines between heading and ID are fine
     const h = l.match(HEADING_RE);
-    return h ? h[2] : null; // any other text directly above -> no title
+    if (h) return h[2]; // ATX heading (#...)
+    // A setext underline turns the paragraph line directly above it into the
+    // title; without such a line the run of =/- is not a heading.
+    if (SETEXT_UNDERLINE_RE.test(l) && k > 0 && isParagraphLine(lines[k - 1])) {
+      return lines[k - 1].trim();
+    }
+    return null; // any other text directly above -> no title
   }
   return null;
 }

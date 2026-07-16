@@ -301,6 +301,7 @@ function newItem(id, origin, file, line) {
 // src/parse-markdown.mjs
 var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
+var SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 var DELIM_CELL_RE = /^:?-+:?$/;
@@ -311,12 +312,19 @@ function takeForward(line, file, n, forwards) {
   if (f) forwards.push(mkForward(f, 2, file, n + 1));
   return !!f;
 }
+function isParagraphLine(l) {
+  return l.trim() !== "" && !HEADING_RE.test(l) && !DEF_RE.test(l) && !BULLET_RE.test(l) && !SETEXT_UNDERLINE_RE.test(l);
+}
 function titleAbove(lines, defIndex) {
   for (let k = defIndex - 1; k >= 0; k--) {
     const l = lines[k];
     if (l.trim() === "") continue;
     const h = l.match(HEADING_RE);
-    return h ? h[2] : null;
+    if (h) return h[2];
+    if (SETEXT_UNDERLINE_RE.test(l) && k > 0 && isParagraphLine(lines[k - 1])) {
+      return lines[k - 1].trim();
+    }
+    return null;
   }
   return null;
 }
