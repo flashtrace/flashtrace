@@ -4,6 +4,8 @@ Markdown items covered by code tags across several languages: TypeScript,
 Python, SQL, plain HTML and a Vue single-file component with distinct markup,
 script and style regions.
 
+> It is not a very senseful mix of languages (they dont work together like this) but asserts a few different parsing mechanisms when used in an end-to-end test.
+
 - The dashboard requirement in [spec.md](spec.md) collects its needs and its
   tag from a keyword table; the other items use plain keyword lines.
 - Comment styles follow the language: line comments in [metrics.ts](metrics.ts),
