@@ -12,8 +12,6 @@ Each directory is a self-contained project traceable with a plain
 - [diagnostics](diagnostics/) - an intentionally defective project showing
   every defect and problem kind flashtrace reports.
 
-[expected/](expected/) is not an example: it holds the exact report flashtrace
-prints for each example and run variant (default, verbose, tag-filtered).
-The end-to-end suite (`test/e2e.test.mjs`) verifies every example against
-these files byte-for-byte, so they are guaranteed current - and double as a
-reference for what flashtrace output looks like.
+The end-to-end suite (`test/e2e.test.mjs`) runs every example and verifies
+its report byte-for-byte against the snapshots in [test/e2e/](../test/e2e/),
+so the exact output flashtrace prints for each example can be read there.
