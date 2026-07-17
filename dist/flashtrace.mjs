@@ -187,11 +187,11 @@ async function walk(dir, out) {
   } catch {
     return out;
   }
-  for (const e of entries) {
-    if (e.name === ".git" || e.name === "node_modules") continue;
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) await walk(p, out);
-    else if (e.isFile()) out.push(p);
+  for (const entry of entries) {
+    if (entry.name === ".git" || entry.name === "node_modules") continue;
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) await walk(entryPath, out);
+    else if (entry.isFile()) out.push(entryPath);
   }
   return out;
 }
@@ -199,9 +199,9 @@ async function collectFiles(dirs) {
   const files = /* @__PURE__ */ new Set();
   for (const dir of dirs) {
     const abs = path.resolve(dir);
-    const st = await fs.stat(abs).catch(() => null);
-    if (!st) throw new UsageError(`input path does not exist: ${dir}`);
-    if (st.isFile()) {
+    const stats = await fs.stat(abs).catch(() => null);
+    if (!stats) throw new UsageError(`input path does not exist: ${dir}`);
+    if (stats.isFile()) {
       files.add(abs);
       continue;
     }
@@ -218,10 +218,10 @@ async function collectFiles(dirs) {
     } catch {
       list = await walk(abs, []);
     }
-    for (const f of list) files.add(f);
+    for (const file of list) files.add(file);
   }
-  return [...files].filter((f) => {
-    const ext = path.extname(f).toLowerCase();
+  return [...files].filter((file) => {
+    const ext = path.extname(file).toLowerCase();
     return MD_EXT.has(ext) || CODE_EXT.has(ext);
   }).sort(compareStrings);
 }
@@ -613,82 +613,82 @@ function parseCode(file, text, problems, forwards = []) {
 }
 
 // src/analyze.mjs
-function checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget) {
-  const fwd = fwdTarget.get(it.id);
-  if (fwd !== void 0) {
-    if (!byId.has(fwd))
-      it.defects.push(`uncovered: forwards to ${fwd}, which does not exist${revHint(fwd)}`);
+function checkItemReferences(item, byId, matchesOf, isNeeded, revHint, forwardTargets) {
+  const forwardTarget = forwardTargets.get(item.id);
+  if (forwardTarget !== void 0) {
+    if (!byId.has(forwardTarget))
+      item.defects.push(`uncovered: forwards to ${forwardTarget}, which does not exist${revHint(forwardTarget)}`);
   } else {
-    for (const n of it.needs) {
-      if (matchesOf(n).length === 0)
-        it.defects.push(`uncovered: needs ${n}, which does not exist${revHint(n)}`);
+    for (const need of item.needs) {
+      if (matchesOf(need).length === 0)
+        item.defects.push(`uncovered: needs ${need}, which does not exist${revHint(need)}`);
     }
   }
-  for (const c of it.covers) {
-    const targets = byId.get(c);
+  for (const coverId of item.covers) {
+    const targets = byId.get(coverId);
     if (!targets) {
-      it.defects.push(`orphaned: covers ${c}, which does not exist${revHint(c)}`);
-    } else if (!targets.some((t) => t.needs.some((n) => idMatches(n, it.id)))) {
-      it.defects.push(`unwanted: covers ${c}, but ${c} does not need ${it.id}`);
+      item.defects.push(`orphaned: covers ${coverId}, which does not exist${revHint(coverId)}`);
+    } else if (!targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))) {
+      item.defects.push(`unwanted: covers ${coverId}, but ${coverId} does not need ${item.id}`);
     }
   }
-  if (it.origin === "code" && !isNeeded(it.id)) {
-    it.defects.push(`unwanted: no item needs ${it.id}`);
+  if (item.origin === "code" && !isNeeded(item.id)) {
+    item.defects.push(`unwanted: no item needs ${item.id}`);
   }
 }
-function dropCyclicForwards(fwdTarget, declBySource, problems) {
+function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
   const done = /* @__PURE__ */ new Set();
-  for (const start of fwdTarget.keys()) {
+  for (const start of forwardTargets.keys()) {
     if (done.has(start)) continue;
     const seen = /* @__PURE__ */ new Map();
     const path5 = [];
-    let cur = start;
-    while (fwdTarget.has(cur) && !done.has(cur) && !seen.has(cur)) {
-      seen.set(cur, path5.length);
-      path5.push(cur);
-      cur = fwdTarget.get(cur);
+    let current = start;
+    while (forwardTargets.has(current) && !done.has(current) && !seen.has(current)) {
+      seen.set(current, path5.length);
+      path5.push(current);
+      current = forwardTargets.get(current);
     }
-    if (seen.has(cur)) {
-      const cycle = path5.slice(seen.get(cur));
-      const chain = [...cycle, cur].join(" --> ");
+    if (seen.has(current)) {
+      const cycle = path5.slice(seen.get(current));
+      const chain = [...cycle, current].join(" --> ");
       for (const id of cycle) {
-        const f = declBySource.get(id);
-        problems.push({ file: f.file, line: f.line, message: `cyclic forwarding: ${chain}` });
-        fwdTarget.delete(id);
+        const declaration = declarationBySource.get(id);
+        problems.push({ file: declaration.file, line: declaration.line, message: `cyclic forwarding: ${chain}` });
+        forwardTargets.delete(id);
       }
     }
     for (const id of path5) done.add(id);
   }
 }
 function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
-  const fwdTarget = /* @__PURE__ */ new Map();
-  const declBySource = /* @__PURE__ */ new Map();
-  const fwdBySource = /* @__PURE__ */ new Map();
-  for (const f of forwards) {
-    (fwdBySource.get(f.from) ?? fwdBySource.set(f.from, []).get(f.from)).push(f);
+  const forwardTargets = /* @__PURE__ */ new Map();
+  const declarationBySource = /* @__PURE__ */ new Map();
+  const forwardsBySource = /* @__PURE__ */ new Map();
+  for (const forward of forwards) {
+    (forwardsBySource.get(forward.from) ?? forwardsBySource.set(forward.from, []).get(forward.from)).push(forward);
   }
-  for (const [from, group] of fwdBySource) {
+  for (const [from, group] of forwardsBySource) {
     const sources = byId.get(from);
     if (!sources) {
-      for (const f of group)
+      for (const forward of group)
         problems.push({
-          file: f.file,
-          line: f.line,
+          file: forward.file,
+          line: forward.line,
           message: `forwarding from ${from}, which does not exist${revHint(from)}`
         });
       continue;
     }
     if (group.length > 1)
-      for (const it of sources)
-        it.defects.push(`duplicate: forwarding for ${from} is declared ${group.length} times`);
-    fwdTarget.set(from, group[0].to);
-    declBySource.set(from, group[0]);
+      for (const item of sources)
+        item.defects.push(`duplicate: forwarding for ${from} is declared ${group.length} times`);
+    forwardTargets.set(from, group[0].to);
+    declarationBySource.set(from, group[0]);
   }
-  dropCyclicForwards(fwdTarget, declBySource, problems);
-  for (const to of fwdTarget.values()) neededIds.add(to);
-  return fwdTarget;
+  dropCyclicForwards(forwardTargets, declarationBySource, problems);
+  for (const to of forwardTargets.values()) neededIds.add(to);
+  return forwardTargets;
 }
-function markDeepCoverage(items, byId, matchesOf, fwdTarget) {
+function markDeepCoverage(items, byId, matchesOf, forwardTargets) {
   const memo = /* @__PURE__ */ new Map();
   const deep = (id) => {
     if (memo.has(id)) return memo.get(id);
@@ -698,18 +698,18 @@ function markDeepCoverage(items, byId, matchesOf, fwdTarget) {
       memo.set(id, false);
       return false;
     }
-    const fwd = fwdTarget.get(id);
+    const forwardTarget = forwardTargets.get(id);
     let ok = true;
-    if (fwd !== void 0) {
-      ok = deep(fwd);
+    if (forwardTarget !== void 0) {
+      ok = deep(forwardTarget);
     } else {
-      for (const it of group) for (const n of it.needs) if (!needDeep(n)) ok = false;
+      for (const item of group) for (const need of item.needs) if (!needDeep(need)) ok = false;
     }
     memo.set(id, ok);
     return ok;
   };
-  const needDeep = (n) => matchesOf(n).some((id) => deep(id));
-  for (const it of items) it.deepCovered = deep(it.id);
+  const needDeep = (need) => matchesOf(need).some((id) => deep(id));
+  for (const item of items) item.deepCovered = deep(item.id);
 }
 function groupIdsByKey(byId) {
   const idsByKey = /* @__PURE__ */ new Map();
@@ -719,7 +719,7 @@ function groupIdsByKey(byId) {
 }
 function buildResolver(items) {
   const byId = /* @__PURE__ */ new Map();
-  for (const it of items) (byId.get(it.id) ?? byId.set(it.id, []).get(it.id)).push(it);
+  for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
   return { byId, matchesOf };
@@ -727,34 +727,34 @@ function buildResolver(items) {
 function splitNeeds(items) {
   const exact = /* @__PURE__ */ new Set();
   const wildcard = [];
-  for (const it of items)
-    for (const n of it.needs) {
-      if (isWildcardRev(revOf(n))) wildcard.push(n);
-      else exact.add(n);
+  for (const item of items)
+    for (const need of item.needs) {
+      if (isWildcardRev(revOf(need))) wildcard.push(need);
+      else exact.add(need);
     }
   return { exact, wildcard };
 }
 function analyze(items, forwards = [], problems = []) {
   const { byId, matchesOf } = buildResolver(items);
   const revsByKey = /* @__PURE__ */ new Map();
-  for (const it of items)
-    (revsByKey.get(it.key) ?? revsByKey.set(it.key, /* @__PURE__ */ new Set()).get(it.key)).add(it.revision);
+  for (const item of items)
+    (revsByKey.get(item.key) ?? revsByKey.set(item.key, /* @__PURE__ */ new Set()).get(item.key)).add(item.revision);
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
-  const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((w) => idMatches(w, id));
+  const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
   for (const [id, group] of byId) {
     if (group.length > 1)
-      for (const it of group) it.defects.push(`duplicate: ID ${id} is defined ${group.length} times`);
+      for (const item of group) item.defects.push(`duplicate: ID ${id} is defined ${group.length} times`);
   }
   const revHint = (id) => {
     const revs = revsByKey.get(keyOf(id));
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(", ")})` : "";
   };
-  const fwdTarget = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
-  for (const it of items) {
-    it.forwardsTo = fwdTarget.get(it.id) ?? null;
-    checkItemReferences(it, byId, matchesOf, isNeeded, revHint, fwdTarget);
+  const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
+  for (const item of items) {
+    item.forwardsTo = forwardTargets.get(item.id) ?? null;
+    checkItemReferences(item, byId, matchesOf, isNeeded, revHint, forwardTargets);
   }
-  markDeepCoverage(items, byId, matchesOf, fwdTarget);
+  markDeepCoverage(items, byId, matchesOf, forwardTargets);
 }
 
 // src/report.mjs
@@ -762,7 +762,7 @@ import path3 from "node:path";
 import process2 from "node:process";
 function makeStyler() {
   const on = process2.stdout.isTTY && !process2.env.NO_COLOR;
-  const wrap = (code) => (s) => on ? `\x1B[${code}m${s}\x1B[0m` : s;
+  const wrap = (code) => (text) => on ? `\x1B[${code}m${text}\x1B[0m` : text;
   return {
     red: wrap("31"),
     green: wrap("32"),
@@ -772,124 +772,124 @@ function makeStyler() {
     bold: wrap("1")
   };
 }
-function statusOf(it, c) {
-  if (it.defects.length > 0) return { mark: c.red("\u2718"), tag: c.red("[defective]") };
-  if (!it.deepCovered) return { mark: c.yellow("~"), tag: c.yellow("[shallow-covered]") };
-  return { mark: c.green("\u2714"), tag: c.green("[deep-covered]") };
+function statusOf(item, style) {
+  if (item.defects.length > 0) return { mark: style.red("\u2718"), tag: style.red("[defective]") };
+  if (!item.deepCovered) return { mark: style.yellow("~"), tag: style.yellow("[shallow-covered]") };
+  return { mark: style.green("\u2714"), tag: style.green("[deep-covered]") };
 }
 function buildWantedBy(items, byId, matchesOf) {
   const wantedBy = /* @__PURE__ */ new Map();
-  for (const it of items)
-    for (const n of it.needs)
-      for (const id of matchesOf(n))
-        for (const m of byId.get(id))
-          (wantedBy.get(m) ?? wantedBy.set(m, /* @__PURE__ */ new Set()).get(m)).add(it);
+  for (const item of items)
+    for (const need of item.needs)
+      for (const id of matchesOf(need))
+        for (const provider of byId.get(id))
+          (wantedBy.get(provider) ?? wantedBy.set(provider, /* @__PURE__ */ new Set()).get(provider)).add(item);
   return wantedBy;
 }
 function byFileLine(a, b) {
   if (a.file !== b.file) return a.file < b.file ? -1 : 1;
   return a.line - b.line;
 }
-function forwardEdge(it, byId, c, dimLoc) {
-  const target = byId.get(it.forwardsTo)?.[0];
-  if (!target) return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${c.red("\u2718 missing")}`;
-  return `    ${c.cyan("\u2192")} ${it.forwardsTo}  ${statusOf(target, c).mark} ${dimLoc(target.file, target.line)}`;
+function forwardEdge(item, byId, style, dimLocation) {
+  const target = byId.get(item.forwardsTo)?.[0];
+  if (!target) return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${style.red("\u2718 missing")}`;
+  return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${statusOf(target, style).mark} ${dimLocation(target.file, target.line)}`;
 }
-function needEdges(it, byId, matchesOf, c, dimLoc) {
+function needEdges(item, byId, matchesOf, style, dimLocation) {
   const lines = [];
-  for (const n of it.needs) {
-    const ids = matchesOf(n);
+  for (const need of item.needs) {
+    const ids = matchesOf(need);
     if (ids.length === 0) {
-      lines.push(`    ${c.dim("needs")} ${n}  ${c.red("\u2718 missing")}`);
+      lines.push(`    ${style.dim("needs")} ${need}  ${style.red("\u2718 missing")}`);
       continue;
     }
-    const wild = isWildcardRev(revOf(n));
+    const wildcard = isWildcardRev(revOf(need));
     for (const id of ids) {
-      const m = byId.get(id)[0];
-      const arrow = c.dim(`(\u2192 ${id})`);
-      const ref = wild ? `${n} ${arrow}` : n;
-      lines.push(`    ${c.dim("needs")} ${ref}  ${statusOf(m, c).mark} ${dimLoc(m.file, m.line)}`);
+      const covering = byId.get(id)[0];
+      const arrow = style.dim(`(\u2192 ${id})`);
+      const ref = wildcard ? `${need} ${arrow}` : need;
+      lines.push(`    ${style.dim("needs")} ${ref}  ${statusOf(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
   }
   return lines;
 }
-function coverEdges(it, byId, c, dimLoc) {
+function coverEdges(item, byId, style, dimLocation) {
   const lines = [];
-  for (const cv of it.covers) {
-    const target = byId.get(cv)?.[0];
-    if (!target) lines.push(`    ${c.dim("covers")} ${cv}  ${c.red("\u2718 missing")}`);
-    else lines.push(`    ${c.dim("covers")} ${cv}  ${c.green("\u2714")} ${dimLoc(target.file, target.line)}`);
+  for (const coverId of item.covers) {
+    const target = byId.get(coverId)?.[0];
+    if (!target) lines.push(`    ${style.dim("covers")} ${coverId}  ${style.red("\u2718 missing")}`);
+    else lines.push(`    ${style.dim("covers")} ${coverId}  ${style.green("\u2714")} ${dimLocation(target.file, target.line)}`);
   }
   return lines;
 }
-function edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc) {
+function edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation) {
   const lines = [];
-  if (it.forwardsTo !== null) lines.push(forwardEdge(it, byId, c, dimLoc));
-  else if (it.origin === "markdown") lines.push(...needEdges(it, byId, matchesOf, c, dimLoc));
-  lines.push(...coverEdges(it, byId, c, dimLoc));
-  for (const w of wantedBy.get(it) ?? [])
-    lines.push(`    ${c.dim("wanted by")} ${w.id}  ${dimLoc(w.file, w.line)}`);
+  if (item.forwardsTo !== null) lines.push(forwardEdge(item, byId, style, dimLocation));
+  else if (item.origin === "markdown") lines.push(...needEdges(item, byId, matchesOf, style, dimLocation));
+  lines.push(...coverEdges(item, byId, style, dimLocation));
+  for (const wanting of wantedBy.get(item) ?? [])
+    lines.push(`    ${style.dim("wanted by")} ${wanting.id}  ${dimLocation(wanting.file, wanting.line)}`);
   return lines;
 }
-function renderVerbose(items, out, c, dimLoc) {
+function renderVerbose(items, out, style, dimLocation) {
   const { byId, matchesOf } = buildResolver(items);
   const wantedBy = buildWantedBy(items, byId, matchesOf);
   const sorted = [...items].sort(byFileLine);
   let prevFile = null;
-  for (const it of sorted) {
-    if (prevFile !== null && it.file !== prevFile) out.push("");
-    prevFile = it.file;
-    const { mark, tag } = statusOf(it, c);
-    const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
+  for (const item of sorted) {
+    if (prevFile !== null && item.file !== prevFile) out.push("");
+    prevFile = item.file;
+    const { mark, tag } = statusOf(item, style);
+    const title = item.title ? " " + style.dim(`"${item.title}"`) : "";
     out.push(
-      `${mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}  ${tag}`,
-      ...edgeLines(it, byId, matchesOf, wantedBy, c, dimLoc)
+      `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
+      ...edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation)
     );
-    for (const d of it.defects) out.push(`    ${c.red("\u2022")} ${d}`);
+    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect}`);
   }
   if (sorted.length) out.push("");
 }
-function renderDefective(defective, out, c, dimLoc) {
-  for (const it of defective) {
-    const title = it.title ? " " + c.dim(`"${it.title}"`) : "";
+function renderDefective(defective, out, style, dimLocation) {
+  for (const item of defective) {
+    const title = item.title ? " " + style.dim(`"${item.title}"`) : "";
     out.push(
-      `${statusOf(it, c).mark} ${c.bold(it.id)}${title}  ${dimLoc(it.file, it.line)}`
+      `${statusOf(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`
     );
-    for (const d of it.defects) out.push(`    ${c.red("\u2022")} ${d}`);
+    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect}`);
     out.push("");
   }
 }
-function renderSummary(items, defective, problems, out, c) {
+function renderSummary(items, defective, problems, out, style) {
   const okCount = items.length - defective.length;
-  const notDeep = items.filter((it) => it.defects.length === 0 && !it.deepCovered).length;
-  const md = items.filter((i) => i.origin === "markdown").length;
-  const originBreakdown = c.dim(`(${md} from markdown, ${items.length - md} from code)`);
+  const shallowCount = items.filter((item) => item.defects.length === 0 && !item.deepCovered).length;
+  const markdownCount = items.filter((item) => item.origin === "markdown").length;
+  const originBreakdown = style.dim(`(${markdownCount} from markdown, ${items.length - markdownCount} from code)`);
   out.push(
-    c.bold("Summary"),
+    style.bold("Summary"),
     `  items       ${items.length}  ${originBreakdown}`,
-    `  ok          ${c.green(String(okCount))}`,
-    `  defective   ${defective.length ? c.red(String(defective.length)) : "0"}`
+    `  ok          ${style.green(String(okCount))}`,
+    `  defective   ${defective.length ? style.red(String(defective.length)) : "0"}`
   );
-  if (notDeep) out.push("  " + c.dim(`of the ok items, ${notDeep} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (problems.length) out.push(`  problems    ${c.yellow(String(problems.length))}`);
+  if (shallowCount) out.push("  " + style.dim(`of the ok items, ${shallowCount} are only shallow-covered (an item further down the tracing chain is defective)`));
+  if (problems.length) out.push(`  problems    ${style.yellow(String(problems.length))}`);
   out.push("");
 }
 function report(items, problems, cwd, opts = {}) {
   const { verbose = false } = opts;
-  const c = makeStyler();
-  const rel = (f) => path3.relative(cwd, f) || f;
-  const dimLoc = (file, line) => c.dim(`${rel(file)}:${line}`);
-  const defective = items.filter((it) => it.defects.length > 0);
+  const style = makeStyler();
+  const relativePath = (file) => path3.relative(cwd, file) || file;
+  const dimLocation = (file, line) => style.dim(`${relativePath(file)}:${line}`);
+  const defective = items.filter((item) => item.defects.length > 0);
   const out = [];
-  if (verbose) renderVerbose(items, out, c, dimLoc);
-  else renderDefective(defective, out, c, dimLoc);
-  for (const p of problems) {
-    out.push(`${c.yellow("\u26A0")} ${p.message}  ${dimLoc(p.file, p.line)}`);
+  if (verbose) renderVerbose(items, out, style, dimLocation);
+  else renderDefective(defective, out, style, dimLocation);
+  for (const problem of problems) {
+    out.push(`${style.yellow("\u26A0")} ${problem.message}  ${dimLocation(problem.file, problem.line)}`);
   }
   if (problems.length) out.push("");
-  renderSummary(items, defective, problems, out, c);
+  renderSummary(items, defective, problems, out, style);
   const clean = defective.length === 0 && problems.length === 0;
-  out.push(clean ? c.green(c.bold("ok")) : c.red(c.bold("not ok")));
+  out.push(clean ? style.green(style.bold("ok")) : style.red(style.bold("not ok")));
   console.log(out.join("\n"));
   return clean;
 }
@@ -917,8 +917,8 @@ function packageVersion() {
   return JSON.parse(readFileSync(pkg, "utf8")).version;
 }
 function splitLongOption(token) {
-  const eq = token.startsWith("--") ? token.indexOf("=") : -1;
-  return eq === -1 ? [token, null] : [token.slice(0, eq), token.slice(eq + 1)];
+  const eqIndex = token.startsWith("--") ? token.indexOf("=") : -1;
+  return eqIndex === -1 ? [token, null] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
 }
 function rejectValue(name, inline) {
   if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
@@ -926,26 +926,26 @@ function rejectValue(name, inline) {
 function parseArgs(argv) {
   const opts = { dirs: [], tags: null, verbose: false };
   for (let i = 0; i < argv.length; i++) {
-    const [a, inline] = splitLongOption(argv[i]);
-    if (a === "-h" || a === "--help") {
-      rejectValue(a, inline);
+    const [name, inline] = splitLongOption(argv[i]);
+    if (name === "-h" || name === "--help") {
+      rejectValue(name, inline);
       console.log(HELP);
       process3.exit(0);
-    } else if (a === "-v" || a === "--verbose") {
-      rejectValue(a, inline);
+    } else if (name === "-v" || name === "--verbose") {
+      rejectValue(name, inline);
       opts.verbose = true;
-    } else if (a === "-V" || a === "--version") {
-      rejectValue(a, inline);
+    } else if (name === "-V" || name === "--version") {
+      rejectValue(name, inline);
       console.log(packageVersion());
       process3.exit(0);
-    } else if (a === "-t" || a === "--tags") {
-      const v = inline ?? argv[++i];
-      if (!v) throw new UsageError(`missing value for ${a}`);
-      opts.tags = v.split(",").map((s) => s.trim()).filter(Boolean);
-    } else if (a.startsWith("-")) {
-      throw new UsageError(`unknown option: ${a}`);
+    } else if (name === "-t" || name === "--tags") {
+      const value = inline ?? argv[++i];
+      if (!value) throw new UsageError(`missing value for ${name}`);
+      opts.tags = value.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (name.startsWith("-")) {
+      throw new UsageError(`unknown option: ${name}`);
     } else {
-      opts.dirs.push(a);
+      opts.dirs.push(name);
     }
   }
   if (opts.dirs.length === 0) opts.dirs.push(".");
@@ -967,7 +967,7 @@ async function main() {
   if (opts.tags) {
     const wantUntagged = opts.tags.includes("_");
     items = items.filter(
-      (it) => it.origin === "code" || it.tags.some((t) => opts.tags.includes(t)) || wantUntagged && it.tags.length === 0
+      (item) => item.origin === "code" || item.tags.some((tag) => opts.tags.includes(tag)) || wantUntagged && item.tags.length === 0
     );
   }
   analyze(items, forwards, problems);

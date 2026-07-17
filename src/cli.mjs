@@ -39,8 +39,8 @@ function packageVersion() {
 // a long option splits at the first "=" into name and attached value; short
 // options keep POSIX semantics and never carry one
 function splitLongOption(token) {
-  const eq = token.startsWith('--') ? token.indexOf('=') : -1;
-  return eq === -1 ? [token, null] : [token.slice(0, eq), token.slice(eq + 1)];
+  const eqIndex = token.startsWith('--') ? token.indexOf('=') : -1;
+  return eqIndex === -1 ? [token, null] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
 }
 
 function rejectValue(name, inline) {
@@ -50,26 +50,26 @@ function rejectValue(name, inline) {
 function parseArgs(argv) {
   const opts = { dirs: [], tags: null, verbose: false };
   for (let i = 0; i < argv.length; i++) {
-    const [a, inline] = splitLongOption(argv[i]);
-    if (a === '-h' || a === '--help') {
-      rejectValue(a, inline);
+    const [name, inline] = splitLongOption(argv[i]);
+    if (name === '-h' || name === '--help') {
+      rejectValue(name, inline);
       console.log(HELP);
       process.exit(0);
-    } else if (a === '-v' || a === '--verbose') {
-      rejectValue(a, inline);
+    } else if (name === '-v' || name === '--verbose') {
+      rejectValue(name, inline);
       opts.verbose = true;
-    } else if (a === '-V' || a === '--version') {
-      rejectValue(a, inline);
+    } else if (name === '-V' || name === '--version') {
+      rejectValue(name, inline);
       console.log(packageVersion());
       process.exit(0);
-    } else if (a === '-t' || a === '--tags') {
-      const v = inline ?? argv[++i];
-      if (!v) throw new UsageError(`missing value for ${a}`);
-      opts.tags = v.split(',').map((s) => s.trim()).filter(Boolean);
-    } else if (a.startsWith('-')) {
-      throw new UsageError(`unknown option: ${a}`);
+    } else if (name === '-t' || name === '--tags') {
+      const value = inline ?? argv[++i];
+      if (!value) throw new UsageError(`missing value for ${name}`);
+      opts.tags = value.split(',').map((s) => s.trim()).filter(Boolean);
+    } else if (name.startsWith('-')) {
+      throw new UsageError(`unknown option: ${name}`);
     } else {
-      opts.dirs.push(a);
+      opts.dirs.push(name);
     }
   }
   if (opts.dirs.length === 0) opts.dirs.push('.');
@@ -96,10 +96,10 @@ async function main() {
   if (opts.tags) {
     const wantUntagged = opts.tags.includes('_');
     items = items.filter(
-      (it) =>
-        it.origin === 'code' ||
-        it.tags.some((t) => opts.tags.includes(t)) ||
-        (wantUntagged && it.tags.length === 0),
+      (item) =>
+        item.origin === 'code' ||
+        item.tags.some((tag) => opts.tags.includes(tag)) ||
+        (wantUntagged && item.tags.length === 0),
     );
   }
 
