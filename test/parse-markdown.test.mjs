@@ -124,6 +124,7 @@ test('a blank line separates the description from a following setext heading', (
 test('setext titles are multi-line and keep every folded line to themselves, not serving the item above as description', () => {
   const { items } = parse([
     '`req:a#1`',
+    '',
     'First title line without trailing spaces.',
     'Second title line with actual line break by spaces.  ',
     'Third title line with space in the end. ',
@@ -142,6 +143,73 @@ test('setext titles are multi-line and keep every folded line to themselves, not
       'Fourth title line with actual line break by spaces.\n' +
       ' Fifth title line with space in the beginning.'
   );
+});
+
+// An ID line needs a blank line below it to stand as its own block. Glued
+// directly onto the paragraph that a setext underline turns into a heading,
+// the ID is heading text (CommonMark) - it cannot also define an item, so the
+// tracer reports it and creates no item. Here the whole run above the
+// underline, ID line included, folds into the following item's title.
+test('an ID line glued above a setext heading is heading text, flagged and creating no item', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    'Some title',
+    '==========',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'req:b#1');
+  assert.equal(items[0].title, '`req:a#1`Some title');
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].line, 1);
+  assert.match(problems[0].message, /item req:a#1 defined inside a setext heading; a heading is not an item definition/);
+});
+
+// The degenerate case: an ID line directly above an underline is itself the
+// whole heading. It is reported and defines no item.
+test('an ID line directly above a setext underline is the heading itself, flagged', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '==========',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'req:b#1');
+  assert.equal(items[0].title, '`req:a#1`');
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /item req:a#1 defined inside a setext heading/);
+});
+
+// Every ID line folded into one heading is reported, not just the last: a run
+// of two glued ID lines above an underline yields two problems and no items.
+test('every ID line folded into a setext heading is flagged', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '`req:b#1`',
+    '==========',
+    '`req:c#1`',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'req:c#1');
+  assert.equal(problems.length, 2);
+  assert.match(problems[0].message, /item req:a#1 defined inside a setext heading/);
+  assert.match(problems[1].message, /item req:b#1 defined inside a setext heading/);
+});
+
+// A blank line below the ID keeps it a standalone definition: the paragraph
+// that becomes the heading starts below the blank, so the ID stays an item.
+test('a blank line below an ID keeps it a definition even when a setext heading follows', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Some title',
+    '==========',
+    '`req:b#1`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].id, 'req:a#1');
+  assert.equal(items[1].title, 'Some title');
 });
 
 // A thematic break (a run of `-` set off by blank lines) is not a setext

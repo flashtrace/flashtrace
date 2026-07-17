@@ -10,7 +10,9 @@
  *     bullet list on the following lines, or as a table column whose header
  *     cell is the bare keyword name. Needs/Covers list full, explicit IDs.
  *   - A table cannot define an item: a cell holding nothing but a backticked
- *     ID is reported as a problem, not read as a definition.
+ *     ID is reported as a problem, not read as a definition. Nor can a setext
+ *     heading: an ID line with no blank line below it folds into the heading
+ *     of the following paragraph (CommonMark) and is reported the same way.
  *   - A line containing only `[<id> --> <id>]` (optionally backticked) forwards
  *     the first item's coverage obligation to the second (spaces optional).
  */
@@ -41,10 +43,11 @@ function takeForward(line, file, lineIndex, forwards) {
 // above it (CommonMark). That excludes the lookalikes the issue names: a
 // thematic break (blank line above the run), a table delimiter row (its run
 // carries pipes, so SETEXT_UNDERLINE_RE never matches it), and a bullet list
-// (a run whose neighbour above is a bullet, not a paragraph). Keyword lines
-// and forwarding lines are paragraph text like any other: folded into a
-// setext title they serve the heading and are ignored for their keyword or
-// forward - exactly as `# Covers: ...` is a heading, not a keyword.
+// (a run whose neighbour above is a bullet, not a paragraph). Keyword lines,
+// forwarding lines, and ID lines are paragraph text like any other: folded
+// into a setext title they serve the heading, not their usual role - exactly
+// as `# Covers: ...` is a heading, not a keyword. An ID line so folded cannot
+// also define an item; parseMarkdown reports it and creates no item.
 // A pipe alone does not disqualify a line: as in GFM, a pipe-carrying
 // paragraph above an underline is a heading with the pipe in its text. Only
 // membership in an actual table (header plus delimiter row) rules a line
@@ -53,7 +56,6 @@ function isParagraphLine(line) {
   return (
     line.trim() !== '' &&
     !HEADING_RE.test(line) &&
-    !DEFINITION_RE.test(line) &&
     !BULLET_RE.test(line) &&
     !SETEXT_UNDERLINE_RE.test(line)
   );
@@ -304,12 +306,26 @@ export function parseMarkdown(file, text, problems, forwards = []) {
 
   let i = 0;
   while (i < lines.length) {
+    const startsHeading = opensSetextHeading(lines, inTable, i);
     // a forwarding line serving a setext title is heading text, not a forward
-    if (!opensSetextHeading(lines, inTable, i) && takeForward(lines[i], file, i, forwards)) {
+    if (!startsHeading && takeForward(lines[i], file, i, forwards)) {
       i++;
       continue;
     }
     const definition = lines[i].match(DEFINITION_RE);
+    if (definition && startsHeading) {
+      // The ID line has no blank line below it, so its paragraph folds into a
+      // setext heading (CommonMark): the ID is heading text, not a standalone
+      // block. Report it - an item must live on its own line, inside no
+      // heading - and create no item; the folded text titles the item below.
+      problems.push({
+        file,
+        line: i + 1,
+        message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a setext heading; a heading is not an item definition`,
+      });
+      i++;
+      continue;
+    }
     if (!definition) {
       i++;
       continue;

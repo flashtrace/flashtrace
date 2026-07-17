@@ -312,7 +312,7 @@ function takeForward(line, file, lineIndex, forwards) {
   return !!forward;
 }
 function isParagraphLine(line) {
-  return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line);
+  return line.trim() !== "" && !HEADING_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line);
 }
 var isParagraphAt = (lines, inTable, j) => !inTable[j] && isParagraphLine(lines[j]);
 var isSetextHeading = (lines, inTable, titleIndex) => titleIndex + 1 < lines.length && SETEXT_UNDERLINE_RE.test(lines[titleIndex + 1]) && isParagraphAt(lines, inTable, titleIndex);
@@ -478,11 +478,21 @@ function parseMarkdown(file, text, problems, forwards = []) {
   const items = [];
   let i = 0;
   while (i < lines.length) {
-    if (!opensSetextHeading(lines, inTable, i) && takeForward(lines[i], file, i, forwards)) {
+    const startsHeading = opensSetextHeading(lines, inTable, i);
+    if (!startsHeading && takeForward(lines[i], file, i, forwards)) {
       i++;
       continue;
     }
     const definition = lines[i].match(DEFINITION_RE);
+    if (definition && startsHeading) {
+      problems.push({
+        file,
+        line: i + 1,
+        message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a setext heading; a heading is not an item definition`
+      });
+      i++;
+      continue;
+    }
     if (!definition) {
       i++;
       continue;
