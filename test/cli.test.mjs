@@ -53,13 +53,15 @@ test('defective project: exit 1, defect listed, final "not ok"', async () => {
   );
 });
 
-test('parse problems alone make the run fail', async () => {
+test('parse problems are errors: they alone make the run fail', async () => {
   await withProject(
     { 'orphan.ts': ['// [>>utest:a#1]'] },
     (dir) => {
       const res = runCli(dir);
       assert.equal(res.status, 1);
-      assert.match(res.stdout, /no preceding item tag/);
+      assert.match(res.stdout, /▲ .*no preceding item tag/);
+      assert.match(res.stdout, /errors\s+1\b/);
+      assert.ok(res.stdout.trim().endsWith('not ok'));
     },
   );
 });
@@ -385,8 +387,8 @@ test('-v still renders parse problems', async () => {
     (dir) => {
       const res = runCli(dir, ['-v']);
       assert.equal(res.status, 1);
-      assert.match(res.stdout, /⚠ .*no preceding item tag/);
-      assert.match(res.stdout, /problems\s+1\b/);
+      assert.match(res.stdout, /▲ .*no preceding item tag/);
+      assert.match(res.stdout, /errors\s+1\b/);
     },
   );
 });

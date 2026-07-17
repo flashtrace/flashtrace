@@ -23,11 +23,12 @@ test('line-comment item tag with attached need tag', () => {
   assert.deepEqual(items[0].needs, ['utest:auth/login#1']);
 });
 
-test('need tag without a preceding item tag is a problem', () => {
+test('need tag without a preceding item tag is an error problem', () => {
   const { items, problems } = parse('src.ts', ['// [>>utest:a#1]']);
   assert.equal(items.length, 0);
   assert.equal(problems.length, 1);
   assert.match(problems[0].message, /no preceding item tag/);
+  assert.equal(problems[0].severity, 'error');
 });
 
 test('explicit need tag attaches to the named item, not the nearest one', () => {
@@ -79,6 +80,7 @@ test('explicit need tag without a matching preceding item tag is a problem', () 
     problems[0].message,
     /\[impl:other#1 >> utest:other#1\] has no preceding item tag \[impl:other#1\]/,
   );
+  assert.equal(problems[0].severity, 'error');
 });
 
 test('a need tag may reference a wildcard revision', () => {
