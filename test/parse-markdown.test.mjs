@@ -159,9 +159,9 @@ test('a thematic break inside a body does not terminate it or split the item', (
   assert.deepEqual(items[0].description, ['Description of a.']);
 });
 
-// A keyword line is structural, never heading text: it must feed exactly one
-// item's keyword list and not double as the next item's title.
-test('a keyword line above a setext underline is not a heading', () => {
+// Underlined, a keyword line serves the setext title and is ignored for its
+// keyword - exactly as `# Covers: ...` is a heading, not a keyword.
+test('a keyword line above a setext underline serves the title, its keyword ignored', () => {
   const { items } = parse([
     '`req:a#1`',
     '',
@@ -170,11 +170,12 @@ test('a keyword line above a setext underline is not a heading', () => {
     '`req:b#1`',
   ]);
   assert.equal(items.length, 2);
-  assert.deepEqual(items[0].covers, ['req:x#1']);
-  assert.equal(items[1].title, null);
+  assert.deepEqual(items[0].covers, []);
+  assert.equal(items[1].title, 'Covers: req:x#1');
 });
 
-test('a forwarding line above a setext underline is not a heading', () => {
+// The same holds for a forwarding line - `# [a --> b]` would not forward either.
+test('a forwarding line above a setext underline serves the title, its forward ignored', () => {
   const { items, forwards } = parse([
     '`req:a#1`',
     '',
@@ -182,8 +183,26 @@ test('a forwarding line above a setext underline is not a heading', () => {
     '---',
     '`req:b#1`',
   ]);
-  assert.equal(forwards.length, 1);
-  assert.equal(items[1].title, null);
+  assert.equal(forwards.length, 0);
+  assert.equal(items[1].title, '[req:a#1 --> dsn:b#1]');
+});
+
+// The fold covers the whole paragraph: a keyword line anywhere in the run
+// that ends at an underline belongs to the title, not to the keyword list.
+test('a keyword line folded into a multi-line setext title is ignored for its keyword', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    '',
+    'Covers: req:x#1  ',
+    'Second title line',
+    '=================',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].covers, []);
+  assert.deepEqual(items[0].description, ['Description of a.']);
+  assert.equal(items[1].title, 'Covers: req:x#1\nSecond title line');
 });
 
 // A pipe alone does not make a line a table row: as in GFM, a pipe-carrying

@@ -42,8 +42,9 @@ function takeForward(line, file, lineIndex, forwards) {
 // thematic break (blank line above the run), a table delimiter row (its run
 // carries pipes, so SETEXT_UNDERLINE_RE never matches it), and a bullet list
 // (a run whose neighbour above is a bullet, not a paragraph). Keyword lines
-// and forwarding lines are structural to the tracer, never heading text -
-// otherwise one line would feed both a keyword and the next item's title.
+// and forwarding lines are paragraph text like any other: folded into a
+// setext title they serve the heading and are ignored for their keyword or
+// forward - exactly as `# Covers: ...` is a heading, not a keyword.
 // A pipe alone does not disqualify a line: as in GFM, a pipe-carrying
 // paragraph above an underline is a heading with the pipe in its text. Only
 // membership in an actual table (header plus delimiter row) rules a line
@@ -54,9 +55,7 @@ function isParagraphLine(line) {
     !HEADING_RE.test(line) &&
     !DEFINITION_RE.test(line) &&
     !BULLET_RE.test(line) &&
-    !SETEXT_UNDERLINE_RE.test(line) &&
-    !KEYWORD_RE.test(line) &&
-    !FORWARD_LINE_RE.test(line)
+    !SETEXT_UNDERLINE_RE.test(line)
   );
 }
 
@@ -305,7 +304,8 @@ export function parseMarkdown(file, text, problems, forwards = []) {
 
   let i = 0;
   while (i < lines.length) {
-    if (takeForward(lines[i], file, i, forwards)) {
+    // a forwarding line serving a setext title is heading text, not a forward
+    if (!opensSetextHeading(lines, inTable, i) && takeForward(lines[i], file, i, forwards)) {
       i++;
       continue;
     }
