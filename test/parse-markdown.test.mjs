@@ -218,11 +218,11 @@ test('revisions may carry up to three semver-style layers', () => {
   ]);
   assert.equal(problems.length, 0);
   assert.deepEqual(
-    items.map((it) => it.id),
+    items.map((item) => item.id),
     ['req:a#1', 'req:b#2.4', 'req:c#2.4.0'],
   );
   assert.deepEqual(
-    items.map((it) => it.revision),
+    items.map((item) => item.revision),
     ['1', '2.4', '2.4.0'],
   );
   assert.equal(items[1].key, 'req:b');
