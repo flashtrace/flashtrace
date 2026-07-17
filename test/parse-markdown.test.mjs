@@ -139,6 +139,21 @@ test('only the line directly above the underline is the title; lines above stay 
   assert.equal(items[1].title, 'Definitive title of b.');
 });
 
+// A thematic break (a run of `-` set off by blank lines) is not a setext
+// heading, so it must neither terminate the body nor split off a new item.
+test('a thematic break inside a body does not terminate it or split the item', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    '',
+    '---',
+    '',
+    'More prose that is not a new item.',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].description, ['Description of a.']);
+});
+
 // A keyword line is structural, never heading text: it must feed exactly one
 // item's keyword list and not double as the next item's title.
 test('a keyword line above a setext underline is not a heading', () => {

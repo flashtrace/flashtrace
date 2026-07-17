@@ -306,7 +306,6 @@ var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 var DELIMITER_CELL_RE = /^:?-+:?$/;
 var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
-var isBoundary = (lines, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || isParagraphLine(lines[j]) && j + 1 < lines.length && SETEXT_UNDERLINE_RE.test(lines[j + 1]);
 function takeForward(line, file, lineIndex, forwards) {
   const forward = line.match(FORWARD_LINE_RE);
   if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1));
@@ -315,13 +314,15 @@ function takeForward(line, file, lineIndex, forwards) {
 function isParagraphLine(line) {
   return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line) && !KEYWORD_RE.test(line) && !FORWARD_LINE_RE.test(line);
 }
+var isSetextHeading = (titleLine, underlineLine) => underlineLine !== void 0 && SETEXT_UNDERLINE_RE.test(underlineLine) && isParagraphLine(titleLine);
+var isBoundary = (lines, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || isSetextHeading(lines[j], lines[j + 1]);
 function titleAbove(lines, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
     const line = lines[k];
     if (line.trim() === "") continue;
     const heading = line.match(HEADING_RE);
     if (heading) return heading[2];
-    if (SETEXT_UNDERLINE_RE.test(line) && k > 0 && isParagraphLine(lines[k - 1])) {
+    if (k > 0 && isSetextHeading(lines[k - 1], line)) {
       return lines[k - 1].trim();
     }
     return null;

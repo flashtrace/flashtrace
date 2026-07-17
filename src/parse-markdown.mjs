@@ -27,15 +27,6 @@ const DELIMITER_CELL_RE = /^:?-+:?$/;
 // so the two ID captures start at group 2
 const FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
 
-// An item's body ends at an ID definition line, an ATX heading, or a setext
-// heading (a paragraph line directly followed by an =/- underline) - the
-// latter even without a blank line in between, because the rendered document
-// shows a heading there, not more of the previous paragraph.
-const isBoundary = (lines, j) =>
-  DEFINITION_RE.test(lines[j]) ||
-  HEADING_RE.test(lines[j]) ||
-  (isParagraphLine(lines[j]) && j + 1 < lines.length && SETEXT_UNDERLINE_RE.test(lines[j + 1]));
-
 // a line that is only a forwarding tag pushes a forward and is otherwise skipped
 function takeForward(line, file, lineIndex, forwards) {
   const forward = line.match(FORWARD_LINE_RE);
@@ -62,6 +53,21 @@ function isParagraphLine(line) {
   );
 }
 
+// `titleLine` directly followed by `underlineLine` forms a setext heading
+// exactly when the underline is a valid =/- run and the line above it is a
+// paragraph. titleAbove and isBoundary share this predicate, so title
+// recognition and body termination agree by construction.
+const isSetextHeading = (titleLine, underlineLine) =>
+  underlineLine !== undefined &&
+  SETEXT_UNDERLINE_RE.test(underlineLine) &&
+  isParagraphLine(titleLine);
+
+// An item's body ends at an ID definition line, an ATX heading, or a setext
+// heading - the latter even without a blank line in between, because the
+// rendered document shows a heading there, not more of the previous paragraph.
+const isBoundary = (lines, j) =>
+  DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || isSetextHeading(lines[j], lines[j + 1]);
+
 function titleAbove(lines, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
     const line = lines[k];
@@ -70,7 +76,7 @@ function titleAbove(lines, definitionIndex) {
     if (heading) return heading[2]; // ATX heading (#...)
     // A setext underline turns the paragraph line directly above it into the
     // title; without such a line the run of =/- is not a heading.
-    if (SETEXT_UNDERLINE_RE.test(line) && k > 0 && isParagraphLine(lines[k - 1])) {
+    if (k > 0 && isSetextHeading(lines[k - 1], line)) {
       return lines[k - 1].trim();
     }
     return null; // any other text directly above -> no title
