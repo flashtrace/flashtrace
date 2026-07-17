@@ -618,10 +618,10 @@ test('a keyword table ends at a setext heading directly below it', () => {
   assert.equal(items[1].title, 'Next Title');
 });
 
-// A =/- run directly under a table row is swallowed as a single-cell row -
-// its text fills the first column, so it never underlines a heading. Here
-// the first column is the Needs column, so the swallowed "===" surfaces as
-// an invalid entry instead of silently vanishing.
+// A `===` run directly under a table row is swallowed as a single-cell row
+// (GFM) - its text fills the first column, so it never underlines a
+// heading. Here the first column is the Needs column, so the swallowed
+// "===" surfaces as an invalid entry instead of silently vanishing.
 test('an underline directly under a table is a row filling the first column, not a heading', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -640,10 +640,11 @@ test('an underline directly under a table is a row filling the first column, not
   assert.equal(items[1].title, null);
 });
 
-// The same with a dash underline - the pinned GFM deviation: GFM reads a
-// thematic break there, the tracer swallows it as a row like `===` so both
-// underline styles behave alike. The keyword cells above it are kept.
-test('a dash run directly under a table is a row, not a thematic break or heading', () => {
+// A `---` run of three or more dashes directly under a table row is a
+// thematic break, as in GFM: it ends the table - it is no row (nothing is
+// reported for the keyword column) and no heading underline (the row above
+// stays a row).
+test('a thematic break directly under a table ends it', () => {
   const { items, problems } = parse([
     '`req:a#1`',
     '',
@@ -653,11 +654,45 @@ test('a dash run directly under a table is a row, not a thematic break or headin
     '---',
     '`req:b#1`',
   ]);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "---"/);
+  assert.equal(problems.length, 0);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
   assert.deepEqual(items[0].covers, ['feat:a#1']);
+  assert.equal(items.length, 2);
   assert.equal(items[1].title, null);
+});
+
+// The break truly ends the table: a row-shaped line below it belongs to no
+// table (a lone pipe-carrying line starts none) and contributes nothing.
+test('a row-shaped line below a thematic break is not part of the table', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Needs |',
+    '|---|---|',
+    '| Login | impl:a#1 |',
+    '---',
+    '| Logout | impl:b#1 |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
+// A dash run too short for a thematic break (`-`, `--`) is no block
+// element - like `===`, it is swallowed as a single-cell row, and the
+// table continues past it.
+test('a dash run too short for a thematic break is swallowed as a row', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| impl:a#1 |',
+    '--',
+    '| impl:b#1 |',
+  ]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "--"/);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1']);
 });
 
 // A swallowed underline fills only the first column: when no keyword column

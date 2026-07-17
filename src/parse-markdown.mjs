@@ -25,6 +25,12 @@ const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 // with up to three leading spaces and optional trailing whitespace per
 // CommonMark. A row carrying pipes (a table delimiter) never matches.
 const SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
+// Thematic break, dash-spelled: three or more `-`, same leading/trailing
+// whitespace allowance. The `*`/`_` spellings and space-separated runs
+// (`- - -`) share no shape with a table row or setext underline, so only
+// this dense dash run needs telling apart. Under a paragraph, the setext
+// underline still wins, as in CommonMark; the break matters inside tables.
+const THEMATIC_BREAK_RE = /^ {0,3}-{3,}[ \t]*$/;
 const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 const DELIMITER_CELL_RE = /^:?-+:?$/;
@@ -164,16 +170,19 @@ function tableStartsAt(lines, j) {
   return delimiter?.length === header.length && delimiter.every((cell) => DELIMITER_CELL_RE.test(cell));
 }
 
-// Like GFM, a table runs to the first blank line or block-level element (an
-// ATX heading or an item definition - both end it even when they carry a
-// pipe). Any other pipe-less line ends the table too, except a =/- run: GFM
-// swallows a `===` run as a single-cell row, and the tracer deliberately
-// swallows `---` the same way (GFM reads a thematic break there), so neither
-// run can end a table - or underline a heading.
+// Like GFM, a table runs to the first blank line or block-level element: an
+// ATX heading or an item definition (both end it even when they carry a
+// pipe), or a thematic break - GFM reads a `---` run directly under a row
+// as a break, so it ends the table and is plain text, not a row and not a
+// heading underline. Any other pipe-less line ends the table too, except a
+// `===` run or a dash run too short for a break (`-`, `--`): GFM swallows
+// such a line as a single-cell row, so neither can end a table - or
+// underline a heading.
 const continuesTable = (line) =>
   line.trim() !== '' &&
   !HEADING_RE.test(line) &&
   !DEFINITION_RE.test(line) &&
+  !THEMATIC_BREAK_RE.test(line) &&
   (line.includes('|') || SETEXT_UNDERLINE_RE.test(line));
 
 // cells of a row inside a table: a swallowed pipe-less line (a =/- run) is a

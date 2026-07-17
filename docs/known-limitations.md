@@ -2,4 +2,3 @@
 
 - Comment detection is lexical: comment markers inside string literals (e.g. a URL containing `//`) are treated as comments. This includes strings inside an embedded `<script>`, so a `//` in a JS string can define a phantom item.
 - In CoffeeScript, any `###` opens a block comment, while the language itself treats `###` followed by another `#` (e.g. a `#### Section` heading or a `##########` divider line) as a line comment - such a line can leave a block open and scan the following code as comment text.
-- A `---` run directly under a table row is read as another single-cell row of the table, exactly like a `===` run. GFM reads a thematic break there, which ends the table; the tracer keeps both underline styles alike, so neither can end a table or underline a heading.

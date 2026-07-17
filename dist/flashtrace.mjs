@@ -302,6 +302,7 @@ function newItem(id, origin, file, line) {
 var DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
+var THEMATIC_BREAK_RE = /^ {0,3}-{3,}[ \t]*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 var DELIMITER_CELL_RE = /^:?-+:?$/;
@@ -374,7 +375,7 @@ function tableStartsAt(lines, j) {
   const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
   return delimiter?.length === header.length && delimiter.every((cell) => DELIMITER_CELL_RE.test(cell));
 }
-var continuesTable = (line) => line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && (line.includes("|") || SETEXT_UNDERLINE_RE.test(line));
+var continuesTable = (line) => line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !THEMATIC_BREAK_RE.test(line) && (line.includes("|") || SETEXT_UNDERLINE_RE.test(line));
 var rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
 var isKeywordCell = (cell) => cell === "Needs" || cell === "Covers" || cell === "Tags";
 function scanTables(lines, file, problems) {
