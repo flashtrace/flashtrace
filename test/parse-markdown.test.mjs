@@ -648,6 +648,51 @@ test('an informative table row above an underline is not a heading', () => {
   assert.equal(items[1].title, null);
 });
 
+// A table cannot define an item: a cell holding nothing but a backticked ID
+// is not a definition - no item is created, and the cell is reported. This
+// holds for any table, keyword-carrying or purely informative, inside an
+// item's definition or outside.
+test('an item defined inside a table cell is flagged and creates no item', () => {
+  const { items, problems } = parse([
+    '| ID | Owner |',
+    '|---|---|',
+    '| `req:x#1` | Alice |',
+  ]);
+  assert.equal(items.length, 0);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].line, 3);
+  assert.match(problems[0].message, /item req:x#1 defined inside a table; a table cell is not an item definition/);
+});
+
+// Keyword columns hold entries, optionally backticked - a backticked ID
+// there is an entry, never a flagged definition attempt.
+test('a backticked ID in a keyword column is an entry, not a flagged definition', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| `impl:a#1` |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
+// The flag also fires in the non-keyword columns of a keyword table.
+test('a definition-shaped cell outside the keyword columns is flagged', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Needs |',
+    '|---|---|',
+    '| `req:x#1` | impl:a#1 |',
+  ]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /item req:x#1 defined inside a table/);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
 test('a pipe-bearing heading ends the table like any block element', () => {
   const { items, problems } = parse([
     '`req:a#1`',

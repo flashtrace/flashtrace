@@ -9,6 +9,8 @@
  *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated, as a
  *     bullet list on the following lines, or as a table column whose header
  *     cell is the bare keyword name. Needs/Covers list full, explicit IDs.
+ *   - A table cannot define an item: a cell holding nothing but a backticked
+ *     ID is reported as a problem, not read as a definition.
  *   - A line containing only `[<id> --> <id>]` (optionally backticked) forwards
  *     the first item's coverage obligation to the second (spaces optional).
  */
@@ -179,10 +181,14 @@ const rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
 
 const isKeywordCell = (cell) => cell === 'Needs' || cell === 'Covers' || cell === 'Tags';
 
-// mark every line belonging to a table - header, delimiter, and rows - so
+// Mark every line belonging to a table - header, delimiter, and rows - so
 // heading detection can rule them out: a table row above an underline stays
-// a row
-function scanTables(lines) {
+// a row. While scanning, flag definition-shaped cells: an item cannot be
+// defined inside a table, so a cell holding nothing but a backticked ID is
+// reported as a problem instead of silently defining nothing. Keyword
+// columns are exempt - their cells are entries (optionally backticked),
+// not definitions.
+function scanTables(lines, file, problems) {
   const inTable = new Array(lines.length).fill(false);
   let j = 0;
   while (j < lines.length) {
@@ -190,9 +196,26 @@ function scanTables(lines) {
       j++;
       continue;
     }
+    const keywordColumns = new Set();
+    rowCells(lines[j]).forEach((cell, col) => {
+      if (isKeywordCell(cell)) keywordColumns.add(col);
+    });
+    const start = j;
     let end = j + 1;
     while (end + 1 < lines.length && continuesTable(lines[end + 1])) end++;
-    for (let k = j; k <= end; k++) inTable[k] = true;
+    for (let k = start; k <= end; k++) {
+      inTable[k] = true;
+      if (k === start + 1) continue; // the delimiter row carries no content
+      rowCellsInTable(lines[k]).forEach((cell, col) => {
+        const definition = keywordColumns.has(col) ? null : cell.match(DEFINITION_RE);
+        if (definition)
+          problems.push({
+            file,
+            line: k + 1,
+            message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a table; a table cell is not an item definition`,
+          });
+      });
+    }
     j = end + 1;
   }
   return inTable;
@@ -277,7 +300,7 @@ function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
 
 export function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
-  const inTable = scanTables(lines);
+  const inTable = scanTables(lines, file, problems);
   const items = [];
 
   let i = 0;

@@ -377,7 +377,7 @@ function tableStartsAt(lines, j) {
 var continuesTable = (line) => line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && (line.includes("|") || SETEXT_UNDERLINE_RE.test(line));
 var rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
 var isKeywordCell = (cell) => cell === "Needs" || cell === "Covers" || cell === "Tags";
-function scanTables(lines) {
+function scanTables(lines, file, problems) {
   const inTable = new Array(lines.length).fill(false);
   let j = 0;
   while (j < lines.length) {
@@ -385,9 +385,26 @@ function scanTables(lines) {
       j++;
       continue;
     }
+    const keywordColumns = /* @__PURE__ */ new Set();
+    rowCells(lines[j]).forEach((cell, col) => {
+      if (isKeywordCell(cell)) keywordColumns.add(col);
+    });
+    const start = j;
     let end = j + 1;
     while (end + 1 < lines.length && continuesTable(lines[end + 1])) end++;
-    for (let k = j; k <= end; k++) inTable[k] = true;
+    for (let k = start; k <= end; k++) {
+      inTable[k] = true;
+      if (k === start + 1) continue;
+      rowCellsInTable(lines[k]).forEach((cell, col) => {
+        const definition = keywordColumns.has(col) ? null : cell.match(DEFINITION_RE);
+        if (definition)
+          problems.push({
+            file,
+            line: k + 1,
+            message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a table; a table cell is not an item definition`
+          });
+      });
+    }
     j = end + 1;
   }
   return inTable;
@@ -457,7 +474,7 @@ function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
 }
 function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
-  const inTable = scanTables(lines);
+  const inTable = scanTables(lines, file, problems);
   const items = [];
   let i = 0;
   while (i < lines.length) {
