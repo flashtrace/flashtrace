@@ -49,3 +49,36 @@ Like a keyword line, a keyword table may appear anywhere in the item's definitio
 An item's definition extends to the next ID line or heading. An item with an empty `Needs` list terminates a tracing chain.
 
 A line containing nothing but a forwarding tag `[<source-id> --> <target-id>]` (optionally wrapped in backticks) redirects the source item's coverage obligation; see [Forwarding / delegation](forwarding.md). Such a line may appear anywhere - inside an item's definition it is not part of the description.
+
+## Placement of the ID line
+
+flashtrace reads an ID line by its content alone, but GitHub-flavored Markdown assigns meaning by context: the same line can render as a paragraph, a table row, or a heading depending on its neighbours. The guiding rule:
+
+> An item ID line is cleanly placed only where the rendered page shows it as a paragraph of its own.
+
+Rule of thumb: **an item ID needs a blank line or its heading directly above, and two items always need a blank line between them.**
+
+A badly placed item is still created - flashtrace never suppresses a definition - but a problem is reported. The severity follows the general [error/warning distinction](command-line.md): an **error** means the rendered page and flashtrace disagree about what the line is, so the item's identity cannot be properly used; a **warning** means the page renders fine, but flashtrace deliberately does not read the reference.
+
+### Errors
+
+- **ID absorbed into a table.** Once a header row and its delimiter row establish a table, GFM absorbs every following non-blank line as a row - even a line without pipes - until a blank line or the start of another block (such as a heading) ends the table. An ID line absorbed this way renders as a single-cell table row:
+
+  ```markdown
+  title 1 | title 2
+  --- | ---
+  Login | Logout
+  `req:a#1`
+  ```
+
+  This applies to every table, including purely informative ones without keyword columns. Separate the ID from the table with a blank line.
+
+- **ID in the middle of a paragraph.** A non-blank line directly above the ID that is not a heading (an ATX `#` line or a setext underline) makes the ID a continuation line of that paragraph on the rendered page. Two ID lines stacked without a blank line between them are the same mistake.
+
+- **ID directly above a setext underline.** A run of `===` or `---` directly under the ID renders the ID itself as a heading. As a deliberate flashtrace choice, item IDs are never heading text - separate the ID and the underline with a blank line.
+
+### Warnings
+
+- **Backticked ID in prose**, e.g. "see \`req:other#1\` for details" in a description, informative text, or an informative table cell. flashtrace parses strictly; an informative ID reference cannot be understood and should not be used. IDs in keyword lines, bullet entries under a keyword line, keyword table cells, and forwarding lines are read as usual and never warn. A bare, unbackticked ID in prose is plain text and is not reported.
+
+- **ID line inside a blockquote**, e.g. `> ` followed by a backticked ID. A quoted line does not define an item; the warning points out that the definition is ignored.
