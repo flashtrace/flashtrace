@@ -1,26 +1,31 @@
-<p align="center">
-  <a href="https://github.com/flashtrace">
-    <img src="https://github.com/flashtrace.png" alt="flashtrace logo" width="120">
-  </a>
-</p>
-
-<h3 align="center">flashtrace</h3>
-
-<p align="center">
-  Lightning-fast, reference-based requirement tracing that works anywhere.
-</p>
-
-<p align="center">
-    <a href="https://github.com/flashtrace/flashtrace/blob/main/docs/index.md">
-        <img src="https://img.shields.io/badge/Spec-Driven-8e4d13.svg?labelColor=1e1e1e" alt="Spec-driven documentation." />
-    </a>
-    <a href="https://github.com/flashtrace/flashtrace/blob/main/CLAUDE.md">
-        <img src="https://img.shields.io/badge/Agent-Native-d97d0e.svg?labelColor=1e1e1e" alt="This repository was created agent-native." />
-    </a>
-    <a href="https://github.com/flashtrace/flashtrace/blob/main/LICENSE">
-        <img src="https://img.shields.io/badge/License-Apache_2.0-f9c21d.svg?labelColor=1e1e1e" alt="Released under the Apache 2.0 license." />
-    </a>
-</p>
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <a href="https://github.com/flashtrace">
+          <img src="https://github.com/flashtrace.png" alt="flashtrace logo" width="120">
+        </a>
+      </td>
+      <td align="left">
+        <h3>flashtrace</h3>
+        <p>
+          Lightning-fast, reference-based requirement tracing that works anywhere.
+        </p>
+        <p>
+          <a href="https://github.com/flashtrace/flashtrace/blob/main/docs/index.md">
+            <img src="https://img.shields.io/badge/Spec-Driven-8e4d13.svg?labelColor=1e1e1e" alt="Spec-driven documentation." />
+          </a>
+          <a href="https://github.com/flashtrace/flashtrace/blob/main/CLAUDE.md">
+            <img src="https://img.shields.io/badge/Agent-Native-d97d0e.svg?labelColor=1e1e1e" alt="This repository was created agent-native." />
+          </a>
+          <a href="https://github.com/flashtrace/flashtrace/blob/main/LICENSE">
+            <img src="https://img.shields.io/badge/License-Apache_2.0-f9c21d.svg?labelColor=1e1e1e" alt="Released under the Apache 2.0 license." />
+          </a>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ## Getting Started
 
