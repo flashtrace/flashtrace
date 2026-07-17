@@ -27,6 +27,38 @@
   </table>
 </div>
 
+---
+---
+
+<h4 align="center">Quality Summary</h4>
+
+<p align="center">
+    <a href="https://sonarcloud.io/project/overview?id=flashtrace_flashtrace">
+        <img src="https://github.com/flashtrace/flashtrace/actions/workflows/ci.yml/badge.svg" alt="Continuous Integration status." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=reliability_rating&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=reliability_rating" alt="SonarCloud reliability rating." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=security_rating&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=security_rating" alt="SonarCloud security rating." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=sqale_rating&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=sqale_rating" alt="SonarCloud maintainability rating." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=ncloc&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=ncloc" alt="Number of lines of code." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=code_smells&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=code_smells" alt="SonarCloud amount of code smells." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=duplicated_lines&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=duplicated_lines_density" alt="SonarCloud percent of duplicated lines." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=vulnerabilities&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=vulnerabilities" alt="SonarCloud amount of vulnerabilities." />
+    </a>
+</p>
+
 ## Getting Started
 
 To use flashtrace in your project,
