@@ -227,43 +227,43 @@ async function collectFiles(dirs) {
 }
 
 // src/ids.mjs
-var SEG_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
+var SEGMENT_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
 var REV_SRC = String.raw`\d+(?:\.\d+){0,2}`;
-var WILD_SRC = String.raw`(?:\d+\.\d+\.x|\d+\.x\.y|x\.y\.z|\d+\.x|x\.y|x)`;
-var REVREF_SRC = `(?:${WILD_SRC}|${REV_SRC})`;
-var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(${REV_SRC})`;
+var WILDCARD_SRC = String.raw`(?:\d+\.\d+\.x|\d+\.x\.y|x\.y\.z|\d+\.x|x\.y|x)`;
+var REV_REF_SRC = `(?:${WILDCARD_SRC}|${REV_SRC})`;
+var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_SRC})`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
-var NEED_ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEG_SRC}\/)*${SEG_SRC})\/)?(${SEG_SRC})#(${REVREF_SRC})`;
+var NEED_ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_REF_SRC})`;
 var NEED_ID_RE = new RegExp(`^${NEED_ID_SRC}$`);
 var FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
-var mkId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
-var mkForward = (m, base, file, line) => ({
-  from: mkId(m[base], m[base + 1], m[base + 2], m[base + 3]),
-  to: mkId(m[base + 4], m[base + 5], m[base + 6], m[base + 7]),
+var makeId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
+var makeForward = (m, base, file, line) => ({
+  from: makeId(m[base], m[base + 1], m[base + 2], m[base + 3]),
+  to: makeId(m[base + 4], m[base + 5], m[base + 6], m[base + 7]),
   file,
   line
 });
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => id.slice(id.lastIndexOf("#") + 1);
 function compareRev(a, b) {
-  const pa = a.split(".");
-  const pb = b.split(".");
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    if (i >= pa.length) return -1;
-    if (i >= pb.length) return 1;
-    if (pa[i] !== pb[i]) return Number(pa[i]) - Number(pb[i]);
+  const partsA = a.split(".");
+  const partsB = b.split(".");
+  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+    if (i >= partsA.length) return -1;
+    if (i >= partsB.length) return 1;
+    if (partsA[i] !== partsB[i]) return Number(partsA[i]) - Number(partsB[i]);
   }
   return 0;
 }
-var WILD_LAYER = /* @__PURE__ */ new Set(["x", "y", "z"]);
+var WILDCARD_LAYERS = /* @__PURE__ */ new Set(["x", "y", "z"]);
 var isWildcardRev = (rev) => /[xyz]/.test(rev);
 function revMatches(pattern, concrete) {
-  const pp = pattern.split(".");
-  const cp = concrete.split(".");
-  if (pp.length !== cp.length) return false;
-  for (let i = 0; i < pp.length; i++) {
-    if (WILD_LAYER.has(pp[i])) continue;
-    if (pp[i] !== cp[i]) return false;
+  const patternParts = pattern.split(".");
+  const concreteParts = concrete.split(".");
+  if (patternParts.length !== concreteParts.length) return false;
+  for (let i = 0; i < patternParts.length; i++) {
+    if (WILDCARD_LAYERS.has(patternParts[i])) continue;
+    if (patternParts[i] !== concreteParts[i]) return false;
   }
   return true;
 }
@@ -271,12 +271,12 @@ var idMatches = (need, id) => keyOf(need) === keyOf(id) && revMatches(revOf(need
 function parseIdEntry(raw) {
   const cleaned = raw.replaceAll("`", "").trim();
   const m = cleaned.match(ID_RE);
-  return m ? mkId(m[1], m[2], m[3], m[4]) : null;
+  return m ? makeId(m[1], m[2], m[3], m[4]) : null;
 }
 function parseNeedEntry(raw) {
   const cleaned = raw.replaceAll("`", "").trim();
   const m = cleaned.match(NEED_ID_RE);
-  return m ? mkId(m[1], m[2], m[3], m[4]) : null;
+  return m ? makeId(m[1], m[2], m[3], m[4]) : null;
 }
 function newItem(id, origin, file, line) {
   return {
@@ -299,29 +299,29 @@ function newItem(id, origin, file, line) {
 }
 
 // src/parse-markdown.mjs
-var DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
+var DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
-var DELIM_CELL_RE = /^:?-+:?$/;
+var DELIMITER_CELL_RE = /^:?-+:?$/;
 var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
-var isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
-function takeForward(line, file, n, forwards) {
-  const f = line.match(FORWARD_LINE_RE);
-  if (f) forwards.push(mkForward(f, 2, file, n + 1));
-  return !!f;
+var isBoundary = (line) => DEFINITION_RE.test(line) || HEADING_RE.test(line);
+function takeForward(line, file, lineIndex, forwards) {
+  const forward = line.match(FORWARD_LINE_RE);
+  if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1));
+  return !!forward;
 }
-function isParagraphLine(l) {
-  return l.trim() !== "" && !HEADING_RE.test(l) && !DEF_RE.test(l) && !BULLET_RE.test(l) && !SETEXT_UNDERLINE_RE.test(l);
+function isParagraphLine(line) {
+  return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line);
 }
-function titleAbove(lines, defIndex) {
-  for (let k = defIndex - 1; k >= 0; k--) {
-    const l = lines[k];
-    if (l.trim() === "") continue;
-    const h = l.match(HEADING_RE);
-    if (h) return h[2];
-    if (SETEXT_UNDERLINE_RE.test(l) && k > 0 && isParagraphLine(lines[k - 1])) {
+function titleAbove(lines, definitionIndex) {
+  for (let k = definitionIndex - 1; k >= 0; k--) {
+    const line = lines[k];
+    if (line.trim() === "") continue;
+    const heading = line.match(HEADING_RE);
+    if (heading) return heading[2];
+    if (SETEXT_UNDERLINE_RE.test(line) && k > 0 && isParagraphLine(lines[k - 1])) {
       return lines[k - 1].trim();
     }
     return null;
@@ -334,19 +334,19 @@ function keywordEntries(lines, j, inline) {
   }
   const entries = [];
   while (j + 1 < lines.length) {
-    const b = lines[j + 1].match(BULLET_RE);
-    if (!b) break;
-    entries.push(b[1].trim());
+    const bullet = lines[j + 1].match(BULLET_RE);
+    if (!bullet) break;
+    entries.push(bullet[1].trim());
     j++;
   }
   return { entries, j };
 }
 function rowCells(line) {
-  let s = line.trim();
-  if (!s.includes("|")) return null;
-  if (s.startsWith("|")) s = s.slice(1);
-  if (s.endsWith("|")) s = s.slice(0, -1);
-  return s.split("|").map((c) => c.trim());
+  let row = line.trim();
+  if (!row.includes("|")) return null;
+  if (row.startsWith("|")) row = row.slice(1);
+  if (row.endsWith("|")) row = row.slice(0, -1);
+  return row.split("|").map((cell) => cell.trim());
 }
 function takeKeywordTable(lines, j, item, file, problems) {
   const header = rowCells(lines[j]);
@@ -356,8 +356,8 @@ function takeKeywordTable(lines, j, item, file, problems) {
     if (cell === "Needs" || cell === "Covers" || cell === "Tags") columns.push([col, cell]);
   });
   if (columns.length === 0) return null;
-  const delim = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
-  if (delim?.length !== header.length || !delim.every((c) => DELIM_CELL_RE.test(c))) return null;
+  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
+  if (delimiter?.length !== header.length || !delimiter.every((cell) => DELIMITER_CELL_RE.test(cell))) return null;
   j++;
   while (j + 1 < lines.length && !isBoundary(lines[j + 1])) {
     const cells = rowCells(lines[j + 1]);
@@ -369,46 +369,46 @@ function takeKeywordTable(lines, j, item, file, problems) {
   }
   return j;
 }
-function applyKeyword(item, keyword, entries, file, kwLine, problems) {
+function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
   if (keyword === "Tags") {
     item.tags.push(...entries);
     return;
   }
   const target = keyword === "Needs" ? "needs" : "covers";
   const parse = keyword === "Needs" ? parseNeedEntry : parseIdEntry;
-  for (const e of entries) {
-    const id = parse(e);
+  for (const entry of entries) {
+    const id = parse(entry);
     if (id) item[target].push(id);
     else
       problems.push({
         file,
-        line: kwLine,
-        message: `invalid ID "${e}" in ${keyword}: list of ${item.id}`
+        line: keywordLine,
+        message: `invalid ID "${entry}" in ${keyword}: list of ${item.id}`
       });
   }
 }
 function parseItemBody(lines, start, item, file, problems, forwards) {
   let j = start;
-  let descDone = false;
+  let descriptionDone = false;
   while (j < lines.length && !isBoundary(lines[j])) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
       continue;
     }
-    const kw = line.match(KEYWORD_RE);
-    const tableEnd = kw ? null : takeKeywordTable(lines, j, item, file, problems);
-    if (kw) {
-      descDone = true;
-      const collected = keywordEntries(lines, j, kw[2]);
-      applyKeyword(item, kw[1], collected.entries, file, j + 1, problems);
+    const keywordMatch = line.match(KEYWORD_RE);
+    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, j, item, file, problems);
+    if (keywordMatch) {
+      descriptionDone = true;
+      const collected = keywordEntries(lines, j, keywordMatch[2]);
+      applyKeyword(item, keywordMatch[1], collected.entries, file, j + 1, problems);
       j = collected.j;
     } else if (tableEnd !== null) {
-      descDone = true;
+      descriptionDone = true;
       j = tableEnd;
     } else if (line.trim() === "") {
-      if (item.description.length > 0) descDone = true;
-    } else if (!descDone) {
+      if (item.description.length > 0) descriptionDone = true;
+    } else if (!descriptionDone) {
       item.description.push(line.trim());
     }
     j++;
@@ -424,12 +424,12 @@ function parseMarkdown(file, text, problems, forwards = []) {
       i++;
       continue;
     }
-    const def = lines[i].match(DEF_RE);
-    if (!def) {
+    const definition = lines[i].match(DEFINITION_RE);
+    if (!definition) {
       i++;
       continue;
     }
-    const item = newItem(mkId(def[1], def[2], def[3], def[4]), "markdown", file, i + 1);
+    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "markdown", file, i + 1);
     item.title = titleAbove(lines, i);
     i = parseItemBody(lines, i + 1, item, file, problems, forwards);
     items.push(item);
@@ -448,39 +448,39 @@ function activeLeaf(grammar, state) {
   if (state.region) return state.region.grammar;
   return grammar.regions ? grammar.default : grammar;
 }
-function matchAt(re, s, pos) {
+function matchAt(re, line, pos) {
   re.lastIndex = pos;
-  return re.exec(s);
+  return re.exec(line);
 }
-function* regionEvents(s, pos, grammar, state) {
+function* regionEvents(line, pos, grammar, state) {
   if (!grammar.regions) return;
   if (state.region) {
-    const m = matchAt(state.region.exit, s, pos);
+    const m = matchAt(state.region.exit, line, pos);
     if (m) yield { idx: m.index, kind: "exit", len: m[0].length };
     return;
   }
-  for (const r of grammar.regions) {
-    const m = matchAt(r.enter, s, pos);
+  for (const region of grammar.regions) {
+    const m = matchAt(region.enter, line, pos);
     if (m) {
-      const leaf = typeof r.grammar === "function" ? r.grammar(m[0]) : r.grammar;
-      yield { idx: m.index, kind: "enter", len: m[0].length, region: { exit: r.exit, grammar: leaf } };
+      const leaf = typeof region.grammar === "function" ? region.grammar(m[0]) : region.grammar;
+      yield { idx: m.index, kind: "enter", len: m[0].length, region: { exit: region.exit, grammar: leaf } };
     }
   }
 }
-function nextEvent(s, pos, grammar, state) {
+function nextEvent(line, pos, grammar, state) {
   const leaf = activeLeaf(grammar, state);
   let best = null;
-  const consider = (idx, ev) => {
+  const consider = (idx, event) => {
     if (idx === -1) return;
-    if (best === null || idx < best.idx || idx === best.idx && ev.len > best.len) {
-      best = { ...ev, idx };
+    if (best === null || idx < best.idx || idx === best.idx && event.len > best.len) {
+      best = { ...event, idx };
     }
   };
   for (const marker of leaf.line) {
-    consider(s.indexOf(marker, pos), { kind: "line", len: marker.length });
+    consider(line.indexOf(marker, pos), { kind: "line", len: marker.length });
   }
   for (const [open, close, nestable] of leaf.block) {
-    consider(s.indexOf(open, pos), {
+    consider(line.indexOf(open, pos), {
       kind: "block",
       len: open.length,
       open,
@@ -488,16 +488,16 @@ function nextEvent(s, pos, grammar, state) {
       nestable: Boolean(nestable)
     });
   }
-  for (const ev of regionEvents(s, pos, grammar, state)) consider(ev.idx, ev);
+  for (const event of regionEvents(line, pos, grammar, state)) consider(event.idx, event);
   return best;
 }
-function readBlockRest(s, pos, block, limit = s.length) {
+function readBlockRest(line, pos, block, limit = line.length) {
   const { open, close, nestable } = block;
   const within = (idx) => idx !== -1 && idx < limit ? idx : -1;
   let i = pos;
   while (i < limit) {
-    const closeIdx = within(s.indexOf(close, i));
-    const openIdx = within(nestable ? s.indexOf(open, i) : -1);
+    const closeIdx = within(line.indexOf(close, i));
+    const openIdx = within(nestable ? line.indexOf(open, i) : -1);
     if (closeIdx === -1 && openIdx === -1) break;
     if (openIdx !== -1 && (closeIdx === -1 || openIdx < closeIdx)) {
       block.depth++;
@@ -506,16 +506,16 @@ function readBlockRest(s, pos, block, limit = s.length) {
     }
     block.depth--;
     i = closeIdx + close.length;
-    if (block.depth === 0) return { text: s.slice(pos, closeIdx) + " ", pos: i, closed: true };
+    if (block.depth === 0) return { text: line.slice(pos, closeIdx) + " ", pos: i, closed: true };
   }
-  return { text: s.slice(pos, limit) + " ", pos: limit, closed: false };
+  return { text: line.slice(pos, limit) + " ", pos: limit, closed: false };
 }
-function regionExitAt(s, pos, region) {
-  const m = matchAt(region.exit, s, pos);
+function regionExitAt(line, pos, region) {
+  const m = matchAt(region.exit, line, pos);
   return m ? { idx: m.index, len: m[0].length } : null;
 }
-function consumeBlock(s, pos, state, exit) {
-  const rest = readBlockRest(s, pos, state.block, exit ? exit.idx : s.length);
+function consumeBlock(line, pos, state, exit) {
+  const rest = readBlockRest(line, pos, state.block, exit ? exit.idx : line.length);
   if (rest.closed) {
     state.block = null;
     return { text: rest.text, pos: rest.pos };
@@ -527,36 +527,36 @@ function consumeBlock(s, pos, state, exit) {
   }
   return { text: rest.text, pos: rest.pos };
 }
-function consumeLine(s, pos, state, exit) {
+function consumeLine(line, pos, state, exit) {
   if (exit) {
     state.region = null;
-    return { text: s.slice(pos, exit.idx) + " ", pos: exit.idx + exit.len, done: false };
+    return { text: line.slice(pos, exit.idx) + " ", pos: exit.idx + exit.len, done: false };
   }
-  return { text: s.slice(pos) + " ", pos: s.length, done: true };
+  return { text: line.slice(pos) + " ", pos: line.length, done: true };
 }
-function commentText(s, state, grammar) {
+function commentText(line, state, grammar) {
   let comment = "";
   let pos = 0;
-  while (pos < s.length) {
-    const exit = state.region ? regionExitAt(s, pos, state.region) : null;
+  while (pos < line.length) {
+    const exit = state.region ? regionExitAt(line, pos, state.region) : null;
     if (state.block) {
-      const r = consumeBlock(s, pos, state, exit);
-      comment += r.text;
-      pos = r.pos;
+      const consumed = consumeBlock(line, pos, state, exit);
+      comment += consumed.text;
+      pos = consumed.pos;
       continue;
     }
-    const ev = nextEvent(s, pos, grammar, state);
-    if (!ev) break;
-    pos = ev.idx + ev.len;
-    if (ev.kind === "line") {
-      const r = consumeLine(s, pos, state, exit);
-      comment += r.text;
-      pos = r.pos;
-      if (r.done) break;
-    } else if (ev.kind === "block") {
-      state.block = { open: ev.open, close: ev.close, nestable: ev.nestable, depth: 1 };
-    } else if (ev.kind === "enter") {
-      state.region = ev.region;
+    const event = nextEvent(line, pos, grammar, state);
+    if (!event) break;
+    pos = event.idx + event.len;
+    if (event.kind === "line") {
+      const consumed = consumeLine(line, pos, state, exit);
+      comment += consumed.text;
+      pos = consumed.pos;
+      if (consumed.done) break;
+    } else if (event.kind === "block") {
+      state.block = { open: event.open, close: event.close, nestable: event.nestable, depth: 1 };
+    } else if (event.kind === "enter") {
+      state.region = event.region;
     } else {
       state.region = null;
     }
@@ -566,15 +566,15 @@ function commentText(s, state, grammar) {
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
     if (m[9]) {
-      const item = newItem(mkId(m[9], m[10], m[11], m[12]), "code", file, line);
-      state.last = item;
+      const item = newItem(makeId(m[9], m[10], m[11], m[12]), "code", file, line);
+      state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
       continue;
     }
-    const id = mkId(m[5], m[6], m[7], m[8]);
+    const id = makeId(m[5], m[6], m[7], m[8]);
     if (m[1]) {
-      const source = mkId(m[1], m[2], m[3], m[4]);
+      const source = makeId(m[1], m[2], m[3], m[4]);
       const anchor = state.byId.get(source);
       if (anchor) {
         anchor.needs.push(id);
@@ -585,8 +585,8 @@ function collectTags(comment, file, line, state, items, problems) {
           message: `need tag [${source} >> ${id}] has no preceding item tag [${source}] in this file`
         });
       }
-    } else if (state.last) {
-      state.last.needs.push(id);
+    } else if (state.lastItem) {
+      state.lastItem.needs.push(id);
     } else {
       problems.push({
         file,
@@ -601,11 +601,11 @@ function parseCode(file, text, problems, forwards = []) {
   const grammar = grammarFor(ext) ?? cLike;
   const lines = text.split(/\r?\n/);
   const items = [];
-  const state = { last: null, byId: /* @__PURE__ */ new Map(), block: null, region: null };
+  const state = { lastItem: null, byId: /* @__PURE__ */ new Map(), block: null, region: null };
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, grammar);
     for (const m of comment.matchAll(FORWARD_RE)) {
-      forwards.push(mkForward(m, 1, file, i + 1));
+      forwards.push(makeForward(m, 1, file, i + 1));
     }
     collectTags(comment, file, i + 1, state, items, problems);
   }

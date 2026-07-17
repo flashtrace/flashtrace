@@ -14,7 +14,7 @@
 
 import path from 'node:path';
 
-import { FORWARD_SRC, ID_SRC, NEED_ID_SRC, mkForward, mkId, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, NEED_ID_SRC, makeForward, makeId, newItem } from './ids.mjs';
 import { cLike, grammarFor } from './languages.mjs';
 
 // Alternation: need tag with optional explicit source (groups 1-4 source,
@@ -36,51 +36,52 @@ function activeLeaf(grammar, state) {
 }
 
 // first match of a global regex at or after pos, or null
-function matchAt(re, s, pos) {
+function matchAt(re, line, pos) {
   re.lastIndex = pos;
-  return re.exec(s);
+  return re.exec(line);
 }
 
 // region boundary events (enter/exit) for a composite grammar at or after pos
-function* regionEvents(s, pos, grammar, state) {
+function* regionEvents(line, pos, grammar, state) {
   if (!grammar.regions) return;
   if (state.region) {
-    const m = matchAt(state.region.exit, s, pos);
+    const m = matchAt(state.region.exit, line, pos);
     if (m) yield { idx: m.index, kind: 'exit', len: m[0].length };
     return;
   }
-  for (const r of grammar.regions) {
-    const m = matchAt(r.enter, s, pos);
+  for (const region of grammar.regions) {
+    const m = matchAt(region.enter, line, pos);
     if (m) {
-      // r.grammar may be a resolver picking the leaf from the opening tag
-      const leaf = typeof r.grammar === 'function' ? r.grammar(m[0]) : r.grammar;
-      yield { idx: m.index, kind: 'enter', len: m[0].length, region: { exit: r.exit, grammar: leaf } };
+      // region.grammar may be a resolver picking the leaf from the opening tag
+      const leaf = typeof region.grammar === 'function' ? region.grammar(m[0]) : region.grammar;
+      yield { idx: m.index, kind: 'enter', len: m[0].length, region: { exit: region.exit, grammar: leaf } };
     }
   }
 }
 
-// earliest scanning event in s at or after pos, or null: a comment opener from
-// the active leaf grammar, or - for composite grammars - a region boundary.
-function nextEvent(s, pos, grammar, state) {
+// earliest scanning event in the line at or after pos, or null: a comment
+// opener from the active leaf grammar, or - for composite grammars - a region
+// boundary.
+function nextEvent(line, pos, grammar, state) {
   const leaf = activeLeaf(grammar, state);
   let best = null;
   // earliest match wins; on a tie the longest opener wins, so a block opener
   // that shares a prefix with a line marker (Lua `--[[` vs `--`) is not masked.
-  const consider = (idx, ev) => {
+  const consider = (idx, event) => {
     if (idx === -1) return;
-    if (best === null || idx < best.idx || (idx === best.idx && ev.len > best.len)) {
-      best = { ...ev, idx };
+    if (best === null || idx < best.idx || (idx === best.idx && event.len > best.len)) {
+      best = { ...event, idx };
     }
   };
   for (const marker of leaf.line) {
-    consider(s.indexOf(marker, pos), { kind: 'line', len: marker.length });
+    consider(line.indexOf(marker, pos), { kind: 'line', len: marker.length });
   }
   for (const [open, close, nestable] of leaf.block) {
-    consider(s.indexOf(open, pos), {
+    consider(line.indexOf(open, pos), {
       kind: 'block', len: open.length, open, close, nestable: Boolean(nestable),
     });
   }
-  for (const ev of regionEvents(s, pos, grammar, state)) consider(ev.idx, ev);
+  for (const event of regionEvents(line, pos, grammar, state)) consider(event.idx, event);
   return best;
 }
 
@@ -88,13 +89,13 @@ function nextEvent(s, pos, grammar, state) {
 // grammar marks the pair nestable (Rust, Swift, Kotlin, Scala, ...). Scanning
 // stops at `limit` (used to cap a block at a region exit); mutates block.depth
 // and returns the comment text and where scanning resumes.
-function readBlockRest(s, pos, block, limit = s.length) {
+function readBlockRest(line, pos, block, limit = line.length) {
   const { open, close, nestable } = block;
   const within = (idx) => (idx !== -1 && idx < limit ? idx : -1);
   let i = pos;
   while (i < limit) {
-    const closeIdx = within(s.indexOf(close, i));
-    const openIdx = within(nestable ? s.indexOf(open, i) : -1);
+    const closeIdx = within(line.indexOf(close, i));
+    const openIdx = within(nestable ? line.indexOf(open, i) : -1);
     if (closeIdx === -1 && openIdx === -1) break;
     if (openIdx !== -1 && (closeIdx === -1 || openIdx < closeIdx)) {
       block.depth++;
@@ -103,21 +104,21 @@ function readBlockRest(s, pos, block, limit = s.length) {
     }
     block.depth--;
     i = closeIdx + close.length;
-    if (block.depth === 0) return { text: s.slice(pos, closeIdx) + ' ', pos: i, closed: true };
+    if (block.depth === 0) return { text: line.slice(pos, closeIdx) + ' ', pos: i, closed: true };
   }
-  return { text: s.slice(pos, limit) + ' ', pos: limit, closed: false };
+  return { text: line.slice(pos, limit) + ' ', pos: limit, closed: false };
 }
 
 // the region's exit match at or after pos on this line, or null
-function regionExitAt(s, pos, region) {
-  const m = matchAt(region.exit, s, pos);
+function regionExitAt(line, pos, region) {
+  const m = matchAt(region.exit, line, pos);
   return m ? { idx: m.index, len: m[0].length } : null;
 }
 
 // advance over an open block comment, capped at the region exit if one is ahead;
 // returns { text, pos } and updates state.block / state.region.
-function consumeBlock(s, pos, state, exit) {
-  const rest = readBlockRest(s, pos, state.block, exit ? exit.idx : s.length);
+function consumeBlock(line, pos, state, exit) {
+  const rest = readBlockRest(line, pos, state.block, exit ? exit.idx : line.length);
   if (rest.closed) {
     state.block = null;
     return { text: rest.text, pos: rest.pos };
@@ -133,12 +134,12 @@ function consumeBlock(s, pos, state, exit) {
 
 // consume a line comment from pos: to the region exit if one is ahead (the
 // region then ends), otherwise to end of line. `done` means stop scanning.
-function consumeLine(s, pos, state, exit) {
+function consumeLine(line, pos, state, exit) {
   if (exit) {
     state.region = null;
-    return { text: s.slice(pos, exit.idx) + ' ', pos: exit.idx + exit.len, done: false };
+    return { text: line.slice(pos, exit.idx) + ' ', pos: exit.idx + exit.len, done: false };
   }
-  return { text: s.slice(pos) + ' ', pos: s.length, done: true };
+  return { text: line.slice(pos) + ' ', pos: line.length, done: true };
 }
 
 // comment text of one line. state.block carries an open block comment (its
@@ -147,31 +148,31 @@ function consumeLine(s, pos, state, exit) {
 // outside comments (so `<!-- <script> -->` never opens a script region), but a
 // region *exit* is a hard boundary that ends the region even mid-comment, the
 // way a browser terminates a raw-text element at the first `</script>`.
-function commentText(s, state, grammar) {
+function commentText(line, state, grammar) {
   let comment = '';
   let pos = 0;
-  while (pos < s.length) {
-    const exit = state.region ? regionExitAt(s, pos, state.region) : null;
+  while (pos < line.length) {
+    const exit = state.region ? regionExitAt(line, pos, state.region) : null;
 
     if (state.block) {
-      const r = consumeBlock(s, pos, state, exit);
-      comment += r.text;
-      pos = r.pos;
+      const consumed = consumeBlock(line, pos, state, exit);
+      comment += consumed.text;
+      pos = consumed.pos;
       continue;
     }
 
-    const ev = nextEvent(s, pos, grammar, state);
-    if (!ev) break;
-    pos = ev.idx + ev.len;
-    if (ev.kind === 'line') {
-      const r = consumeLine(s, pos, state, exit);
-      comment += r.text;
-      pos = r.pos;
-      if (r.done) break;
-    } else if (ev.kind === 'block') {
-      state.block = { open: ev.open, close: ev.close, nestable: ev.nestable, depth: 1 };
-    } else if (ev.kind === 'enter') {
-      state.region = ev.region;
+    const event = nextEvent(line, pos, grammar, state);
+    if (!event) break;
+    pos = event.idx + event.len;
+    if (event.kind === 'line') {
+      const consumed = consumeLine(line, pos, state, exit);
+      comment += consumed.text;
+      pos = consumed.pos;
+      if (consumed.done) break;
+    } else if (event.kind === 'block') {
+      state.block = { open: event.open, close: event.close, nestable: event.nestable, depth: 1 };
+    } else if (event.kind === 'enter') {
+      state.region = event.region;
     } else {
       // 'exit' - reached only outside a block comment (the block branch above
       // continues), so there is no open block to clear here.
@@ -185,16 +186,16 @@ function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
     if (m[9]) {
       // [<id>] item tag
-      const item = newItem(mkId(m[9], m[10], m[11], m[12]), 'code', file, line);
-      state.last = item;
+      const item = newItem(makeId(m[9], m[10], m[11], m[12]), 'code', file, line);
+      state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
       continue;
     }
-    const id = mkId(m[5], m[6], m[7], m[8]);
+    const id = makeId(m[5], m[6], m[7], m[8]);
     if (m[1]) {
       // [<source-id> >> ...] explicit need tag
-      const source = mkId(m[1], m[2], m[3], m[4]);
+      const source = makeId(m[1], m[2], m[3], m[4]);
       const anchor = state.byId.get(source);
       if (anchor) {
         anchor.needs.push(id);
@@ -205,9 +206,9 @@ function collectTags(comment, file, line, state, items, problems) {
           message: `need tag [${source} >> ${id}] has no preceding item tag [${source}] in this file`,
         });
       }
-    } else if (state.last) {
+    } else if (state.lastItem) {
       // [>>...] need tag
-      state.last.needs.push(id);
+      state.lastItem.needs.push(id);
     } else {
       problems.push({
         file,
@@ -225,15 +226,15 @@ export function parseCode(file, text, problems, forwards = []) {
   const grammar = grammarFor(ext) ?? cLike;
   const lines = text.split(/\r?\n/);
   const items = [];
-  // last: nearest preceding item tag in this file; byId: preceding item tags
-  // by ID; block: open block-comment descriptor ({ open, close, nestable,
+  // lastItem: nearest preceding item tag in this file; byId: preceding item
+  // tags by ID; block: open block-comment descriptor ({ open, close, nestable,
   // depth }) or null; region: active composite region (script/style) or null.
-  const state = { last: null, byId: new Map(), block: null, region: null };
+  const state = { lastItem: null, byId: new Map(), block: null, region: null };
 
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, grammar);
     for (const m of comment.matchAll(FORWARD_RE)) {
-      forwards.push(mkForward(m, 1, file, i + 1));
+      forwards.push(makeForward(m, 1, file, i + 1));
     }
     collectTags(comment, file, i + 1, state, items, problems);
   }
