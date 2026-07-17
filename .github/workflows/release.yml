@@ -1,7 +1,14 @@
 name: Release
 
 on:
-  pull_request:
+  # pull_request_target instead of pull_request so runs for PRs merged from
+  # forks still receive the repo's secrets and variables (the release app
+  # credentials); under plain pull_request those are withheld and the app
+  # token step fails. This is safe only while the workflow never checks out
+  # or executes PR head code - the release job checks out `main` explicitly
+  # and operates on the merged result. Do not add a checkout of the PR head
+  # here.
+  pull_request_target:
     types:
       - closed
     branches:
@@ -51,6 +58,7 @@ jobs:
           app-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
+      # NEVER CHECKOUT the PR head code ALWAYS checkout flashtrace/main only!
       - name: Checkout main
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
