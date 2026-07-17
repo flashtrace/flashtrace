@@ -45,11 +45,11 @@ async function walk(dir, out) {
   } catch {
     return out;
   }
-  for (const e of entries) {
-    if (e.name === '.git' || e.name === 'node_modules') continue;
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) await walk(p, out);
-    else if (e.isFile()) out.push(p);
+  for (const entry of entries) {
+    if (entry.name === '.git' || entry.name === 'node_modules') continue;
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) await walk(entryPath, out);
+    else if (entry.isFile()) out.push(entryPath);
   }
   return out;
 }
@@ -58,9 +58,9 @@ export async function collectFiles(dirs) {
   const files = new Set();
   for (const dir of dirs) {
     const abs = path.resolve(dir);
-    const st = await fs.stat(abs).catch(() => null);
-    if (!st) throw new UsageError(`input path does not exist: ${dir}`);
-    if (st.isFile()) {
+    const stats = await fs.stat(abs).catch(() => null);
+    if (!stats) throw new UsageError(`input path does not exist: ${dir}`);
+    if (stats.isFile()) {
       files.add(abs);
       continue;
     }
@@ -77,11 +77,11 @@ export async function collectFiles(dirs) {
     } catch {
       list = await walk(abs, []); // not a git repo (or git missing)
     }
-    for (const f of list) files.add(f);
+    for (const file of list) files.add(file);
   }
   return [...files]
-    .filter((f) => {
-      const ext = path.extname(f).toLowerCase();
+    .filter((file) => {
+      const ext = path.extname(file).toLowerCase();
       return MD_EXT.has(ext) || CODE_EXT.has(ext);
     })
     .sort(compareStrings);

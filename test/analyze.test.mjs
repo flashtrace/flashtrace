@@ -19,14 +19,14 @@ function run(fixture) {
   return runAll(fixture).items;
 }
 
-const byId = (items, id) => items.find((it) => it.id === id);
+const byId = (items, id) => items.find((item) => item.id === id);
 
 test('a need satisfied by an existing item yields no defects', () => {
   const items = run({
     md: ['`req:a#1`', '', 'Needs: impl:a#1'],
     code: ['// [impl:a#1]'],
   });
-  for (const it of items) assert.deepEqual(it.defects, []);
+  for (const item of items) assert.deepEqual(item.defects, []);
   assert.equal(byId(items, 'req:a#1').deepCovered, true);
 });
 
@@ -58,7 +58,7 @@ test('an exact multi-layer revision need is covered', () => {
     md: ['`req:a#1`', '', 'Needs: impl:a#2.4.0'],
     code: ['// [impl:a#2.4.0]'],
   });
-  for (const it of items) assert.deepEqual(it.defects, []);
+  for (const item of items) assert.deepEqual(item.defects, []);
   assert.equal(byId(items, 'req:a#1').deepCovered, true);
 });
 
@@ -104,13 +104,13 @@ test('a covers entry matched by the target’s needs is valid', () => {
       'Covers: feat:auth#1',
     ],
   });
-  for (const it of items) assert.deepEqual(it.defects, []);
+  for (const item of items) assert.deepEqual(item.defects, []);
 });
 
 test('defining the same full ID twice flags both as duplicates', () => {
   const items = run({ md: ['`req:a#1`', '', '`req:a#1`'] });
   assert.equal(items.length, 2);
-  for (const it of items) assert.match(it.defects[0], /^duplicate: ID req:a#1/);
+  for (const item of items) assert.match(item.defects[0], /^duplicate: ID req:a#1/);
 });
 
 test('a wildcard need is satisfied by any matching concrete item', () => {
@@ -118,7 +118,7 @@ test('a wildcard need is satisfied by any matching concrete item', () => {
     md: ['`req:a#1`', '', 'Needs: impl:a#2.x'],
     code: ['// [impl:a#2.5]'],
   });
-  for (const it of items) assert.deepEqual(it.defects, []);
+  for (const item of items) assert.deepEqual(item.defects, []);
   assert.equal(byId(items, 'req:a#1').deepCovered, true);
 });
 
@@ -137,7 +137,7 @@ test('three-layer wildcards match any tail of the same shape', () => {
     md: ['`req:a#1`', '', 'Needs: impl:a#2.3.x, impl:b#2.x.y'],
     code: ['// [impl:a#2.3.7]', '// [impl:b#2.9.4]'],
   });
-  for (const it of items) assert.deepEqual(it.defects, []);
+  for (const item of items) assert.deepEqual(item.defects, []);
   assert.equal(byId(items, 'req:a#1').deepCovered, true);
 });
 
@@ -153,7 +153,7 @@ test('a covers entry satisfies a wildcard need on its target', () => {
       'Covers: feat:auth#1',
     ],
   });
-  for (const it of items) assert.deepEqual(it.defects, []);
+  for (const item of items) assert.deepEqual(item.defects, []);
 });
 
 test('a wildcard need is shallow-covered but not deep when its match is defective', () => {
@@ -300,8 +300,8 @@ test('cyclic forwarding is a problem and the forwardings have no effect', () => 
     ],
   });
   assert.equal(problems.length, 2);
-  for (const p of problems)
-    assert.match(p.message, /^cyclic forwarding: req:a#1 --> req:b#1 --> req:a#1$/);
+  for (const problem of problems)
+    assert.match(problem.message, /^cyclic forwarding: req:a#1 --> req:b#1 --> req:a#1$/);
   // the forwardings are inert: req:a#1 falls back to its own needs
   assert.match(byId(items, 'req:a#1').defects[0], /^uncovered: needs impl:missing#1/);
   assert.deepEqual(byId(items, 'req:b#1').defects, []);
@@ -329,9 +329,9 @@ test('an acyclic forwarding chain is allowed', () => {
     ],
   });
   assert.equal(problems.length, 0);
-  for (const it of items) {
-    assert.deepEqual(it.defects, []);
-    assert.equal(it.deepCovered, true);
+  for (const item of items) {
+    assert.deepEqual(item.defects, []);
+    assert.equal(item.deepCovered, true);
   }
 });
 
@@ -339,8 +339,8 @@ test('cyclic needs do not hang and count as deep-covered', () => {
   const items = run({
     md: ['`req:a#1`', '', 'Needs: req:b#1', '', '`req:b#1`', '', 'Needs: req:a#1'],
   });
-  for (const it of items) {
-    assert.deepEqual(it.defects, []);
-    assert.equal(it.deepCovered, true);
+  for (const item of items) {
+    assert.deepEqual(item.defects, []);
+    assert.equal(item.deepCovered, true);
   }
 });

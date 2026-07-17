@@ -30,6 +30,11 @@ Keep (runtime) dependencies to zero.
 | `pnpm build` | Run esbuild, bundling from 'src/' to 'dist/'. |
 | `pnpm test` | Run all tests under 'test/'. |
 
+## Naming
+
+Write identifiers out in full - no invented shorthand.
+The only sanctioned abbreviations are listed in ABBREVIATIONS.md; use them consistently.
+
 ## Your workflow
 
 Work in small chunks.

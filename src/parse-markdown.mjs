@@ -12,9 +12,9 @@
  *     the first item's coverage obligation to the second (spaces optional).
  */
 
-import { FORWARD_SRC, ID_SRC, mkForward, mkId, parseIdEntry, parseNeedEntry, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, makeForward, makeId, parseIdEntry, parseNeedEntry, newItem } from './ids.mjs';
 
-const DEF_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
+const DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 // Setext heading underline: a run of only `=` (level 1) or only `-` (level 2),
 // with up to three leading spaces and optional trailing whitespace per
@@ -22,18 +22,18 @@ const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 const SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
-const DELIM_CELL_RE = /^:?-+:?$/;
+const DELIMITER_CELL_RE = /^:?-+:?$/;
 // group 1 is the optional backtick; the \1 backreference keeps it balanced,
 // so the two ID captures start at group 2
 const FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
 
-const isBoundary = (l) => DEF_RE.test(l) || HEADING_RE.test(l);
+const isBoundary = (line) => DEFINITION_RE.test(line) || HEADING_RE.test(line);
 
 // a line that is only a forwarding tag pushes a forward and is otherwise skipped
-function takeForward(line, file, n, forwards) {
-  const f = line.match(FORWARD_LINE_RE);
-  if (f) forwards.push(mkForward(f, 2, file, n + 1));
-  return !!f;
+function takeForward(line, file, lineIndex, forwards) {
+  const forward = line.match(FORWARD_LINE_RE);
+  if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1));
+  return !!forward;
 }
 
 // A setext underline forms a heading only when a paragraph line sits directly
@@ -41,25 +41,25 @@ function takeForward(line, file, n, forwards) {
 // thematic break (blank line above the run), a table delimiter row (its run
 // carries pipes, so SETEXT_UNDERLINE_RE never matches it), and a bullet list
 // (a run whose neighbour above is a bullet, not a paragraph).
-function isParagraphLine(l) {
+function isParagraphLine(line) {
   return (
-    l.trim() !== '' &&
-    !HEADING_RE.test(l) &&
-    !DEF_RE.test(l) &&
-    !BULLET_RE.test(l) &&
-    !SETEXT_UNDERLINE_RE.test(l)
+    line.trim() !== '' &&
+    !HEADING_RE.test(line) &&
+    !DEFINITION_RE.test(line) &&
+    !BULLET_RE.test(line) &&
+    !SETEXT_UNDERLINE_RE.test(line)
   );
 }
 
-function titleAbove(lines, defIndex) {
-  for (let k = defIndex - 1; k >= 0; k--) {
-    const l = lines[k];
-    if (l.trim() === '') continue; // blank lines between heading and ID are fine
-    const h = l.match(HEADING_RE);
-    if (h) return h[2]; // ATX heading (#...)
+function titleAbove(lines, definitionIndex) {
+  for (let k = definitionIndex - 1; k >= 0; k--) {
+    const line = lines[k];
+    if (line.trim() === '') continue; // blank lines between heading and ID are fine
+    const heading = line.match(HEADING_RE);
+    if (heading) return heading[2]; // ATX heading (#...)
     // A setext underline turns the paragraph line directly above it into the
     // title; without such a line the run of =/- is not a heading.
-    if (SETEXT_UNDERLINE_RE.test(l) && k > 0 && isParagraphLine(lines[k - 1])) {
+    if (SETEXT_UNDERLINE_RE.test(line) && k > 0 && isParagraphLine(lines[k - 1])) {
       return lines[k - 1].trim();
     }
     return null; // any other text directly above -> no title
@@ -75,9 +75,9 @@ function keywordEntries(lines, j, inline) {
   }
   const entries = [];
   while (j + 1 < lines.length) {
-    const b = lines[j + 1].match(BULLET_RE);
-    if (!b) break;
-    entries.push(b[1].trim());
+    const bullet = lines[j + 1].match(BULLET_RE);
+    if (!bullet) break;
+    entries.push(bullet[1].trim());
     j++;
   }
   return { entries, j };
@@ -86,11 +86,11 @@ function keywordEntries(lines, j, inline) {
 // cells of a `| a | b |` table row, or null; as in GFM, one leading and one
 // trailing pipe are optional, but a row must contain at least one pipe
 function rowCells(line) {
-  let s = line.trim();
-  if (!s.includes('|')) return null;
-  if (s.startsWith('|')) s = s.slice(1);
-  if (s.endsWith('|')) s = s.slice(0, -1);
-  return s.split('|').map((c) => c.trim());
+  let row = line.trim();
+  if (!row.includes('|')) return null;
+  if (row.startsWith('|')) row = row.slice(1);
+  if (row.endsWith('|')) row = row.slice(0, -1);
+  return row.split('|').map((cell) => cell.trim());
 }
 
 // a table whose header row contains keyword cells ("Needs", "Covers", "Tags")
@@ -105,10 +105,10 @@ function takeKeywordTable(lines, j, item, file, problems) {
     if (cell === 'Needs' || cell === 'Covers' || cell === 'Tags') columns.push([col, cell]);
   });
   if (columns.length === 0) return null;
-  const delim = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
+  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
   // GFM: a delimiter row with a deviating cell count degrades the whole
   // block to prose, so the tracer must not read it as a table either
-  if (delim?.length !== header.length || !delim.every((c) => DELIM_CELL_RE.test(c))) return null;
+  if (delimiter?.length !== header.length || !delimiter.every((cell) => DELIMITER_CELL_RE.test(cell))) return null;
   j++;
   // like GFM, the table ends at a new block-level element (here: a heading
   // or an item definition), even when that line contains a pipe
@@ -123,7 +123,7 @@ function takeKeywordTable(lines, j, item, file, problems) {
   return j;
 }
 
-function applyKeyword(item, keyword, entries, file, kwLine, problems) {
+function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
   if (keyword === 'Tags') {
     item.tags.push(...entries);
     return;
@@ -131,14 +131,14 @@ function applyKeyword(item, keyword, entries, file, kwLine, problems) {
   const target = keyword === 'Needs' ? 'needs' : 'covers';
   // Needs may reference a wildcard revision (2.x); Covers must be concrete.
   const parse = keyword === 'Needs' ? parseNeedEntry : parseIdEntry;
-  for (const e of entries) {
-    const id = parse(e);
+  for (const entry of entries) {
+    const id = parse(entry);
     if (id) item[target].push(id);
     else
       problems.push({
         file,
-        line: kwLine,
-        message: `invalid ID "${e}" in ${keyword}: list of ${item.id}`,
+        line: keywordLine,
+        message: `invalid ID "${entry}" in ${keyword}: list of ${item.id}`,
       });
   }
 }
@@ -147,27 +147,27 @@ function applyKeyword(item, keyword, entries, file, kwLine, problems) {
 // returns the index of the first line after the item
 function parseItemBody(lines, start, item, file, problems, forwards) {
   let j = start;
-  let descDone = false;
+  let descriptionDone = false;
   while (j < lines.length && !isBoundary(lines[j])) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
       continue;
     }
-    const kw = line.match(KEYWORD_RE);
-    const tableEnd = kw ? null : takeKeywordTable(lines, j, item, file, problems);
-    if (kw) {
-      descDone = true;
-      const collected = keywordEntries(lines, j, kw[2]);
-      applyKeyword(item, kw[1], collected.entries, file, j + 1, problems);
+    const keywordMatch = line.match(KEYWORD_RE);
+    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, j, item, file, problems);
+    if (keywordMatch) {
+      descriptionDone = true;
+      const collected = keywordEntries(lines, j, keywordMatch[2]);
+      applyKeyword(item, keywordMatch[1], collected.entries, file, j + 1, problems);
       j = collected.j;
     } else if (tableEnd !== null) {
-      descDone = true;
+      descriptionDone = true;
       j = tableEnd;
     } else if (line.trim() === '') {
-      if (item.description.length > 0) descDone = true;
+      if (item.description.length > 0) descriptionDone = true;
       // a blank line directly under the ID (before the description) is allowed
-    } else if (!descDone) {
+    } else if (!descriptionDone) {
       item.description.push(line.trim());
     }
     // anything after the description's terminating blank line is informative text
@@ -186,12 +186,12 @@ export function parseMarkdown(file, text, problems, forwards = []) {
       i++;
       continue;
     }
-    const def = lines[i].match(DEF_RE);
-    if (!def) {
+    const definition = lines[i].match(DEFINITION_RE);
+    if (!definition) {
       i++;
       continue;
     }
-    const item = newItem(mkId(def[1], def[2], def[3], def[4]), 'markdown', file, i + 1);
+    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), 'markdown', file, i + 1);
     item.title = titleAbove(lines, i);
     i = parseItemBody(lines, i + 1, item, file, problems, forwards);
     items.push(item);

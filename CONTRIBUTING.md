@@ -67,3 +67,5 @@ Your commited `dist/` must match a fresh build.
 You can verify this with `git diff --exit-code -- dist/`.
 
 Never bump `package.json` version manually; releases are PR-label driven per GitHub workflow and bump that automatically (as you can see in the above mermaid diagram as well).
+
+Write identifiers out in full; the abbreviations we do use are collected in [ABBREVIATIONS.md](ABBREVIATIONS.md).
