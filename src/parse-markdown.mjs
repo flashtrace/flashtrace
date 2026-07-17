@@ -208,19 +208,87 @@ function parseItemBody(lines, start, item, file, problems, forwards) {
  *   - warning: the page renders fine, but flashtrace deliberately does not
  *              read the reference (backticked ID in prose, blockquoted ID).
  */
+const definedId = (m) => makeId(m[1], m[2], m[3], m[4]);
+
+// a line the page renders as prose: warn about every backticked ID in it
+function reportProseIds(line, lineIndex, push) {
+  for (const m of line.matchAll(INLINE_ID_RE)) {
+    push(
+      'warning',
+      lineIndex,
+      `ID \`${m[1]}\` in prose is not traced: flashtrace reads IDs only in definitions, keyword entries, and forwarding lines`,
+    );
+  }
+}
+
+// a line while a table block is open; returns true when the table absorbed
+// the line, false when a heading starts a new block and ends the table
+function checkTableRow(line, lineIndex, openTable, push) {
+  if (HEADING_RE.test(line)) return false;
+  const definition = line.match(DEFINITION_RE);
+  if (definition) {
+    push(
+      'error',
+      lineIndex,
+      `item ${definedId(definition)} is absorbed into the table above: the rendered page shows this line as a table row, not as a definition; separate it from the table with a blank line`,
+    );
+  } else if (openTable === 'informative') {
+    reportProseIds(line, lineIndex, push); // keyword table cells are read, all others are prose
+  }
+  return true;
+}
+
+function checkDefinitionPlacement(lines, lineIndex, definition, push) {
+  const above = lineIndex > 0 ? lines[lineIndex - 1] : '';
+  const below = lineIndex + 1 < lines.length ? lines[lineIndex + 1] : '';
+  if (above.trim() !== '' && !HEADING_RE.test(above) && !SETEXT_UNDERLINE_RE.test(above)) {
+    push(
+      'error',
+      lineIndex,
+      `item ${definedId(definition)} is defined in the middle of a paragraph: the rendered page shows this line as part of the text above; an item ID needs a blank line or its heading directly above`,
+    );
+  } else if (SETEXT_UNDERLINE_RE.test(below)) {
+    push(
+      'error',
+      lineIndex,
+      `item ${definedId(definition)} is turned into a heading by the underline below; item IDs are never heading text - separate the ID and the underline with a blank line`,
+    );
+  }
+}
+
+// 'keyword' when the header row carries keyword cells, otherwise 'informative'
+function tableKind(headerLine) {
+  return keywordColumns(rowCells(headerLine)).length > 0 ? 'keyword' : 'informative';
+}
+
+// a line outside any table; returns whether a keyword line leaves its bullet
+// entries open (state for the next line)
+function checkFreeLine(lines, lineIndex, keywordBulletsOpen, push) {
+  const line = lines[lineIndex];
+  const definition = line.match(DEFINITION_RE);
+  if (definition) {
+    checkDefinitionPlacement(lines, lineIndex, definition, push);
+    return false;
+  }
+  if (FORWARD_LINE_RE.test(line)) return false;
+  const keyword = line.match(KEYWORD_RE);
+  if (keyword) return keyword[2].trim() === '';
+  if (keywordBulletsOpen && BULLET_RE.test(line)) return true;
+  const quoted = line.match(BLOCKQUOTED_DEFINITION_RE);
+  if (quoted) {
+    push(
+      'warning',
+      lineIndex,
+      `item definition ${definedId(quoted)} inside a blockquote is not read; move it out of the blockquote to define the item`,
+    );
+    return false;
+  }
+  reportProseIds(line, lineIndex, push);
+  return false;
+}
+
 function checkItemLocations(lines, file, problems) {
   const push = (severity, lineIndex, message) => problems.push({ severity, file, line: lineIndex + 1, message });
-  // a line the page renders as prose: warn about every backticked ID in it
-  const scanProse = (line, lineIndex) => {
-    for (const m of line.matchAll(INLINE_ID_RE)) {
-      push(
-        'warning',
-        lineIndex,
-        `ID \`${m[1]}\` in prose is not traced: flashtrace reads IDs only in definitions, keyword entries, and forwarding lines`,
-      );
-    }
-  };
-  const definedId = (m) => makeId(m[1], m[2], m[3], m[4]);
 
   // GFM table state: once a header and delimiter row establish a table, it
   // absorbs every following non-blank line as a row (even one without pipes)
@@ -237,70 +305,17 @@ function checkItemLocations(lines, file, problems) {
       continue;
     }
     if (openTable !== null) {
-      if (HEADING_RE.test(line)) {
-        openTable = null; // a heading starts a new block and ends the table
-      } else {
-        const definition = line.match(DEFINITION_RE);
-        if (definition) {
-          push(
-            'error',
-            i,
-            `item ${definedId(definition)} is absorbed into the table above: the rendered page shows this line as a table row, not as a definition; separate it from the table with a blank line`,
-          );
-        } else if (openTable === 'informative') {
-          scanProse(line, i); // keyword table cells are read, all others are prose
-        }
-        continue;
-      }
+      if (checkTableRow(line, i, openTable, push)) continue;
+      openTable = null; // a heading ended the table; check the line normally
     }
     if (opensTable(lines, i)) {
-      openTable = keywordColumns(rowCells(lines[i])).length > 0 ? 'keyword' : 'informative';
+      openTable = tableKind(line);
       keywordBulletsOpen = false;
-      if (openTable === 'informative') scanProse(line, i);
+      if (openTable === 'informative') reportProseIds(line, i, push);
       i++; // the delimiter row carries only dashes
       continue;
     }
-    const definition = line.match(DEFINITION_RE);
-    if (definition) {
-      keywordBulletsOpen = false;
-      const above = i > 0 ? lines[i - 1] : '';
-      const below = i + 1 < lines.length ? lines[i + 1] : '';
-      if (above.trim() !== '' && !HEADING_RE.test(above) && !SETEXT_UNDERLINE_RE.test(above)) {
-        push(
-          'error',
-          i,
-          `item ${definedId(definition)} is defined in the middle of a paragraph: the rendered page shows this line as part of the text above; an item ID needs a blank line or its heading directly above`,
-        );
-      } else if (SETEXT_UNDERLINE_RE.test(below)) {
-        push(
-          'error',
-          i,
-          `item ${definedId(definition)} is turned into a heading by the underline below; item IDs are never heading text - separate the ID and the underline with a blank line`,
-        );
-      }
-      continue;
-    }
-    if (FORWARD_LINE_RE.test(line)) {
-      keywordBulletsOpen = false;
-      continue;
-    }
-    const keyword = line.match(KEYWORD_RE);
-    if (keyword) {
-      keywordBulletsOpen = keyword[2].trim() === '';
-      continue;
-    }
-    if (keywordBulletsOpen && BULLET_RE.test(line)) continue;
-    keywordBulletsOpen = false;
-    const quoted = line.match(BLOCKQUOTED_DEFINITION_RE);
-    if (quoted) {
-      push(
-        'warning',
-        i,
-        `item definition ${definedId(quoted)} inside a blockquote is not read; move it out of the blockquote to define the item`,
-      );
-      continue;
-    }
-    scanProse(line, i);
+    keywordBulletsOpen = checkFreeLine(lines, i, keywordBulletsOpen, push);
   }
 }
 
