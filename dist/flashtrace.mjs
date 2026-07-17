@@ -306,14 +306,14 @@ var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 var DELIMITER_CELL_RE = /^:?-+:?$/;
 var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
-var isBoundary = (line) => DEFINITION_RE.test(line) || HEADING_RE.test(line);
+var isBoundary = (lines, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || isParagraphLine(lines[j]) && j + 1 < lines.length && SETEXT_UNDERLINE_RE.test(lines[j + 1]);
 function takeForward(line, file, lineIndex, forwards) {
   const forward = line.match(FORWARD_LINE_RE);
   if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1));
   return !!forward;
 }
 function isParagraphLine(line) {
-  return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line);
+  return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line) && !KEYWORD_RE.test(line) && !FORWARD_LINE_RE.test(line);
 }
 function titleAbove(lines, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
@@ -359,7 +359,7 @@ function takeKeywordTable(lines, j, item, file, problems) {
   const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
   if (delimiter?.length !== header.length || !delimiter.every((cell) => DELIMITER_CELL_RE.test(cell))) return null;
   j++;
-  while (j + 1 < lines.length && !isBoundary(lines[j + 1])) {
+  while (j + 1 < lines.length && !isBoundary(lines, j + 1)) {
     const cells = rowCells(lines[j + 1]);
     if (!cells) break;
     j++;
@@ -390,7 +390,7 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
 function parseItemBody(lines, start, item, file, problems, forwards) {
   let j = start;
   let descriptionDone = false;
-  while (j < lines.length && !isBoundary(lines[j])) {
+  while (j < lines.length && !isBoundary(lines, j)) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;

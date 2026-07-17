@@ -99,6 +99,73 @@ test('a bullet list above a run of dashes is not a setext heading', () => {
   assert.equal(items[0].title, null);
 });
 
+// A setext heading needs no blank line before it: like an ATX heading in the
+// same spot, it terminates the previous item instead of being absorbed as
+// description text.
+test('a setext heading directly after the description terminates the previous item', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    'Next Title',
+    '==========',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].description, ['Description of a.']);
+  assert.equal(items[1].title, 'Next Title');
+});
+
+// Deliberate CommonMark deviation, pinned: CommonMark folds every paragraph
+// line down to the underline into one multi-line heading; the tracer takes
+// exactly the one line directly above the underline as the title and leaves
+// the lines above it in their prior role.
+test('only the line directly above the underline is the title; lines above stay description', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'First description line.',
+    'Second description line.',
+    'Third description line.',
+    'Fourth description line.',
+    'Definitive title of b.',
+    '======================',
+    '`req:b#1`',
+  ]);
+  assert.deepEqual(items[0].description, [
+    'First description line.',
+    'Second description line.',
+    'Third description line.',
+    'Fourth description line.',
+  ]);
+  assert.equal(items[1].title, 'Definitive title of b.');
+});
+
+// A keyword line is structural, never heading text: it must feed exactly one
+// item's keyword list and not double as the next item's title.
+test('a keyword line above a setext underline is not a heading', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    '',
+    'Covers: req:x#1',
+    '---',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].covers, ['req:x#1']);
+  assert.equal(items[1].title, null);
+});
+
+test('a forwarding line above a setext underline is not a heading', () => {
+  const { items, forwards } = parse([
+    '`req:a#1`',
+    '',
+    '[req:a#1 --> dsn:b#1]',
+    '---',
+    '`req:b#1`',
+  ]);
+  assert.equal(forwards.length, 1);
+  assert.equal(items[1].title, null);
+});
+
 test('needs as bullet list, IDs optionally backticked', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -387,6 +454,25 @@ test('keyword table without leading/trailing pipes', () => {
   ]);
   assert.equal(problems.length, 0);
   assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
+});
+
+// A pipe-bearing setext title line ends the table like a pipe-bearing ATX
+// heading does - it must not be consumed as a table row.
+test('a keyword table ends at a setext heading directly below it', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| impl:a#1 |',
+    'Next | Title',
+    '=============',
+    '`req:b#1`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+  assert.equal(items[1].title, 'Next | Title');
 });
 
 test('a pipe-bearing heading ends the table like any block element', () => {
