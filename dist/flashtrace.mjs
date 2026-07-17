@@ -306,6 +306,8 @@ var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 var DELIMITER_CELL_RE = /^:?-+:?$/;
 var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
+var INLINE_ID_RE = new RegExp(String.raw`\`(${NEED_ID_SRC})\``, "g");
+var BLOCKQUOTED_DEFINITION_RE = new RegExp(String.raw`^ {0,3}(?:> ?)+\s*\`${ID_SRC}\`\s*$`);
 var isBoundary = (line) => DEFINITION_RE.test(line) || HEADING_RE.test(line);
 function takeForward(line, file, lineIndex, forwards) {
   const forward = line.match(FORWARD_LINE_RE);
@@ -348,23 +350,31 @@ function rowCells(line) {
   if (row.endsWith("|")) row = row.slice(0, -1);
   return row.split("|").map((cell) => cell.trim());
 }
+function opensTable(lines, j) {
+  const header = rowCells(lines[j]);
+  if (!header) return false;
+  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
+  return delimiter?.length === header.length && delimiter.every((cell) => DELIMITER_CELL_RE.test(cell));
+}
+function keywordColumns(header) {
+  const columns = [];
+  header.forEach((cell, columnIndex) => {
+    if (cell === "Needs" || cell === "Covers" || cell === "Tags") columns.push([columnIndex, cell]);
+  });
+  return columns;
+}
 function takeKeywordTable(lines, j, item, file, problems) {
   const header = rowCells(lines[j]);
   if (!header) return null;
-  const columns = [];
-  header.forEach((cell, col) => {
-    if (cell === "Needs" || cell === "Covers" || cell === "Tags") columns.push([col, cell]);
-  });
-  if (columns.length === 0) return null;
-  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
-  if (delimiter?.length !== header.length || !delimiter.every((cell) => DELIMITER_CELL_RE.test(cell))) return null;
+  const columns = keywordColumns(header);
+  if (columns.length === 0 || !opensTable(lines, j)) return null;
   j++;
   while (j + 1 < lines.length && !isBoundary(lines[j + 1])) {
     const cells = rowCells(lines[j + 1]);
     if (!cells) break;
     j++;
-    for (const [col, keyword] of columns) {
-      if (cells[col]) applyKeyword(item, keyword, [cells[col]], file, j + 1, problems);
+    for (const [columnIndex, keyword] of columns) {
+      if (cells[columnIndex]) applyKeyword(item, keyword, [cells[columnIndex]], file, j + 1, problems);
     }
   }
   return j;
@@ -416,6 +426,94 @@ function parseItemBody(lines, start, item, file, problems, forwards) {
   }
   return j;
 }
+function checkItemLocations(lines, file, problems) {
+  const push = (severity, lineIndex, message) => problems.push({ severity, file, line: lineIndex + 1, message });
+  const scanProse = (line, lineIndex) => {
+    for (const m of line.matchAll(INLINE_ID_RE)) {
+      push(
+        "warning",
+        lineIndex,
+        `ID \`${m[1]}\` in prose is not traced: flashtrace reads IDs only in definitions, keyword entries, and forwarding lines`
+      );
+    }
+  };
+  const definedId = (m) => makeId(m[1], m[2], m[3], m[4]);
+  let openTable = null;
+  let keywordBulletsOpen = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === "") {
+      openTable = null;
+      keywordBulletsOpen = false;
+      continue;
+    }
+    if (openTable !== null) {
+      if (HEADING_RE.test(line)) {
+        openTable = null;
+      } else {
+        const definition2 = line.match(DEFINITION_RE);
+        if (definition2) {
+          push(
+            "error",
+            i,
+            `item ${definedId(definition2)} is absorbed into the table above: the rendered page shows this line as a table row, not as a definition; separate it from the table with a blank line`
+          );
+        } else if (openTable === "informative") {
+          scanProse(line, i);
+        }
+        continue;
+      }
+    }
+    if (opensTable(lines, i)) {
+      openTable = keywordColumns(rowCells(lines[i])).length > 0 ? "keyword" : "informative";
+      keywordBulletsOpen = false;
+      if (openTable === "informative") scanProse(line, i);
+      i++;
+      continue;
+    }
+    const definition = line.match(DEFINITION_RE);
+    if (definition) {
+      keywordBulletsOpen = false;
+      const above = i > 0 ? lines[i - 1] : "";
+      const below = i + 1 < lines.length ? lines[i + 1] : "";
+      if (above.trim() !== "" && !HEADING_RE.test(above) && !SETEXT_UNDERLINE_RE.test(above)) {
+        push(
+          "error",
+          i,
+          `item ${definedId(definition)} is defined in the middle of a paragraph: the rendered page shows this line as part of the text above; an item ID needs a blank line or its heading directly above`
+        );
+      } else if (SETEXT_UNDERLINE_RE.test(below)) {
+        push(
+          "error",
+          i,
+          `item ${definedId(definition)} is turned into a heading by the underline below; item IDs are never heading text - separate the ID and the underline with a blank line`
+        );
+      }
+      continue;
+    }
+    if (FORWARD_LINE_RE.test(line)) {
+      keywordBulletsOpen = false;
+      continue;
+    }
+    const keyword = line.match(KEYWORD_RE);
+    if (keyword) {
+      keywordBulletsOpen = keyword[2].trim() === "";
+      continue;
+    }
+    if (keywordBulletsOpen && BULLET_RE.test(line)) continue;
+    keywordBulletsOpen = false;
+    const quoted = line.match(BLOCKQUOTED_DEFINITION_RE);
+    if (quoted) {
+      push(
+        "warning",
+        i,
+        `item definition ${definedId(quoted)} inside a blockquote is not read; move it out of the blockquote to define the item`
+      );
+      continue;
+    }
+    scanProse(line, i);
+  }
+}
 function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const items = [];
@@ -435,6 +533,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
     i = parseItemBody(lines, i + 1, item, file, problems, forwards);
     items.push(item);
   }
+  checkItemLocations(lines, file, problems);
   return items;
 }
 

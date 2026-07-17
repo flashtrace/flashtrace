@@ -432,3 +432,206 @@ test('a keyword table terminates the description like a keyword line', () => {
   assert.deepEqual(items[0].description, ['The description.']);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
 });
+
+// --- Item location diagnostics ---------------------------------------------
+// Guiding rule: an ID line is only cleanly placed where the rendered GFM page
+// would show it as a paragraph of its own. Badly placed items are still
+// created, but a problem is reported.
+
+test('an ID absorbed into an informative table is an item plus an error', () => {
+  const { items, problems } = parse([
+    'title 1 | title 2',
+    '--- | ---',
+    'Login | Logout',
+    '`req:a#1`',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'req:a#1');
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'error');
+  assert.equal(problems[0].line, 4);
+  assert.match(problems[0].message, /table row/);
+});
+
+test('an ID absorbed into a keyword table reports the same error', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| impl:a#1 |',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'error');
+  assert.equal(problems[0].line, 6);
+  assert.match(problems[0].message, /table row/);
+});
+
+test('a blank line after a table separates the ID cleanly', () => {
+  const { items, problems } = parse([
+    'title 1 | title 2',
+    '--- | ---',
+    'Login | Logout',
+    '',
+    '`req:a#1`',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(problems.length, 0);
+});
+
+test('a heading ends a table, so an ID below the heading is clean', () => {
+  const { items, problems } = parse([
+    'title 1 | title 2',
+    '--- | ---',
+    'Login | Logout',
+    '# Chapter',
+    '`req:a#1`',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(problems.length, 0);
+});
+
+test('an ID directly under prose is an item plus a mid-paragraph error', () => {
+  const { items, problems } = parse(['Some prose above.', '`req:a#1`']);
+  assert.equal(items.length, 1);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'error');
+  assert.equal(problems[0].line, 2);
+  assert.match(problems[0].message, /middle of a paragraph/);
+});
+
+test('two stacked ID lines report a mid-paragraph error for the second', () => {
+  const { items, problems } = parse(['`req:a#1`', '`req:b#1`']);
+  assert.equal(items.length, 2);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].line, 2);
+  assert.match(problems[0].message, /req:b#1/);
+  assert.match(problems[0].message, /middle of a paragraph/);
+});
+
+test('a blank line between two IDs keeps both clean', () => {
+  const { problems } = parse(['`req:a#1`', '', '`req:b#1`']);
+  assert.equal(problems.length, 0);
+});
+
+test('an ATX heading directly above keeps an ID clean', () => {
+  const { problems } = parse(['# Heading', '`req:a#1`']);
+  assert.equal(problems.length, 0);
+});
+
+test('a setext underline directly above (its heading) keeps an ID clean', () => {
+  const { items, problems } = parse(['The title', '=========', '`req:a#1`']);
+  assert.equal(items[0].title, 'The title');
+  assert.equal(problems.length, 0);
+});
+
+test('a thematic break directly above keeps an ID clean', () => {
+  const { problems } = parse(['Prose above.', '', '---', '`req:a#1`']);
+  assert.equal(problems.length, 0);
+});
+
+test('an ID directly above a === underline becomes a heading: error', () => {
+  const { items, problems } = parse(['`req:a#1`', '===']);
+  assert.equal(items.length, 1);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'error');
+  assert.equal(problems[0].line, 1);
+  assert.match(problems[0].message, /heading/);
+});
+
+test('an ID directly above a --- underline becomes a heading: error', () => {
+  const { problems } = parse(['`req:a#1`', '---']);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'error');
+  assert.match(problems[0].message, /never heading text/);
+});
+
+test('a blank line between the ID and a dash run keeps the ID clean', () => {
+  const { problems } = parse(['`req:a#1`', '', '---']);
+  assert.equal(problems.length, 0);
+});
+
+test('a backticked ID inline in prose warns', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'The description, see `req:other#1` for details.',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'warning');
+  assert.equal(problems[0].line, 3);
+  assert.match(problems[0].message, /req:other#1/);
+});
+
+test('a backticked wildcard reference in prose warns too', () => {
+  const { problems } = parse(['Any revision like `impl:a#2.x` would do.']);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'warning');
+  assert.match(problems[0].message, /impl:a#2\.x/);
+});
+
+test('a bare (unbackticked) ID in prose does not warn', () => {
+  const { problems } = parse(['See req:other#1 for details.']);
+  assert.equal(problems.length, 0);
+});
+
+test('keyword lines, keyword bullets, keyword cells and forwards never warn', () => {
+  const { items, problems, forwards } = parse([
+    '`req:a#1`',
+    '',
+    'Needs: `impl:a#1`',
+    '',
+    'Covers:',
+    '- `feat:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| `utest:a#1` |',
+    '',
+    '`[req:a#1 --> dsn:b#1]`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
+  assert.deepEqual(items[0].covers, ['feat:a#1']);
+  assert.equal(forwards.length, 1);
+});
+
+test('a backticked ID in an informative table cell warns', () => {
+  const { problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Owner |',
+    '|---|---|',
+    '| `impl:a#1` | Alice |',
+  ]);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'warning');
+  assert.equal(problems[0].line, 5);
+});
+
+test('a blockquoted ID line creates no item but warns', () => {
+  const { items, problems } = parse(['> `req:a#1`']);
+  assert.equal(items.length, 0);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'warning');
+  assert.equal(problems[0].line, 1);
+  assert.match(problems[0].message, /blockquote/);
+});
+
+test('a nested blockquoted ID line warns the same way', () => {
+  const { items, problems } = parse(['>> `req:a#1`']);
+  assert.equal(items.length, 0);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /blockquote/);
+});
+
+test('blockquoted prose mentioning an ID warns as an inline reference', () => {
+  const { problems } = parse(['> see `req:a#1` for details']);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].severity, 'warning');
+  assert.match(problems[0].message, /in prose/);
+});

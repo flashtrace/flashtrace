@@ -12,7 +12,7 @@
  *     the first item's coverage obligation to the second (spaces optional).
  */
 
-import { FORWARD_SRC, ID_SRC, makeForward, makeId, parseIdEntry, parseNeedEntry, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, NEED_ID_SRC, makeForward, makeId, parseIdEntry, parseNeedEntry, newItem } from './ids.mjs';
 
 const DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
@@ -26,6 +26,12 @@ const DELIMITER_CELL_RE = /^:?-+:?$/;
 // group 1 is the optional backtick; the \1 backreference keeps it balanced,
 // so the two ID captures start at group 2
 const FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
+// an ID wrapped directly in backticks anywhere within a line; the revision may
+// be a wildcard so informative references like `impl:auth#2.x` are found too.
+// Group 1 is the full ID text as written.
+const INLINE_ID_RE = new RegExp(String.raw`\`(${NEED_ID_SRC})\``, 'g');
+// an ID line behind one or more blockquote markers: > `req:auth/login#1`
+const BLOCKQUOTED_DEFINITION_RE = new RegExp(String.raw`^ {0,3}(?:> ?)+\s*\`${ID_SRC}\`\s*$`);
 
 const isBoundary = (line) => DEFINITION_RE.test(line) || HEADING_RE.test(line);
 
@@ -93,6 +99,25 @@ function rowCells(line) {
   return row.split('|').map((cell) => cell.trim());
 }
 
+// do lines[j] (header row) and lines[j + 1] (delimiter row) open a GFM table?
+// GFM: a delimiter row with a deviating cell count degrades the whole block
+// to prose, so the tracer must not read it as a table either.
+function opensTable(lines, j) {
+  const header = rowCells(lines[j]);
+  if (!header) return false;
+  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
+  return delimiter?.length === header.length && delimiter.every((cell) => DELIMITER_CELL_RE.test(cell));
+}
+
+// the [index, keyword] pairs of a header row's keyword cells
+function keywordColumns(header) {
+  const columns = [];
+  header.forEach((cell, columnIndex) => {
+    if (cell === 'Needs' || cell === 'Covers' || cell === 'Tags') columns.push([columnIndex, cell]);
+  });
+  return columns;
+}
+
 // a table whose header row contains keyword cells ("Needs", "Covers", "Tags")
 // contributes each row's cell in those columns as one entry; empty cells and
 // all other columns are ignored. Returns the index of the last consumed line,
@@ -100,15 +125,8 @@ function rowCells(line) {
 function takeKeywordTable(lines, j, item, file, problems) {
   const header = rowCells(lines[j]);
   if (!header) return null;
-  const columns = [];
-  header.forEach((cell, col) => {
-    if (cell === 'Needs' || cell === 'Covers' || cell === 'Tags') columns.push([col, cell]);
-  });
-  if (columns.length === 0) return null;
-  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
-  // GFM: a delimiter row with a deviating cell count degrades the whole
-  // block to prose, so the tracer must not read it as a table either
-  if (delimiter?.length !== header.length || !delimiter.every((cell) => DELIMITER_CELL_RE.test(cell))) return null;
+  const columns = keywordColumns(header);
+  if (columns.length === 0 || !opensTable(lines, j)) return null;
   j++;
   // like GFM, the table ends at a new block-level element (here: a heading
   // or an item definition), even when that line contains a pipe
@@ -116,8 +134,8 @@ function takeKeywordTable(lines, j, item, file, problems) {
     const cells = rowCells(lines[j + 1]);
     if (!cells) break;
     j++;
-    for (const [col, keyword] of columns) {
-      if (cells[col]) applyKeyword(item, keyword, [cells[col]], file, j + 1, problems);
+    for (const [columnIndex, keyword] of columns) {
+      if (cells[columnIndex]) applyKeyword(item, keyword, [cells[columnIndex]], file, j + 1, problems);
     }
   }
   return j;
@@ -177,6 +195,115 @@ function parseItemBody(lines, start, item, file, problems, forwards) {
   return j;
 }
 
+/*
+ * Item location diagnostics.
+ *
+ * Guiding rule: an ID line is only cleanly placed where the rendered GFM page
+ * would show it as a paragraph of its own. Items in other locations are still
+ * created exactly as before - never suppressed - but a problem records the
+ * disagreement:
+ *   - error:   the rendered page absorbs or repurposes the ID line (table
+ *              row, paragraph continuation, setext heading text), so the page
+ *              and the tracer disagree about what the line is.
+ *   - warning: the page renders fine, but flashtrace deliberately does not
+ *              read the reference (backticked ID in prose, blockquoted ID).
+ */
+function checkItemLocations(lines, file, problems) {
+  const push = (severity, lineIndex, message) => problems.push({ severity, file, line: lineIndex + 1, message });
+  // a line the page renders as prose: warn about every backticked ID in it
+  const scanProse = (line, lineIndex) => {
+    for (const m of line.matchAll(INLINE_ID_RE)) {
+      push(
+        'warning',
+        lineIndex,
+        `ID \`${m[1]}\` in prose is not traced: flashtrace reads IDs only in definitions, keyword entries, and forwarding lines`,
+      );
+    }
+  };
+  const definedId = (m) => makeId(m[1], m[2], m[3], m[4]);
+
+  // GFM table state: once a header and delimiter row establish a table, it
+  // absorbs every following non-blank line as a row (even one without pipes)
+  // until a blank line or the start of another block - tracked here as a
+  // heading, matching the boundaries the keyword-table parser knows.
+  let openTable = null; // null | 'keyword' | 'informative'
+  let keywordBulletsOpen = false; // bullet entries of a preceding keyword line
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === '') {
+      openTable = null;
+      keywordBulletsOpen = false;
+      continue;
+    }
+    if (openTable !== null) {
+      if (HEADING_RE.test(line)) {
+        openTable = null; // a heading starts a new block and ends the table
+      } else {
+        const definition = line.match(DEFINITION_RE);
+        if (definition) {
+          push(
+            'error',
+            i,
+            `item ${definedId(definition)} is absorbed into the table above: the rendered page shows this line as a table row, not as a definition; separate it from the table with a blank line`,
+          );
+        } else if (openTable === 'informative') {
+          scanProse(line, i); // keyword table cells are read, all others are prose
+        }
+        continue;
+      }
+    }
+    if (opensTable(lines, i)) {
+      openTable = keywordColumns(rowCells(lines[i])).length > 0 ? 'keyword' : 'informative';
+      keywordBulletsOpen = false;
+      if (openTable === 'informative') scanProse(line, i);
+      i++; // the delimiter row carries only dashes
+      continue;
+    }
+    const definition = line.match(DEFINITION_RE);
+    if (definition) {
+      keywordBulletsOpen = false;
+      const above = i > 0 ? lines[i - 1] : '';
+      const below = i + 1 < lines.length ? lines[i + 1] : '';
+      if (above.trim() !== '' && !HEADING_RE.test(above) && !SETEXT_UNDERLINE_RE.test(above)) {
+        push(
+          'error',
+          i,
+          `item ${definedId(definition)} is defined in the middle of a paragraph: the rendered page shows this line as part of the text above; an item ID needs a blank line or its heading directly above`,
+        );
+      } else if (SETEXT_UNDERLINE_RE.test(below)) {
+        push(
+          'error',
+          i,
+          `item ${definedId(definition)} is turned into a heading by the underline below; item IDs are never heading text - separate the ID and the underline with a blank line`,
+        );
+      }
+      continue;
+    }
+    if (FORWARD_LINE_RE.test(line)) {
+      keywordBulletsOpen = false;
+      continue;
+    }
+    const keyword = line.match(KEYWORD_RE);
+    if (keyword) {
+      keywordBulletsOpen = keyword[2].trim() === '';
+      continue;
+    }
+    if (keywordBulletsOpen && BULLET_RE.test(line)) continue;
+    keywordBulletsOpen = false;
+    const quoted = line.match(BLOCKQUOTED_DEFINITION_RE);
+    if (quoted) {
+      push(
+        'warning',
+        i,
+        `item definition ${definedId(quoted)} inside a blockquote is not read; move it out of the blockquote to define the item`,
+      );
+      continue;
+    }
+    scanProse(line, i);
+  }
+}
+
 export function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const items = [];
@@ -197,5 +324,6 @@ export function parseMarkdown(file, text, problems, forwards = []) {
     i = parseItemBody(lines, i + 1, item, file, problems, forwards);
     items.push(item);
   }
+  checkItemLocations(lines, file, problems);
   return items;
 }
