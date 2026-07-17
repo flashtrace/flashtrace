@@ -25,7 +25,8 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 Long options also accept `=`-attached values, e.g. `--tags=a,b`; values
 containing spaces must be shell-quoted (`--tags="a , b"`).
 
-Exit codes: `0` clean, `1` defects or problems found, `2` usage error.
+Exit codes: `0` clean, `1` defects or errors found, `2` usage error.
+Warning problems alone leave the run clean.
 
 ## Item IDs
 
@@ -102,4 +103,13 @@ counted separately in the summary.
 
 Malformed input (invalid IDs in Needs/Covers lists, a `[>>...]` tag with no
 preceding item tag, an explicit `[<source-id> >> <id>]` tag whose source item
-tag does not precede it) is reported as a **problem** ⚠ alongside the defects.
+tag does not precede it) is reported as a **problem** alongside the defects.
+A problem carries one of two severities:
+
+- **error** ✘ - flashtrace cannot correctly process the affected input; any
+  error makes the run fail (exit code 1).
+- **warning** ⚠ - suspicious usage that flashtrace can handle; warnings are
+  listed in the report and counted in the summary, but leave the exit code
+  untouched.
+
+Every parse and analysis problem flashtrace reports is an error.
