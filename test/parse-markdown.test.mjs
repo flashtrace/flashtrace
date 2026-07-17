@@ -99,6 +99,94 @@ test('a bullet list above a run of dashes is not a setext heading', () => {
   assert.equal(items[0].title, null);
 });
 
+// A setext heading terminates the previous item's body exactly like an ATX
+// `# Next Title` does - no blank line required in between. The same predicate
+// that recognizes the underline as a title (above) is what ends the body here.
+
+// The maintainer's failing case (MentorFilou, #46 review), verbatim:
+//   `req:a#1`
+//   Description of a.
+//   Next Title
+//   ==========
+//   `req:b#1`
+test("a setext title ends the previous item's body without a blank line (===)", () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    'Next Title',
+    '==========',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].id, 'req:a#1');
+  // 'Next Title' must NOT be swallowed into item a's description.
+  assert.deepEqual(items[0].description, ['Description of a.']);
+  assert.ok(!items[0].description.includes('Next Title'));
+  // Per the #46 semantics the setext title titles the item below it (b).
+  assert.equal(items[1].id, 'req:b#1');
+  assert.equal(items[1].title, 'Next Title');
+});
+
+test("a setext title ends the previous item's body without a blank line (---)", () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    'Next Title',
+    '----------',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].description, ['Description of a.']);
+  assert.equal(items[1].title, 'Next Title');
+});
+
+// Regression: the pre-fix code already ended the body when a blank line sat
+// between the description and the setext title; that must keep working.
+test('a setext title preceded by a blank line still ends the body (no regression)', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    '',
+    'Next Title',
+    '==========',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].description, ['Description of a.']);
+  assert.equal(items[1].title, 'Next Title');
+});
+
+// ATX boundary behavior is unchanged by the setext boundary fix.
+test('an ATX heading still ends the previous item body without a blank line', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    '# Next Title',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].description, ['Description of a.']);
+  assert.equal(items[1].title, 'Next Title');
+});
+
+// Disambiguation: a line of dashes that is NOT a valid setext underline (a
+// thematic break - a run of `-` set off by a blank line) must not terminate the
+// body or split off a spurious item. The boundary reuses the exact underline
+// predicate, so the thematic break is correctly ignored.
+test('a thematic break inside a body does not terminate it or split the item', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    '',
+    '---',
+    '',
+    'More prose that is not a new item.',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'req:a#1');
+  assert.deepEqual(items[0].description, ['Description of a.']);
+});
+
 test('needs as bullet list, IDs optionally backticked', () => {
   const { items, problems } = parse([
     '`req:a#1`',

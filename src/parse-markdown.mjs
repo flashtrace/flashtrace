@@ -27,15 +27,6 @@ const DELIMITER_CELL_RE = /^:?-+:?$/;
 // so the two ID captures start at group 2
 const FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
 
-const isBoundary = (line) => DEFINITION_RE.test(line) || HEADING_RE.test(line);
-
-// a line that is only a forwarding tag pushes a forward and is otherwise skipped
-function takeForward(line, file, lineIndex, forwards) {
-  const forward = line.match(FORWARD_LINE_RE);
-  if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1));
-  return !!forward;
-}
-
 // A setext underline forms a heading only when a paragraph line sits directly
 // above it (CommonMark). That excludes the lookalikes the issue names: a
 // thematic break (blank line above the run), a table delimiter row (its run
@@ -51,6 +42,31 @@ function isParagraphLine(line) {
   );
 }
 
+// The single predicate shared by title recognition and body-boundary detection:
+// `titleLine` followed directly by `underlineLine` is a setext heading exactly
+// when the underline is a valid run of =/- and the line above it is a paragraph.
+// Both callers evaluate the same (title, underline) pair, so the parser and the
+// boundary logic agree by construction (#46 review's isBoundary-parity gap).
+const isSetextHeading = (titleLine, underlineLine) =>
+  underlineLine !== undefined &&
+  SETEXT_UNDERLINE_RE.test(underlineLine) &&
+  isParagraphLine(titleLine);
+
+// A body ends at the next block-level element: an item definition, an ATX
+// heading, or the title line of a setext heading (which, like `# Next Title`,
+// terminates the previous item here rather than being swallowed as description).
+const isBoundary = (lines, i) =>
+  DEFINITION_RE.test(lines[i]) ||
+  HEADING_RE.test(lines[i]) ||
+  isSetextHeading(lines[i], lines[i + 1]);
+
+// a line that is only a forwarding tag pushes a forward and is otherwise skipped
+function takeForward(line, file, lineIndex, forwards) {
+  const forward = line.match(FORWARD_LINE_RE);
+  if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1));
+  return !!forward;
+}
+
 function titleAbove(lines, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
     const line = lines[k];
@@ -58,8 +74,9 @@ function titleAbove(lines, definitionIndex) {
     const heading = line.match(HEADING_RE);
     if (heading) return heading[2]; // ATX heading (#...)
     // A setext underline turns the paragraph line directly above it into the
-    // title; without such a line the run of =/- is not a heading.
-    if (SETEXT_UNDERLINE_RE.test(line) && k > 0 && isParagraphLine(lines[k - 1])) {
+    // title; without such a line the run of =/- is not a heading. Same
+    // (title, underline) predicate that isBoundary uses to end the prior body.
+    if (k > 0 && isSetextHeading(lines[k - 1], line)) {
       return lines[k - 1].trim();
     }
     return null; // any other text directly above -> no title
@@ -112,7 +129,7 @@ function takeKeywordTable(lines, j, item, file, problems) {
   j++;
   // like GFM, the table ends at a new block-level element (here: a heading
   // or an item definition), even when that line contains a pipe
-  while (j + 1 < lines.length && !isBoundary(lines[j + 1])) {
+  while (j + 1 < lines.length && !isBoundary(lines, j + 1)) {
     const cells = rowCells(lines[j + 1]);
     if (!cells) break;
     j++;
@@ -148,7 +165,7 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
 function parseItemBody(lines, start, item, file, problems, forwards) {
   let j = start;
   let descriptionDone = false;
-  while (j < lines.length && !isBoundary(lines[j])) {
+  while (j < lines.length && !isBoundary(lines, j)) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
