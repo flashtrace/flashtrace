@@ -160,7 +160,17 @@ jobs:
           bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
-          npm version "$LEVEL" --ignore-scripts -m "release: v%s"
+          # The skip-checks trailer stops the bump push from creating runs of
+          # the push-triggered workflows, which have nothing to do on this
+          # commit: CI verified this exact tree moments ago, the communicator
+          # already refreshed its comments on the merge push via its bump
+          # anticipation, and this workflow itself would only log a skipped
+          # run. The trailer lives in the commit body, keeping the subject a
+          # clean "release: vX.Y.Z". GitHub only honors it after two empty
+          # lines, which git's default message cleanup would collapse into
+          # one - hence verbatim.
+          git config commit.cleanup verbatim
+          npm version "$LEVEL" --ignore-scripts -m "release: v%s"$'\n\n\n'"skip-checks: true"
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       # The checkout above holds no credentials, so this push authenticates
