@@ -33,7 +33,7 @@ test('warning problems alone leave the run clean (exit 0)', () => {
 test('an error problem makes the run un-clean (exit 1)', () => {
   const { clean, output } = runReport([error]);
   assert.equal(clean, false);
-  assert.match(output, /✘ unprocessable input\s+b\.ts:7/);
+  assert.match(output, /‼ unprocessable input\s+b\.ts:7/);
   assert.match(output, /errors\s+1\b/);
   assert.ok(!output.includes('warnings'), output);
   assert.ok(output.trim().endsWith('not ok'));
@@ -43,7 +43,7 @@ test('errors and warnings are rendered distinctly and counted separately', () =>
   const { clean, output } = runReport([warning, error]);
   assert.equal(clean, false);
   assert.match(output, /⚠ suspicious usage\s+a\.ts:3/);
-  assert.match(output, /✘ unprocessable input\s+b\.ts:7/);
+  assert.match(output, /‼ unprocessable input\s+b\.ts:7/);
   assert.match(output, /errors\s+1\b/);
   assert.match(output, /warnings\s+1\b/);
   assert.ok(output.trim().endsWith('not ok'));

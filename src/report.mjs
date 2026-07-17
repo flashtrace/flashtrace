@@ -147,9 +147,10 @@ function renderSummary(items, defective, errorCount, warningCount, out, style) {
 }
 
 // an error problem means flashtrace could not correctly process the input and
-// fails the run; a warning points out suspicious but handled usage
+// fails the run; a warning points out suspicious but handled usage. The error
+// mark deliberately differs from the ✘ that marks defective items.
 function problemMark(problem, style) {
-  return problem.severity === 'warning' ? style.yellow('⚠') : style.red('✘');
+  return problem.severity === 'warning' ? style.yellow('⚠') : style.red('‼');
 }
 
 export function report(items, problems, cwd, opts = {}) {

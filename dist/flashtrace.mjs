@@ -880,7 +880,7 @@ function renderSummary(items, defective, errorCount, warningCount, out, style) {
   out.push("");
 }
 function problemMark(problem, style) {
-  return problem.severity === "warning" ? style.yellow("\u26A0") : style.red("\u2718");
+  return problem.severity === "warning" ? style.yellow("\u26A0") : style.red("\u203C");
 }
 function report(items, problems, cwd, opts = {}) {
   const { verbose = false } = opts;

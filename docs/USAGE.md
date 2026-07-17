@@ -106,7 +106,7 @@ preceding item tag, an explicit `[<source-id> >> <id>]` tag whose source item
 tag does not precede it) is reported as a **problem** alongside the defects.
 A problem carries one of two severities:
 
-- **error** ✘ - flashtrace cannot correctly process the affected input; any
+- **error** ‼ - flashtrace cannot correctly process the affected input; any
   error makes the run fail (exit code 1).
 - **warning** ⚠ - suspicious usage that flashtrace can handle; warnings are
   listed in the report and counted in the summary, but leave the exit code
