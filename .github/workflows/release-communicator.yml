@@ -66,11 +66,14 @@ jobs:
           marker='<!-- release-communicator -->'
 
           # Highest release:* label wins, mirroring the release workflow.
+          # release:none is the explicit opt-out and ranks below every real
+          # level; an empty result means no release:* label is set at all.
           pick_level() {
             local labels=" $1 "
             if [[ "$labels" == *" release:major "* ]]; then echo major
             elif [[ "$labels" == *" release:minor "* ]]; then echo minor
             elif [[ "$labels" == *" release:patch "* ]]; then echo patch
+            elif [[ "$labels" == *" release:none "* ]]; then echo none
             fi
           }
 
@@ -106,7 +109,8 @@ jobs:
             merged_labels=$(gh api "repos/$REPO/commits/$GITHUB_SHA/pulls" \
               --jq '[.[] | select(.merged_at != null) | .labels[].name] | join(" ")')
             merged_level=$(pick_level "$merged_labels")
-            if [ -n "$merged_level" ]; then
+            if [ -n "$merged_level" ] && [ "$merged_level" != 'none' ]; then
+              anticipated_bump=$merged_level
               base_version=$(bump "$base_version" "$merged_level")
             fi
             prs=$(gh pr list --repo "$REPO" --base main --state open --json number --jq '.[].number')
@@ -116,7 +120,7 @@ jobs:
           # with whichever release lands next. When this push anticipated a
           # bump, that backlog is being released right now, so it is empty.
           pending=''
-          if [ -z "${merged_level:-}" ]; then
+          if [ -z "${anticipated_bump:-}" ]; then
             list_merged_prs() {
               gh pr list --repo "$REPO" --base main --state merged --limit 100 "$@" \
                 --json number,title --jq 'sort_by(.number) | .[] | "- #\(.number) \(.title)"'
@@ -135,11 +139,12 @@ jobs:
             fi
           fi
 
+          unlabeled_prs=''
           for pr in $prs; do
             labels=$(gh pr view "$pr" --repo "$REPO" --json labels --jq '[.labels[].name] | join(" ")')
             level=$(pick_level "$labels")
 
-            if [ -n "$level" ]; then
+            if [ -n "$level" ] && [ "$level" != 'none' ]; then
               next_version=$(bump "$base_version" "$level")
               release_note="Merging this PR triggers a **$level** release (label \`release:$level\`): version **$base_version** will (most likely) be bumped to **$next_version**."
               if [ -n "$pending" ]; then
@@ -151,11 +156,19 @@ jobs:
                 "### :rocket: Release Communicator" \
                 "$release_note" \
                 "_\"Most likely\" because another release may land on \`main\` first - this comment updates itself when labels, this PR, or \`main\` change._")
-            else
+            elif [ "$level" = 'none' ]; then
               body=$(printf '%s\n\n%s\n\n%s\n\n%s' \
                 "$marker" \
                 "### :rocket: Release Communicator" \
-                "Merging this PR will **not** trigger a release - no \`release:major\` / \`release:minor\` / \`release:patch\` label is set. The version stays at **$base_version**." \
+                "Merging this PR will **not** trigger a release - the \`release:none\` label is set. The version stays at **$base_version**." \
+                "_This comment updates itself when labels, this PR, or \`main\` change._")
+            else
+              unlabeled_prs="$unlabeled_prs #$pr"
+              body=$(printf '%s\n\n%s\n\n%s\n\n%s\n\n%s' \
+                "$marker" \
+                "### :rocket: Release Communicator" \
+                ":warning: **A release label is required.** Add exactly one of \`release:major\`, \`release:minor\`, \`release:patch\`, or \`release:none\` to this PR." \
+                "Until one is set, this workflow fails - and to be clear: **no release will happen** when this PR merges; the version stays at **$base_version**." \
                 "_This comment updates itself when labels, this PR, or \`main\` change._")
             fi
 
@@ -167,3 +180,13 @@ jobs:
               gh api --silent --method POST "repos/$REPO/issues/$pr/comments" -f body="$body"
             fi
           done
+
+          if [ -n "$unlabeled_prs" ]; then
+            echo "::error::Missing release label on PR(s):$unlabeled_prs - add one of release:major, release:minor, release:patch, or release:none."
+            # Only fail runs belonging to a PR; a push-to-main run refreshes
+            # every open PR's comment, and other PRs' missing labels must not
+            # paint a red X onto main.
+            if [ -n "${EVENT_PR:-}" ]; then
+              exit 1
+            fi
+          fi
