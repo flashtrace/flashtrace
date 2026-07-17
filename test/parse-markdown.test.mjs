@@ -58,6 +58,47 @@ test('non-blank text between heading and ID means no title', () => {
   assert.equal(items[0].title, null);
 });
 
+// Setext-style headings: a paragraph line underlined with `=` (level 1) or
+// `-` (level 2) is the item's title, just like an ATX `#` heading.
+test('setext level-1 heading (===) is recognized as the title', () => {
+  const { items } = parse(['Title level 1', '=============', '`req:a#1`']);
+  assert.equal(items[0].title, 'Title level 1');
+});
+
+test('setext level-2 heading (---) is recognized as the title', () => {
+  const { items } = parse(['Title level 2', '-------------', '`req:a#1`']);
+  assert.equal(items[0].title, 'Title level 2');
+});
+
+test('a setext underline may carry trailing whitespace and up to three leading spaces', () => {
+  const { items } = parse(['The title', '   ===   ', '`req:a#1`']);
+  assert.equal(items[0].title, 'The title');
+});
+
+test('setext title survives blank lines between the underline and the ID', () => {
+  const { items } = parse(['The title', '=========', '', '', '`req:a#1`']);
+  assert.equal(items[0].title, 'The title');
+});
+
+// The underline must sit directly under a paragraph line. A thematic break is
+// a run of `-` set off by a blank line, so it must not become a heading.
+test('a thematic break (--- after a blank line) is not a setext heading', () => {
+  const { items } = parse(['Some intro paragraph', '', '---', '', '`req:a#1`']);
+  assert.equal(items[0].title, null);
+});
+
+// A table delimiter row carries pipes, so it is never a setext underline.
+test('a table delimiter row is not mistaken for a setext heading', () => {
+  const { items } = parse(['| Feature | Owner |', '| --- | --- |', '`req:a#1`']);
+  assert.equal(items[0].title, null);
+});
+
+// A run of `-` directly below a bullet ends the list; it is not a heading.
+test('a bullet list above a run of dashes is not a setext heading', () => {
+  const { items } = parse(['- item one', '- item two', '---', '`req:a#1`']);
+  assert.equal(items[0].title, null);
+});
+
 test('needs as bullet list, IDs optionally backticked', () => {
   const { items, problems } = parse([
     '`req:a#1`',
