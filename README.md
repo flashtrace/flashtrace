@@ -1,24 +1,61 @@
-<p align="center">
-  <a href="https://github.com/flashtrace">
-    <img src="https://github.com/flashtrace.png" alt="flashtrace logo" width="120">
-  </a>
-</p>
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <a href="https://github.com/flashtrace">
+          <img src="https://github.com/flashtrace.png" alt="flashtrace logo" width="140">
+        </a>
+      </td>
+      <td align="left">
+        <h3>flashtrace</h3>
+        <p>
+          Lightning-fast, reference-based requirement tracing that works anywhere.
+        </p>
+        <p>
+          <a href="https://github.com/flashtrace/flashtrace/blob/main/docs/index.md">
+            <img src="https://img.shields.io/badge/Spec-Driven-8e4d13.svg?labelColor=1e1e1e" alt="Spec-driven documentation." />
+          </a>
+          <a href="https://github.com/flashtrace/flashtrace/blob/main/CLAUDE.md">
+            <img src="https://img.shields.io/badge/Agent-Native-d97d0e.svg?labelColor=1e1e1e" alt="This repository was created agent-native." />
+          </a>
+          <a href="https://github.com/flashtrace/flashtrace/blob/main/LICENSE">
+            <img src="https://img.shields.io/badge/License-Apache_2.0-f9c21d.svg?labelColor=1e1e1e" alt="Released under the Apache 2.0 license." />
+          </a>
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>
 
-<h3 align="center">flashtrace</h3>
+---
+---
+
+<h4 align="center">Quality Summary</h4>
 
 <p align="center">
-  Lightning-fast, reference-based requirement tracing that works anywhere.
-</p>
-
-<p align="center">
-    <a href="https://github.com/flashtrace/flashtrace/blob/main/docs/index.md">
-        <img src="https://img.shields.io/badge/Spec-Driven-8e4d13.svg?labelColor=1e1e1e" alt="Spec-driven documentation." />
+    <a href="https://sonarcloud.io/project/overview?id=flashtrace_flashtrace">
+        <img src="https://github.com/flashtrace/flashtrace/actions/workflows/ci.yml/badge.svg" alt="Continuous Integration status." />
     </a>
-    <a href="https://github.com/flashtrace/flashtrace/blob/main/CLAUDE.md">
-        <img src="https://img.shields.io/badge/Agent-Native-d97d0e.svg?labelColor=1e1e1e" alt="This repository was created agent-native." />
+    <a href="https://sonarcloud.io/component_measures?metric=reliability_rating&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=reliability_rating" alt="SonarCloud reliability rating." />
     </a>
-    <a href="https://github.com/flashtrace/flashtrace/blob/main/LICENSE">
-        <img src="https://img.shields.io/badge/License-Apache_2.0-f9c21d.svg?labelColor=1e1e1e" alt="Released under the Apache 2.0 license." />
+    <a href="https://sonarcloud.io/component_measures?metric=security_rating&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=security_rating" alt="SonarCloud security rating." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=sqale_rating&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=sqale_rating" alt="SonarCloud maintainability rating." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=ncloc&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=ncloc" alt="Number of lines of code." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=code_smells&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=code_smells" alt="SonarCloud amount of code smells." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=duplicated_lines&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=duplicated_lines_density" alt="SonarCloud percent of duplicated lines." />
+    </a>
+    <a href="https://sonarcloud.io/component_measures?metric=vulnerabilities&id=flashtrace_flashtrace">
+        <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=vulnerabilities" alt="SonarCloud amount of vulnerabilities." />
     </a>
 </p>
 
