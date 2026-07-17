@@ -769,6 +769,7 @@ function makeStyler() {
   const wrap = (code) => (text) => on ? `\x1B[${code}m${text}\x1B[0m` : text;
   return {
     red: wrap("31"),
+    brightRed: wrap("91"),
     green: wrap("32"),
     yellow: wrap("33"),
     cyan: wrap("36"),
@@ -875,12 +876,12 @@ function renderSummary(items, defective, errorCount, warningCount, out, style) {
     `  defective   ${defective.length ? style.red(String(defective.length)) : "0"}`
   );
   if (shallowCount) out.push("  " + style.dim(`of the ok items, ${shallowCount} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (errorCount) out.push(`  errors      ${style.red(String(errorCount))}`);
+  if (errorCount) out.push(`  errors      ${style.brightRed(String(errorCount))}`);
   if (warningCount) out.push(`  warnings    ${style.yellow(String(warningCount))}`);
   out.push("");
 }
 function problemMark(problem, style) {
-  return problem.severity === "warning" ? style.yellow("\u26A0") : style.red("\u203C");
+  return problem.severity === "warning" ? style.yellow("\u26A0") : style.brightRed("\u25B2");
 }
 function report(items, problems, cwd, opts = {}) {
   const { verbose = false } = opts;

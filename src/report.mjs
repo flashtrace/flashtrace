@@ -9,6 +9,7 @@ function makeStyler() {
   const wrap = (code) => (text) => (on ? `\u001b[${code}m${text}\u001b[0m` : text);
   return {
     red: wrap('31'),
+    brightRed: wrap('91'),
     green: wrap('32'),
     yellow: wrap('33'),
     cyan: wrap('36'),
@@ -141,16 +142,17 @@ function renderSummary(items, defective, errorCount, warningCount, out, style) {
     `  defective   ${defective.length ? style.red(String(defective.length)) : '0'}`,
   );
   if (shallowCount) out.push('  ' + style.dim(`of the ok items, ${shallowCount} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (errorCount) out.push(`  errors      ${style.red(String(errorCount))}`);
+  if (errorCount) out.push(`  errors      ${style.brightRed(String(errorCount))}`);
   if (warningCount) out.push(`  warnings    ${style.yellow(String(warningCount))}`);
   out.push('');
 }
 
 // an error problem means flashtrace could not correctly process the input and
 // fails the run; a warning points out suspicious but handled usage. The error
-// mark deliberately differs from the ✘ that marks defective items.
+// mark escalates the warning triangle and deliberately differs from the ✘
+// that marks defective items - it must stay distinguishable without color too.
 function problemMark(problem, style) {
-  return problem.severity === 'warning' ? style.yellow('⚠') : style.red('‼');
+  return problem.severity === 'warning' ? style.yellow('⚠') : style.brightRed('▲');
 }
 
 export function report(items, problems, cwd, opts = {}) {

@@ -59,7 +59,7 @@ test('parse problems are errors: they alone make the run fail', async () => {
     (dir) => {
       const res = runCli(dir);
       assert.equal(res.status, 1);
-      assert.match(res.stdout, /‼ .*no preceding item tag/);
+      assert.match(res.stdout, /▲ .*no preceding item tag/);
       assert.match(res.stdout, /errors\s+1\b/);
       assert.ok(res.stdout.trim().endsWith('not ok'));
     },
@@ -387,7 +387,7 @@ test('-v still renders parse problems', async () => {
     (dir) => {
       const res = runCli(dir, ['-v']);
       assert.equal(res.status, 1);
-      assert.match(res.stdout, /‼ .*no preceding item tag/);
+      assert.match(res.stdout, /▲ .*no preceding item tag/);
       assert.match(res.stdout, /errors\s+1\b/);
     },
   );
