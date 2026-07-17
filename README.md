@@ -3,7 +3,7 @@
     <tr>
       <td align="center">
         <a href="https://github.com/flashtrace">
-          <img src="https://github.com/flashtrace.png" alt="flashtrace logo" width="120">
+          <img src="https://github.com/flashtrace.png" alt="flashtrace logo" width="140">
         </a>
       </td>
       <td align="left">
