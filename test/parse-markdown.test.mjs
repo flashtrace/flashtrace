@@ -186,21 +186,23 @@ test('a forwarding line above a setext underline is not a heading', () => {
   assert.equal(items[1].title, null);
 });
 
-// Deliberate CommonMark deviation, pinned: setext heading text never carries
-// a pipe. A pipe-carrying line reads as a table row (the row wins over the
-// heading), so it yields no title - a title with a pipe needs an ATX heading.
-test('a pipe-carrying paragraph above an underline is not a setext title', () => {
-  const { items } = parse([
+// A pipe alone does not make a line a table row: as in GFM, a pipe-carrying
+// paragraph above an underline is a setext heading with the pipe in its text.
+// Only membership in an actual table (header plus delimiter row) rules a
+// line out.
+test('a pipe-carrying paragraph above an underline is a setext title', () => {
+  const { items, problems } = parse([
     'Login | Logout',
     '==============',
     '`req:a#1`',
   ]);
-  assert.equal(items[0].title, null);
+  assert.equal(problems.length, 0);
+  assert.equal(items[0].title, 'Login | Logout');
 });
 
-// The same pipe rule on the boundary side: because a pipe-carrying line is
-// never setext heading text, it does not terminate the body either.
-test('a pipe-carrying line above an underline does not terminate the body', () => {
+// The same on the boundary side: the pipe-carrying paragraph opens a setext
+// heading, so it terminates the body like any other heading.
+test('a pipe-carrying line above an underline terminates the body and titles the next item', () => {
   const { items } = parse([
     '`req:a#1`',
     'Description of a.',
@@ -211,7 +213,7 @@ test('a pipe-carrying line above an underline does not terminate the body', () =
   ]);
   assert.equal(items.length, 2);
   assert.deepEqual(items[0].description, ['Description of a.']);
-  assert.equal(items[1].title, null);
+  assert.equal(items[1].title, 'Login | Logout');
 });
 
 // The pipe rule leaves ATX titles untouched.
@@ -529,9 +531,11 @@ test('a keyword table ends at a setext heading directly below it', () => {
   assert.equal(items[1].title, 'Next Title');
 });
 
-// The row wins over the heading: a table row directly above an underline
-// stays in its table - its entry must not silently vanish into a title.
-test('a table row directly above an underline stays a row', () => {
+// A =/- run directly under a table row is swallowed as a single-cell row -
+// its text fills the first column, so it never underlines a heading. Here
+// the first column is the Needs column, so the swallowed "===" surfaces as
+// an invalid entry instead of silently vanishing.
+test('an underline directly under a table is a row filling the first column, not a heading', () => {
   const { items, problems } = parse([
     '`req:a#1`',
     '',
@@ -542,16 +546,17 @@ test('a table row directly above an underline stays a row', () => {
     '===========',
     '`req:b#1`',
   ]);
-  assert.equal(problems.length, 0);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "==========="/);
   assert.equal(items.length, 2);
   assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1']);
   assert.equal(items[1].title, null);
 });
 
-// The same with a dash underline, which doubles as the more tempting
-// lookalike, and with several keyword columns: every cell of the row
-// above the underline is kept.
-test('a multi-column row above a dash underline keeps all its entries', () => {
+// The same with a dash underline - the pinned GFM deviation: GFM reads a
+// thematic break there, the tracer swallows it as a row like `===` so both
+// underline styles behave alike. The keyword cells above it are kept.
+test('a dash run directly under a table is a row, not a thematic break or heading', () => {
   const { items, problems } = parse([
     '`req:a#1`',
     '',
@@ -561,15 +566,50 @@ test('a multi-column row above a dash underline keeps all its entries', () => {
     '---',
     '`req:b#1`',
   ]);
-  assert.equal(problems.length, 0);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "---"/);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
   assert.deepEqual(items[0].covers, ['feat:a#1']);
   assert.equal(items[1].title, null);
 });
 
+// A swallowed underline fills only the first column: when no keyword column
+// sits there, it feeds an ignored column and surfaces nowhere.
+test('a swallowed underline is silent when the first column is not a keyword column', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Needs |',
+    '|---|---|',
+    '| Login | impl:a#1 |',
+    '=================',
+    '`req:b#1`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+  assert.equal(items[1].title, null);
+});
+
+// The swallowed underline does not end the table: rows below it still
+// belong to the table and contribute their entries.
+test('a table continues past a swallowed underline', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Needs |',
+    '|---|---|',
+    '| Login | impl:a#1 |',
+    '===',
+    '| Logout | impl:b#1 |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1']);
+});
+
 // Any pipe-carrying line under a table is a row, even when underlined and
 // even when it reads like prose - its cells feed the keyword columns, and
-// an invalid entry is reported instead of silently becoming a title.
+// an invalid entry is reported instead of silently becoming a title. The
+// underline below it is swallowed as a row too and reported the same way.
 test('a pipe-carrying line under a table is a row even when underlined', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -581,8 +621,9 @@ test('a pipe-carrying line under a table is a row even when underlined', () => {
     '=============',
     '`req:b#1`',
   ]);
-  assert.equal(problems.length, 1);
+  assert.equal(problems.length, 2);
   assert.match(problems[0].message, /invalid ID "Next"/);
+  assert.match(problems[1].message, /invalid ID "============="/);
   assert.equal(items.length, 2);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
   assert.equal(items[1].title, null);

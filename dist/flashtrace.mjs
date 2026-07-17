@@ -312,19 +312,20 @@ function takeForward(line, file, lineIndex, forwards) {
   return !!forward;
 }
 function isParagraphLine(line) {
-  return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line) && !KEYWORD_RE.test(line) && !FORWARD_LINE_RE.test(line) && !line.includes("|");
+  return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line) && !KEYWORD_RE.test(line) && !FORWARD_LINE_RE.test(line);
 }
-var isSetextHeading = (titleLine, underlineLine) => underlineLine !== void 0 && SETEXT_UNDERLINE_RE.test(underlineLine) && isParagraphLine(titleLine);
-function opensSetextHeading(lines, j) {
-  if (!isParagraphLine(lines[j])) return false;
+var isParagraphAt = (lines, inTable, j) => !inTable[j] && isParagraphLine(lines[j]);
+var isSetextHeading = (lines, inTable, titleIndex) => titleIndex + 1 < lines.length && SETEXT_UNDERLINE_RE.test(lines[titleIndex + 1]) && isParagraphAt(lines, inTable, titleIndex);
+function opensSetextHeading(lines, inTable, j) {
+  if (!isParagraphAt(lines, inTable, j)) return false;
   let k = j;
-  while (k + 1 < lines.length && isParagraphLine(lines[k + 1])) k++;
-  return isSetextHeading(lines[k], lines[k + 1]);
+  while (k + 1 < lines.length && isParagraphAt(lines, inTable, k + 1)) k++;
+  return isSetextHeading(lines, inTable, k);
 }
-var isBoundary = (lines, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, j);
-function foldSetextTitle(lines, lastIndex) {
+var isBoundary = (lines, inTable, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, inTable, j);
+function foldSetextTitle(lines, inTable, lastIndex) {
   let first = lastIndex;
-  while (first > 0 && isParagraphLine(lines[first - 1])) first--;
+  while (first > 0 && isParagraphAt(lines, inTable, first - 1)) first--;
   let title = "";
   for (let k = first; k <= lastIndex; k++) {
     let line = lines[k];
@@ -334,14 +335,14 @@ function foldSetextTitle(lines, lastIndex) {
   }
   return title;
 }
-function titleAbove(lines, definitionIndex) {
+function titleAbove(lines, inTable, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
     const line = lines[k];
     if (line.trim() === "") continue;
     const heading = line.match(HEADING_RE);
     if (heading) return heading[2];
-    if (k > 0 && isSetextHeading(lines[k - 1], line)) {
-      return foldSetextTitle(lines, k - 1);
+    if (k > 0 && isSetextHeading(lines, inTable, k - 1)) {
+      return foldSetextTitle(lines, inTable, k - 1);
     }
     return null;
   }
@@ -367,21 +368,41 @@ function rowCells(line) {
   if (row.endsWith("|")) row = row.slice(0, -1);
   return row.split("|").map((cell) => cell.trim());
 }
-function takeKeywordTable(lines, j, item, file, problems) {
+function tableStartsAt(lines, j) {
   const header = rowCells(lines[j]);
-  if (!header) return null;
+  if (!header) return false;
+  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
+  return delimiter?.length === header.length && delimiter.every((cell) => DELIMITER_CELL_RE.test(cell));
+}
+var continuesTable = (line) => line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && (line.includes("|") || SETEXT_UNDERLINE_RE.test(line));
+var rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
+var isKeywordCell = (cell) => cell === "Needs" || cell === "Covers" || cell === "Tags";
+function scanTables(lines) {
+  const inTable = new Array(lines.length).fill(false);
+  let j = 0;
+  while (j < lines.length) {
+    if (!tableStartsAt(lines, j)) {
+      j++;
+      continue;
+    }
+    let end = j + 1;
+    while (end + 1 < lines.length && continuesTable(lines[end + 1])) end++;
+    for (let k = j; k <= end; k++) inTable[k] = true;
+    j = end + 1;
+  }
+  return inTable;
+}
+function takeKeywordTable(lines, inTable, j, item, file, problems) {
+  if (!inTable[j] || j > 0 && inTable[j - 1]) return null;
   const columns = [];
-  header.forEach((cell, col) => {
-    if (cell === "Needs" || cell === "Covers" || cell === "Tags") columns.push([col, cell]);
+  rowCells(lines[j]).forEach((cell, col) => {
+    if (isKeywordCell(cell)) columns.push([col, cell]);
   });
   if (columns.length === 0) return null;
-  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
-  if (delimiter?.length !== header.length || !delimiter.every((cell) => DELIMITER_CELL_RE.test(cell))) return null;
   j++;
-  while (j + 1 < lines.length && !isBoundary(lines, j + 1)) {
-    const cells = rowCells(lines[j + 1]);
-    if (!cells) break;
+  while (j + 1 < lines.length && inTable[j + 1]) {
     j++;
+    const cells = rowCellsInTable(lines[j]);
     for (const [col, keyword] of columns) {
       if (cells[col]) applyKeyword(item, keyword, [cells[col]], file, j + 1, problems);
     }
@@ -406,17 +427,17 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
       });
   }
 }
-function parseItemBody(lines, start, item, file, problems, forwards) {
+function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
   let j = start;
   let descriptionDone = false;
-  while (j < lines.length && !isBoundary(lines, j)) {
+  while (j < lines.length && !isBoundary(lines, inTable, j)) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
       continue;
     }
     const keywordMatch = line.match(KEYWORD_RE);
-    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, j, item, file, problems);
+    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
     if (keywordMatch) {
       descriptionDone = true;
       const collected = keywordEntries(lines, j, keywordMatch[2]);
@@ -436,6 +457,7 @@ function parseItemBody(lines, start, item, file, problems, forwards) {
 }
 function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
+  const inTable = scanTables(lines);
   const items = [];
   let i = 0;
   while (i < lines.length) {
@@ -449,8 +471,8 @@ function parseMarkdown(file, text, problems, forwards = []) {
       continue;
     }
     const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "markdown", file, i + 1);
-    item.title = titleAbove(lines, i);
-    i = parseItemBody(lines, i + 1, item, file, problems, forwards);
+    item.title = titleAbove(lines, inTable, i);
+    i = parseItemBody(lines, inTable, i + 1, item, file, problems, forwards);
     items.push(item);
   }
   return items;

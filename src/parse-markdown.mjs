@@ -42,10 +42,10 @@ function takeForward(line, file, lineIndex, forwards) {
 // (a run whose neighbour above is a bullet, not a paragraph). Keyword lines
 // and forwarding lines are structural to the tracer, never heading text -
 // otherwise one line would feed both a keyword and the next item's title.
-// The same holds for a pipe-carrying line: it reads as a table row (the row
-// wins over the heading), so a row directly above an underline stays in its
-// table instead of vanishing into the next item's title. This mirrors the
-// underline side, where a pipe-carrying run is never a setext underline.
+// A pipe alone does not disqualify a line: as in GFM, a pipe-carrying
+// paragraph above an underline is a heading with the pipe in its text. Only
+// membership in an actual table (header plus delimiter row) rules a line
+// out, and that is context, not shape - see isParagraphAt.
 function isParagraphLine(line) {
   return (
     line.trim() !== '' &&
@@ -54,29 +54,32 @@ function isParagraphLine(line) {
     !BULLET_RE.test(line) &&
     !SETEXT_UNDERLINE_RE.test(line) &&
     !KEYWORD_RE.test(line) &&
-    !FORWARD_LINE_RE.test(line) &&
-    !line.includes('|')
+    !FORWARD_LINE_RE.test(line)
   );
 }
 
-// `titleLine` directly followed by `underlineLine` forms a setext heading
-// exactly when the underline is a valid =/- run and the line above it is a
-// paragraph. titleAbove and isBoundary share this predicate, so title
+// a paragraph line in document context: paragraph-shaped and not part of a
+// table - a table row above an underline stays a row (see scanTables)
+const isParagraphAt = (lines, inTable, j) => !inTable[j] && isParagraphLine(lines[j]);
+
+// The line at `titleIndex` forms a setext heading with the line below it
+// exactly when that line is a valid =/- run and `titleIndex` is a paragraph
+// in context. titleAbove and isBoundary share this predicate, so title
 // recognition and body termination agree by construction.
-const isSetextHeading = (titleLine, underlineLine) =>
-  underlineLine !== undefined &&
-  SETEXT_UNDERLINE_RE.test(underlineLine) &&
-  isParagraphLine(titleLine);
+const isSetextHeading = (lines, inTable, titleIndex) =>
+  titleIndex + 1 < lines.length &&
+  SETEXT_UNDERLINE_RE.test(lines[titleIndex + 1]) &&
+  isParagraphAt(lines, inTable, titleIndex);
 
 // A paragraph line opens a setext heading when the run of paragraph lines it
 // starts ends directly at an underline - CommonMark folds the whole run into
 // the heading, so every line of the run belongs to the title, not to the
 // body above it.
-function opensSetextHeading(lines, j) {
-  if (!isParagraphLine(lines[j])) return false;
+function opensSetextHeading(lines, inTable, j) {
+  if (!isParagraphAt(lines, inTable, j)) return false;
   let k = j;
-  while (k + 1 < lines.length && isParagraphLine(lines[k + 1])) k++;
-  return isSetextHeading(lines[k], lines[k + 1]);
+  while (k + 1 < lines.length && isParagraphAt(lines, inTable, k + 1)) k++;
+  return isSetextHeading(lines, inTable, k);
 }
 
 // An item's body ends at an ID definition line, an ATX heading, or a setext
@@ -84,17 +87,17 @@ function opensSetextHeading(lines, j) {
 // rendered document shows a heading there, not more of the previous paragraph.
 // The heading claims its whole paragraph, so the body already ends at the
 // first line of a run that folds into a heading.
-const isBoundary = (lines, j) =>
-  DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, j);
+const isBoundary = (lines, inTable, j) =>
+  DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, inTable, j);
 
 // Fold the paragraph run ending at `lastIndex` into one title. Lines are
 // joined exactly as written: a line ending in two or more spaces contributes
 // a hard line break (a newline in the title), any other line-end whitespace
 // is kept as the separator it spells. Only the outer edges of the heading
 // are trimmed.
-function foldSetextTitle(lines, lastIndex) {
+function foldSetextTitle(lines, inTable, lastIndex) {
   let first = lastIndex;
-  while (first > 0 && isParagraphLine(lines[first - 1])) first--;
+  while (first > 0 && isParagraphAt(lines, inTable, first - 1)) first--;
   let title = '';
   for (let k = first; k <= lastIndex; k++) {
     let line = lines[k];
@@ -105,7 +108,7 @@ function foldSetextTitle(lines, lastIndex) {
   return title;
 }
 
-function titleAbove(lines, definitionIndex) {
+function titleAbove(lines, inTable, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
     const line = lines[k];
     if (line.trim() === '') continue; // blank lines between heading and ID are fine
@@ -113,8 +116,8 @@ function titleAbove(lines, definitionIndex) {
     if (heading) return heading[2]; // ATX heading (#...)
     // A setext underline folds the paragraph directly above it into the
     // title; without a paragraph line above, the run of =/- is not a heading.
-    if (k > 0 && isSetextHeading(lines[k - 1], line)) {
-      return foldSetextTitle(lines, k - 1);
+    if (k > 0 && isSetextHeading(lines, inTable, k - 1)) {
+      return foldSetextTitle(lines, inTable, k - 1);
     }
     return null; // any other text directly above -> no title
   }
@@ -147,31 +150,71 @@ function rowCells(line) {
   return row.split('|').map((cell) => cell.trim());
 }
 
+// does `lines[j]` start a table: a pipe-carrying header row directly followed
+// by a delimiter row with the same number of cells? GFM degrades a block
+// whose delimiter row deviates in cell count to prose, so the tracer must
+// not read it as a table either.
+function tableStartsAt(lines, j) {
+  const header = rowCells(lines[j]);
+  if (!header) return false;
+  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
+  return delimiter?.length === header.length && delimiter.every((cell) => DELIMITER_CELL_RE.test(cell));
+}
+
+// Like GFM, a table runs to the first blank line or block-level element (an
+// ATX heading or an item definition - both end it even when they carry a
+// pipe). Any other pipe-less line ends the table too, except a =/- run: GFM
+// swallows a `===` run as a single-cell row, and the tracer deliberately
+// swallows `---` the same way (GFM reads a thematic break there), so neither
+// run can end a table - or underline a heading.
+const continuesTable = (line) =>
+  line.trim() !== '' &&
+  !HEADING_RE.test(line) &&
+  !DEFINITION_RE.test(line) &&
+  (line.includes('|') || SETEXT_UNDERLINE_RE.test(line));
+
+// cells of a row inside a table: a swallowed pipe-less line (a =/- run) is a
+// single-cell row - its text fills the first column
+const rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
+
+const isKeywordCell = (cell) => cell === 'Needs' || cell === 'Covers' || cell === 'Tags';
+
+// mark every line belonging to a table - header, delimiter, and rows - so
+// heading detection can rule them out: a table row above an underline stays
+// a row
+function scanTables(lines) {
+  const inTable = new Array(lines.length).fill(false);
+  let j = 0;
+  while (j < lines.length) {
+    if (!tableStartsAt(lines, j)) {
+      j++;
+      continue;
+    }
+    let end = j + 1;
+    while (end + 1 < lines.length && continuesTable(lines[end + 1])) end++;
+    for (let k = j; k <= end; k++) inTable[k] = true;
+    j = end + 1;
+  }
+  return inTable;
+}
+
 // a table whose header row contains keyword cells ("Needs", "Covers", "Tags")
 // contributes each row's cell in those columns as one entry; empty cells and
 // all other columns are ignored. Returns the index of the last consumed line,
-// or null if `lines[j]` does not start such a table.
-function takeKeywordTable(lines, j, item, file, problems) {
-  const header = rowCells(lines[j]);
-  if (!header) return null;
+// or null if `lines[j]` is not the header of such a table. Only the line a
+// scanned table starts at qualifies - a keyword-headed row inside a larger
+// table is a row of that table, not a nested table of its own.
+function takeKeywordTable(lines, inTable, j, item, file, problems) {
+  if (!inTable[j] || (j > 0 && inTable[j - 1])) return null;
   const columns = [];
-  header.forEach((cell, col) => {
-    if (cell === 'Needs' || cell === 'Covers' || cell === 'Tags') columns.push([col, cell]);
+  rowCells(lines[j]).forEach((cell, col) => {
+    if (isKeywordCell(cell)) columns.push([col, cell]);
   });
   if (columns.length === 0) return null;
-  const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
-  // GFM: a delimiter row with a deviating cell count degrades the whole
-  // block to prose, so the tracer must not read it as a table either
-  if (delimiter?.length !== header.length || !delimiter.every((cell) => DELIMITER_CELL_RE.test(cell))) return null;
-  j++;
-  // like GFM, the table ends at a new block-level element (here: a heading
-  // or an item definition). An ATX heading ends it even when it contains a
-  // pipe; a setext heading cannot, because a pipe-carrying line above an
-  // underline is a row, and a pipe-less line ends the table by itself.
-  while (j + 1 < lines.length && !isBoundary(lines, j + 1)) {
-    const cells = rowCells(lines[j + 1]);
-    if (!cells) break;
+  j++; // the delimiter row
+  while (j + 1 < lines.length && inTable[j + 1]) {
     j++;
+    const cells = rowCellsInTable(lines[j]);
     for (const [col, keyword] of columns) {
       if (cells[col]) applyKeyword(item, keyword, [cells[col]], file, j + 1, problems);
     }
@@ -201,17 +244,17 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
 
 // consume the item's body (description and keyword lines) starting at `start`;
 // returns the index of the first line after the item
-function parseItemBody(lines, start, item, file, problems, forwards) {
+function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
   let j = start;
   let descriptionDone = false;
-  while (j < lines.length && !isBoundary(lines, j)) {
+  while (j < lines.length && !isBoundary(lines, inTable, j)) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
       continue;
     }
     const keywordMatch = line.match(KEYWORD_RE);
-    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, j, item, file, problems);
+    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
     if (keywordMatch) {
       descriptionDone = true;
       const collected = keywordEntries(lines, j, keywordMatch[2]);
@@ -234,6 +277,7 @@ function parseItemBody(lines, start, item, file, problems, forwards) {
 
 export function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
+  const inTable = scanTables(lines);
   const items = [];
 
   let i = 0;
@@ -248,8 +292,8 @@ export function parseMarkdown(file, text, problems, forwards = []) {
       continue;
     }
     const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), 'markdown', file, i + 1);
-    item.title = titleAbove(lines, i);
-    i = parseItemBody(lines, i + 1, item, file, problems, forwards);
+    item.title = titleAbove(lines, inTable, i);
+    i = parseItemBody(lines, inTable, i + 1, item, file, problems, forwards);
     items.push(item);
   }
   return items;
