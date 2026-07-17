@@ -312,7 +312,7 @@ function takeForward(line, file, lineIndex, forwards) {
   return !!forward;
 }
 function isParagraphLine(line) {
-  return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line) && !KEYWORD_RE.test(line) && !FORWARD_LINE_RE.test(line);
+  return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line) && !KEYWORD_RE.test(line) && !FORWARD_LINE_RE.test(line) && !line.includes("|");
 }
 var isSetextHeading = (titleLine, underlineLine) => underlineLine !== void 0 && SETEXT_UNDERLINE_RE.test(underlineLine) && isParagraphLine(titleLine);
 var isBoundary = (lines, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || isSetextHeading(lines[j], lines[j + 1]);

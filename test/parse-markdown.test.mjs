@@ -181,6 +181,40 @@ test('a forwarding line above a setext underline is not a heading', () => {
   assert.equal(items[1].title, null);
 });
 
+// Deliberate CommonMark deviation, pinned: setext heading text never carries
+// a pipe. A pipe-carrying line reads as a table row (the row wins over the
+// heading), so it yields no title - a title with a pipe needs an ATX heading.
+test('a pipe-carrying paragraph above an underline is not a setext title', () => {
+  const { items } = parse([
+    'Login | Logout',
+    '==============',
+    '`req:a#1`',
+  ]);
+  assert.equal(items[0].title, null);
+});
+
+// The same pipe rule on the boundary side: because a pipe-carrying line is
+// never setext heading text, it does not terminate the body either.
+test('a pipe-carrying line above an underline does not terminate the body', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    '',
+    'Login | Logout',
+    '==============',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].description, ['Description of a.']);
+  assert.equal(items[1].title, null);
+});
+
+// The pipe rule leaves ATX titles untouched.
+test('an ATX heading may carry a pipe and still titles the item', () => {
+  const { items } = parse(['## Login | Logout', '`req:a#1`']);
+  assert.equal(items[0].title, 'Login | Logout');
+});
+
 test('needs as bullet list, IDs optionally backticked', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -471,9 +505,67 @@ test('keyword table without leading/trailing pipes', () => {
   assert.deepEqual(items[0].needs, ['impl:a#1', 'utest:a#1']);
 });
 
-// A pipe-bearing setext title line ends the table like a pipe-bearing ATX
-// heading does - it must not be consumed as a table row.
+// A pipe-less setext title line ends the table like any block element and
+// becomes the next item's title.
 test('a keyword table ends at a setext heading directly below it', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| impl:a#1 |',
+    'Next Title',
+    '==========',
+    '`req:b#1`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+  assert.equal(items[1].title, 'Next Title');
+});
+
+// The row wins over the heading: a table row directly above an underline
+// stays in its table - its entry must not silently vanish into a title.
+test('a table row directly above an underline stays a row', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| impl:a#1 |',
+    '| impl:b#1 |',
+    '===========',
+    '`req:b#1`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1']);
+  assert.equal(items[1].title, null);
+});
+
+// The same with a dash underline, which doubles as the more tempting
+// lookalike, and with several keyword columns: every cell of the row
+// above the underline is kept.
+test('a multi-column row above a dash underline keeps all its entries', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs | Covers |',
+    '|---|---|',
+    '| impl:a#1 | feat:a#1 |',
+    '---',
+    '`req:b#1`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+  assert.deepEqual(items[0].covers, ['feat:a#1']);
+  assert.equal(items[1].title, null);
+});
+
+// Any pipe-carrying line under a table is a row, even when underlined and
+// even when it reads like prose - its cells feed the keyword columns, and
+// an invalid entry is reported instead of silently becoming a title.
+test('a pipe-carrying line under a table is a row even when underlined', () => {
   const { items, problems } = parse([
     '`req:a#1`',
     '',
@@ -484,10 +576,30 @@ test('a keyword table ends at a setext heading directly below it', () => {
     '=============',
     '`req:b#1`',
   ]);
-  assert.equal(problems.length, 0);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "Next"/);
   assert.equal(items.length, 2);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
-  assert.equal(items[1].title, 'Next | Title');
+  assert.equal(items[1].title, null);
+});
+
+// A table without keyword columns is informative text, but its rows are
+// still pipe-carrying lines - an underline below the last one neither makes
+// it a title nor terminates anything.
+test('an informative table row above an underline is not a heading', () => {
+  const { items } = parse([
+    '`req:a#1`',
+    'Description of a.',
+    '',
+    '| Feature | Owner |',
+    '|---|---|',
+    '| Login | Alice |',
+    '=================',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].description, ['Description of a.']);
+  assert.equal(items[1].title, null);
 });
 
 test('a pipe-bearing heading ends the table like any block element', () => {

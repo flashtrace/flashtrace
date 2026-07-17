@@ -41,6 +41,10 @@ function takeForward(line, file, lineIndex, forwards) {
 // (a run whose neighbour above is a bullet, not a paragraph). Keyword lines
 // and forwarding lines are structural to the tracer, never heading text -
 // otherwise one line would feed both a keyword and the next item's title.
+// The same holds for a pipe-carrying line: it reads as a table row (the row
+// wins over the heading), so a row directly above an underline stays in its
+// table instead of vanishing into the next item's title. This mirrors the
+// underline side, where a pipe-carrying run is never a setext underline.
 function isParagraphLine(line) {
   return (
     line.trim() !== '' &&
@@ -49,7 +53,8 @@ function isParagraphLine(line) {
     !BULLET_RE.test(line) &&
     !SETEXT_UNDERLINE_RE.test(line) &&
     !KEYWORD_RE.test(line) &&
-    !FORWARD_LINE_RE.test(line)
+    !FORWARD_LINE_RE.test(line) &&
+    !line.includes('|')
   );
 }
 
@@ -128,7 +133,9 @@ function takeKeywordTable(lines, j, item, file, problems) {
   if (delimiter?.length !== header.length || !delimiter.every((cell) => DELIMITER_CELL_RE.test(cell))) return null;
   j++;
   // like GFM, the table ends at a new block-level element (here: a heading
-  // or an item definition), even when that line contains a pipe
+  // or an item definition). An ATX heading ends it even when it contains a
+  // pipe; a setext heading cannot, because a pipe-carrying line above an
+  // underline is a row, and a pipe-less line ends the table by itself.
   while (j + 1 < lines.length && !isBoundary(lines, j + 1)) {
     const cells = rowCells(lines[j + 1]);
     if (!cells) break;
