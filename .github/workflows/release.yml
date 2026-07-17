@@ -1,9 +1,15 @@
 name: Release
 
+# Trigger on the push of a merge commit to main rather than on the closing
+# pull_request event: pull_request runs for PRs from forks receive neither
+# secrets nor variables (the release app credentials), and pull_request_target
+# grants them at the price of running a secrets-bearing workflow off a
+# fork-controlled event (githubactions:S7631). A push to main carries only
+# reviewed, merged content, so the run always has the repository's full
+# context - regardless of where the PR came from. The gate job recovers the
+# release label from the PR whose merge produced the pushed commit.
 on:
-  pull_request:
-    types:
-      - closed
+  push:
     branches:
       - main
 
@@ -13,49 +19,61 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Bump version and publish
-    if: |
-      github.event.pull_request.merged == true &&
-      (
-        contains(github.event.pull_request.labels.*.name, 'release:major') ||
-        contains(github.event.pull_request.labels.*.name, 'release:minor') ||
-        contains(github.event.pull_request.labels.*.name, 'release:patch')
-      )
+  gate:
+    name: Read release label of the merged PR
     runs-on: ubuntu-latest
     permissions:
-      contents: read # pushes and the GitHub Release use the app token below, not GITHUB_TOKEN
-      id-token: write # npm trusted publishing (OIDC) with provenance
+      contents: read
+      pull-requests: read
+    outputs:
+      level: ${{ steps.bump.outputs.level }}
     steps:
       - name: Determine bump level
         id: bump
         env:
-          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
         run: |
-          if [[ " $LABELS " == *" release:major "* ]]; then
-            level=major
-          elif [[ " $LABELS " == *" release:minor "* ]]; then
-            level=minor
-          else
-            level=patch
-          fi
+          # The PR whose merge produced this commit. A push with no such PR
+          # (e.g. the version bump commit this workflow itself pushes) yields
+          # no labels, so the release job is skipped.
+          labels=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+            --jq '[.[] | select(.merge_commit_sha == env.SHA) | .labels[].name] | join(" ")')
+          level=""
+          case " $labels " in
+            *" release:major "*) level=major ;;
+            *" release:minor "*) level=minor ;;
+            *" release:patch "*) level=patch ;;
+          esac
           echo "level=$level" >> "$GITHUB_OUTPUT"
 
-      # main is protected by a ruleset that GITHUB_TOKEN cannot bypass; the
-      # release app is on the ruleset's bypass list, so its token may push the
-      # bump commit directly.
-      - name: Create GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          app-id: ${{ vars.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-
+  # Everything that executes repository-controlled code (dependency install
+  # scripts, esbuild, the tests) runs here, in a job that holds no secrets and
+  # no id-token permission: nothing this job executes can reach the release
+  # credentials or npm's OIDC token exchange. The release job below publishes
+  # the committed dist/ only after this job has proven it identical to a fresh
+  # build.
+  build:
+    name: Build and test
+    needs: gate
+    if: needs.gate.outputs.level != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.head.outputs.sha }}
+    steps:
+      # The tip of main, not github.sha: if another PR merged while this run
+      # was queued, the release ships that newer - still reviewed and merged -
+      # content under this run's label, and the newer push's own run reads its
+      # own label. Pinning github.sha instead would leave the bump push below
+      # permanently non-fast-forwardable whenever a second merge lands first.
       - name: Checkout main
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: main
-          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
 
       - name: Set up pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
@@ -75,6 +93,60 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Verify committed dist/ matches a fresh build
+        run: git diff --exit-code -- dist/
+
+      - name: Record the verified commit
+        id: head
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  # This job holds the release credentials (id-token for npm trusted
+  # publishing, the app key for pushing to main) and in exchange executes no
+  # repository-controlled code: the checkout keeps no credentials, npm runs
+  # with --ignore-scripts (package.json's prepack would otherwise rebuild -
+  # and run repo code - right here), and the published tarball contains the
+  # committed dist/ that the build job verified.
+  release:
+    name: Bump version and publish
+    needs: [gate, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # pushes and the GitHub Release use the app token below, not GITHUB_TOKEN
+      id-token: write # npm trusted publishing (OIDC) with provenance
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: main
+          persist-credentials: false
+
+      # Publish exactly what the build job verified; if main moved in
+      # between, fail and let a re-run of all jobs verify the new tip.
+      - name: Verify main still points at the verified commit
+        env:
+          BUILT_SHA: ${{ needs.build.outputs.sha }}
+        run: |
+          head=$(git rev-parse HEAD)
+          if [ "$head" != "$BUILT_SHA" ]; then
+            echo "main moved from $BUILT_SHA to $head since the build job ran; re-run all jobs." >&2
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+
+      # main is protected by a ruleset that GITHUB_TOKEN cannot bypass; the
+      # release app is on the ruleset's bypass list, so its token may push the
+      # bump commit directly.
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       # Author the bump commit as the release app's bot user so it shows the
       # app's name and avatar. GitHub resolves the identity from the author
       # email, which embeds the bot's user id.
@@ -83,20 +155,29 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          LEVEL: ${{ needs.gate.outputs.level }}
         run: |
           bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
-          npm version "${{ steps.bump.outputs.level }}" -m "release: v%s"
+          npm version "$LEVEL" --ignore-scripts -m "release: v%s"
           echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
+      # The checkout above holds no credentials, so this push authenticates
+      # explicitly with the app token. If a merge lands between the checkout
+      # and here, the push is rejected as non-fast-forward and the run fails
+      # cleanly: re-run all jobs to build, verify, and release the new tip.
       - name: Push bump commit and tag
-        run: git push origin HEAD:main --follow-tags
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" HEAD:main --follow-tags
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release create "v${VERSION}" --generate-notes
 
       # A new release should refresh the docs website, which builds its docs
       # from flashtrace's latest release tag. Dispatch a repository_dispatch
@@ -134,4 +215,4 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Publish to npmjs
-        run: npm publish
+        run: npm publish --ignore-scripts
