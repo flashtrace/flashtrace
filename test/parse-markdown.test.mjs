@@ -163,7 +163,7 @@ test('inline comma-separated covers, IDs bare or backticked', () => {
   assert.deepEqual(items[0].covers, ['feat:a#1', 'feat:b#1']);
 });
 
-test('invalid ID in a Needs list is reported as a problem', () => {
+test('invalid ID in a Needs list is reported as an error problem', () => {
   const { items, problems } = parse([
     '`req:a#1`',
     '',
@@ -173,6 +173,7 @@ test('invalid ID in a Needs list is reported as a problem', () => {
   assert.equal(problems.length, 1);
   assert.match(problems[0].message, /not\/valid/);
   assert.equal(problems[0].file, 'spec.md');
+  assert.equal(problems[0].severity, 'error');
 });
 
 test('a wildcard revision is accepted in Needs but not in Covers', () => {

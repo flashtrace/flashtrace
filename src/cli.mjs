@@ -25,7 +25,8 @@ Options:
 
 Long options also accept "="-attached values, e.g. --tags=a,b.
 
-Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
+Exit codes: 0 clean, 1 defects or errors found, 2 usage error
+(warning problems alone leave the run clean)`;
 
 // The version lives only in package.json: the release workflow bumps it there
 // after dist/ is built, so it must be read at runtime rather than baked into

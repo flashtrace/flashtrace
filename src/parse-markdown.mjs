@@ -136,6 +136,7 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
     if (id) item[target].push(id);
     else
       problems.push({
+        severity: 'error',
         file,
         line: keywordLine,
         message: `invalid ID "${entry}" in ${keyword}: list of ${item.id}`,

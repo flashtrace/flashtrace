@@ -201,6 +201,7 @@ function collectTags(comment, file, line, state, items, problems) {
         anchor.needs.push(id);
       } else {
         problems.push({
+          severity: 'error',
           file,
           line,
           message: `need tag [${source} >> ${id}] has no preceding item tag [${source}] in this file`,
@@ -211,6 +212,7 @@ function collectTags(comment, file, line, state, items, problems) {
       state.lastItem.needs.push(id);
     } else {
       problems.push({
+        severity: 'error',
         file,
         line,
         message: `need tag [>>${id}] has no preceding item tag in this file`,

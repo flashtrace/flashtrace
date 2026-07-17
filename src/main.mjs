@@ -11,7 +11,8 @@
  *   src/report.mjs         terminal report
  *   src/cli.mjs            argument parsing and main flow
  *
- * Exit codes: 0 = clean trace, 1 = defects/problems found, 2 = usage error.
+ * Exit codes: 0 = clean trace, 1 = defects/error problems found, 2 = usage
+ * error. Warning problems alone leave the run clean.
  */
 
 import { realpathSync } from 'node:fs';

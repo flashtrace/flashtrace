@@ -381,6 +381,7 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
     if (id) item[target].push(id);
     else
       problems.push({
+        severity: "error",
         file,
         line: keywordLine,
         message: `invalid ID "${entry}" in ${keyword}: list of ${item.id}`
@@ -580,6 +581,7 @@ function collectTags(comment, file, line, state, items, problems) {
         anchor.needs.push(id);
       } else {
         problems.push({
+          severity: "error",
           file,
           line,
           message: `need tag [${source} >> ${id}] has no preceding item tag [${source}] in this file`
@@ -589,6 +591,7 @@ function collectTags(comment, file, line, state, items, problems) {
       state.lastItem.needs.push(id);
     } else {
       problems.push({
+        severity: "error",
         file,
         line,
         message: `need tag [>>${id}] has no preceding item tag in this file`
@@ -653,7 +656,7 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
       const chain = [...cycle, current].join(" --> ");
       for (const id of cycle) {
         const declaration = declarationBySource.get(id);
-        problems.push({ file: declaration.file, line: declaration.line, message: `cyclic forwarding: ${chain}` });
+        problems.push({ severity: "error", file: declaration.file, line: declaration.line, message: `cyclic forwarding: ${chain}` });
         forwardTargets.delete(id);
       }
     }
@@ -672,6 +675,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     if (!sources) {
       for (const forward of group)
         problems.push({
+          severity: "error",
           file: forward.file,
           line: forward.line,
           message: `forwarding from ${from}, which does not exist${revHint(from)}`
@@ -859,7 +863,7 @@ function renderDefective(defective, out, style, dimLocation) {
     out.push("");
   }
 }
-function renderSummary(items, defective, problems, out, style) {
+function renderSummary(items, defective, errorCount, warningCount, out, style) {
   const okCount = items.length - defective.length;
   const shallowCount = items.filter((item) => item.defects.length === 0 && !item.deepCovered).length;
   const markdownCount = items.filter((item) => item.origin === "markdown").length;
@@ -871,8 +875,12 @@ function renderSummary(items, defective, problems, out, style) {
     `  defective   ${defective.length ? style.red(String(defective.length)) : "0"}`
   );
   if (shallowCount) out.push("  " + style.dim(`of the ok items, ${shallowCount} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (problems.length) out.push(`  problems    ${style.yellow(String(problems.length))}`);
+  if (errorCount) out.push(`  errors      ${style.red(String(errorCount))}`);
+  if (warningCount) out.push(`  warnings    ${style.yellow(String(warningCount))}`);
   out.push("");
+}
+function problemMark(problem, style) {
+  return problem.severity === "warning" ? style.yellow("\u26A0") : style.red("\u2718");
 }
 function report(items, problems, cwd, opts = {}) {
   const { verbose = false } = opts;
@@ -880,15 +888,17 @@ function report(items, problems, cwd, opts = {}) {
   const relativePath = (file) => path3.relative(cwd, file) || file;
   const dimLocation = (file, line) => style.dim(`${relativePath(file)}:${line}`);
   const defective = items.filter((item) => item.defects.length > 0);
+  const warningCount = problems.filter((problem) => problem.severity === "warning").length;
+  const errorCount = problems.length - warningCount;
   const out = [];
   if (verbose) renderVerbose(items, out, style, dimLocation);
   else renderDefective(defective, out, style, dimLocation);
   for (const problem of problems) {
-    out.push(`${style.yellow("\u26A0")} ${problem.message}  ${dimLocation(problem.file, problem.line)}`);
+    out.push(`${problemMark(problem, style)} ${problem.message}  ${dimLocation(problem.file, problem.line)}`);
   }
   if (problems.length) out.push("");
-  renderSummary(items, defective, problems, out, style);
-  const clean = defective.length === 0 && problems.length === 0;
+  renderSummary(items, defective, errorCount, warningCount, out, style);
+  const clean = defective.length === 0 && errorCount === 0;
   out.push(clean ? style.green(style.bold("ok")) : style.red(style.bold("not ok")));
   console.log(out.join("\n"));
   return clean;
@@ -911,7 +921,8 @@ Options:
 
 Long options also accept "="-attached values, e.g. --tags=a,b.
 
-Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
+Exit codes: 0 clean, 1 defects or errors found, 2 usage error
+(warning problems alone leave the run clean)`;
 function packageVersion() {
   const pkg = new URL("../package.json", import.meta.url);
   return JSON.parse(readFileSync(pkg, "utf8")).version;

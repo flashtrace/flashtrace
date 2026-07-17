@@ -47,7 +47,7 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
       const chain = [...cycle, current].join(' --> ');
       for (const id of cycle) {
         const declaration = declarationBySource.get(id);
-        problems.push({ file: declaration.file, line: declaration.line, message: `cyclic forwarding: ${chain}` });
+        problems.push({ severity: 'error', file: declaration.file, line: declaration.line, message: `cyclic forwarding: ${chain}` });
         forwardTargets.delete(id);
       }
     }
@@ -71,6 +71,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     if (!sources) {
       for (const forward of group)
         problems.push({
+          severity: 'error',
           file: forward.file,
           line: forward.line,
           message: `forwarding from ${from}, which does not exist${revHint(from)}`,
