@@ -99,13 +99,14 @@ test('a bullet list above a run of dashes is not a setext heading', () => {
   assert.equal(items[0].title, null);
 });
 
-// A setext heading needs no blank line before it: like an ATX heading in the
-// same spot, it terminates the previous item instead of being absorbed as
-// description text.
-test('a setext heading directly after the description terminates the previous item', () => {
+// A setext heading claims exactly its own paragraph: a blank line above it
+// ends the description, which then stays with the previous item while the
+// heading titles the next one.
+test('a blank line separates the description from a following setext heading', () => {
   const { items } = parse([
     '`req:a#1`',
     'Description of a.',
+    '',
     'Next Title',
     '==========',
     '`req:b#1`',
@@ -115,28 +116,32 @@ test('a setext heading directly after the description terminates the previous it
   assert.equal(items[1].title, 'Next Title');
 });
 
-// Deliberate CommonMark deviation, pinned: CommonMark folds every paragraph
-// line down to the underline into one multi-line heading; the tracer takes
-// exactly the one line directly above the underline as the title and leaves
-// the lines above it in their prior role.
-test('only the line directly above the underline is the title; lines above stay description', () => {
+// CommonMark folds every paragraph line down to the underline into one
+// multi-line heading; so does the tracer. A line ending in two or more
+// spaces contributes a hard line break (a newline in the title), any other
+// line-end whitespace is kept as written. The folded lines belong to the
+// title alone - they never double as the item above's description.
+test('setext titles are multi-line and keep every folded line to themselves, not serving the item above as description', () => {
   const { items } = parse([
     '`req:a#1`',
-    'First description line.',
-    'Second description line.',
-    'Third description line.',
-    'Fourth description line.',
-    'Definitive title of b.',
+    'First title line without trailing spaces.',
+    'Second title line with actual line break by spaces.  ',
+    'Third title line with space in the end. ',
+    'Fourth title line with actual line break by spaces.  ',
+    ' Fifth title line with space in the beginning.',
     '======================',
     '`req:b#1`',
   ]);
-  assert.deepEqual(items[0].description, [
-    'First description line.',
-    'Second description line.',
-    'Third description line.',
-    'Fourth description line.',
-  ]);
-  assert.equal(items[1].title, 'Definitive title of b.');
+  assert.equal(items.length, 2);
+  assert.deepEqual(items[0].description, []);
+  assert.equal(
+    items[1].title,
+    'First title line without trailing spaces.' +
+      'Second title line with actual line break by spaces.\n' +
+      'Third title line with space in the end. ' +
+      'Fourth title line with actual line break by spaces.\n' +
+      ' Fifth title line with space in the beginning.'
+  );
 });
 
 // A thematic break (a run of `-` set off by blank lines) is not a setext

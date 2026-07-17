@@ -2,7 +2,8 @@
  * Markdown parser (.md, .markdown):
  *   - An item is defined by a line containing only its ID in backticks: `req:auth/login#1`
  *   - Title: the heading directly above the ID (only blank lines in between),
- *     either ATX (#...) or setext (a paragraph line underlined with === / ---).
+ *     either ATX (#...) or setext (a paragraph underlined with === / ---; the
+ *     whole paragraph folds into the title, as in CommonMark).
  *   - Description: the lines following the ID (one blank line directly under the
  *     ID is allowed) up to the next blank line.
  *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated, as a
@@ -67,11 +68,42 @@ const isSetextHeading = (titleLine, underlineLine) =>
   SETEXT_UNDERLINE_RE.test(underlineLine) &&
   isParagraphLine(titleLine);
 
+// A paragraph line opens a setext heading when the run of paragraph lines it
+// starts ends directly at an underline - CommonMark folds the whole run into
+// the heading, so every line of the run belongs to the title, not to the
+// body above it.
+function opensSetextHeading(lines, j) {
+  if (!isParagraphLine(lines[j])) return false;
+  let k = j;
+  while (k + 1 < lines.length && isParagraphLine(lines[k + 1])) k++;
+  return isSetextHeading(lines[k], lines[k + 1]);
+}
+
 // An item's body ends at an ID definition line, an ATX heading, or a setext
 // heading - the latter even without a blank line in between, because the
 // rendered document shows a heading there, not more of the previous paragraph.
+// The heading claims its whole paragraph, so the body already ends at the
+// first line of a run that folds into a heading.
 const isBoundary = (lines, j) =>
-  DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || isSetextHeading(lines[j], lines[j + 1]);
+  DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, j);
+
+// Fold the paragraph run ending at `lastIndex` into one title. Lines are
+// joined exactly as written: a line ending in two or more spaces contributes
+// a hard line break (a newline in the title), any other line-end whitespace
+// is kept as the separator it spells. Only the outer edges of the heading
+// are trimmed.
+function foldSetextTitle(lines, lastIndex) {
+  let first = lastIndex;
+  while (first > 0 && isParagraphLine(lines[first - 1])) first--;
+  let title = '';
+  for (let k = first; k <= lastIndex; k++) {
+    let line = lines[k];
+    if (k === first) line = line.trimStart();
+    if (k === lastIndex) line = line.trimEnd();
+    title += / {2}$/.test(line) ? line.trimEnd() + '\n' : line;
+  }
+  return title;
+}
 
 function titleAbove(lines, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
@@ -79,10 +111,10 @@ function titleAbove(lines, definitionIndex) {
     if (line.trim() === '') continue; // blank lines between heading and ID are fine
     const heading = line.match(HEADING_RE);
     if (heading) return heading[2]; // ATX heading (#...)
-    // A setext underline turns the paragraph line directly above it into the
-    // title; without such a line the run of =/- is not a heading.
+    // A setext underline folds the paragraph directly above it into the
+    // title; without a paragraph line above, the run of =/- is not a heading.
     if (k > 0 && isSetextHeading(lines[k - 1], line)) {
-      return lines[k - 1].trim();
+      return foldSetextTitle(lines, k - 1);
     }
     return null; // any other text directly above -> no title
   }

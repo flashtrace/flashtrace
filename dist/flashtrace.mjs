@@ -315,7 +315,25 @@ function isParagraphLine(line) {
   return line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !BULLET_RE.test(line) && !SETEXT_UNDERLINE_RE.test(line) && !KEYWORD_RE.test(line) && !FORWARD_LINE_RE.test(line) && !line.includes("|");
 }
 var isSetextHeading = (titleLine, underlineLine) => underlineLine !== void 0 && SETEXT_UNDERLINE_RE.test(underlineLine) && isParagraphLine(titleLine);
-var isBoundary = (lines, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || isSetextHeading(lines[j], lines[j + 1]);
+function opensSetextHeading(lines, j) {
+  if (!isParagraphLine(lines[j])) return false;
+  let k = j;
+  while (k + 1 < lines.length && isParagraphLine(lines[k + 1])) k++;
+  return isSetextHeading(lines[k], lines[k + 1]);
+}
+var isBoundary = (lines, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, j);
+function foldSetextTitle(lines, lastIndex) {
+  let first = lastIndex;
+  while (first > 0 && isParagraphLine(lines[first - 1])) first--;
+  let title = "";
+  for (let k = first; k <= lastIndex; k++) {
+    let line = lines[k];
+    if (k === first) line = line.trimStart();
+    if (k === lastIndex) line = line.trimEnd();
+    title += / {2}$/.test(line) ? line.trimEnd() + "\n" : line;
+  }
+  return title;
+}
 function titleAbove(lines, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
     const line = lines[k];
@@ -323,7 +341,7 @@ function titleAbove(lines, definitionIndex) {
     const heading = line.match(HEADING_RE);
     if (heading) return heading[2];
     if (k > 0 && isSetextHeading(lines[k - 1], line)) {
-      return lines[k - 1].trim();
+      return foldSetextTitle(lines, k - 1);
     }
     return null;
   }
