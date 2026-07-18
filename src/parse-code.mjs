@@ -17,7 +17,7 @@
 
 import path from 'node:path';
 
-import { FORWARD_SRC, ID_SRC, REF_SRC, makeForward, makeId, newItem, resolveRef } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, REF_SRC, canonicalId, makeForward, makeId, newItem, resolveRef } from './ids.mjs';
 import { cLike, grammarFor } from './languages.mjs';
 
 // Alternation: a need tag with an optional explicit source (groups 1-4 source,
@@ -233,7 +233,7 @@ function commentText(line, state, grammar) {
 // completed against the anchor item - see REF_SRC.
 function attachNeed(m, file, line, character, state, problems) {
   const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
-  const anchor = source ? state.byId.get(source) : state.lastItem;
+  const anchor = source ? state.byId.get(canonicalId(source)) : state.lastItem;
   if (!anchor) {
     // the target as written, for the problem message
     const written = m[5] + (m[6] ? `:${m[6]}` : '') + (m[7] ? `#${m[7]}` : '');
@@ -258,7 +258,7 @@ function collectTags(comment, file, line, state, items, problems) {
       // [<id>] item tag
       const item = newItem(makeId(m[8], m[9], m[10], m[11]), 'code', file, line, character);
       state.lastItem = item;
-      state.byId.set(item.id, item);
+      state.byId.set(canonicalId(item.id), item);
       items.push(item);
     } else {
       attachNeed(m, file, line, character, state, problems);
@@ -274,7 +274,8 @@ export function parseCode(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const items = [];
   // lastItem: nearest preceding item tag in this file; byId: preceding item
-  // tags by ID; block: open block-comment descriptor ({ open, close, nestable,
+  // tags by canonical ID (so an anchor may spell a SemVer-equal revision);
+  // block: open block-comment descriptor ({ open, close, nestable,
   // depth }) or null; region: active composite region (script/style) or null.
   const state = { lastItem: null, byId: new Map(), block: null, region: null };
 

@@ -7,7 +7,7 @@ import {
   unwantedCover,
   unwantedItem,
 } from './defects.mjs';
-import { compareRev, idMatches, isWildcardRev, keyOf, revOf } from './ids.mjs';
+import { canonicalId, compareRev, idMatches, isWildcardRev, keyOf, revOf } from './ids.mjs';
 
 // a forwarded item (source of an [A --> B] tag) has its own needs excused; its
 // coverage obligation is redirected to the target, checked here instead.
@@ -15,9 +15,9 @@ import { compareRev, idMatches, isWildcardRev, keyOf, revOf } from './ids.mjs';
 // need; isNeeded(id) tells whether any need - exact or wildcard - wants that id.
 // withRevisions adds the revision-mismatch hint to a defect where it applies.
 function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
-  const forwardTarget = forwardTargets.get(item.id);
+  const forwardTarget = forwardTargets.get(canonicalId(item.id));
   if (forwardTarget !== undefined) {
-    if (!byId.has(forwardTarget))
+    if (!byId.has(canonicalId(forwardTarget)))
       item.defects.push(withRevisions(uncoveredForward(forwardTarget)));
   } else {
     for (const need of item.needs) {
@@ -26,7 +26,7 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
     }
   }
   for (const coverId of item.covers) {
-    const targets = byId.get(coverId);
+    const targets = byId.get(canonicalId(coverId));
     if (!targets) {
       item.defects.push(withRevisions(orphanedCover(coverId)));
     } else if (!targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))) {
@@ -50,11 +50,12 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
     while (forwardTargets.has(current) && !done.has(current) && !seen.has(current)) {
       seen.set(current, path.length);
       path.push(current);
-      current = forwardTargets.get(current);
+      current = canonicalId(forwardTargets.get(current));
     }
     if (seen.has(current)) {
       const cycle = path.slice(seen.get(current));
-      const chain = [...cycle, current].join(' --> ');
+      // the walk runs on canonical IDs; show each source as its declaration wrote it
+      const chain = [...cycle, current].map((id) => declarationBySource.get(id).from).join(' --> ');
       for (const id of cycle) {
         const declaration = declarationBySource.get(id);
         declaration.effective = false;
@@ -81,9 +82,10 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
 function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
   const forwardTargets = new Map();
   const declarationBySource = new Map(); // effective (first) declaration per source
-  const forwardsBySource = new Map();
+  const forwardsBySource = new Map(); // keyed canonically so SemVer-equal sources meet
   for (const forward of forwards) {
-    (forwardsBySource.get(forward.from) ?? forwardsBySource.set(forward.from, []).get(forward.from)).push(forward);
+    const from = canonicalId(forward.from);
+    (forwardsBySource.get(from) ?? forwardsBySource.set(from, []).get(from)).push(forward);
   }
   for (const [from, group] of forwardsBySource) {
     const sources = byId.get(from);
@@ -95,7 +97,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
           file: forward.file,
           line: forward.line,
           character: forward.character,
-          message: `forwarding from ${from}, which does not exist${revHint(from)}`,
+          message: `forwarding from ${forward.from}, which does not exist${revHint(forward.from)}`,
         });
       }
       continue;
@@ -103,7 +105,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     // only the first declaration takes effect; later ones for the same source
     // are voided as duplicates (and flagged as a defect on the source item)
     if (group.length > 1)
-      for (const item of sources) item.defects.push(duplicateForwarding(from, group.length));
+      for (const item of sources) item.defects.push(duplicateForwarding(group[0].from, group.length));
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {
       group[i].effective = false;
@@ -113,7 +115,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     declarationBySource.set(from, group[0]);
   }
   dropCyclicForwards(forwardTargets, declarationBySource, problems);
-  for (const to of forwardTargets.values()) neededIds.add(to); // a forwarding target is wanted coverage
+  for (const to of forwardTargets.values()) neededIds.add(canonicalId(to)); // a forwarding target is wanted coverage
   return forwardTargets;
 }
 
@@ -133,7 +135,7 @@ function markDeepCoverage(items, byId, matchesOf, forwardTargets) {
     const forwardTarget = forwardTargets.get(id);
     let ok = true;
     if (forwardTarget !== undefined) {
-      ok = deep(forwardTarget);
+      ok = deep(canonicalId(forwardTarget));
     } else {
       for (const item of group) for (const need of item.needs) if (!needDeep(need)) ok = false;
     }
@@ -141,7 +143,7 @@ function markDeepCoverage(items, byId, matchesOf, forwardTargets) {
     return ok;
   };
   const needDeep = (need) => matchesOf(need).some((id) => deep(id));
-  for (const item of items) item.deepCovered = deep(item.id);
+  for (const item of items) item.deepCovered = deep(canonicalId(item.id));
 }
 
 // defined IDs grouped by their key (everything but the revision), so a wildcard
@@ -167,13 +169,16 @@ function buildWantedBy(items, byId, matchesOf) {
   return wantedBy;
 }
 
-// items grouped by ID plus need resolution over them: matchesOf(ref) returns
-// the defined IDs satisfying a (possibly wildcard) reference, wantedBy the
-// inverse edge. Shared with both reports so what they render cannot drift from
-// what analyze checked.
+// items grouped by canonical ID plus need resolution over them: matchesOf(ref)
+// returns the defined canonical IDs satisfying a (possibly wildcard)
+// reference, wantedBy the inverse edge. Shared with both reports so what they
+// render cannot drift from what analyze checked.
 export function buildResolver(items) {
-  const byId = new Map();
-  for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
+  const byId = new Map(); // canonical ID -> items (each keeps its raw item.id for display)
+  for (const item of items) {
+    const id = canonicalId(item.id);
+    (byId.get(id) ?? byId.set(id, []).get(id)).push(item);
+  }
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
   return { byId, matchesOf, wantedBy: buildWantedBy(items, byId, matchesOf) };
@@ -218,7 +223,7 @@ function splitNeeds(items) {
   for (const item of items)
     for (const need of item.needs) {
       if (isWildcardRev(revOf(need))) wildcard.push(need);
-      else exact.add(need);
+      else exact.add(canonicalId(need));
     }
   return { exact, wildcard };
 }
@@ -232,10 +237,14 @@ export function analyze(items, forwards = [], problems = []) {
   // is a code item wanted? an exact need matches by ID, a wildcard by pattern;
   // forwarding targets are added to the exact set below
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
-  const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
+  const isNeeded = (id) => exactNeeds.has(canonicalId(id)) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
 
   for (const [id, group] of byId) {
-    if (group.length > 1) for (const item of group) item.defects.push(duplicateId(id, group.length));
+    if (group.length > 1) {
+      // written identically -> show that spelling; SemVer-equal spellings -> the canonical ID
+      const shown = group.every((item) => item.id === group[0].id) ? group[0].id : id;
+      for (const item of group) item.defects.push(duplicateId(shown, group.length));
+    }
   }
 
   // sibling revisions of a key, ascending - the revision-mismatch hint's data
@@ -264,7 +273,7 @@ export function analyze(items, forwards = [], problems = []) {
   const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
 
   for (const item of items) {
-    item.forwardsTo = forwardTargets.get(item.id) ?? null; // effective forwarding target, for renderers
+    item.forwardsTo = forwardTargets.get(canonicalId(item.id)) ?? null; // effective forwarding target, for renderers
     checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets);
   }
 

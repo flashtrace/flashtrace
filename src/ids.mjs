@@ -3,20 +3,21 @@
  *   e.g.  req:auth/login#1   req:auth/session/login#1   impl:whatever-other-name#2
  *
  * A revision is one to three dot-separated non-negative integers (semver-style):
- * X, X.Y or X.Y.Z. No pre-release/build appendices; at most three layers. The
- * layers are part of the identity - matching stays exact, so 2.4 never equals
- * 2.4.0 (see revMatches).
+ * X, X.Y or X.Y.Z. No pre-release/build appendices; at most three layers.
+ * Omitted layers are zero, as SemVer defines: 2.4 and 2.4.0 name the same
+ * revision (see canonicalRev / revMatches).
  */
 
 const SEGMENT_SRC = '[A-Za-z][A-Za-z0-9_.-]*';
 // concrete revision: X, X.Y or X.Y.Z (one to three numeric layers)
 const REV_SRC = String.raw`\d+(?:\.\d+){0,2}`;
-// wildcard revision: zero or more leading numeric layers followed by wildcard
-// layers named x, y, z in order, at most three layers total (2.x, 2.3.x,
-// 2.x.y, ...). Longest alternatives first so a wildcard is preferred over the
-// concrete numeric prefix it starts with.
-const WILDCARD_SRC = String.raw`(?:\d+\.\d+\.x|\d+\.x\.y|x\.y\.z|\d+\.x|x\.y|x)`;
-// a revision *reference* (used only in Needs): concrete or wildcard
+// wildcard revision: zero to two leading numeric layers followed by a single
+// trailing wildcard layer, written x or its alias * (x, 2.x, 2.3.x; *, 2.*,
+// 2.3.*). The wildcard layer stands for that layer and every deeper one, so
+// 2.x matches 2, 2.4 and 2.4.1 alike, and a bare x matches every revision.
+const WILDCARD_SRC = String.raw`(?:\d+\.){0,2}[x*]`;
+// a revision *reference* (used only in Needs): concrete or wildcard; the
+// wildcard alternative comes first so 2.x is not read as the concrete 2
 const REV_REF_SRC = `(?:${WILDCARD_SRC}|${REV_SRC})`;
 export const ID_SRC =
   String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_SRC})`;
@@ -68,34 +69,49 @@ const pathOf = (id) => id.slice(id.indexOf(':') + 1, id.lastIndexOf('#'));
 export const resolveRef = (type, path, rev, ownerId) =>
   `${type}:${path ?? pathOf(ownerId)}#${rev ?? revOf(ownerId)}`;
 
-// Order two concrete revisions: compare layer by layer numerically, and when
-// one is a prefix of the other the shorter sorts first (so 2.4 precedes 2.4.0).
+// Canonical form of a concrete revision: exactly three layers, leading zeros
+// dropped - the SemVer identity under which 2.4, 2.4.0 and 2.04 are all
+// 2.4.0. Not defined for wildcard revisions (a wildcard layer is no number).
+export function canonicalRev(rev) {
+  const layers = rev.split('.').map((layer) => String(Number(layer)));
+  while (layers.length < 3) layers.push('0');
+  return layers.join('.');
+}
+
+// Canonical form of a concrete ID: its revision in canonical form. Exact-ID
+// bookkeeping (definitions, needs, covers, forwarding) keys on this form so
+// SemVer-equal revisions meet; the raw ID as written is kept for display.
+export const canonicalId = (id) => `${keyOf(id)}#${canonicalRev(revOf(id))}`;
+
+// Order two concrete revisions: compare their canonical three-layer forms
+// numerically, layer by layer; SemVer-equal revisions compare equal.
 export function compareRev(a, b) {
-  const partsA = a.split('.');
-  const partsB = b.split('.');
-  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-    if (i >= partsA.length) return -1;
-    if (i >= partsB.length) return 1;
-    if (partsA[i] !== partsB[i]) return Number(partsA[i]) - Number(partsB[i]);
+  const layersA = canonicalRev(a).split('.');
+  const layersB = canonicalRev(b).split('.');
+  for (let i = 0; i < 3; i++) {
+    if (layersA[i] !== layersB[i]) return Number(layersA[i]) - Number(layersB[i]);
   }
   return 0;
 }
 
-const WILDCARD_LAYERS = new Set(['x', 'y', 'z']);
+const isWildcardLayer = (layer) => layer === 'x' || layer === '*';
 // does a revision carry a wildcard layer (and is thus a range, not a concrete
 // revision)? Concrete revisions are digits and dots only.
-export const isWildcardRev = (rev) => /[xyz]/.test(rev);
+export const isWildcardRev = (rev) => /[x*]/.test(rev);
 
-// Does a (possibly wildcard) revision pattern match a concrete revision? The
-// layer count must be equal - 2.x matches 2.7 but never 2.7.0 - each wildcard
-// layer matches any number, and each numeric layer must be equal.
+// Does a (possibly wildcard) revision pattern match a concrete revision? Both
+// sides are taken to their three-layer form: omitted concrete layers are zero
+// (3.7 matches 3.7.0), and a pattern's trailing wildcard layer extends over
+// the remaining layers (2.x matches 2, 2.4 and 2.4.1; x and * match every
+// revision). Each wildcard layer matches any number; numeric layers must be
+// numerically equal.
 export function revMatches(pattern, concrete) {
-  const patternParts = pattern.split('.');
-  const concreteParts = concrete.split('.');
-  if (patternParts.length !== concreteParts.length) return false;
-  for (let i = 0; i < patternParts.length; i++) {
-    if (WILDCARD_LAYERS.has(patternParts[i])) continue;
-    if (patternParts[i] !== concreteParts[i]) return false;
+  const patternLayers = pattern.split('.');
+  while (patternLayers.length < 3) patternLayers.push(isWildcardLayer(patternLayers.at(-1)) ? 'x' : '0');
+  const concreteLayers = canonicalRev(concrete).split('.');
+  for (let i = 0; i < 3; i++) {
+    if (isWildcardLayer(patternLayers[i])) continue;
+    if (Number(patternLayers[i]) !== Number(concreteLayers[i])) return false;
   }
   return true;
 }

@@ -41,7 +41,7 @@
       "deepCovered": true,
       "needs": [
         {
-          "ref": "req:session/store#2.4.0",
+          "ref": "req:session/store#2.4",
           "resolvedTo": [
             "req:session/store#2.4.0"
           ]
@@ -72,13 +72,13 @@
       "deepCovered": true,
       "needs": [
         {
-          "ref": "impl:session/store#2.x.y",
+          "ref": "impl:session/store#2.x",
           "resolvedTo": [
             "impl:session/store#2.4.1"
           ]
         },
         {
-          "ref": "utest:session/store#1.x",
+          "ref": "utest:session/store#1.*",
           "resolvedTo": [
             "utest:session/store#1.2"
           ]

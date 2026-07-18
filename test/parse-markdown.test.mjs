@@ -385,18 +385,29 @@ test('a wildcard revision is accepted in Needs but not in Covers', () => {
   const { items, problems } = parse([
     '`req:a#1`',
     '',
-    'Needs: impl:a#2.x, impl:b#2.3.x',
+    'Needs: impl:a#2.x, impl:b#2.3.x, impl:c#2.*, impl:d#x',
     '',
-    'Covers: feat:x#1.y',
+    'Covers: feat:x#1.x',
   ]);
-  assert.deepEqual(items[0].needs, ['impl:a#2.x', 'impl:b#2.3.x']);
+  assert.deepEqual(items[0].needs, ['impl:a#2.x', 'impl:b#2.3.x', 'impl:c#2.*', 'impl:d#x']);
   assert.deepEqual(items[0].covers, []);
   assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "feat:x#1\.y" in Covers/);
+  assert.match(problems[0].message, /invalid ID "feat:x#1\.x" in Covers/);
+});
+
+test('a wildcard layer is only valid as the last layer: 2.x.y is no revision', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    'Needs: impl:a#2.x.y',
+  ]);
+  assert.deepEqual(items[0].needs, []);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "impl:a#2\.x\.y" in Needs/);
 });
 
 test('a wildcard revision is not accepted in an item definition', () => {
-  const { items } = parse(['`req:a#2.x`']);
+  const { items } = parse(['`req:a#2.x`', '`req:b#*`']);
   assert.equal(items.length, 0);
 });
 
@@ -606,12 +617,12 @@ test('a wildcard revision is accepted in a Needs column but not in a Covers colu
     '',
     '| Needs | Covers |',
     '|---|---|',
-    '| impl:a#2.x | feat:x#1.y |',
+    '| impl:a#2.x | feat:x#1.x |',
   ]);
   assert.deepEqual(items[0].needs, ['impl:a#2.x']);
   assert.deepEqual(items[0].covers, []);
   assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "feat:x#1\.y" in the Covers column of req:a#1/);
+  assert.match(problems[0].message, /invalid ID "feat:x#1\.x" in the Covers column of req:a#1/);
 });
 
 test('a table without a keyword header cell stays plain text', () => {

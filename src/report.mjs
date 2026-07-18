@@ -2,7 +2,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { buildResolver, isClean, statusOf, summarize } from './analyze.mjs';
-import { isWildcardRev, revOf } from './ids.mjs';
+import { canonicalId, isWildcardRev, revOf } from './ids.mjs';
 
 function makeStyler() {
   const on = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -40,7 +40,7 @@ function byFileLine(a, b) {
 // shows the target's own status mark - not a bare ✔ - making a shallow-covered
 // item's broken chain diagnosable in place
 function forwardEdge(item, byId, style, dimLocation) {
-  const target = byId.get(item.forwardsTo)?.[0];
+  const target = byId.get(canonicalId(item.forwardsTo))?.[0];
   if (!target) return `    ${style.cyan('→')} ${item.forwardsTo}  ${style.red('✘ missing')}`;
   return `    ${style.cyan('→')} ${item.forwardsTo}  ${styledStatus(target, style).mark} ${dimLocation(target.file, target.line)}`;
 }
@@ -58,7 +58,8 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
     const wildcard = isWildcardRev(revOf(need));
     for (const id of ids) {
       const covering = byId.get(id)[0];
-      const arrow = style.dim(`(→ ${id})`);
+      // matchesOf yields canonical IDs; show the resolved item as it is written
+      const arrow = style.dim(`(→ ${covering.id})`);
       const ref = wildcard ? `${need} ${arrow}` : need;
       lines.push(`    ${style.dim('needs')} ${ref}  ${styledStatus(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
@@ -71,7 +72,7 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
 function coverEdges(item, byId, style, dimLocation) {
   const lines = [];
   for (const coverId of item.covers) {
-    const target = byId.get(coverId)?.[0];
+    const target = byId.get(canonicalId(coverId))?.[0];
     if (!target) lines.push(`    ${style.dim('covers')} ${coverId}  ${style.red('✘ missing')}`);
     else lines.push(`    ${style.dim('covers')} ${coverId}  ${style.green('✔')} ${dimLocation(target.file, target.line)}`);
   }

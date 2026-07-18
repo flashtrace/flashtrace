@@ -4,16 +4,16 @@
 
 Sessions survive a service restart and are reachable over the API.
 
-Needs: req:session/store#2.4.0, req:session/api#1
+Needs: req:session/store#2.4, req:session/api#1
 
 # Session store requirement
 
 `req:session/store#2.4.0`
 
-Sessions persist across restarts. The reference above names this revision
-exactly: 2.4.0 and 2.4 are different revisions.
+Sessions persist across restarts. The reference above spells 2.4: omitted
+layers are zero (SemVer), so it names exactly this revision, 2.4.0.
 
-Needs: impl:session/store#2.x.y, utest:session/store#1.x
+Needs: impl:session/store#2.x, utest:session/store#1.*
 
 # Session API requirement
 
