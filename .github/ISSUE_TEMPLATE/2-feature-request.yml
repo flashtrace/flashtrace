@@ -1,0 +1,53 @@
+name: Feature Request
+description: Suggest a new capability or an improvement to an existing one.
+title: "feat: <short description>"
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Please describe the problem you
+        are trying to solve, not only the solution you have in mind - it helps
+        us find the best fit.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you start
+      options:
+        - label: I have searched the existing issues and this has not been requested yet.
+          required: true
+        - label: This is a request for a language's comment support - I should use the "Language Support Request" template instead.
+          required: false
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What are you trying to do, and where does flashtrace fall short today?
+      placeholder: |
+        I am tracing requirements across ... and I cannot ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the capability you would like. Include example commands or tag syntax where relevant.
+      placeholder: |
+        A flag `--...` that ...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you currently use, or other approaches you have thought about.
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that would help us understand the request (links, screenshots, related issues).
+    validations:
+      required: false

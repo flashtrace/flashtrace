@@ -1,0 +1,67 @@
+name: Bug Report
+description: Report incorrect or unexpected behaviour in flashtrace.
+title: "bug: <short description>"
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in the
+        sections below so we can reproduce the problem quickly.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you start
+      options:
+        - label: I have searched the existing issues and this has not been reported yet.
+          required: true
+        - label: I am running the latest released version, or the problem reproduces on the latest `main`.
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug and what you expected instead.
+      placeholder: |
+        When I run `flashtrace ...`, it reports ... but I expected ...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: >
+        The exact command(s) you ran and, ideally, a minimal set of files
+        (tags, sources) that triggers the problem. Small self-contained
+        reproductions get fixed fastest.
+      placeholder: |
+        1. Given a file `src/example.ts` containing `// [impl:auth/login#1]`
+        2. Run `flashtrace ...`
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: actual-output
+    attributes:
+      label: Actual output
+      description: Paste the actual command output. This will be rendered as a code block, so no formatting is needed.
+      render: text
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: flashtrace version
+      description: Output of `flashtrace --version` (or the commit hash if built from source).
+      placeholder: "e.g. 1.2.3"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system and Node.js version.
+      placeholder: "e.g. Windows 11, Node 20.11.0"
+    validations:
+      required: true

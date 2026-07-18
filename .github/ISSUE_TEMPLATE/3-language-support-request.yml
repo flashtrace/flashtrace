@@ -1,0 +1,85 @@
+name: Language Support Request
+description: Request comment-parsing support for a new language or file extension.
+title: "feat: add language support for <language>"
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        flashtrace reads tags from comments, and the comment style is chosen
+        per file extension. See [docs/code-tags.md](https://github.com/flashtrace/flashtrace/blob/main/docs/code-tags.md)
+        for the languages already supported and how comment families are
+        modelled. The details below map directly onto what we need to add the
+        language.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you start
+      options:
+        - label: I have checked docs/code-tags.md and this language / extension is not already supported.
+          required: true
+        - label: I have searched the existing issues and this language has not been requested yet.
+          required: true
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      description: The name of the language you want supported.
+      placeholder: "e.g. Zig"
+    validations:
+      required: true
+  - type: input
+    id: extensions
+    attributes:
+      label: File extensions
+      description: All file extensions for this language, each with the leading dot.
+      placeholder: "e.g. .zig"
+    validations:
+      required: true
+  - type: input
+    id: line-comment
+    attributes:
+      label: Line comment marker(s)
+      description: The marker(s) that start a comment running to end of line. Leave blank if the language has none.
+      placeholder: "e.g. //"
+    validations:
+      required: false
+  - type: input
+    id: block-comment
+    attributes:
+      label: Block comment delimiters
+      description: The opening and closing delimiters of a block comment. Leave blank if the language has none.
+      placeholder: "e.g. /* ... */"
+    validations:
+      required: false
+  - type: dropdown
+    id: nesting
+    attributes:
+      label: Are block comments nestable?
+      description: Whether a block comment may contain another balanced block comment inside it.
+      options:
+        - "Not applicable (no block comments)"
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+  - type: textarea
+    id: special-cases
+    attributes:
+      label: Special cases
+      description: >
+        Anything unusual - multiple comment families in one file, embedded
+        regions with a different comment style (like HTML with script/style),
+        documentation-comment variants, or anything else that affects how
+        comments are tokenized.
+    validations:
+      required: false
+  - type: input
+    id: reference
+    attributes:
+      label: Language reference
+      description: A link to the language's comment/lexical specification, if available.
+      placeholder: "e.g. https://ziglang.org/documentation/master/#Comments"
+    validations:
+      required: false
