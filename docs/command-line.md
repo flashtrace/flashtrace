@@ -7,6 +7,8 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
+      --json[=<mode>]      write the report as a JSON document; <mode> selects
+                           "base" (default) or "rich" detail
   -V, --version            print the version number
   -h, --help
 ```
@@ -18,6 +20,8 @@ Exit codes: `0` clean trace · `1` defects or problems found · `2` usage error.
 ## Default report
 
 Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note) ending in `ok` / `not ok`.
+
+With `--json[=<mode>]` the report is a single JSON document instead - see [JSON report](json-report.md). `--json` cannot be combined with `-v`/`--verbose`; JSON detail is selected by mode, not by verbosity.
 
 ## Verbose report
 

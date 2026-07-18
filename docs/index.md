@@ -9,4 +9,5 @@ flashtrace verifies that every requirement defined in Markdown documents is cove
 - [Forwarding / delegation](docs/forwarding.md)
 - [Coverage rules](docs/coverage-rules.md)
 - [Command line](docs/command-line.md)
+- [JSON report](docs/json-report.md)
 - [Known limitations](docs/known-limitations.md)

@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "flashtrace JSON report",
+  "description": "A flashtrace run reported as JSON (--json[=<mode>]). Covers both modes: 'rich' is a strict superset of 'base'. Unknown fields are deliberately left unconstrained - additive changes do not bump schemaVersion, so consumers and validators must tolerate them.",
+  "type": "object",
+  "required": ["schemaVersion", "flashtrace", "mode", "ok", "items", "problems", "summary"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Integer version of this format; bumped only by breaking changes.",
+      "const": 1
+    },
+    "flashtrace": {
+      "description": "Version of the flashtrace that produced the document. Provenance only.",
+      "type": "string"
+    },
+    "mode": {
+      "enum": ["base", "rich"]
+    },
+    "ok": {
+      "description": "Run verdict: true iff no item is defective and no problem occurred. Matches the exit code (0 iff true).",
+      "type": "boolean"
+    },
+    "items": {
+      "description": "Every item regardless of status, sorted by file, line, character.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    },
+    "forwards": {
+      "description": "Rich mode only: every forwarding declaration, voided ones included, sorted by file, line, character.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/forward" }
+    },
+    "problems": {
+      "description": "Parse- and analysis-level problems, sorted by file, line, character.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/problem" }
+    },
+    "summary": { "$ref": "#/$defs/summary" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mode": { "const": "rich" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "required": ["forwards"],
+        "properties": {
+          "items": { "items": { "required": ["wantedBy"] } }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "description": "A full item ID: <type>:[<group>/...]<name>#<revision>.",
+      "type": "string"
+    },
+    "line": {
+      "description": "1-based source line.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "character": {
+      "description": "1-based column of the first character of the construct.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "file": {
+      "description": "Path relative to the working directory, with forward slashes on every platform.",
+      "type": "string"
+    },
+    "item": {
+      "type": "object",
+      "required": ["id", "title", "origin", "tags", "file", "line", "character", "status", "needs", "covers", "forwardsTo", "defects"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": {
+          "description": "The heading above a Markdown item; null if there is none and always null for code items.",
+          "type": ["string", "null"]
+        },
+        "origin": { "enum": ["markdown", "code"] },
+        "tags": {
+          "description": "The item's Tags entries; always [] for code items.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "file": { "$ref": "#/$defs/file" },
+        "line": { "$ref": "#/$defs/line" },
+        "character": { "$ref": "#/$defs/character" },
+        "status": {
+          "description": "defective: at least one defect; shallow-covered: no defects, but not deep-covered; deep-covered otherwise.",
+          "enum": ["deep-covered", "shallow-covered", "defective"]
+        },
+        "needs": {
+          "description": "One entry per declared Needs reference, in declaration order.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/need" }
+        },
+        "covers": {
+          "description": "One entry per declared Covers reference, in declaration order.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/cover" }
+        },
+        "forwardsTo": {
+          "description": "ID of the effective forwarding target, or null.",
+          "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        },
+        "defects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/defect" }
+        },
+        "wantedBy": {
+          "description": "Rich mode only: the items whose needs resolve to this item, sorted by file, line, character.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/wanter" }
+        }
+      }
+    },
+    "need": {
+      "type": "object",
+      "required": ["ref", "resolvedTo"],
+      "properties": {
+        "ref": {
+          "description": "The reference exactly as declared; may carry a wildcard revision.",
+          "type": "string"
+        },
+        "resolvedTo": {
+          "description": "Full IDs of the defined items matching the reference, in ascending revision order. The need is covered exactly when this is non-empty.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" }
+        }
+      }
+    },
+    "cover": {
+      "type": "object",
+      "required": ["ref", "status"],
+      "properties": {
+        "ref": {
+          "description": "The (always concrete) covered ID as declared.",
+          "$ref": "#/$defs/id"
+        },
+        "status": {
+          "description": "valid: the target exists and needs this item's ID; orphaned: the target does not exist; unwanted: the target exists but does not need this item's ID.",
+          "enum": ["valid", "orphaned", "unwanted"]
+        }
+      }
+    },
+    "defect": {
+      "type": "object",
+      "required": ["kind", "ref", "message"],
+      "properties": {
+        "kind": { "enum": ["uncovered", "orphaned", "unwanted", "duplicate"] },
+        "ref": {
+          "description": "The ID the defect is about: the needed, covered or forwarded-to ID; for duplicate, the duplicated item ID or forwarding source ID.",
+          "type": "string"
+        },
+        "message": {
+          "description": "The defect exactly as the plain-text report words it.",
+          "type": "string"
+        },
+        "existingRevisions": {
+          "description": "Present exactly when the revision-mismatch hint applies: defined revisions of the same type:group/name, bare (without '#'), ascending.",
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "wanter": {
+      "type": "object",
+      "required": ["id", "file", "line", "character"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "file": { "$ref": "#/$defs/file" },
+        "line": { "$ref": "#/$defs/line" },
+        "character": { "$ref": "#/$defs/character" }
+      }
+    },
+    "forward": {
+      "type": "object",
+      "required": ["from", "to", "file", "line", "character", "effective"],
+      "properties": {
+        "from": { "$ref": "#/$defs/id" },
+        "to": { "$ref": "#/$defs/id" },
+        "file": { "$ref": "#/$defs/file" },
+        "line": { "$ref": "#/$defs/line" },
+        "character": { "$ref": "#/$defs/character" },
+        "effective": {
+          "description": "True iff the declaration is in effect; the items' forwardsTo fields mirror exactly the effective entries.",
+          "type": "boolean"
+        },
+        "voidedBy": {
+          "description": "Present iff effective is false.",
+          "enum": ["duplicate", "cycle", "missing-source"]
+        }
+      }
+    },
+    "problem": {
+      "description": "A parse- or analysis-level problem; any problem makes the run fail.",
+      "type": "object",
+      "required": ["file", "line", "character", "message"],
+      "properties": {
+        "file": { "$ref": "#/$defs/file" },
+        "line": { "$ref": "#/$defs/line" },
+        "character": { "$ref": "#/$defs/character" },
+        "message": { "type": "string" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["items", "markdownItems", "codeItems", "okItems", "defectiveItems", "shallowCoveredItems", "problems"],
+      "properties": {
+        "items": { "type": "integer", "minimum": 0 },
+        "markdownItems": { "type": "integer", "minimum": 0 },
+        "codeItems": { "type": "integer", "minimum": 0 },
+        "okItems": {
+          "description": "Items without defects; items - defectiveItems.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "defectiveItems": { "type": "integer", "minimum": 0 },
+        "shallowCoveredItems": {
+          "description": "Ok items that are not deep-covered.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "problems": {
+          "description": "Number of entries in the top-level problems array.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "flashtrace": "0.9.2",
+  "mode": "rich",
+  "ok": false,
+  "items": [
+    {
+      "id": "dsn:flow#2",
+      "title": "Login flow",
+      "origin": "markdown",
+      "tags": [],
+      "file": "docs/design.md",
+      "line": 8,
+      "character": 1,
+      "status": "deep-covered",
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "req:login#1",
+      "title": "Login",
+      "origin": "markdown",
+      "tags": [
+        "security"
+      ],
+      "file": "docs/spec.md",
+      "line": 12,
+      "character": 1,
+      "status": "defective",
+      "needs": [
+        {
+          "ref": "impl:auth#2.x",
+          "resolvedTo": [
+            "impl:auth#2.1"
+          ]
+        },
+        {
+          "ref": "dsn:flow#1",
+          "resolvedTo": []
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "defects": [
+        {
+          "kind": "uncovered",
+          "ref": "dsn:flow#1",
+          "existingRevisions": [
+            "2"
+          ],
+          "message": "uncovered: needs dsn:flow#1, which does not exist (revision mismatch: existing revision(s) of dsn:flow: 2)"
+        }
+      ],
+      "wantedBy": []
+    },
+    {
+      "id": "req:legacy#1",
+      "title": "Legacy login",
+      "origin": "markdown",
+      "tags": [],
+      "file": "docs/spec.md",
+      "line": 30,
+      "character": 1,
+      "status": "shallow-covered",
+      "needs": [],
+      "covers": [],
+      "forwardsTo": "req:login#1",
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "impl:auth#2.1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "src/auth.js",
+      "line": 3,
+      "character": 4,
+      "status": "deep-covered",
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:login#1",
+          "file": "docs/spec.md",
+          "line": 12,
+          "character": 1
+        }
+      ]
+    }
+  ],
+  "forwards": [
+    {
+      "from": "req:legacy#1",
+      "to": "req:login#1",
+      "file": "docs/spec.md",
+      "line": 32,
+      "character": 1,
+      "effective": true
+    }
+  ],
+  "problems": [
+    {
+      "file": "src/session.js",
+      "line": 2,
+      "character": 4,
+      "message": "need tag [>>test:auth#1] has no preceding item tag in this file"
+    }
+  ],
+  "summary": {
+    "items": 4,
+    "markdownItems": 3,
+    "codeItems": 1,
+    "okItems": 3,
+    "defectiveItems": 1,
+    "shallowCoveredItems": 1,
+    "problems": 1
+  }
+}
