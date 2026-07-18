@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Website
+    url: https://flashtrace.github.io
+    about: Visit the flashtrace website for an overview of the project.
+  - name: Documentation
+    url: https://github.com/flashtrace/flashtrace/blob/main/docs/index.md
+    about: Read the spec-driven documentation before filing an issue - it may already answer your question.
+  - name: Question or discussion
+    url: https://github.com/flashtrace/flashtrace/discussions
+    about: For usage questions and open-ended discussion, please start a discussion instead of opening an issue.
