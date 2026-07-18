@@ -10,7 +10,9 @@
  *     bullet list on the following lines, or as a table column whose header
  *     cell is the bare keyword name. Needs/Covers list full, explicit IDs.
  *   - A table cannot define an item: a cell holding nothing but a backticked
- *     ID is reported as a problem, not read as a definition. Nor can a setext
+ *     ID is reported as a problem, not read as a definition. An ID line
+ *     directly under a table is swallowed as a single-cell row (GFM) and
+ *     treated the same way. Nor can a setext
  *     heading: an ID line with no blank line below it folds into the heading
  *     of the following paragraph (CommonMark) and is reported the same way.
  *   - A line containing only `[<id> --> <id>]` (optionally backticked) forwards
@@ -95,9 +97,12 @@ function opensSetextHeading(lines, inTable, j) {
 // heading - the latter even without a blank line in between, because the
 // rendered document shows a heading there, not more of the previous paragraph.
 // The heading claims its whole paragraph, so the body already ends at the
-// first line of a run that folds into a heading.
+// first line of a run that folds into a heading. An ID line swallowed into a
+// table is a row, not a definition, so it bounds nothing.
 const isBoundary = (lines, inTable, j) =>
-  DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, inTable, j);
+  (!inTable[j] && DEFINITION_RE.test(lines[j])) ||
+  HEADING_RE.test(lines[j]) ||
+  opensSetextHeading(lines, inTable, j);
 
 // Fold the paragraph run ending at `lastIndex` into one title. Lines are
 // joined exactly as written: a line ending in two or more spaces contributes
@@ -171,19 +176,19 @@ function tableStartsAt(lines, j) {
 }
 
 // Like GFM, a table runs to the first blank line or block-level element: an
-// ATX heading or an item definition (both end it even when they carry a
-// pipe), or a thematic break - GFM reads a `---` run directly under a row
-// as a break, so it ends the table and is plain text, not a row and not a
-// heading underline. Any other pipe-less line ends the table too, except a
-// `===` run or a dash run too short for a break (`-`, `--`): GFM swallows
-// such a line as a single-cell row, so neither can end a table - or
-// underline a heading.
+// ATX heading (it ends the table even when it carries a pipe), or a
+// thematic break - GFM reads a `---` run directly under a row as a break,
+// so it ends the table and is plain text, not a row and not a heading
+// underline. Any other pipe-less line ends the table too, except the lines
+// GFM swallows as single-cell rows: a `===` run, a dash run too short for a
+// break (`-`, `--`), or an item-definition line - each fills the first
+// column as a row, so none of them can end a table, underline a heading,
+// or define an item.
 const continuesTable = (line) =>
   line.trim() !== '' &&
   !HEADING_RE.test(line) &&
-  !DEFINITION_RE.test(line) &&
   !THEMATIC_BREAK_RE.test(line) &&
-  (line.includes('|') || SETEXT_UNDERLINE_RE.test(line));
+  (line.includes('|') || SETEXT_UNDERLINE_RE.test(line) || DEFINITION_RE.test(line));
 
 // cells of a row inside a table: a swallowed pipe-less line (a =/- run) is a
 // single-cell row - its text fills the first column
@@ -249,13 +254,17 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
     j++;
     const cells = rowCellsInTable(lines[j]);
     for (const [col, keyword] of columns) {
-      if (cells[col]) applyKeyword(item, keyword, [cells[col]], file, j + 1, problems);
+      if (cells[col])
+        applyKeyword(item, keyword, [cells[col]], file, j + 1, problems, `the ${keyword} column of ${item.id}`);
     }
   }
   return j;
 }
 
-function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
+// `source` names where the entries were read from - the keyword line's list
+// or the table column the cell sits in - so a problem report points at the
+// right spot.
+function applyKeyword(item, keyword, entries, file, keywordLine, problems, source) {
   if (keyword === 'Tags') {
     item.tags.push(...entries);
     return;
@@ -270,7 +279,7 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
       problems.push({
         file,
         line: keywordLine,
-        message: `invalid ID "${entry}" in ${keyword}: list of ${item.id}`,
+        message: `invalid ID "${entry}" in ${source}`,
       });
   }
 }
@@ -291,7 +300,15 @@ function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
     if (keywordMatch) {
       descriptionDone = true;
       const collected = keywordEntries(lines, j, keywordMatch[2]);
-      applyKeyword(item, keywordMatch[1], collected.entries, file, j + 1, problems);
+      applyKeyword(
+        item,
+        keywordMatch[1],
+        collected.entries,
+        file,
+        j + 1,
+        problems,
+        `${keywordMatch[1]}: list of ${item.id}`,
+      );
       j = collected.j;
     } else if (tableEnd !== null) {
       descriptionDone = true;
@@ -321,7 +338,9 @@ export function parseMarkdown(file, text, problems, forwards = []) {
       i++;
       continue;
     }
-    const definition = lines[i].match(DEFINITION_RE);
+    // an ID line swallowed into a table is a row (scanTables reports it
+    // outside keyword columns), never a definition
+    const definition = inTable[i] ? null : lines[i].match(DEFINITION_RE);
     if (definition && startsHeading) {
       // The ID line has no blank line below it, so its paragraph folds into a
       // setext heading (CommonMark): the ID is heading text, not a standalone

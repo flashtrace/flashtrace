@@ -323,7 +323,7 @@ function opensSetextHeading(lines, inTable, j) {
   while (k + 1 < lines.length && isParagraphAt(lines, inTable, k + 1)) k++;
   return isSetextHeading(lines, inTable, k);
 }
-var isBoundary = (lines, inTable, j) => DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, inTable, j);
+var isBoundary = (lines, inTable, j) => !inTable[j] && DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, inTable, j);
 function foldSetextTitle(lines, inTable, lastIndex) {
   let first = lastIndex;
   while (first > 0 && isParagraphAt(lines, inTable, first - 1)) first--;
@@ -375,7 +375,7 @@ function tableStartsAt(lines, j) {
   const delimiter = j + 1 < lines.length ? rowCells(lines[j + 1]) : null;
   return delimiter?.length === header.length && delimiter.every((cell) => DELIMITER_CELL_RE.test(cell));
 }
-var continuesTable = (line) => line.trim() !== "" && !HEADING_RE.test(line) && !DEFINITION_RE.test(line) && !THEMATIC_BREAK_RE.test(line) && (line.includes("|") || SETEXT_UNDERLINE_RE.test(line));
+var continuesTable = (line) => line.trim() !== "" && !HEADING_RE.test(line) && !THEMATIC_BREAK_RE.test(line) && (line.includes("|") || SETEXT_UNDERLINE_RE.test(line) || DEFINITION_RE.test(line));
 var rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
 var isKeywordCell = (cell) => cell === "Needs" || cell === "Covers" || cell === "Tags";
 function scanTables(lines, file, problems) {
@@ -422,12 +422,13 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
     j++;
     const cells = rowCellsInTable(lines[j]);
     for (const [col, keyword] of columns) {
-      if (cells[col]) applyKeyword(item, keyword, [cells[col]], file, j + 1, problems);
+      if (cells[col])
+        applyKeyword(item, keyword, [cells[col]], file, j + 1, problems, `the ${keyword} column of ${item.id}`);
     }
   }
   return j;
 }
-function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
+function applyKeyword(item, keyword, entries, file, keywordLine, problems, source) {
   if (keyword === "Tags") {
     item.tags.push(...entries);
     return;
@@ -441,7 +442,7 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems) {
       problems.push({
         file,
         line: keywordLine,
-        message: `invalid ID "${entry}" in ${keyword}: list of ${item.id}`
+        message: `invalid ID "${entry}" in ${source}`
       });
   }
 }
@@ -459,7 +460,15 @@ function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
     if (keywordMatch) {
       descriptionDone = true;
       const collected = keywordEntries(lines, j, keywordMatch[2]);
-      applyKeyword(item, keywordMatch[1], collected.entries, file, j + 1, problems);
+      applyKeyword(
+        item,
+        keywordMatch[1],
+        collected.entries,
+        file,
+        j + 1,
+        problems,
+        `${keywordMatch[1]}: list of ${item.id}`
+      );
       j = collected.j;
     } else if (tableEnd !== null) {
       descriptionDone = true;
@@ -484,7 +493,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
       i++;
       continue;
     }
-    const definition = lines[i].match(DEFINITION_RE);
+    const definition = inTable[i] ? null : lines[i].match(DEFINITION_RE);
     if (definition && startsHeading) {
       problems.push({
         file,

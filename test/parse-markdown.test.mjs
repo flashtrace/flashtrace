@@ -88,8 +88,10 @@ test('a thematic break (--- after a blank line) is not a setext heading', () => 
 });
 
 // A table delimiter row carries pipes, so it is never a setext underline.
+// The blank line ends the table; without it, the ID line would be swallowed
+// as a row.
 test('a table delimiter row is not mistaken for a setext heading', () => {
-  const { items } = parse(['| Feature | Owner |', '| --- | --- |', '`req:a#1`']);
+  const { items } = parse(['| Feature | Owner |', '| --- | --- |', '', '`req:a#1`']);
   assert.equal(items[0].title, null);
 });
 
@@ -544,7 +546,7 @@ test('invalid ID in a table cell is reported with the row line', () => {
   ]);
   assert.deepEqual(items[0].needs, ['impl:ok#1']);
   assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "not\/valid" in Needs/);
+  assert.match(problems[0].message, /invalid ID "not\/valid" in the Needs column of req:a#1/);
   assert.equal(problems[0].line, 6);
 });
 
@@ -559,7 +561,7 @@ test('a wildcard revision is accepted in a Needs column but not in a Covers colu
   assert.deepEqual(items[0].needs, ['impl:a#2.x']);
   assert.deepEqual(items[0].covers, []);
   assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "feat:x#1\.y" in Covers/);
+  assert.match(problems[0].message, /invalid ID "feat:x#1\.y" in the Covers column of req:a#1/);
 });
 
 test('a table without a keyword header cell stays plain text', () => {
@@ -622,7 +624,10 @@ test('a keyword table ends at a setext heading directly below it', () => {
 // A `===` run directly under a table row is swallowed as a single-cell row
 // (GFM) - its text fills the first column, so it never underlines a
 // heading. Here the first column is the Needs column, so the swallowed
-// "===" surfaces as an invalid entry instead of silently vanishing.
+// "===" surfaces as an invalid entry - reported against that column - and
+// does not silently vanish. The ID line directly below is swallowed the
+// same way: one more row filling the Needs column, so it is an entry of
+// the item above, not a definition.
 test('an underline directly under a table is a row filling the first column, not a heading', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -635,10 +640,9 @@ test('an underline directly under a table is a row filling the first column, not
     '`req:b#1`',
   ]);
   assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "==========="/);
-  assert.equal(items.length, 2);
-  assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1']);
-  assert.equal(items[1].title, null);
+  assert.match(problems[0].message, /invalid ID "===========" in the Needs column of req:a#1/);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1', 'req:b#1']);
 });
 
 // A `---` run of three or more dashes directly under a table row is a
@@ -692,12 +696,13 @@ test('a dash run too short for a thematic break is swallowed as a row', () => {
     '| impl:b#1 |',
   ]);
   assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "--"/);
+  assert.match(problems[0].message, /invalid ID "--" in the Needs column of req:a#1/);
   assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1']);
 });
 
 // A swallowed underline fills only the first column: when no keyword column
-// sits there, it feeds an ignored column and surfaces nowhere.
+// sits there, it feeds an ignored column and surfaces nowhere. The blank
+// line ends the table, keeping the ID below a definition.
 test('a swallowed underline is silent when the first column is not a keyword column', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -706,6 +711,7 @@ test('a swallowed underline is silent when the first column is not a keyword col
     '|---|---|',
     '| Login | impl:a#1 |',
     '=================',
+    '',
     '`req:b#1`',
   ]);
   assert.equal(problems.length, 0);
@@ -742,11 +748,12 @@ test('a pipe-carrying line under a table is a row even when underlined', () => {
     '| impl:a#1 |',
     'Next | Title',
     '=============',
+    '',
     '`req:b#1`',
   ]);
   assert.equal(problems.length, 2);
-  assert.match(problems[0].message, /invalid ID "Next"/);
-  assert.match(problems[1].message, /invalid ID "============="/);
+  assert.match(problems[0].message, /invalid ID "Next" in the Needs column of req:a#1/);
+  assert.match(problems[1].message, /invalid ID "=============" in the Needs column of req:a#1/);
   assert.equal(items.length, 2);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
   assert.equal(items[1].title, null);
@@ -764,6 +771,7 @@ test('an informative table row above an underline is not a heading', () => {
     '|---|---|',
     '| Login | Alice |',
     '=================',
+    '',
     '`req:b#1`',
   ]);
   assert.equal(items.length, 2);
@@ -814,6 +822,25 @@ test('a definition-shaped cell outside the keyword columns is flagged', () => {
   assert.match(problems[0].message, /item req:x#1 defined inside a table/);
   assert.equal(items.length, 1);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
+// An ID line directly under a table (no blank line) is swallowed as a
+// single-cell row, as GFM renders it - it defines nothing. Its text fills
+// the first column: in a keyword column it is an entry (see the underline
+// tests above); elsewhere it is a definition-shaped cell and is flagged.
+test('an ID line directly under a table is a swallowed row, not a definition', () => {
+  const { items, problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Feature | Needs |',
+    '|---|---|',
+    '| Login | impl:a#1 |',
+    '`req:b#1`',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /item req:b#1 defined inside a table; a table cell is not an item definition/);
 });
 
 test('a pipe-bearing heading ends the table like any block element', () => {
