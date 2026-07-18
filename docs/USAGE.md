@@ -59,7 +59,9 @@ Tags: security
 - **Title** - the heading directly above the ID (only blank lines in between).
 - **Description** - the lines following the ID, up to the next blank line.
 - **Needs / Covers / Tags** - inline comma-separated or as a bullet list on the
-  following lines. Needs/Covers take full, explicit IDs.
+  following lines. A Needs or Covers entry is a full ID or a short form (`impl`,
+  `impl:name`, `impl#2`) whose omitted `[group/]name` and revision are taken
+  from the item stating it; see [markdown-items.md](markdown-items.md).
 
 ## Tagging code
 
