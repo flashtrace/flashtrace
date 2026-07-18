@@ -13,4 +13,4 @@ Every traceable item has a project-wide unique ID:
 
 Examples: `req:auth/login#1`, `req:auth/session/login#1.2`, `impl:whatever-other-name#2.0.3`.
 
-Matching is always by the **exact, full ID** including the revision. The layers are part of the identity, so `2.4` is a different revision from `2.4.0` and never resolves to it. A reference can opt into a range with a [wildcard revision](revisions.md#wildcard-revisions).
+Matching is always by the **full ID** including the revision. Revisions compare as SemVer versions - omitted layers are zero, so `2.4` and `2.4.0` name the same revision. A reference can opt into a range with a [wildcard revision](revisions.md#wildcard-revisions).

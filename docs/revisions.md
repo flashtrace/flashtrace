@@ -11,33 +11,36 @@ X | X.Y | X.Y.Z
 - No pre-release or build appendices - `1.0.0-rc.1` and `1.0.0+build` are **not** revisions.
 - At most three layers; `1.2.3.4` is not a revision.
 
-## Matching is exact
+## Matching is SemVer matching
 
-The layers are part of the item's identity, so matching stays exact including
-the number of layers. Dropping a layer yields a **different** revision, not a
-looser one:
+Omitted layers are zero, as SemVer defines. Every revision therefore has a
+canonical three-layer form, and two revisions name the **same** revision
+exactly when their canonical forms are equal:
 
-- `2.4` ≠ `2.4.0`
+- `2.4` = `2.4.0` (canonical form `2.4.0`)
+- `2` = `2.0` = `2.0.0`
 - `2.4` ≠ `2.4.1`, `2.4.2`, …
 
-Going from `2.3.5` to `2.4` is therefore an intentional, self-contained bump:
-`2.4` is its own revision and never silently resolves to some `2.4.z`.
+This identity applies everywhere revisions are compared: `Needs` and `Covers`
+entries, forwarding sources and targets, and duplicate detection - defining
+`req:a#2.4` next to `req:a#2.4.0` defines the same ID twice.
 
 ## Wildcard revisions
 
 When you genuinely want "any downstream revision", opt in explicitly with a
-wildcard. A wildcard revision is zero or more leading numeric layers followed by
-wildcard layers named `x`, `y`, `z` in order, capped at three layers total:
+wildcard. A wildcard revision is zero to two leading numeric layers followed
+by a single trailing wildcard layer, written `x` or its alias `*`:
 
 | Pattern | Matches | Does **not** match |
 |---|---|---|
-| `2.x` | `2.0`, `2.4`, `2.99` | `2` · `2.4.0` (different layer count) |
-| `2.3.x` | `2.3.0`, `2.3.7` | `2.3` · `2.4.0` |
-| `2.x.y` | `2.0.0`, `2.9.4` | `2.4` |
+| `x` = `*` | every revision: `2`, `4.1`, `3.0.9`, … | – |
+| `2.x` = `2.*` | `2`, `2.4`, `2.4.1`, `2.99` | `3`, `1.9.5` |
+| `2.3.x` = `2.3.*` | `2.3`, `2.3.0`, `2.3.7` | `2.4.0` |
 
-A wildcard only ever matches concrete revisions with the **same layer count**,
-so it keeps plain revisions unambiguous while giving a clear range when you ask
-for one.
+The wildcard layer stands for its own layer *and every deeper one*, so `2.x`
+reads as "anything within revision 2"; the leading numeric layers match
+SemVer-normalized like everywhere else. A wildcard is only valid as the last
+layer: `2.x.y`, `x.y` and `x.2` are not revisions.
 
 Wildcards may be used only where a revision is *demanded*:
 
