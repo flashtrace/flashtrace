@@ -154,6 +154,23 @@ test('a comment opener glued to a scheme-shaped token is missed (known limitatio
   assert.equal(items.length, 0);
 });
 
+test('a */ inside a URL still closes an open block comment', () => {
+  // Block *closers* are honoured inside URLs (unlike openers): the `*/` in the
+  // URL ends the block, so the following line is scanned as code, not comment.
+  const { items } = parse('src.ts', [
+    '/* see https://example.com/a*/b',
+    'const s = "[impl:phantom#1]";',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('markers in multiple URLs on one line are all skipped, a trailing real comment opens', () => {
+  const { items } = parse('src.ts', [
+    'const a = "https://x.example/p"; const b = "https://y.example/q"; // [impl:real#1]',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:real#1']);
+});
+
 test('multi-line block comment, one tag per line', () => {
   const { items } = parse('src.ts', [
     '/*',
