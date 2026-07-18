@@ -453,17 +453,17 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
       });
   }
 }
-function parseItemBody(lines, inTable, opensHeading, start, item, file, problems, forwards) {
+function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
   let j = start;
   let descriptionDone = false;
-  while (j < lines.length && !isBoundary(lines, inTable, opensHeading, j)) {
+  while (j < lines.length && !isBoundary(lines, boundary.inTable, boundary.opensHeading, j)) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
       continue;
     }
     const keywordMatch = line.match(KEYWORD_RE);
-    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
+    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, boundary.inTable, j, item, file, problems);
     if (keywordMatch) {
       descriptionDone = true;
       const collected = keywordEntries(lines, j, keywordMatch[2]);
@@ -493,6 +493,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const inTable = scanTables(lines, file, problems);
   const opensHeading = scanSetextHeadings(lines, inTable);
+  const boundary = { inTable, opensHeading };
   const items = [];
   let i = 0;
   while (i < lines.length) {
@@ -517,7 +518,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
     }
     const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "markdown", file, i + 1);
     item.title = titleAbove(lines, inTable, i);
-    i = parseItemBody(lines, inTable, opensHeading, i + 1, item, file, problems, forwards);
+    i = parseItemBody(lines, boundary, i + 1, item, file, problems, forwards);
     items.push(item);
   }
   return items;
