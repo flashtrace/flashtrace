@@ -281,16 +281,17 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
 // two precomputed per-line arrays isBoundary needs (inTable, opensHeading) so
 // they thread through as one parameter instead of two.
 function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
+  const { inTable, opensHeading } = boundary;
   let j = start;
   let descriptionDone = false;
-  while (j < lines.length && !isBoundary(lines, boundary.inTable, boundary.opensHeading, j)) {
+  while (j < lines.length && !isBoundary(lines, inTable, opensHeading, j)) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
       continue;
     }
     const keywordMatch = line.match(KEYWORD_RE);
-    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, boundary.inTable, j, item, file, problems);
+    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
     if (keywordMatch) {
       descriptionDone = true;
       const collected = keywordEntries(lines, j, keywordMatch[2]);
