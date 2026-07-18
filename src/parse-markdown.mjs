@@ -38,10 +38,15 @@ const DELIMITER_CELL_RE = /^:?-+:?$/;
 // so the two ID captures start at group 2
 const FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
 
+// 1-based column of the first non-blank character of a line - the construct a
+// location points at (the backtick of an ID line, the opener of a forwarding
+// line). Never called on a blank line.
+const firstNonBlankColumn = (line) => line.search(/\S/) + 1;
+
 // a line that is only a forwarding tag pushes a forward and is otherwise skipped
 function takeForward(line, file, lineIndex, forwards) {
   const forward = line.match(FORWARD_LINE_RE);
-  if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1));
+  if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1, firstNonBlankColumn(line)));
   return !!forward;
 }
 
@@ -140,16 +145,31 @@ function titleAbove(lines, inTable, definitionIndex) {
 }
 
 // entries of a keyword line: inline comma-separated, or a bullet list on the
-// following lines; returns the entries and the index of the last consumed line
+// following lines. Each entry carries its own source location (the column of
+// its first character, and - for a bullet list - the line it sits on rather
+// than the keyword line), so an invalid-ID problem points at the entry itself.
+// Returns the entries and the index of the last consumed line.
 function keywordEntries(lines, j, inline) {
   if (inline.trim() !== '') {
-    return { entries: inline.split(',').map((s) => s.trim()).filter(Boolean), j };
+    // inline is the `$`-anchored tail of lines[j], so it begins at this offset
+    const inlineStart = lines[j].length - inline.length;
+    const entries = [];
+    let pos = 0;
+    for (const part of inline.split(',')) {
+      const value = part.trim();
+      if (value) {
+        const leading = part.length - part.trimStart().length;
+        entries.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
+      }
+      pos += part.length + 1; // + 1 for the consumed comma
+    }
+    return { entries, j };
   }
   const entries = [];
   while (j + 1 < lines.length) {
     const bullet = lines[j + 1].match(BULLET_RE);
     if (!bullet) break;
-    entries.push(bullet[1].trim());
+    entries.push({ value: bullet[1].trim(), line: j + 2, character: lines[j + 1].indexOf(bullet[1]) + 1 });
     j++;
   }
   return { entries, j };
@@ -163,6 +183,32 @@ function rowCells(line) {
   if (row.startsWith('|')) row = row.slice(1);
   if (row.endsWith('|')) row = row.slice(0, -1);
   return row.split('|').map((cell) => cell.trim());
+}
+
+// 1-based columns of each cell's content, aligned one-to-one with the cells
+// rowCellsInTable returns, so a cell-level problem can point at the offending
+// cell the way an item column points at its backtick. Mirrors rowCells: it
+// works on the trimmed row and one optional leading/trailing pipe, tracking the
+// offset back into the original line. An empty cell reports its start column.
+function rowCellColumns(line) {
+  if (rowCells(line) === null) return [firstNonBlankColumn(line)];
+  let base = line.length - line.trimStart().length; // index where the trim starts
+  const trimmed = line.trim();
+  let body = trimmed;
+  if (body.startsWith('|')) {
+    body = body.slice(1);
+    base += 1;
+  }
+  if (body.endsWith('|')) body = body.slice(0, -1);
+  const columns = [];
+  let pos = 0;
+  for (const part of body.split('|')) {
+    const value = part.trim();
+    const leading = value ? part.length - part.trimStart().length : 0;
+    columns.push(base + pos + leading + 1);
+    pos += part.length + 1; // + 1 for the consumed pipe
+  }
+  return columns;
 }
 
 // does `lines[j]` start a table: a pipe-carrying header row directly followed
@@ -216,12 +262,14 @@ function scanTables(lines, file, problems) {
     for (let k = start; k <= end; k++) {
       inTable[k] = true;
       if (k === start + 1) continue; // the delimiter row carries no content
+      const columns = rowCellColumns(lines[k]);
       rowCellsInTable(lines[k]).forEach((cell, col) => {
         const definition = keywordColumns.has(col) ? null : cell.match(DEFINITION_RE);
         if (definition)
           problems.push({
             file,
             line: k + 1,
+            character: columns[col],
             message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a table; a table cell is not an item definition`,
           });
       });
@@ -248,9 +296,17 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
   while (j + 1 < lines.length && inTable[j + 1]) {
     j++;
     const cells = rowCellsInTable(lines[j]);
+    const cellColumns = rowCellColumns(lines[j]);
     for (const [col, keyword] of columns) {
       if (cells[col])
-        applyKeyword(item, keyword, [cells[col]], file, j + 1, problems, `the ${keyword} column of ${item.id}`);
+        applyKeyword(
+          item,
+          keyword,
+          [{ value: cells[col], line: j + 1, character: cellColumns[col] }],
+          file,
+          problems,
+          `the ${keyword} column of ${item.id}`,
+        );
     }
   }
   return j;
@@ -258,10 +314,11 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
 
 // `source` names where the entries were read from - the keyword line's list
 // or the table column the cell sits in - so a problem report points at the
-// right spot.
-function applyKeyword(item, keyword, entries, file, keywordLine, problems, source) {
+// right spot. Each entry is a { value, line, character } record locating it in
+// the source, so an invalid one is reported at its own position.
+function applyKeyword(item, keyword, entries, file, problems, source) {
   if (keyword === 'Tags') {
-    item.tags.push(...entries);
+    for (const entry of entries) item.tags.push(entry.value);
     return;
   }
   const target = keyword === 'Needs' ? 'needs' : 'covers';
@@ -270,13 +327,14 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
   // a wildcard revision, Covers stay concrete.
   const parse = keyword === 'Needs' ? parseNeedEntry : parseCoverEntry;
   for (const entry of entries) {
-    const id = parse(entry, item.id);
+    const id = parse(entry.value, item.id);
     if (id) item[target].push(id);
     else
       problems.push({
         file,
-        line: keywordLine,
-        message: `invalid ID "${entry}" in ${source}`,
+        line: entry.line,
+        character: entry.character,
+        message: `invalid ID "${entry.value}" in ${source}`,
       });
   }
 }
@@ -305,7 +363,6 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
         keywordMatch[1],
         collected.entries,
         file,
-        j + 1,
         problems,
         `${keywordMatch[1]}: list of ${item.id}`,
       );
@@ -350,6 +407,7 @@ export function parseMarkdown(file, text, problems, forwards = []) {
       problems.push({
         file,
         line: i + 1,
+        character: firstNonBlankColumn(lines[i]),
         message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a setext heading; a heading is not an item definition`,
       });
       i++;
@@ -359,7 +417,7 @@ export function parseMarkdown(file, text, problems, forwards = []) {
       i++;
       continue;
     }
-    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), 'markdown', file, i + 1);
+    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), 'markdown', file, i + 1, firstNonBlankColumn(lines[i]));
     item.title = titleAbove(lines, inTable, i);
     i = parseItemBody(lines, boundary, i + 1, item, file, problems, forwards);
     items.push(item);

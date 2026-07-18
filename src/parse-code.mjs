@@ -121,7 +121,7 @@ function nextEvent(line, pos, grammar, state, spans) {
 // consume text while a block comment is open, honoring nested openers when the
 // grammar marks the pair nestable (Rust, Swift, Kotlin, Scala, ...). Scanning
 // stops at `limit` (used to cap a block at a region exit); mutates block.depth
-// and returns the comment text and where scanning resumes.
+// and returns the comment content range [pos, end) and where scanning resumes.
 function readBlockRest(line, pos, block, limit = line.length) {
   const { open, close, nestable } = block;
   const within = (idx) => (idx !== -1 && idx < limit ? idx : -1);
@@ -137,9 +137,9 @@ function readBlockRest(line, pos, block, limit = line.length) {
     }
     block.depth--;
     i = closeIdx + close.length;
-    if (block.depth === 0) return { text: line.slice(pos, closeIdx) + ' ', pos: i, closed: true };
+    if (block.depth === 0) return { end: closeIdx, pos: i, closed: true };
   }
-  return { text: line.slice(pos, limit) + ' ', pos: limit, closed: false };
+  return { end: limit, pos: limit, closed: false };
 }
 
 // the region's exit match at or after pos on this line, or null
@@ -149,48 +149,58 @@ function regionExitAt(line, pos, region) {
 }
 
 // advance over an open block comment, capped at the region exit if one is ahead;
-// returns { text, pos } and updates state.block / state.region.
+// returns the comment content end and resume pos, updating state.block/region.
 function consumeBlock(line, pos, state, exit) {
   const rest = readBlockRest(line, pos, state.block, exit ? exit.idx : line.length);
   if (rest.closed) {
     state.block = null;
-    return { text: rest.text, pos: rest.pos };
+    return { end: rest.end, pos: rest.pos };
   }
   if (exit) {
     // exit reached before the block closed: end block and region together
     state.block = null;
     state.region = null;
-    return { text: rest.text, pos: exit.idx + exit.len };
+    return { end: rest.end, pos: exit.idx + exit.len };
   }
-  return { text: rest.text, pos: rest.pos };
+  return { end: rest.end, pos: rest.pos };
 }
 
 // consume a line comment from pos: to the region exit if one is ahead (the
 // region then ends), otherwise to end of line. `done` means stop scanning.
+// Returns the comment content end and resume pos.
 function consumeLine(line, pos, state, exit) {
   if (exit) {
     state.region = null;
-    return { text: line.slice(pos, exit.idx) + ' ', pos: exit.idx + exit.len, done: false };
+    return { end: exit.idx, pos: exit.idx + exit.len, done: false };
   }
-  return { text: line.slice(pos) + ' ', pos: line.length, done: true };
+  return { end: line.length, pos: line.length, done: true };
 }
 
-// comment text of one line. state.block carries an open block comment (its
-// open/close tokens and nesting depth) across lines; state.region carries the
-// active composite region across lines. A region *enter* is only recognized
-// outside comments (so `<!-- <script> -->` never opens a script region), but a
-// region *exit* is a hard boundary that ends the region even mid-comment, the
-// way a browser terminates a raw-text element at the first `</script>`.
+// comment text of one line, position-preserving: the returned string has the
+// same length as `line`, carrying each comment character at its original column
+// and a space at every code character and comment marker. A tag or forwarding
+// matched in it therefore occupies the same columns it does in the source, so
+// its 1-based column is `match.index + 1`.
+//
+// state.block carries an open block comment (its open/close tokens and nesting
+// depth) across lines; state.region carries the active composite region across
+// lines. A region *enter* is only recognized outside comments (so
+// `<!-- <script> -->` never opens a script region), but a region *exit* is a
+// hard boundary that ends the region even mid-comment, the way a browser
+// terminates a raw-text element at the first `</script>`.
 function commentText(line, state, grammar) {
   const spans = urlSpans(line);
-  let comment = '';
+  const buffer = new Array(line.length).fill(' ');
+  const keep = (from, to) => {
+    for (let k = from; k < to; k++) buffer[k] = line[k];
+  };
   let pos = 0;
   while (pos < line.length) {
     const exit = state.region ? regionExitAt(line, pos, state.region) : null;
 
     if (state.block) {
       const consumed = consumeBlock(line, pos, state, exit);
-      comment += consumed.text;
+      keep(pos, consumed.end);
       pos = consumed.pos;
       continue;
     }
@@ -200,7 +210,7 @@ function commentText(line, state, grammar) {
     pos = event.idx + event.len;
     if (event.kind === 'line') {
       const consumed = consumeLine(line, pos, state, exit);
-      comment += consumed.text;
+      keep(pos, consumed.end);
       pos = consumed.pos;
       if (consumed.done) break;
     } else if (event.kind === 'block') {
@@ -213,7 +223,7 @@ function commentText(line, state, grammar) {
       state.region = null;
     }
   }
-  return comment;
+  return buffer.join('');
 }
 
 // Attach one need tag to its anchor item. The explicit form [<source-id> >> ...]
@@ -221,7 +231,7 @@ function commentText(line, state, grammar) {
 // the nearest preceding item tag; a missing anchor is reported. The target
 // reference (groups 5-7: type, optional [group/]name, optional revision) is
 // completed against the anchor item - see REF_SRC.
-function attachNeed(m, file, line, state, problems) {
+function attachNeed(m, file, line, character, state, problems) {
   const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
   const anchor = source ? state.byId.get(source) : state.lastItem;
   if (!anchor) {
@@ -230,6 +240,7 @@ function attachNeed(m, file, line, state, problems) {
     problems.push({
       file,
       line,
+      character,
       message: source
         ? `need tag [${source} >> ${written}] has no preceding item tag [${source}] in this file`
         : `need tag [>>${written}] has no preceding item tag in this file`,
@@ -241,14 +252,16 @@ function attachNeed(m, file, line, state, problems) {
 
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
+    // comment is position-preserving, so the tag's `[` sits at its source column
+    const character = m.index + 1;
     if (m[8]) {
       // [<id>] item tag
-      const item = newItem(makeId(m[8], m[9], m[10], m[11]), 'code', file, line);
+      const item = newItem(makeId(m[8], m[9], m[10], m[11]), 'code', file, line, character);
       state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
     } else {
-      attachNeed(m, file, line, state, problems);
+      attachNeed(m, file, line, character, state, problems);
     }
   }
 }
@@ -268,7 +281,7 @@ export function parseCode(file, text, problems, forwards = []) {
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, grammar);
     for (const m of comment.matchAll(FORWARD_RE)) {
-      forwards.push(makeForward(m, 1, file, i + 1));
+      forwards.push(makeForward(m, 1, file, i + 1, m.index + 1));
     }
     collectTags(comment, file, i + 1, state, items, problems);
   }

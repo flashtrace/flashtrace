@@ -534,8 +534,8 @@ test('forwarding tag in a comment, spaces around --> optional', () => {
   assert.equal(problems.length, 0);
   assert.equal(items.length, 0); // a forwarding tag defines no item
   assert.deepEqual(forwards, [
-    { from: 'req:login#1', to: 'dsn:auth#2', file: 'src.ts', line: 1 },
-    { from: 'req:logout#1', to: 'dsn:auth#2', file: 'src.ts', line: 2 },
+    { from: 'req:login#1', to: 'dsn:auth#2', file: 'src.ts', line: 1, character: 4 },
+    { from: 'req:logout#1', to: 'dsn:auth#2', file: 'src.ts', line: 2, character: 4 },
   ]);
 });
 

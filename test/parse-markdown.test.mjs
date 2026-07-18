@@ -520,8 +520,8 @@ test('standalone forwarding line, plain or backticked, spaces optional', () => {
   ]);
   assert.equal(items.length, 0);
   assert.deepEqual(forwards, [
-    { from: 'req:login#1', to: 'dsn:auth#2', file: 'spec.md', line: 1 },
-    { from: 'req:logout#1', to: 'dsn:auth#2', file: 'spec.md', line: 3 },
+    { from: 'req:login#1', to: 'dsn:auth#2', file: 'spec.md', line: 1, character: 1 },
+    { from: 'req:logout#1', to: 'dsn:auth#2', file: 'spec.md', line: 3, character: 1 },
   ]);
 });
 
@@ -535,7 +535,13 @@ test('a forwarding line inside an item body is not description', () => {
   ]);
   assert.deepEqual(items[0].description, ['The description.', 'Still the description.']);
   assert.equal(forwards.length, 1);
-  assert.deepEqual(forwards[0], { from: 'req:a#1', to: 'dsn:b#1', file: 'spec.md', line: 4 });
+  assert.deepEqual(forwards[0], {
+    from: 'req:a#1',
+    to: 'dsn:b#1',
+    file: 'spec.md',
+    line: 4,
+    character: 1,
+  });
 });
 
 test('a forwarding mentioned in prose is not recognized', () => {
