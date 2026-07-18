@@ -4,4 +4,4 @@
 
 The system accepts a request only when it carries a valid session token.
 
-Needs: impl:auth/login#1, utest#1
+Needs: impl, utest#1
