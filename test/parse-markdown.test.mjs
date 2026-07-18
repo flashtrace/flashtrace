@@ -535,13 +535,7 @@ test('a forwarding line inside an item body is not description', () => {
   ]);
   assert.deepEqual(items[0].description, ['The description.', 'Still the description.']);
   assert.equal(forwards.length, 1);
-  assert.deepEqual(forwards[0], {
-    from: 'req:a#1',
-    to: 'dsn:b#1',
-    file: 'spec.md',
-    line: 4,
-    character: 1,
-  });
+  assert.deepEqual(forwards[0], { from: 'req:a#1', to: 'dsn:b#1', file: 'spec.md', line: 4, character: 1 });
 });
 
 test('a forwarding mentioned in prose is not recognized', () => {
@@ -937,4 +931,83 @@ test('a keyword table terminates the description like a keyword line', () => {
   ]);
   assert.deepEqual(items[0].description, ['The description.']);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
+// Source columns: every location records the 1-based column of the construct it
+// points at - the backtick of an ID line, the opener of a forwarding line, or
+// the offending entry of a problem.
+
+test('an item and a forwarding record the column of their construct', () => {
+  const { items, forwards } = parse([
+    '  `req:a#1`',
+    '',
+    '   [req:a#1 --> dsn:b#1]',
+  ]);
+  assert.equal(items[0].line, 1);
+  assert.equal(items[0].character, 3); // the backtick, past two spaces
+  assert.deepEqual(forwards, [
+    { from: 'req:a#1', to: 'dsn:b#1', file: 'spec.md', line: 3, character: 4 },
+  ]);
+});
+
+test('a setext-heading item-definition problem points at the ID backtick', () => {
+  const { problems } = parse([
+    '  `req:a#1`',
+    '=========',
+  ]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /defined inside a setext heading/);
+  assert.equal(problems[0].line, 1);
+  assert.equal(problems[0].character, 3);
+});
+
+test('a table-cell item-definition problem points at the cell backtick', () => {
+  const { problems } = parse([
+    '| Col |',
+    '|---|',
+    '| `req:x#1` |',
+  ]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /defined inside a table/);
+  assert.equal(problems[0].line, 3);
+  assert.equal(problems[0].character, 3);
+});
+
+test('an invalid inline Needs entry is reported at the entry column', () => {
+  const { problems } = parse([
+    '`req:a#1`',
+    '',
+    'Needs: impl:ok#1, not/valid',
+  ]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "not\/valid"/);
+  assert.equal(problems[0].line, 3);
+  assert.equal(problems[0].character, 19); // the 'n' of not/valid
+});
+
+test('an invalid bullet Needs entry is reported at its own line and column', () => {
+  const { problems } = parse([
+    '`req:a#1`',
+    '',
+    'Needs:',
+    '  - not/valid',
+  ]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "not\/valid"/);
+  assert.equal(problems[0].line, 4); // the bullet line, not the keyword line
+  assert.equal(problems[0].character, 5); // the 'n', past "  - "
+});
+
+test('an invalid Needs-column cell is reported at the cell column', () => {
+  const { problems } = parse([
+    '`req:a#1`',
+    '',
+    '| Needs |',
+    '|---|',
+    '| not/valid |',
+  ]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "not\/valid" in the Needs column/);
+  assert.equal(problems[0].line, 5);
+  assert.equal(problems[0].character, 3);
 });

@@ -344,3 +344,34 @@ test('cyclic needs do not hang and count as deep-covered', () => {
     assert.equal(item.deepCovered, true);
   }
 });
+
+// Source columns: the problems analyze raises over forwarding declarations
+// carry the column of the declaration they point at.
+
+test('a forwarding-from-missing-source problem carries the declaration column', () => {
+  const { problems } = runAll({
+    md: ['`dsn:b#1`', '', '  `[req:ghost#1 --> dsn:b#1]`'],
+  });
+  const problem = problems.find((p) => /forwarding from req:ghost#1/.test(p.message));
+  assert.ok(problem);
+  assert.equal(problem.line, 3);
+  assert.equal(problem.character, 3); // the backtick, past two spaces
+});
+
+test('a cyclic-forwarding problem carries the declaration column', () => {
+  const { problems } = runAll({
+    md: [
+      '`req:a#1`',
+      '',
+      '  `[req:a#1 --> req:b#1]`',
+      '',
+      '`req:b#1`',
+      '',
+      '`[req:b#1 --> req:a#1]`',
+    ],
+  });
+  const cyclic = problems.filter((p) => /cyclic forwarding/.test(p.message));
+  assert.equal(cyclic.length, 2);
+  assert.equal(cyclic.find((p) => p.line === 3).character, 3);
+  assert.equal(cyclic.find((p) => p.line === 7).character, 1);
+});
