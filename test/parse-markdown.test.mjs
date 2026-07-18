@@ -87,9 +87,8 @@ test('a thematic break (--- after a blank line) is not a setext heading', () => 
   assert.equal(items[0].title, null);
 });
 
-// A table delimiter row carries pipes, so it is never a setext underline.
-// The blank line ends the table; without it, the ID line would be swallowed
-// as a row.
+// A table delimiter row carries pipes, so it is never a setext underline. The
+// blank line ends the table; without it the ID line would be swallowed as a row.
 test('a table delimiter row is not mistaken for a setext heading', () => {
   const { items } = parse(['| Feature | Owner |', '| --- | --- |', '', '`req:a#1`']);
   assert.equal(items[0].title, null);
@@ -101,9 +100,8 @@ test('a bullet list above a run of dashes is not a setext heading', () => {
   assert.equal(items[0].title, null);
 });
 
-// A setext heading claims exactly its own paragraph: a blank line above it
-// ends the description, which then stays with the previous item while the
-// heading titles the next one.
+// A setext heading claims only its own paragraph: the blank line above ends the
+// description, which stays with the previous item while the heading titles the next.
 test('a blank line separates the description from a following setext heading', () => {
   const { items } = parse([
     '`req:a#1`',
@@ -118,12 +116,9 @@ test('a blank line separates the description from a following setext heading', (
   assert.equal(items[1].title, 'Next Title');
 });
 
-// CommonMark folds every paragraph line down to the underline into one
-// multi-line heading; so does the tracer. Each line is trimmed and joined
-// with a single space, the whitespace a renderer shows for a soft line
-// break; a line ending in two or more spaces spells a hard line break and
-// joins with a newline instead. The folded lines belong to the title
-// alone - they never double as the item above's description.
+// The tracer folds every paragraph line down to the underline into one
+// multi-line title: lines trimmed and joined with a space, or a newline where a
+// line ends in two+ spaces (a hard break). Folded lines are never the description.
 test('setext titles are multi-line and keep every folded line to themselves, not serving the item above as description', () => {
   const { items } = parse([
     '`req:a#1`',
@@ -148,11 +143,9 @@ test('setext titles are multi-line and keep every folded line to themselves, not
   );
 });
 
-// An ID line needs a blank line below it to stand as its own block. Glued
-// directly onto the paragraph that a setext underline turns into a heading,
-// the ID is heading text (CommonMark) - it cannot also define an item, so the
-// tracer reports it and creates no item. Here the whole run above the
-// underline, ID line included, folds into the following item's title.
+// Glued onto the paragraph a setext underline turns into a heading, an ID line
+// is heading text (CommonMark): reported, defining no item, and folded - with
+// the rest of the run - into the following item's title.
 test('an ID line glued above a setext heading is heading text, flagged and creating no item', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -278,8 +271,7 @@ test('a keyword line folded into a multi-line setext title is ignored for its ke
 
 // A pipe alone does not make a line a table row: as in GFM, a pipe-carrying
 // paragraph above an underline is a setext heading with the pipe in its text.
-// Only membership in an actual table (header plus delimiter row) rules a
-// line out.
+// Only membership in an actual table rules a line out.
 test('a pipe-carrying paragraph above an underline is a setext title', () => {
   const { items, problems } = parse([
     'Login | Logout',
@@ -623,12 +615,9 @@ test('a keyword table ends at a setext heading directly below it', () => {
 });
 
 // A `===` run directly under a table row is swallowed as a single-cell row
-// (GFM) - its text fills the first column, so it never underlines a
-// heading. Here the first column is the Needs column, so the swallowed
-// "===" surfaces as an invalid entry - reported against that column - and
-// does not silently vanish. The ID line directly below is swallowed the
-// same way: one more row filling the Needs column, so it is an entry of
-// the item above, not a definition.
+// (GFM), not a heading underline. Here it fills the Needs column, surfacing as
+// an invalid entry rather than vanishing. The ID line below is swallowed the
+// same way - a row of the item above, not a definition.
 test('an underline directly under a table is a row filling the first column, not a heading', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -646,10 +635,9 @@ test('an underline directly under a table is a row filling the first column, not
   assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1', 'req:b#1']);
 });
 
-// A `---` run of three or more dashes directly under a table row is a
-// thematic break, as in GFM: it ends the table - it is no row (nothing is
-// reported for the keyword column) and no heading underline (the row above
-// stays a row).
+// A `---` run of three or more dashes directly under a table row is a thematic
+// break (GFM): it ends the table - no row (nothing reported for the keyword
+// column) and no underline (the row above stays a row).
 test('a thematic break directly under a table ends it', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -738,10 +726,9 @@ test('a table continues past a swallowed underline', () => {
   assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1']);
 });
 
-// Any pipe-carrying line under a table is a row, even when underlined and
-// even when it reads like prose - its cells feed the keyword columns, and
-// an invalid entry is reported instead of silently becoming a title. The
-// underline below it is swallowed as a row too and reported the same way.
+// Any pipe-carrying line under a table is a row, even underlined and even when
+// it reads like prose: its cells feed the keyword columns, so an invalid entry
+// is reported rather than becoming a title. The underline below is a row too.
 test('a pipe-carrying line under a table is a row even when underlined', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -782,10 +769,8 @@ test('an informative table row above an underline is not a heading', () => {
   assert.equal(items[1].title, null);
 });
 
-// A table cannot define an item: a cell holding nothing but a backticked ID
-// is not a definition - no item is created, and the cell is reported. This
-// holds for any table, keyword-carrying or purely informative, inside an
-// item's definition or outside.
+// A table cannot define an item: a cell holding nothing but a backticked ID is
+// reported, no item created - for any table, keyword-carrying or informative.
 test('an item defined inside a table cell is flagged and creates no item', () => {
   const { items, problems } = parse([
     '| ID | Owner |',
@@ -827,10 +812,9 @@ test('a definition-shaped cell outside the keyword columns is flagged', () => {
   assert.deepEqual(items[0].needs, ['impl:a#1']);
 });
 
-// An ID line directly under a table (no blank line) is swallowed as a
-// single-cell row, as GFM renders it - it defines nothing. Its text fills
-// the first column: in a keyword column it is an entry (see the underline
-// tests above); elsewhere it is a definition-shaped cell and is flagged.
+// An ID line directly under a table (no blank line) is a swallowed single-cell
+// row (GFM), defining nothing. In a keyword column it is an entry (see above);
+// elsewhere it is a definition-shaped cell and is flagged.
 test('an ID line directly under a table is a swallowed row, not a definition', () => {
   const { items, problems } = parse([
     '`req:a#1`',

@@ -9,12 +9,9 @@
  *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated, as a
  *     bullet list on the following lines, or as a table column whose header
  *     cell is the bare keyword name. Needs/Covers list full, explicit IDs.
- *   - A table cannot define an item: a cell holding nothing but a backticked
- *     ID is reported as a problem, not read as a definition. An ID line
- *     directly under a table is swallowed as a single-cell row (GFM) and
- *     treated the same way. Nor can a setext
- *     heading: an ID line with no blank line below it folds into the heading
- *     of the following paragraph (CommonMark) and is reported the same way.
+ *   - Neither a table cell nor a setext heading can define an item: a
+ *     backticked ID in a table cell, or an ID line with no blank line below it
+ *     (which folds into the following heading), is reported, not defined.
  *   - A line containing only `[<id> --> <id>]` (optionally backticked) forwards
  *     the first item's coverage obligation to the second (spaces optional).
  */
@@ -27,11 +24,9 @@ const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 // with up to three leading spaces and optional trailing whitespace per
 // CommonMark. A row carrying pipes (a table delimiter) never matches.
 const SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
-// Thematic break, dash-spelled: three or more `-`, same leading/trailing
-// whitespace allowance. The `*`/`_` spellings and space-separated runs
-// (`- - -`) share no shape with a table row or setext underline, so only
-// this dense dash run needs telling apart. Under a paragraph, the setext
-// underline still wins, as in CommonMark; the break matters inside tables.
+// Thematic break, dash-spelled. Only this shape collides with a table row or
+// setext underline, and it only matters inside a table - under a paragraph the
+// setext underline still wins (CommonMark).
 const THEMATIC_BREAK_RE = /^ {0,3}-{3,}[ \t]*$/;
 const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
@@ -51,15 +46,12 @@ function takeForward(line, file, lineIndex, forwards) {
 // above it (CommonMark). That excludes the lookalikes the issue names: a
 // thematic break (blank line above the run), a table delimiter row (its run
 // carries pipes, so SETEXT_UNDERLINE_RE never matches it), and a bullet list
-// (a run whose neighbour above is a bullet, not a paragraph). Keyword lines,
-// forwarding lines, and ID lines are paragraph text like any other: folded
-// into a setext title they serve the heading, not their usual role - exactly
-// as `# Covers: ...` is a heading, not a keyword. An ID line so folded cannot
-// also define an item; parseMarkdown reports it and creates no item.
-// A pipe alone does not disqualify a line: as in GFM, a pipe-carrying
-// paragraph above an underline is a heading with the pipe in its text. Only
-// membership in an actual table (header plus delimiter row) rules a line
-// out, and that is context, not shape - see isParagraphAt.
+// (a run whose neighbour above is a bullet, not a paragraph). Keyword,
+// forwarding, and ID lines are paragraph text too: folded into a setext title
+// they serve the heading, not their usual role (as `# Covers: ...` is a
+// heading, not a keyword), and a so-folded ID defines no item. A pipe alone
+// does not disqualify a line either - only membership in an actual table
+// does, which is context, not shape (see isParagraphAt).
 function isParagraphLine(line) {
   return (
     line.trim() !== '' &&
@@ -93,12 +85,10 @@ function opensSetextHeading(lines, inTable, j) {
   return isSetextHeading(lines, inTable, k);
 }
 
-// An item's body ends at an ID definition line, an ATX heading, or a setext
-// heading - the latter even without a blank line in between, because the
-// rendered document shows a heading there, not more of the previous paragraph.
-// The heading claims its whole paragraph, so the body already ends at the
-// first line of a run that folds into a heading. An ID line swallowed into a
-// table is a row, not a definition, so it bounds nothing.
+// An item's body ends at an ID definition, an ATX heading, or a setext heading
+// - the last even with no blank line between, since the heading claims its
+// whole paragraph, so the body ends at the first line of the folding run. An ID
+// line swallowed into a table is a row, not a definition, so it bounds nothing.
 const isBoundary = (lines, inTable, j) =>
   (!inTable[j] && DEFINITION_RE.test(lines[j])) ||
   HEADING_RE.test(lines[j]) ||
@@ -173,14 +163,11 @@ function tableStartsAt(lines, j) {
 }
 
 // Like GFM, a table runs to the first blank line or block-level element: an
-// ATX heading (it ends the table even when it carries a pipe), or a
-// thematic break - GFM reads a `---` run directly under a row as a break,
-// so it ends the table and is plain text, not a row and not a heading
-// underline. Any other pipe-less line ends the table too, except the lines
-// GFM swallows as single-cell rows: a `===` run, a dash run too short for a
-// break (`-`, `--`), or an item-definition line - each fills the first
-// column as a row, so none of them can end a table, underline a heading,
-// or define an item.
+// ATX heading, or a thematic break (a `---` run under a row is a break, so it
+// ends the table as plain text). Any other pipe-less line ends it too, except
+// those GFM swallows as single-cell rows: a `===` run, a dash run too short for
+// a break (`-`, `--`), or an item-definition line - each fills the first
+// column, so it ends nothing, underlines nothing, and defines nothing.
 const continuesTable = (line) =>
   line.trim() !== '' &&
   !HEADING_RE.test(line) &&
@@ -193,13 +180,10 @@ const rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
 
 const isKeywordCell = (cell) => cell === 'Needs' || cell === 'Covers' || cell === 'Tags';
 
-// Mark every line belonging to a table - header, delimiter, and rows - so
-// heading detection can rule them out: a table row above an underline stays
-// a row. While scanning, flag definition-shaped cells: an item cannot be
-// defined inside a table, so a cell holding nothing but a backticked ID is
-// reported as a problem instead of silently defining nothing. Keyword
-// columns are exempt - their cells are entries (optionally backticked),
-// not definitions.
+// Mark every line belonging to a table so heading detection can rule them out:
+// a table row above an underline stays a row. While scanning, flag a cell that
+// holds nothing but a backticked ID - an item cannot be defined inside a table.
+// Keyword columns are exempt: their cells are entries, not definitions.
 function scanTables(lines, file, problems) {
   const inTable = new Array(lines.length).fill(false);
   let j = 0;
@@ -339,10 +323,9 @@ export function parseMarkdown(file, text, problems, forwards = []) {
     // outside keyword columns), never a definition
     const definition = inTable[i] ? null : lines[i].match(DEFINITION_RE);
     if (definition && startsHeading) {
-      // The ID line has no blank line below it, so its paragraph folds into a
-      // setext heading (CommonMark): the ID is heading text, not a standalone
-      // block. Report it - an item must live on its own line, inside no
-      // heading - and create no item; the folded text titles the item below.
+      // No blank line below the ID, so its paragraph folds into a setext
+      // heading (CommonMark): the ID is heading text, not a definition. Report
+      // it and create no item; the folded text titles the item below.
       problems.push({
         file,
         line: i + 1,
