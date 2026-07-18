@@ -1,8 +1,7 @@
 name: Bug Report
 description: Report incorrect or unexpected behaviour in flashtrace.
 title: "bug: <short description>"
-labels:
-  - bug
+type: Bug
 body:
   - type: markdown
     attributes:

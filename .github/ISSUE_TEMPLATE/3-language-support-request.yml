@@ -1,8 +1,7 @@
 name: Language Support Request
 description: Request comment-parsing support for a new language or file extension.
 title: "feat: add language support for <language>"
-labels:
-  - enhancement
+type: Feature
 body:
   - type: markdown
     attributes:
