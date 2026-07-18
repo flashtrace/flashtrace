@@ -303,7 +303,8 @@ test('a pipe-carrying line above an underline terminates the body and titles the
   assert.equal(items[1].title, 'Login | Logout');
 });
 
-// The pipe rule leaves ATX titles untouched.
+// The same rule applies to ATX headings: the pipe is plain text and stays
+// in the title.
 test('an ATX heading may carry a pipe and still titles the item', () => {
   const { items } = parse(['## Login | Logout', '`req:a#1`']);
   assert.equal(items[0].title, 'Login | Logout');
