@@ -30,6 +30,8 @@ HTML-family files switch comment style by region: `<!-- … -->` in markup, C-li
 
 The embedded grammar follows the tag's `type`/`lang` attribute: `<script type="application/json">` is scanned with no comments (so a `//` in a JSON string is not one), `<script type="text/x-template">` as HTML markup, and `<style lang="scss">` / `less` / `sass` also honour `//`.
 
+Comment markers inside URL-shaped text never open a comment, in any grammar: in `https://example.com/a--b#anchor` neither the `//` nor the `--` nor the `#` starts a comment. URL-shaped means a scheme followed by `://`; the URL extends until whitespace, a quote, a bracket or an angle bracket, so a tag written next to a URL is unaffected. Markers that *close* an already open block comment are still honoured inside a URL.
+
 - `[<type>:[<group>/…]<name>#<revision>]` - defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
 - `[>><type>:[<group>/…]<name>#<revision>]` - attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.
 - `[<source-id> >> <target-id>]` - attaches the need `<target-id>` to the *preceding item tag with exactly* `<source-id>` in the **same file** (spaces around `>>` optional). If no such item tag precedes it, this is reported as an error. Unlike the implicit form, it stays attached to its item even when another item tag is later inserted in between.

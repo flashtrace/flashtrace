@@ -28,6 +28,37 @@ const TAG_RE = new RegExp(
 );
 const FORWARD_RE = new RegExp(FORWARD_SRC, 'g');
 
+// URL-shaped text: a scheme followed by ://, extending until a character that
+// ends a URL in practice (whitespace, quotes/backtick, brackets, angle
+// brackets - so a tag or an HTML tag right next to a URL stays outside).
+// The scheme repetition is bounded so a long run of scheme-valid characters
+// with no :// cannot force super-linear backtracking; 63 clears every real
+// scheme (RFC 3986 and reverse-DNS custom schemes stay well under it).
+const URL_RE = /[A-Za-z][A-Za-z0-9+.-]{0,63}:\/\/[^\s"'`<>[\]]*/g;
+
+// spans [start, end) of URL-shaped text in a line, in order. Comment *openers*
+// inside a span are ignored (see markerIndex), so the `//`, `#`, `--` or `/*`
+// of e.g. `https://example.com/a--b#anchor` cannot open a phantom comment.
+// Block *closers* are still honoured inside URLs: skipping a closer could leave
+// a block comment open far past its real end, which is worse than the phantom
+// it would prevent.
+function urlSpans(line) {
+  if (!line.includes('://')) return [];
+  return [...line.matchAll(URL_RE)].map((m) => ({ start: m.index, end: m.index + m[0].length }));
+}
+
+// first index of `marker` at or after pos that lies outside every URL span,
+// or -1. Spans are in ascending order and the index only moves forward, so a
+// single pass over the spans suffices.
+function markerIndex(line, marker, pos, spans) {
+  let idx = line.indexOf(marker, pos);
+  for (const span of spans) {
+    if (idx === -1 || idx < span.start) break;
+    if (idx < span.end) idx = line.indexOf(marker, span.end);
+  }
+  return idx;
+}
+
 // leaf grammar (line markers + block pairs) active at the current position: the
 // region's grammar when inside one, otherwise the file's default.
 function activeLeaf(grammar, state) {
@@ -62,7 +93,7 @@ function* regionEvents(line, pos, grammar, state) {
 // earliest scanning event in the line at or after pos, or null: a comment
 // opener from the active leaf grammar, or - for composite grammars - a region
 // boundary.
-function nextEvent(line, pos, grammar, state) {
+function nextEvent(line, pos, grammar, state, spans) {
   const leaf = activeLeaf(grammar, state);
   let best = null;
   // earliest match wins; on a tie the longest opener wins, so a block opener
@@ -74,10 +105,10 @@ function nextEvent(line, pos, grammar, state) {
     }
   };
   for (const marker of leaf.line) {
-    consider(line.indexOf(marker, pos), { kind: 'line', len: marker.length });
+    consider(markerIndex(line, marker, pos, spans), { kind: 'line', len: marker.length });
   }
   for (const [open, close, nestable] of leaf.block) {
-    consider(line.indexOf(open, pos), {
+    consider(markerIndex(line, open, pos, spans), {
       kind: 'block', len: open.length, open, close, nestable: Boolean(nestable),
     });
   }
@@ -149,6 +180,7 @@ function consumeLine(line, pos, state, exit) {
 // region *exit* is a hard boundary that ends the region even mid-comment, the
 // way a browser terminates a raw-text element at the first `</script>`.
 function commentText(line, state, grammar) {
+  const spans = urlSpans(line);
   let comment = '';
   let pos = 0;
   while (pos < line.length) {
@@ -161,7 +193,7 @@ function commentText(line, state, grammar) {
       continue;
     }
 
-    const event = nextEvent(line, pos, grammar, state);
+    const event = nextEvent(line, pos, grammar, state, spans);
     if (!event) break;
     pos = event.idx + event.len;
     if (event.kind === 'line') {

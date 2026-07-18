@@ -101,6 +101,74 @@ test('tags outside comments are ignored', () => {
   assert.equal(items.length, 0);
 });
 
+test('a // inside a URL does not open a comment, a later real // does', () => {
+  const { items } = parse('src.ts', [
+    'const docs = "https://example.com/specs"; // [impl:real#1]',
+    'const api = "https://example.com/api"; register("[impl:phantom#1]");',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:real#1']);
+});
+
+test('a # fragment in a URL does not open a comment (Python)', () => {
+  const { items } = parse('app.py', [
+    'link = "https://example.com/docs#setup [impl:phantom#1]"  # [impl:real#1]',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:real#1']);
+});
+
+test('a -- in a URL path does not open a comment (SQL)', () => {
+  const { items } = parse('schema.sql', [
+    "INSERT INTO links VALUES ('https://example.com/a--b'); -- [impl:real#1]",
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:real#1']);
+});
+
+test('a /* inside a URL does not open a block comment', () => {
+  const { items } = parse('src.ts', [
+    'const glob = "https://example.com/*/index";',
+    'const s = "[impl:phantom#1]";',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('a URL in an embedded <script> string does not define a phantom item', () => {
+  const { items } = parse('page.html', [
+    '<script>',
+    'const u = "https://cdn.example.com/lib.js"; run("[impl:phantom#1]");',
+    '</script>',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('a URL inside a comment does not hide a tag after it', () => {
+  const { items } = parse('src.ts', [
+    '// see https://example.com/spec [impl:real#1]',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:real#1']);
+});
+
+test('a comment opener glued to a scheme-shaped token is missed (known limitation)', () => {
+  const { items } = parse('src.ts', ['const x = 1; note://[impl:missed#1]']);
+  assert.equal(items.length, 0);
+});
+
+test('a */ inside a URL still closes an open block comment', () => {
+  // Block *closers* are honoured inside URLs (unlike openers): the `*/` in the
+  // URL ends the block, so the following line is scanned as code, not comment.
+  const { items } = parse('src.ts', [
+    '/* see https://example.com/a*/b',
+    'const s = "[impl:phantom#1]";',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('markers in multiple URLs on one line are all skipped, a trailing real comment opens', () => {
+  const { items } = parse('src.ts', [
+    'const a = "https://x.example/p"; const b = "https://y.example/q"; // [impl:real#1]',
+  ]);
+  assert.deepEqual(items.map((i) => i.id), ['impl:real#1']);
+});
+
 test('multi-line block comment, one tag per line', () => {
   const { items } = parse('src.ts', [
     '/*',
