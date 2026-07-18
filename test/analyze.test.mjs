@@ -239,7 +239,6 @@ test('forwarding from a non-existent item is a problem', () => {
   });
   assert.equal(problems.length, 1);
   assert.match(problems[0].message, /^forwarding from req:ghost#1, which does not exist/);
-  assert.equal(problems[0].severity, 'error');
   assert.deepEqual(byId(items, 'dsn:b#1').defects, []);
 });
 
@@ -314,7 +313,6 @@ test('a self-forwarding is a cyclic-forwarding problem', () => {
   });
   assert.equal(problems.length, 1);
   assert.match(problems[0].message, /^cyclic forwarding: req:a#1 --> req:a#1$/);
-  assert.equal(problems[0].severity, 'error');
 });
 
 test('an acyclic forwarding chain is allowed', () => {

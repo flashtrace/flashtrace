@@ -13,14 +13,9 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
 
 Long options also accept `=`-attached values, e.g. `--tags=a,b`; values containing spaces must be shell-quoted (`--tags="a , b"`).
 
-Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note, error/warning counts) ending in `ok` / `not ok`.
+Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note) ending in `ok` / `not ok`.
 
-Every problem carries a severity, rendered with its own marker and counted separately in the summary:
-
-- `▲` **error** - flashtrace cannot correctly process the affected input; any error makes the run fail
-- `⚠` **warning** - suspicious usage that flashtrace can handle; warnings never affect the exit code
-
-Exit codes: `0` clean trace · `1` defects or errors found · `2` usage error. Warnings alone leave the trace clean.
+Exit codes: `0` clean trace · `1` defects or problems found · `2` usage error.
 
 ## Verbose report
 
