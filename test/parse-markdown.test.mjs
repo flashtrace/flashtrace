@@ -400,46 +400,61 @@ test('a wildcard revision is not accepted in an item definition', () => {
   assert.equal(items.length, 0);
 });
 
-test('a short-form need is resolved with the item\'s [group/]name', () => {
+test('a short form takes the [group/]name from the item when only the revision is written', () => {
   const { items, problems } = parse([
     '`req:auth/login#1`',
     '',
-    'Needs: impl#1, `utest#2.x`',
+    'Needs: impl#2, `utest#2.x`',
   ]);
   assert.equal(problems.length, 0);
-  assert.deepEqual(items[0].needs, ['impl:auth/login#1', 'utest:auth/login#2.x']);
+  assert.deepEqual(items[0].needs, ['impl:auth/login#2', 'utest:auth/login#2.x']);
 });
 
-test('a short-form need of an ungrouped item carries only the name', () => {
-  const { items, problems } = parse(['`req:a#1`', '', 'Needs: impl#1']);
+test('a short form takes the revision from the item when only a name is written', () => {
+  const { items, problems } = parse([
+    '`req:auth/login#3`',
+    '',
+    'Needs: impl, impl:other, dsn:auth/audit',
+  ]);
+  assert.equal(problems.length, 0);
+  // impl -> name and revision both taken; impl:other / dsn:auth/audit -> revision taken
+  assert.deepEqual(items[0].needs, ['impl:auth/login#3', 'impl:other#3', 'dsn:auth/audit#3']);
+});
+
+test('a bare type takes both the name and the revision from an ungrouped item', () => {
+  const { items, problems } = parse(['`req:a#1`', '', 'Needs: impl']);
   assert.equal(problems.length, 0);
   assert.deepEqual(items[0].needs, ['impl:a#1']);
 });
 
-test('a short-form need in a table column is resolved like an inline entry', () => {
+test('a short-form need in a table column is completed like an inline entry', () => {
   const { items, problems } = parse([
     '`req:auth/login#1`',
     '',
     '| Needs   |',
     '|---------|',
-    '| impl#1  |',
+    '| impl    |',
   ]);
   assert.equal(problems.length, 0);
   assert.deepEqual(items[0].needs, ['impl:auth/login#1']);
 });
 
-test('a bare type without a revision is not a need entry', () => {
-  const { items, problems } = parse(['`req:a#1`', '', 'Needs: impl']);
-  assert.deepEqual(items[0].needs, []);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "impl" in Needs: list of req:a#1/);
+test('a short-form Covers entry is completed from the item, like a Needs entry', () => {
+  const { items, problems } = parse([
+    '`impl:auth/login#2`',
+    '',
+    'Covers: feat, req:auth#1, dsn#2',
+  ]);
+  assert.equal(problems.length, 0);
+  // feat -> name and revision taken; req:auth#1 -> full; dsn#2 -> name taken
+  assert.deepEqual(items[0].covers, ['feat:auth/login#2', 'req:auth#1', 'dsn:auth/login#2']);
 });
 
-test('the short form is not accepted in Covers', () => {
-  const { items, problems } = parse(['`impl:auth/login#1`', '', 'Covers: req#1']);
+test('a wildcard revision is rejected in a short-form Covers entry', () => {
+  const { items, problems } = parse(['`impl:auth/login#1`', '', 'Covers: feat#2.x']);
   assert.deepEqual(items[0].covers, []);
   assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "req#1" in Covers/);
+  assert.match(problems[0].message, /invalid ID "feat#2\.x" in Covers/);
 });
 
 test('an item definition ends at the next ID line or heading', () => {
@@ -783,11 +798,14 @@ test('a pipe-carrying line under a table is a row even when underlined', () => {
     '',
     '`req:b#1`',
   ]);
-  assert.equal(problems.length, 2);
-  assert.match(problems[0].message, /invalid ID "Next" in the Needs column of req:a#1/);
-  assert.match(problems[1].message, /invalid ID "=============" in the Needs column of req:a#1/);
+  // Both `Next | Title` and the `====` run are rows of the table, not a setext
+  // heading, so their first column is read as a Needs cell. `Next` is a valid
+  // type on its own, so it completes to the short-form need Next:a#1; the `====`
+  // run is not a valid reference and is reported.
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "=============" in the Needs column of req:a#1/);
   assert.equal(items.length, 2);
-  assert.deepEqual(items[0].needs, ['impl:a#1']);
+  assert.deepEqual(items[0].needs, ['impl:a#1', 'Next:a#1']);
   assert.equal(items[1].title, null);
 });
 

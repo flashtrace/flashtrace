@@ -233,10 +233,10 @@ var WILDCARD_SRC = String.raw`(?:\d+\.\d+\.x|\d+\.x\.y|x\.y\.z|\d+\.x|x\.y|x)`;
 var REV_REF_SRC = `(?:${WILDCARD_SRC}|${REV_SRC})`;
 var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_SRC})`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
-var NEED_ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_REF_SRC})`;
-var NEED_ID_RE = new RegExp(`^${NEED_ID_SRC}$`);
-var SHORT_NEED_SRC = `([A-Za-z]+)#(${REV_REF_SRC})`;
-var SHORT_NEED_RE = new RegExp(`^${SHORT_NEED_SRC}$`);
+var PATH_SRC = String.raw`(?:${SEGMENT_SRC}\/)*${SEGMENT_SRC}`;
+var REF_SRC = `([A-Za-z]+)(?::(${PATH_SRC}))?(?:#(${REV_REF_SRC}))?`;
+var REF_RE = new RegExp(`^${REF_SRC}$`);
+var COVER_REF_RE = new RegExp(String.raw`^([A-Za-z]+)(?::(${PATH_SRC}))?(?:#(${REV_SRC}))?$`);
 var FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
 var makeId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
 var makeForward = (m, base, file, line) => ({
@@ -248,7 +248,7 @@ var makeForward = (m, base, file, line) => ({
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => id.slice(id.lastIndexOf("#") + 1);
 var pathOf = (id) => id.slice(id.indexOf(":") + 1, id.lastIndexOf("#"));
-var resolveShortNeed = (type, ownerId, rev) => `${type}:${pathOf(ownerId)}#${rev}`;
+var resolveRef = (type, path5, rev, ownerId) => `${type}:${path5 ?? pathOf(ownerId)}#${rev ?? revOf(ownerId)}`;
 function compareRev(a, b) {
   const partsA = a.split(".");
   const partsB = b.split(".");
@@ -272,17 +272,15 @@ function revMatches(pattern, concrete) {
   return true;
 }
 var idMatches = (need, id) => keyOf(need) === keyOf(id) && revMatches(revOf(need), revOf(id));
-function parseIdEntry(raw) {
-  const cleaned = raw.replaceAll("`", "").trim();
-  const m = cleaned.match(ID_RE);
-  return m ? makeId(m[1], m[2], m[3], m[4]) : null;
-}
 function parseNeedEntry(raw, ownerId) {
   const cleaned = raw.replaceAll("`", "").trim();
-  const m = cleaned.match(NEED_ID_RE);
-  if (m) return makeId(m[1], m[2], m[3], m[4]);
-  const short = cleaned.match(SHORT_NEED_RE);
-  return short ? resolveShortNeed(short[1], ownerId, short[2]) : null;
+  const m = cleaned.match(REF_RE);
+  return m ? resolveRef(m[1], m[2], m[3], ownerId) : null;
+}
+function parseCoverEntry(raw, ownerId) {
+  const cleaned = raw.replaceAll("`", "").trim();
+  const m = cleaned.match(COVER_REF_RE);
+  return m ? resolveRef(m[1], m[2], m[3], ownerId) : null;
 }
 function newItem(id, origin, file, line) {
   return {
@@ -438,8 +436,9 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
     return;
   }
   const target = keyword === "Needs" ? "needs" : "covers";
+  const parse = keyword === "Needs" ? parseNeedEntry : parseCoverEntry;
   for (const entry of entries) {
-    const id = keyword === "Needs" ? parseNeedEntry(entry, item.id) : parseIdEntry(entry);
+    const id = parse(entry, item.id);
     if (id) item[target].push(id);
     else
       problems.push({
@@ -521,7 +520,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
 // src/parse-code.mjs
 import path2 from "node:path";
 var TAG_RE = new RegExp(
-  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*(?:${NEED_ID_SRC}|${SHORT_NEED_SRC})\s*\]|\[\s*${ID_SRC}\s*\]`,
+  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${REF_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
   "g"
 );
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
@@ -661,8 +660,8 @@ function commentText(line, state, grammar) {
 function attachNeed(m, file, line, state, problems) {
   const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
   const anchor = source ? state.byId.get(source) : state.lastItem;
-  const written = m[5] ? makeId(m[5], m[6], m[7], m[8]) : `${m[9]}#${m[10]}`;
   if (!anchor) {
+    const written = m[5] + (m[6] ? `:${m[6]}` : "") + (m[7] ? `#${m[7]}` : "");
     problems.push({
       file,
       line,
@@ -670,12 +669,12 @@ function attachNeed(m, file, line, state, problems) {
     });
     return;
   }
-  anchor.needs.push(m[5] ? written : resolveShortNeed(m[9], anchor.id, m[10]));
+  anchor.needs.push(resolveRef(m[5], m[6], m[7], anchor.id));
 }
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
-    if (m[11]) {
-      const item = newItem(makeId(m[11], m[12], m[13], m[14]), "code", file, line);
+    if (m[8]) {
+      const item = newItem(makeId(m[8], m[9], m[10], m[11]), "code", file, line);
       state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);

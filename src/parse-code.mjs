@@ -8,25 +8,24 @@
  *   - `[<source-id> >> <id>]` attaches the need to the preceding item tag with
  *     exactly that source ID instead (error if there is none), so tags placed
  *     in between cannot steal the attachment (spaces around `>>` optional).
- *   - The need target of either form may be the short form `<type>#<rev>`,
- *     resolved with the [group/]name of the item the need attaches to.
+ *   - The need target of either form may be short (`utest`, `utest:name`,
+ *     `utest#2`): its omitted [group/]name and revision are taken from the
+ *     item the need attaches to.
  *   - `[<id> --> <id>]` inside a comment forwards the first item's coverage
  *     obligation to the second (spaces optional).
  */
 
 import path from 'node:path';
 
-import { FORWARD_SRC, ID_SRC, NEED_ID_SRC, SHORT_NEED_SRC, makeForward, makeId, newItem, resolveShortNeed } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, REF_SRC, makeForward, makeId, newItem, resolveRef } from './ids.mjs';
 import { cLike, grammarFor } from './languages.mjs';
 
-// Alternation: need tag with optional explicit source (groups 1-4 source,
-// 5-8 full target, 9-10 short-form target), or plain item tag (groups 11-14).
-// The need target uses NEED_ID_SRC so it may carry a wildcard revision, or
-// SHORT_NEED_SRC (a bare type and revision) to be resolved with the anchor
-// item's [group/]name; the source and item tags stay full and concrete
-// (ID_SRC).
+// Alternation: a need tag with an optional explicit source (groups 1-4 source,
+// 5-7 target), or a plain item tag (groups 8-11). The target is a REF_SRC
+// reference (type, optional [group/]name, optional revision) completed against
+// the anchor item; the source and item tags stay full, concrete IDs (ID_SRC).
 const TAG_RE = new RegExp(
-  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*(?:${NEED_ID_SRC}|${SHORT_NEED_SRC})\s*\]|\[\s*${ID_SRC}\s*\]`,
+  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${REF_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
   'g',
 );
 const FORWARD_RE = new RegExp(FORWARD_SRC, 'g');
@@ -219,14 +218,15 @@ function commentText(line, state, grammar) {
 
 // Attach one need tag to its anchor item. The explicit form [<source-id> >> ...]
 // anchors at the item tag named by its source ID, the implicit form [>>...] at
-// the nearest preceding item tag; a missing anchor is reported. A short-form
-// target (<type>#<rev>) is resolved with the anchor item's [group/]name.
+// the nearest preceding item tag; a missing anchor is reported. The target
+// reference (groups 5-7: type, optional [group/]name, optional revision) is
+// completed against the anchor item - see REF_SRC.
 function attachNeed(m, file, line, state, problems) {
   const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
   const anchor = source ? state.byId.get(source) : state.lastItem;
-  // the target as written, for problem messages
-  const written = m[5] ? makeId(m[5], m[6], m[7], m[8]) : `${m[9]}#${m[10]}`;
   if (!anchor) {
+    // the target as written, for the problem message
+    const written = m[5] + (m[6] ? `:${m[6]}` : '') + (m[7] ? `#${m[7]}` : '');
     problems.push({
       file,
       line,
@@ -236,14 +236,14 @@ function attachNeed(m, file, line, state, problems) {
     });
     return;
   }
-  anchor.needs.push(m[5] ? written : resolveShortNeed(m[9], anchor.id, m[10]));
+  anchor.needs.push(resolveRef(m[5], m[6], m[7], anchor.id));
 }
 
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
-    if (m[11]) {
+    if (m[8]) {
       // [<id>] item tag
-      const item = newItem(makeId(m[11], m[12], m[13], m[14]), 'code', file, line);
+      const item = newItem(makeId(m[8], m[9], m[10], m[11]), 'code', file, line);
       state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
