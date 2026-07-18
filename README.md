@@ -28,7 +28,6 @@
 </div>
 
 ---
----
 
 <h4 align="center">Quality Summary</h4>
 
