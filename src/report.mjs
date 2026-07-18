@@ -9,7 +9,6 @@ function makeStyler() {
   const wrap = (code) => (text) => (on ? `\u001b[${code}m${text}\u001b[0m` : text);
   return {
     red: wrap('31'),
-    brightRed: wrap('91'),
     green: wrap('32'),
     yellow: wrap('33'),
     cyan: wrap('36'),
@@ -129,7 +128,7 @@ function renderDefective(defective, out, style, dimLocation) {
   }
 }
 
-function renderSummary(items, defective, errorCount, warningCount, out, style) {
+function renderSummary(items, defective, problems, out, style) {
   const okCount = items.length - defective.length;
   const shallowCount = items.filter((item) => item.defects.length === 0 && !item.deepCovered).length;
   const markdownCount = items.filter((item) => item.origin === 'markdown').length;
@@ -142,17 +141,8 @@ function renderSummary(items, defective, errorCount, warningCount, out, style) {
     `  defective   ${defective.length ? style.red(String(defective.length)) : '0'}`,
   );
   if (shallowCount) out.push('  ' + style.dim(`of the ok items, ${shallowCount} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (errorCount) out.push(`  errors      ${style.brightRed(String(errorCount))}`);
-  if (warningCount) out.push(`  warnings    ${style.yellow(String(warningCount))}`);
+  if (problems.length) out.push(`  problems    ${style.yellow(String(problems.length))}`);
   out.push('');
-}
-
-// an error problem means flashtrace could not correctly process the input and
-// fails the run; a warning points out suspicious but handled usage. The error
-// mark escalates the warning triangle and deliberately differs from the ✘
-// that marks defective items - it must stay distinguishable without color too.
-function problemMark(problem, style) {
-  return problem.severity === 'warning' ? style.yellow('⚠') : style.brightRed('▲');
 }
 
 export function report(items, problems, cwd, opts = {}) {
@@ -161,21 +151,19 @@ export function report(items, problems, cwd, opts = {}) {
   const relativePath = (file) => path.relative(cwd, file) || file;
   const dimLocation = (file, line) => style.dim(`${relativePath(file)}:${line}`);
   const defective = items.filter((item) => item.defects.length > 0);
-  const warningCount = problems.filter((problem) => problem.severity === 'warning').length;
-  const errorCount = problems.length - warningCount;
   const out = [];
 
   if (verbose) renderVerbose(items, out, style, dimLocation);
   else renderDefective(defective, out, style, dimLocation);
 
   for (const problem of problems) {
-    out.push(`${problemMark(problem, style)} ${problem.message}  ${dimLocation(problem.file, problem.line)}`);
+    out.push(`${style.yellow('⚠')} ${problem.message}  ${dimLocation(problem.file, problem.line)}`);
   }
   if (problems.length) out.push('');
 
-  renderSummary(items, defective, errorCount, warningCount, out, style);
+  renderSummary(items, defective, problems, out, style);
 
-  const clean = defective.length === 0 && errorCount === 0;
+  const clean = defective.length === 0 && problems.length === 0;
   out.push(clean ? style.green(style.bold('ok')) : style.red(style.bold('not ok')));
   console.log(out.join('\n'));
   return clean;

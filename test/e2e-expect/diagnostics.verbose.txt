@@ -30,16 +30,16 @@
 ✘ impl:omega#1  unwanted.ts:6  [defective]
     • unwanted: no item needs impl:omega#1
 
-▲ need tag [>>utest:orphan#1] has no preceding item tag in this file  orphan-need.ts:1
-▲ forwarding from req:ghost#1, which does not exist  spec.md:97
-▲ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:85
-▲ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:93
+⚠ need tag [>>utest:orphan#1] has no preceding item tag in this file  orphan-need.ts:1
+⚠ forwarding from req:ghost#1, which does not exist  spec.md:97
+⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:85
+⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:93
 
 Summary
   items       14  (12 from markdown, 2 from code)
   ok          5
   defective   9
   of the ok items, 1 are only shallow-covered (an item further down the tracing chain is defective)
-  errors      4
+  problems    4
 
 not ok
