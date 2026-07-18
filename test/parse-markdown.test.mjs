@@ -119,10 +119,11 @@ test('a blank line separates the description from a following setext heading', (
 });
 
 // CommonMark folds every paragraph line down to the underline into one
-// multi-line heading; so does the tracer. A line ending in two or more
-// spaces contributes a hard line break (a newline in the title), any other
-// line-end whitespace is kept as written. The folded lines belong to the
-// title alone - they never double as the item above's description.
+// multi-line heading; so does the tracer. Each line is trimmed and joined
+// with a single space, the whitespace a renderer shows for a soft line
+// break; a line ending in two or more spaces spells a hard line break and
+// joins with a newline instead. The folded lines belong to the title
+// alone - they never double as the item above's description.
 test('setext titles are multi-line and keep every folded line to themselves, not serving the item above as description', () => {
   const { items } = parse([
     '`req:a#1`',
@@ -139,11 +140,11 @@ test('setext titles are multi-line and keep every folded line to themselves, not
   assert.deepEqual(items[0].description, []);
   assert.equal(
     items[1].title,
-    'First title line without trailing spaces.' +
+    'First title line without trailing spaces. ' +
       'Second title line with actual line break by spaces.\n' +
       'Third title line with space in the end. ' +
       'Fourth title line with actual line break by spaces.\n' +
-      ' Fifth title line with space in the beginning.'
+      'Fifth title line with space in the beginning.'
   );
 });
 
@@ -161,7 +162,7 @@ test('an ID line glued above a setext heading is heading text, flagged and creat
   ]);
   assert.equal(items.length, 1);
   assert.equal(items[0].id, 'req:b#1');
-  assert.equal(items[0].title, '`req:a#1`Some title');
+  assert.equal(items[0].title, '`req:a#1` Some title');
   assert.equal(problems.length, 1);
   assert.equal(problems[0].line, 1);
   assert.match(problems[0].message, /item req:a#1 defined inside a setext heading; a heading is not an item definition/);

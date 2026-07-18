@@ -104,20 +104,17 @@ const isBoundary = (lines, inTable, j) =>
   HEADING_RE.test(lines[j]) ||
   opensSetextHeading(lines, inTable, j);
 
-// Fold the paragraph run ending at `lastIndex` into one title. Lines are
-// joined exactly as written: a line ending in two or more spaces contributes
-// a hard line break (a newline in the title), any other line-end whitespace
-// is kept as the separator it spells. Only the outer edges of the heading
-// are trimmed.
+// Fold the paragraph run ending at `lastIndex` into one title. Each line is
+// trimmed and the lines are joined with a single space - the whitespace a
+// renderer shows for a soft line break. A line ending in two or more spaces
+// spells a hard line break (CommonMark) and joins with a newline instead.
 function foldSetextTitle(lines, inTable, lastIndex) {
   let first = lastIndex;
   while (first > 0 && isParagraphAt(lines, inTable, first - 1)) first--;
   let title = '';
   for (let k = first; k <= lastIndex; k++) {
-    let line = lines[k];
-    if (k === first) line = line.trimStart();
-    if (k === lastIndex) line = line.trimEnd();
-    title += / {2}$/.test(line) ? line.trimEnd() + '\n' : line;
+    title += lines[k].trim();
+    if (k < lastIndex) title += / {2}$/.test(lines[k]) ? '\n' : ' ';
   }
   return title;
 }

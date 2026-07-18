@@ -329,10 +329,8 @@ function foldSetextTitle(lines, inTable, lastIndex) {
   while (first > 0 && isParagraphAt(lines, inTable, first - 1)) first--;
   let title = "";
   for (let k = first; k <= lastIndex; k++) {
-    let line = lines[k];
-    if (k === first) line = line.trimStart();
-    if (k === lastIndex) line = line.trimEnd();
-    title += / {2}$/.test(line) ? line.trimEnd() + "\n" : line;
+    title += lines[k].trim();
+    if (k < lastIndex) title += / {2}$/.test(lines[k]) ? "\n" : " ";
   }
   return title;
 }
