@@ -1,12 +1,16 @@
+✔ utest:auth/login#1  login.spec.ts:1  [deep-covered]
+    wanted by req:auth/login#1  spec.md:3
+
 ✔ impl:auth/login#1  login.ts:1  [deep-covered]
     wanted by req:auth/login#1  spec.md:3
 
 ✔ req:auth/login#1 "Login requires a valid session token"  spec.md:3  [deep-covered]
     needs impl:auth/login#1  ✔ login.ts:1
+    needs utest:auth/login#1  ✔ login.spec.ts:1
 
 Summary
-  items       2  (1 from markdown, 1 from code)
-  ok          2
+  items       3  (1 from markdown, 2 from code)
+  ok          3
   defective   0
 
 ok

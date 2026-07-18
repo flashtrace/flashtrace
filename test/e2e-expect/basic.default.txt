@@ -1,6 +1,6 @@
 Summary
-  items       2  (1 from markdown, 1 from code)
-  ok          2
+  items       3  (1 from markdown, 2 from code)
+  ok          3
   defective   0
 
 ok

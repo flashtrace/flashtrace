@@ -4,7 +4,7 @@ Each directory is a self-contained project traceable with a plain
 `flashtrace` run; its README states what it demonstrates.
 
 - [basic](basic/) - the smallest complete setup: one Markdown requirement
-  covered by one TypeScript item tag.
+  covered by a TypeScript implementation and, via a short-form need, its test.
 - [revisions-and-forwarding](revisions-and-forwarding/) - exact multi-layer
   revisions, wildcard needs and a forwarding chain.
 - [polyglot-web](polyglot-web/) - keyword tables, tag filtering and code tags
