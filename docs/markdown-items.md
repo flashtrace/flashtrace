@@ -48,6 +48,10 @@ A table column headed by a bare keyword name (`Needs`, `Covers`, or `Tags` - no 
 
 Like a keyword line, a keyword table may appear anywhere in the item's definition and terminates the description.
 
+## Definition boundaries
+
 An item's definition extends to the next ID line or heading. An item with an empty `Needs` list terminates a tracing chain.
+
+## Forwarding tags
 
 A line containing nothing but a forwarding tag `[<source-id> --> <target-id>]` (optionally wrapped in backticks) redirects the source item's coverage obligation; see [Forwarding / delegation](forwarding.md). Such a line may appear anywhere - inside an item's definition it is not part of the description.

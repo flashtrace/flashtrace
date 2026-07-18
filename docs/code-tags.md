@@ -2,6 +2,8 @@
 
 Tags are written inside comments. The comment style is chosen per file extension, so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
 
+## Comment styles
+
 | Comment family | Line | Block | Extensions |
 |---|---|---|---|
 | C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.dart` `.proto` `.scss` `.less` |
@@ -26,11 +28,17 @@ Tags are written inside comments. The comment style is chosen per file extension
 | HTML/XML | – | `<!-- … -->` | `.xml` `.svg` |
 | HTML + embedded | – | `<!-- … -->` (markup) | `.html` `.htm` `.vue` `.svelte` |
 
+## HTML and embedded languages
+
 HTML-family files switch comment style by region: `<!-- … -->` in markup, C-like comments (`//`, `/* … */`) inside `<script>`, and CSS comments (`/* … */`) inside `<style>`. So a `//` in template text or a URL is *not* treated as a comment - only a real HTML comment is. A region ends at the first `</script>`/`</style>` (as a browser tokenizes it), so a literal `</script>` meant as script text should be written `<\/script>`.
 
 The embedded grammar follows the tag's `type`/`lang` attribute: `<script type="application/json">` is scanned with no comments (so a `//` in a JSON string is not one), `<script type="text/x-template">` as HTML markup, and `<style lang="scss">` / `less` / `sass` also honour `//`.
 
+## URLs
+
 Comment markers inside URL-shaped text never open a comment, in any grammar: in `https://example.com/a--b#anchor` neither the `//` nor the `--` nor the `#` starts a comment. URL-shaped means a scheme followed by `://`; the URL extends until whitespace, a quote, a bracket or an angle bracket, so a tag written next to a URL is unaffected. Markers that *close* an already open block comment are still honoured inside a URL.
+
+## Tag forms
 
 - `[<type>:[<group>/…]<name>#<revision>]` - defines a coverage item with that ID. It satisfies every `Needs` entry (anywhere in the project) that names this exact ID.
 - `[>><type>:[<group>/…]<name>#<revision>]` - attaches a need to the *nearest preceding* item tag in the **same file**. If no item tag precedes it, this is reported as an error.
@@ -58,5 +66,7 @@ export function login(token: SessionToken) {
 ```
 
 Neither need form defines an item or moves the anchor of later `[>>…]` tags.
+
+## File selection
 
 Files ignored by git are excluded from scanning (`git ls-files --cached --others --exclude-standard`; a plain directory walk skipping `.git`/`node_modules` is used outside a git repository).
