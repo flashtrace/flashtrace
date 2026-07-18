@@ -39,7 +39,7 @@ export const REF_RE = new RegExp(`^${REF_SRC}$`);
 // Like REF_SRC but a given revision must be concrete - Covers never take a
 // wildcard. An omitted name or revision still completes from the stating item
 // (whose revision is always concrete).
-export const COVER_REF_RE = new RegExp(String.raw`^([A-Za-z]+)(?::(${PATH_SRC}))?(?:#(${REV_SRC}))?$`);
+export const COVER_REF_RE = new RegExp(`^([A-Za-z]+)(?::(${PATH_SRC}))?(?:#(${REV_SRC}))?$`);
 
 // Forwarding tag: [<source-id> --> <target-id>], spaces optional.
 // Contains two ID_SRC captures (4 groups each); makeForward turns a match into
