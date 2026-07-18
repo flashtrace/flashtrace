@@ -661,9 +661,11 @@ test('a thematic break directly under a table ends it', () => {
     '`req:b#1`',
   ]);
   assert.equal(problems.length, 0);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].id, 'req:a#1');
   assert.deepEqual(items[0].needs, ['impl:a#1']);
   assert.deepEqual(items[0].covers, ['feat:a#1']);
-  assert.equal(items.length, 2);
+  assert.equal(items[1].id, 'req:b#1');
   assert.equal(items[1].title, null);
 });
 
