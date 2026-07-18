@@ -317,13 +317,22 @@ function isParagraphLine(line) {
 }
 var isParagraphAt = (lines, inTable, j) => !inTable[j] && isParagraphLine(lines[j]);
 var isSetextHeading = (lines, inTable, titleIndex) => titleIndex + 1 < lines.length && SETEXT_UNDERLINE_RE.test(lines[titleIndex + 1]) && isParagraphAt(lines, inTable, titleIndex);
-function opensSetextHeading(lines, inTable, j) {
-  if (!isParagraphAt(lines, inTable, j)) return false;
-  let k = j;
-  while (k + 1 < lines.length && isParagraphAt(lines, inTable, k + 1)) k++;
-  return isSetextHeading(lines, inTable, k);
+function scanSetextHeadings(lines, inTable) {
+  const opensHeading = new Array(lines.length).fill(false);
+  let j = 0;
+  while (j < lines.length) {
+    if (!isParagraphAt(lines, inTable, j)) {
+      j++;
+      continue;
+    }
+    const start = j;
+    while (j + 1 < lines.length && isParagraphAt(lines, inTable, j + 1)) j++;
+    if (isSetextHeading(lines, inTable, j)) opensHeading.fill(true, start, j + 1);
+    j++;
+  }
+  return opensHeading;
 }
-var isBoundary = (lines, inTable, j) => !inTable[j] && DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensSetextHeading(lines, inTable, j);
+var isBoundary = (lines, inTable, opensHeading, j) => !inTable[j] && DEFINITION_RE.test(lines[j]) || HEADING_RE.test(lines[j]) || opensHeading[j];
 function foldSetextTitle(lines, inTable, lastIndex) {
   let first = lastIndex;
   while (first > 0 && isParagraphAt(lines, inTable, first - 1)) first--;
@@ -444,10 +453,10 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
       });
   }
 }
-function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
+function parseItemBody(lines, inTable, opensHeading, start, item, file, problems, forwards) {
   let j = start;
   let descriptionDone = false;
-  while (j < lines.length && !isBoundary(lines, inTable, j)) {
+  while (j < lines.length && !isBoundary(lines, inTable, opensHeading, j)) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
@@ -483,10 +492,11 @@ function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
 function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const inTable = scanTables(lines, file, problems);
+  const opensHeading = scanSetextHeadings(lines, inTable);
   const items = [];
   let i = 0;
   while (i < lines.length) {
-    const startsHeading = opensSetextHeading(lines, inTable, i);
+    const startsHeading = opensHeading[i];
     if (!startsHeading && takeForward(lines[i], file, i, forwards)) {
       i++;
       continue;
@@ -507,7 +517,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
     }
     const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "markdown", file, i + 1);
     item.title = titleAbove(lines, inTable, i);
-    i = parseItemBody(lines, inTable, i + 1, item, file, problems, forwards);
+    i = parseItemBody(lines, inTable, opensHeading, i + 1, item, file, problems, forwards);
     items.push(item);
   }
   return items;

@@ -74,25 +74,36 @@ const isSetextHeading = (lines, inTable, titleIndex) =>
   SETEXT_UNDERLINE_RE.test(lines[titleIndex + 1]) &&
   isParagraphAt(lines, inTable, titleIndex);
 
-// A paragraph line opens a setext heading when the run of paragraph lines it
-// starts ends directly at an underline - CommonMark folds the whole run into
-// the heading, so every line of the run belongs to the title, not to the
-// body above it.
-function opensSetextHeading(lines, inTable, j) {
-  if (!isParagraphAt(lines, inTable, j)) return false;
-  let k = j;
-  while (k + 1 < lines.length && isParagraphAt(lines, inTable, k + 1)) k++;
-  return isSetextHeading(lines, inTable, k);
+// Mark every paragraph line that opens a setext heading: one whose run of
+// paragraph lines ends directly at an underline - CommonMark folds the whole
+// run into the heading, so every line in it belongs to the title, not to the
+// body above it. Computed once per run rather than re-walked from each line,
+// the way scanTables marks a whole table in one pass instead of re-scanning
+// it from every row.
+function scanSetextHeadings(lines, inTable) {
+  const opensHeading = new Array(lines.length).fill(false);
+  let j = 0;
+  while (j < lines.length) {
+    if (!isParagraphAt(lines, inTable, j)) {
+      j++;
+      continue;
+    }
+    const start = j;
+    while (j + 1 < lines.length && isParagraphAt(lines, inTable, j + 1)) j++;
+    if (isSetextHeading(lines, inTable, j)) opensHeading.fill(true, start, j + 1);
+    j++;
+  }
+  return opensHeading;
 }
 
 // An item's body ends at an ID definition, an ATX heading, or a setext heading
 // - the last even with no blank line between, since the heading claims its
 // whole paragraph, so the body ends at the first line of the folding run. An ID
 // line swallowed into a table is a row, not a definition, so it bounds nothing.
-const isBoundary = (lines, inTable, j) =>
+const isBoundary = (lines, inTable, opensHeading, j) =>
   (!inTable[j] && DEFINITION_RE.test(lines[j])) ||
   HEADING_RE.test(lines[j]) ||
-  opensSetextHeading(lines, inTable, j);
+  opensHeading[j];
 
 // Fold the paragraph run ending at `lastIndex` into one title. Each line is
 // trimmed and the lines are joined with a single space - the whitespace a
@@ -267,10 +278,10 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
 
 // consume the item's body (description and keyword lines) starting at `start`;
 // returns the index of the first line after the item
-function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
+function parseItemBody(lines, inTable, opensHeading, start, item, file, problems, forwards) {
   let j = start;
   let descriptionDone = false;
-  while (j < lines.length && !isBoundary(lines, inTable, j)) {
+  while (j < lines.length && !isBoundary(lines, inTable, opensHeading, j)) {
     const line = lines[j];
     if (takeForward(line, file, j, forwards)) {
       j++;
@@ -309,11 +320,12 @@ function parseItemBody(lines, inTable, start, item, file, problems, forwards) {
 export function parseMarkdown(file, text, problems, forwards = []) {
   const lines = text.split(/\r?\n/);
   const inTable = scanTables(lines, file, problems);
+  const opensHeading = scanSetextHeadings(lines, inTable);
   const items = [];
 
   let i = 0;
   while (i < lines.length) {
-    const startsHeading = opensSetextHeading(lines, inTable, i);
+    const startsHeading = opensHeading[i];
     // a forwarding line serving a setext title is heading text, not a forward
     if (!startsHeading && takeForward(lines[i], file, i, forwards)) {
       i++;
@@ -340,7 +352,7 @@ export function parseMarkdown(file, text, problems, forwards = []) {
     }
     const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), 'markdown', file, i + 1);
     item.title = titleAbove(lines, inTable, i);
-    i = parseItemBody(lines, inTable, i + 1, item, file, problems, forwards);
+    i = parseItemBody(lines, inTable, opensHeading, i + 1, item, file, problems, forwards);
     items.push(item);
   }
   return items;
