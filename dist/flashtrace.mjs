@@ -445,6 +445,19 @@ var TAG_RE = new RegExp(
   "g"
 );
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
+var URL_RE = /[A-Za-z][A-Za-z0-9+.-]*:\/\/[^\s"'`<>[\]]*/g;
+function urlSpans(line) {
+  if (!line.includes("://")) return [];
+  return [...line.matchAll(URL_RE)].map((m) => ({ start: m.index, end: m.index + m[0].length }));
+}
+function markerIndex(line, marker, pos, spans) {
+  let idx = line.indexOf(marker, pos);
+  for (const span of spans) {
+    if (idx === -1 || idx < span.start) break;
+    if (idx < span.end) idx = line.indexOf(marker, span.end);
+  }
+  return idx;
+}
 function activeLeaf(grammar, state) {
   if (state.region) return state.region.grammar;
   return grammar.regions ? grammar.default : grammar;
@@ -468,7 +481,7 @@ function* regionEvents(line, pos, grammar, state) {
     }
   }
 }
-function nextEvent(line, pos, grammar, state) {
+function nextEvent(line, pos, grammar, state, spans) {
   const leaf = activeLeaf(grammar, state);
   let best = null;
   const consider = (idx, event) => {
@@ -478,10 +491,10 @@ function nextEvent(line, pos, grammar, state) {
     }
   };
   for (const marker of leaf.line) {
-    consider(line.indexOf(marker, pos), { kind: "line", len: marker.length });
+    consider(markerIndex(line, marker, pos, spans), { kind: "line", len: marker.length });
   }
   for (const [open, close, nestable] of leaf.block) {
-    consider(line.indexOf(open, pos), {
+    consider(markerIndex(line, open, pos, spans), {
       kind: "block",
       len: open.length,
       open,
@@ -536,6 +549,7 @@ function consumeLine(line, pos, state, exit) {
   return { text: line.slice(pos) + " ", pos: line.length, done: true };
 }
 function commentText(line, state, grammar) {
+  const spans = urlSpans(line);
   let comment = "";
   let pos = 0;
   while (pos < line.length) {
@@ -546,7 +560,7 @@ function commentText(line, state, grammar) {
       pos = consumed.pos;
       continue;
     }
-    const event = nextEvent(line, pos, grammar, state);
+    const event = nextEvent(line, pos, grammar, state, spans);
     if (!event) break;
     pos = event.idx + event.len;
     if (event.kind === "line") {

@@ -13,6 +13,7 @@ long form would hurt readability. Use them consistently - and use no others.
 | `id` | identifier | An item ID such as `req:auth/login#1`. |
 | `ext` | file extension | Always lowercased, with the leading dot (`.mjs`). |
 | `md` | Markdown | E.g. `MD_EXT`. |
+| `url` | Uniform Resource Locator | URL-shaped text (`scheme://…`), exempt from comment detection (see [docs/code-tags.md](docs/code-tags.md)); used in `URL_RE`, `urlSpans`. |
 
 ## Regex conventions (src/ids.mjs and the parsers)
 
