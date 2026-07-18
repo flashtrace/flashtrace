@@ -483,3 +483,96 @@ test('git-ignored files are excluded from the scan', async (t) => {
     },
   );
 });
+
+// fixture with one clean requirement traced to code and one forwarding
+const JSON_FIXTURE = {
+  'spec.md': [
+    '# Login',
+    '`req:login#1`',
+    '',
+    'Needs: impl:login#1',
+    '',
+    '`req:legacy#1`',
+    '',
+    '`[req:legacy#1 --> req:login#1]`',
+  ],
+  'login.ts': ['// [impl:login#1]'],
+};
+
+test('--json writes a base JSON document to stdout and keeps the exit code', async () => {
+  await withProject(JSON_FIXTURE, (dir) => {
+    const res = runCli(dir, ['--json']);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(res.stderr, '');
+    const doc = JSON.parse(res.stdout);
+    assert.equal(doc.mode, 'base');
+    assert.equal(doc.ok, true);
+    assert.equal('forwards' in doc, false);
+    assert.ok(doc.items.some((i) => i.id === 'req:login#1'));
+    assert.ok(res.stdout.endsWith('}\n')); // single trailing newline
+  });
+});
+
+test('--json=rich adds the forwards array and wantedBy on every item', async () => {
+  await withProject(JSON_FIXTURE, (dir) => {
+    const res = runCli(dir, ['--json=rich']);
+    assert.equal(res.status, 0, res.stderr);
+    const doc = JSON.parse(res.stdout);
+    assert.equal(doc.mode, 'rich');
+    assert.deepEqual(
+      doc.forwards.map((f) => [f.from, f.to, f.effective]),
+      [['req:legacy#1', 'req:login#1', true]],
+    );
+    assert.ok(doc.items.every((i) => 'wantedBy' in i));
+  });
+});
+
+test('--json reports the flashtrace version that produced it', async () => {
+  const { version } = JSON.parse(
+    await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'),
+  );
+  await withProject(JSON_FIXTURE, (dir) => {
+    const doc = JSON.parse(runCli(dir, ['--json']).stdout);
+    assert.equal(doc.flashtrace, version);
+  });
+});
+
+test('--json on a defective project exits 1 with ok false', async () => {
+  await withProject(
+    { 'spec.md': ['`req:login#1`', '', 'Needs: impl:missing#1'] },
+    (dir) => {
+      const res = runCli(dir, ['--json']);
+      assert.equal(res.status, 1);
+      const doc = JSON.parse(res.stdout);
+      assert.equal(doc.ok, false);
+      assert.equal(doc.summary.defectiveItems, 1);
+    },
+  );
+});
+
+test('--json honors --tags import filtering', async () => {
+  await withProject(TAGS_FIXTURE, (dir) => {
+    const doc = JSON.parse(runCli(dir, ['--json', '-t', 'Auth']).stdout);
+    assert.equal(doc.summary.items, 1);
+    assert.equal(doc.items[0].id, 'req:a#1');
+  });
+});
+
+test('an invalid --json mode is a usage error on stderr', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['--json=fancy']);
+    assert.equal(res.status, 2);
+    assert.equal(res.stdout, '');
+    assert.match(res.stderr, /invalid mode for --json: "fancy"/);
+  });
+});
+
+test('--json cannot be combined with -v/--verbose', async () => {
+  await withProject({}, (dir) => {
+    for (const args of [['--json', '-v'], ['-v', '--json'], ['--json=rich', '--verbose']]) {
+      const res = runCli(dir, args);
+      assert.equal(res.status, 2, args.join(' '));
+      assert.match(res.stderr, /--json cannot be combined with -v\/--verbose/);
+    }
+  });
+});

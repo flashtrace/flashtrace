@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "flashtrace": "<version>",
+  "mode": "base",
+  "ok": true,
+  "items": [
+    {
+      "id": "impl:auth/login#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "login.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "defects": []
+    },
+    {
+      "id": "req:auth/login#1",
+      "title": "Login requires a valid session token",
+      "origin": "markdown",
+      "tags": [],
+      "file": "spec.md",
+      "line": 3,
+      "character": 1,
+      "status": "deep-covered",
+      "needs": [
+        {
+          "ref": "impl:auth/login#1",
+          "resolvedTo": [
+            "impl:auth/login#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "defects": []
+    }
+  ],
+  "problems": [],
+  "summary": {
+    "items": 2,
+    "markdownItems": 1,
+    "codeItems": 1,
+    "okItems": 2,
+    "defectiveItems": 0,
+    "shallowCoveredItems": 0,
+    "problems": 0
+  }
+}
