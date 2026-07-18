@@ -34,7 +34,7 @@ export const NEED_ID_RE = new RegExp(`^${NEED_ID_SRC}$`);
 // utest#2.x) with no [group/]name of its own - resolveShortNeed completes it
 // with the path of the item specifying the need. Accepted only where needs
 // are written (Markdown Needs entries and the target of a code need tag).
-export const SHORT_NEED_SRC = String.raw`([A-Za-z]+)#(${REV_REF_SRC})`;
+export const SHORT_NEED_SRC = `([A-Za-z]+)#(${REV_REF_SRC})`;
 export const SHORT_NEED_RE = new RegExp(`^${SHORT_NEED_SRC}$`);
 
 // Forwarding tag: [<source-id> --> <target-id>], spaces optional.

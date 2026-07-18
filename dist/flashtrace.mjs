@@ -235,7 +235,7 @@ var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?
 var ID_RE = new RegExp(`^${ID_SRC}$`);
 var NEED_ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_REF_SRC})`;
 var NEED_ID_RE = new RegExp(`^${NEED_ID_SRC}$`);
-var SHORT_NEED_SRC = String.raw`([A-Za-z]+)#(${REV_REF_SRC})`;
+var SHORT_NEED_SRC = `([A-Za-z]+)#(${REV_REF_SRC})`;
 var SHORT_NEED_RE = new RegExp(`^${SHORT_NEED_SRC}$`);
 var FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
 var makeId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
@@ -658,6 +658,20 @@ function commentText(line, state, grammar) {
   }
   return comment;
 }
+function attachNeed(m, file, line, state, problems) {
+  const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
+  const anchor = source ? state.byId.get(source) : state.lastItem;
+  const written = m[5] ? makeId(m[5], m[6], m[7], m[8]) : `${m[9]}#${m[10]}`;
+  if (!anchor) {
+    problems.push({
+      file,
+      line,
+      message: source ? `need tag [${source} >> ${written}] has no preceding item tag [${source}] in this file` : `need tag [>>${written}] has no preceding item tag in this file`
+    });
+    return;
+  }
+  anchor.needs.push(m[5] ? written : resolveShortNeed(m[9], anchor.id, m[10]));
+}
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
     if (m[11]) {
@@ -665,20 +679,9 @@ function collectTags(comment, file, line, state, items, problems) {
       state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
-      continue;
+    } else {
+      attachNeed(m, file, line, state, problems);
     }
-    const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
-    const anchor = source ? state.byId.get(source) : state.lastItem;
-    const written = m[5] ? makeId(m[5], m[6], m[7], m[8]) : `${m[9]}#${m[10]}`;
-    if (!anchor) {
-      problems.push({
-        file,
-        line,
-        message: source ? `need tag [${source} >> ${written}] has no preceding item tag [${source}] in this file` : `need tag [>>${written}] has no preceding item tag in this file`
-      });
-      continue;
-    }
-    anchor.needs.push(m[5] ? written : resolveShortNeed(m[9], anchor.id, m[10]));
   }
 }
 function parseCode(file, text, problems, forwards = []) {

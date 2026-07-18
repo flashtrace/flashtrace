@@ -217,6 +217,28 @@ function commentText(line, state, grammar) {
   return comment;
 }
 
+// Attach one need tag to its anchor item. The explicit form [<source-id> >> ...]
+// anchors at the item tag named by its source ID, the implicit form [>>...] at
+// the nearest preceding item tag; a missing anchor is reported. A short-form
+// target (<type>#<rev>) is resolved with the anchor item's [group/]name.
+function attachNeed(m, file, line, state, problems) {
+  const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
+  const anchor = source ? state.byId.get(source) : state.lastItem;
+  // the target as written, for problem messages
+  const written = m[5] ? makeId(m[5], m[6], m[7], m[8]) : `${m[9]}#${m[10]}`;
+  if (!anchor) {
+    problems.push({
+      file,
+      line,
+      message: source
+        ? `need tag [${source} >> ${written}] has no preceding item tag [${source}] in this file`
+        : `need tag [>>${written}] has no preceding item tag in this file`,
+    });
+    return;
+  }
+  anchor.needs.push(m[5] ? written : resolveShortNeed(m[9], anchor.id, m[10]));
+}
+
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
     if (m[11]) {
@@ -225,27 +247,9 @@ function collectTags(comment, file, line, state, items, problems) {
       state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
-      continue;
+    } else {
+      attachNeed(m, file, line, state, problems);
     }
-    // need tag: the explicit form [<source-id> >> ...] anchors at the item
-    // tag named by its source ID, the implicit form [>>...] at the nearest
-    // preceding item tag
-    const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
-    const anchor = source ? state.byId.get(source) : state.lastItem;
-    // the target as written, for problem messages
-    const written = m[5] ? makeId(m[5], m[6], m[7], m[8]) : `${m[9]}#${m[10]}`;
-    if (!anchor) {
-      problems.push({
-        file,
-        line,
-        message: source
-          ? `need tag [${source} >> ${written}] has no preceding item tag [${source}] in this file`
-          : `need tag [>>${written}] has no preceding item tag in this file`,
-      });
-      continue;
-    }
-    // a short-form target is resolved with the anchor item's [group/]name
-    anchor.needs.push(m[5] ? written : resolveShortNeed(m[9], anchor.id, m[10]));
   }
 }
 
