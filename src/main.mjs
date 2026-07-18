@@ -25,6 +25,7 @@ export { collectFiles } from './files.mjs';
 export { parseMarkdown } from './parse-markdown.mjs';
 export { parseCode } from './parse-code.mjs';
 export { analyze } from './analyze.mjs';
+export { buildReportDocument, reportJson } from './report-json.mjs';
 
 function runAsCli() {
   const argvPath = process.argv[1];

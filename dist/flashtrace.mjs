@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // src/cli.mjs
 import { promises as fs2, readFileSync } from "node:fs";
-import path4 from "node:path";
+import path5 from "node:path";
 import process3 from "node:process";
 
 // src/errors.mjs
@@ -763,27 +763,27 @@ function parseCode(file, text, problems, forwards = []) {
 }
 
 // src/analyze.mjs
-function checkItemReferences(item, byId, matchesOf, isNeeded, revHint, forwardTargets) {
+function checkItemReferences(item, byId, matchesOf, isNeeded, revDefect, forwardTargets) {
   const forwardTarget = forwardTargets.get(item.id);
   if (forwardTarget !== void 0) {
     if (!byId.has(forwardTarget))
-      item.defects.push(`uncovered: forwards to ${forwardTarget}, which does not exist${revHint(forwardTarget)}`);
+      item.defects.push(revDefect("uncovered", forwardTarget, `uncovered: forwards to ${forwardTarget}, which does not exist`));
   } else {
     for (const need of item.needs) {
       if (matchesOf(need).length === 0)
-        item.defects.push(`uncovered: needs ${need}, which does not exist${revHint(need)}`);
+        item.defects.push(revDefect("uncovered", need, `uncovered: needs ${need}, which does not exist`));
     }
   }
   for (const coverId of item.covers) {
     const targets = byId.get(coverId);
     if (!targets) {
-      item.defects.push(`orphaned: covers ${coverId}, which does not exist${revHint(coverId)}`);
+      item.defects.push(revDefect("orphaned", coverId, `orphaned: covers ${coverId}, which does not exist`));
     } else if (!targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))) {
-      item.defects.push(`unwanted: covers ${coverId}, but ${coverId} does not need ${item.id}`);
+      item.defects.push({ kind: "unwanted", ref: coverId, message: `unwanted: covers ${coverId}, but ${coverId} does not need ${item.id}` });
     }
   }
   if (item.origin === "code" && !isNeeded(item.id)) {
-    item.defects.push(`unwanted: no item needs ${item.id}`);
+    item.defects.push({ kind: "unwanted", ref: item.id, message: `unwanted: no item needs ${item.id}` });
   }
 }
 function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
@@ -791,18 +791,20 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
   for (const start of forwardTargets.keys()) {
     if (done.has(start)) continue;
     const seen = /* @__PURE__ */ new Map();
-    const path5 = [];
+    const path6 = [];
     let current = start;
     while (forwardTargets.has(current) && !done.has(current) && !seen.has(current)) {
-      seen.set(current, path5.length);
-      path5.push(current);
+      seen.set(current, path6.length);
+      path6.push(current);
       current = forwardTargets.get(current);
     }
     if (seen.has(current)) {
-      const cycle = path5.slice(seen.get(current));
+      const cycle = path6.slice(seen.get(current));
       const chain = [...cycle, current].join(" --> ");
       for (const id of cycle) {
         const declaration = declarationBySource.get(id);
+        declaration.effective = false;
+        declaration.voidedBy = "cycle";
         problems.push({
           file: declaration.file,
           line: declaration.line,
@@ -812,7 +814,7 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
         forwardTargets.delete(id);
       }
     }
-    for (const id of path5) done.add(id);
+    for (const id of path6) done.add(id);
   }
 }
 function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
@@ -825,18 +827,26 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
   for (const [from, group] of forwardsBySource) {
     const sources = byId.get(from);
     if (!sources) {
-      for (const forward of group)
+      for (const forward of group) {
+        forward.effective = false;
+        forward.voidedBy = "missing-source";
         problems.push({
           file: forward.file,
           line: forward.line,
           character: forward.character,
           message: `forwarding from ${from}, which does not exist${revHint(from)}`
         });
+      }
       continue;
     }
     if (group.length > 1)
       for (const item of sources)
-        item.defects.push(`duplicate: forwarding for ${from} is declared ${group.length} times`);
+        item.defects.push({ kind: "duplicate", ref: from, message: `duplicate: forwarding for ${from} is declared ${group.length} times` });
+    group[0].effective = true;
+    for (let i = 1; i < group.length; i++) {
+      group[i].effective = false;
+      group[i].voidedBy = "duplicate";
+    }
     forwardTargets.set(from, group[0].to);
     declarationBySource.set(from, group[0]);
   }
@@ -899,16 +909,30 @@ function analyze(items, forwards = [], problems = []) {
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
   for (const [id, group] of byId) {
     if (group.length > 1)
-      for (const item of group) item.defects.push(`duplicate: ID ${id} is defined ${group.length} times`);
+      for (const item of group) item.defects.push({ kind: "duplicate", ref: id, message: `duplicate: ID ${id} is defined ${group.length} times` });
   }
-  const revHint = (id) => {
+  const existingRevisionsOf = (id) => {
     const revs = revsByKey.get(keyOf(id));
-    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(", ")})` : "";
+    return revs ? [...revs].sort(compareRev) : null;
+  };
+  const revHint = (id) => {
+    const revs = existingRevisionsOf(id);
+    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${revs.join(", ")})` : "";
+  };
+  const revDefect = (kind, ref, base) => {
+    const existingRevisions = existingRevisionsOf(ref);
+    if (!existingRevisions) return { kind, ref, message: base };
+    return {
+      kind,
+      ref,
+      message: `${base} (revision mismatch: existing revision(s) of ${keyOf(ref)}: ${existingRevisions.join(", ")})`,
+      existingRevisions
+    };
   };
   const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
   for (const item of items) {
     item.forwardsTo = forwardTargets.get(item.id) ?? null;
-    checkItemReferences(item, byId, matchesOf, isNeeded, revHint, forwardTargets);
+    checkItemReferences(item, byId, matchesOf, isNeeded, revDefect, forwardTargets);
   }
   markDeepCoverage(items, byId, matchesOf, forwardTargets);
 }
@@ -1001,7 +1025,7 @@ function renderVerbose(items, out, style, dimLocation) {
       `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
       ...edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation)
     );
-    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect}`);
+    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect.message}`);
   }
   if (sorted.length) out.push("");
 }
@@ -1011,7 +1035,7 @@ function renderDefective(defective, out, style, dimLocation) {
     out.push(
       `${statusOf(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`
     );
-    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect}`);
+    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect.message}`);
     out.push("");
   }
 }
@@ -1050,6 +1074,102 @@ function report(items, problems, cwd, opts = {}) {
   return clean;
 }
 
+// src/report-json.mjs
+import path4 from "node:path";
+var SCHEMA_VERSION = 1;
+function statusOf2(item) {
+  if (item.defects.length > 0) return "defective";
+  return item.deepCovered ? "deep-covered" : "shallow-covered";
+}
+function coverStatus(item, coverId, byId) {
+  const targets = byId.get(coverId);
+  if (!targets) return "orphaned";
+  return targets.some((target) => target.needs.some((need) => idMatches(need, item.id))) ? "valid" : "unwanted";
+}
+function buildWantedBy2(items, byId, matchesOf) {
+  const wantedBy = /* @__PURE__ */ new Map();
+  for (const item of items)
+    for (const need of item.needs)
+      for (const id of matchesOf(need))
+        for (const provider of byId.get(id))
+          (wantedBy.get(provider) ?? wantedBy.set(provider, /* @__PURE__ */ new Set()).get(provider)).add(item);
+  return wantedBy;
+}
+function defectDocument(defect) {
+  const out = { kind: defect.kind, ref: defect.ref };
+  if (defect.existingRevisions) out.existingRevisions = defect.existingRevisions;
+  out.message = defect.message;
+  return out;
+}
+function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
+  const { mode = "base", version } = opts;
+  const rich = mode === "rich";
+  const relative = (file) => (path4.relative(cwd, file) || file).replaceAll("\\", "/");
+  const location = (x) => ({ file: relative(x.file), line: x.line, character: x.character });
+  const byLocation = (a, b) => {
+    if (a.file !== b.file) return a.file < b.file ? -1 : 1;
+    if (a.line !== b.line) return a.line - b.line;
+    return a.character - b.character;
+  };
+  const { byId, matchesOf } = buildResolver(items);
+  const wantedBy = rich ? buildWantedBy2(items, byId, matchesOf) : null;
+  const resolvedTo = (ref) => matchesOf(ref).slice().sort((a, b) => compareRev(revOf(a), revOf(b)));
+  const wantedByDocument = (item) => [...wantedBy.get(item) ?? []].map((wanter) => ({ id: wanter.id, ...location(wanter) })).sort(byLocation);
+  const itemDocument = (item) => {
+    const document2 = {
+      id: item.id,
+      title: item.title,
+      origin: item.origin,
+      tags: item.tags,
+      ...location(item),
+      status: statusOf2(item),
+      needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
+      covers: item.covers.map((ref) => ({ ref, status: coverStatus(item, ref, byId) })),
+      forwardsTo: item.forwardsTo,
+      defects: item.defects.map(defectDocument)
+    };
+    if (rich) document2.wantedBy = wantedByDocument(item);
+    return document2;
+  };
+  const forwardDocument = (forward) => {
+    const document2 = { from: forward.from, to: forward.to, ...location(forward), effective: forward.effective };
+    if (!forward.effective) document2.voidedBy = forward.voidedBy;
+    return document2;
+  };
+  const itemDocuments = items.map(itemDocument).sort(byLocation);
+  const problemDocuments = problems.map((problem) => ({ ...location(problem), message: problem.message })).sort(byLocation);
+  const markdownItems = items.filter((item) => item.origin === "markdown").length;
+  const defectiveItems = items.filter((item) => item.defects.length > 0).length;
+  const shallowCoveredItems = items.filter(
+    (item) => item.defects.length === 0 && !item.deepCovered
+  ).length;
+  const ok = defectiveItems === 0 && problems.length === 0;
+  const document = {
+    schemaVersion: SCHEMA_VERSION,
+    flashtrace: version,
+    mode,
+    ok,
+    items: itemDocuments
+  };
+  if (rich) document.forwards = forwards.map(forwardDocument).sort(byLocation);
+  document.problems = problemDocuments;
+  document.summary = {
+    items: items.length,
+    markdownItems,
+    codeItems: items.length - markdownItems,
+    okItems: items.length - defectiveItems,
+    defectiveItems,
+    shallowCoveredItems,
+    problems: problems.length
+  };
+  return document;
+}
+function reportJson(items, forwards, problems, cwd, opts = {}) {
+  const document = buildReportDocument(items, forwards, problems, cwd, opts);
+  console.log(JSON.stringify(document, null, 2));
+  return document.ok;
+}
+
 // src/cli.mjs
 var HELP = `Usage: flashtrace [options] [directory-or-file ...]
 
@@ -1062,6 +1182,8 @@ Options:
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
+      --json[=<mode>]      write the report as a JSON document; <mode> selects
+                           "base" (default) or "rich" detail
   -V, --version            print the version number
   -h, --help               show this help
 
@@ -1079,31 +1201,43 @@ function splitLongOption(token) {
 function rejectValue(name, inline) {
   if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
 }
+function jsonMode(inline) {
+  const mode = inline ?? "base";
+  if (mode !== "base" && mode !== "rich")
+    throw new UsageError(`invalid mode for --json: "${mode}" (expected "base" or "rich")`);
+  return mode;
+}
+var LONG_ALIAS = { "-h": "--help", "-v": "--verbose", "-V": "--version", "-t": "--tags" };
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null, verbose: false };
+  const opts = { dirs: [], tags: null, verbose: false, json: null };
   for (let i = 0; i < argv.length; i++) {
-    const [name, inline] = splitLongOption(argv[i]);
-    if (name === "-h" || name === "--help") {
-      rejectValue(name, inline);
+    const [raw, inline] = splitLongOption(argv[i]);
+    const name = LONG_ALIAS[raw] ?? raw;
+    if (name === "--help") {
+      rejectValue(raw, inline);
       console.log(HELP);
       process3.exit(0);
-    } else if (name === "-v" || name === "--verbose") {
-      rejectValue(name, inline);
-      opts.verbose = true;
-    } else if (name === "-V" || name === "--version") {
-      rejectValue(name, inline);
+    } else if (name === "--version") {
+      rejectValue(raw, inline);
       console.log(packageVersion());
       process3.exit(0);
-    } else if (name === "-t" || name === "--tags") {
+    } else if (name === "--verbose") {
+      rejectValue(raw, inline);
+      opts.verbose = true;
+    } else if (name === "--json") {
+      opts.json = jsonMode(inline);
+    } else if (name === "--tags") {
       const value = inline ?? argv[++i];
-      if (!value) throw new UsageError(`missing value for ${name}`);
+      if (!value) throw new UsageError(`missing value for ${raw}`);
       opts.tags = value.split(",").map((s) => s.trim()).filter(Boolean);
-    } else if (name.startsWith("-")) {
-      throw new UsageError(`unknown option: ${name}`);
+    } else if (raw.startsWith("-")) {
+      throw new UsageError(`unknown option: ${raw}`);
     } else {
-      opts.dirs.push(name);
+      opts.dirs.push(raw);
     }
   }
+  if (opts.json && opts.verbose)
+    throw new UsageError("--json cannot be combined with -v/--verbose");
   if (opts.dirs.length === 0) opts.dirs.push(".");
   return opts;
 }
@@ -1115,7 +1249,7 @@ async function main() {
   let items = [];
   for (const file of files) {
     const text = await fs2.readFile(file, "utf8");
-    const ext = path4.extname(file).toLowerCase();
+    const ext = path5.extname(file).toLowerCase();
     items.push(
       ...SPEC_EXT.has(ext) ? parseMarkdown(file, text, problems, forwards) : parseCode(file, text, problems, forwards)
     );
@@ -1127,7 +1261,7 @@ async function main() {
     );
   }
   analyze(items, forwards, problems);
-  const clean = report(items, problems, process3.cwd(), { verbose: opts.verbose });
+  const clean = opts.json ? reportJson(items, forwards, problems, process3.cwd(), { mode: opts.json, version: packageVersion() }) : report(items, problems, process3.cwd(), { verbose: opts.verbose });
   process3.exit(clean ? 0 : 1);
 }
 function runCli() {
@@ -1157,7 +1291,9 @@ if (runAsCli()) runCli();
 export {
   UsageError,
   analyze,
+  buildReportDocument,
   collectFiles,
   parseCode,
-  parseMarkdown
+  parseMarkdown,
+  reportJson
 };

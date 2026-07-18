@@ -35,7 +35,7 @@ test('a missing need is uncovered, with a revision-mismatch hint', () => {
     md: ['`req:a#1`', '', 'Needs: impl:a#2'],
     code: ['// [impl:a#1]'],
   });
-  const [defect] = byId(items, 'req:a#1').defects;
+  const [{ message: defect }] = byId(items, 'req:a#1').defects;
   assert.match(defect, /^uncovered: needs impl:a#2/);
   assert.match(defect, /revision mismatch/);
   assert.match(defect, /1/);
@@ -46,7 +46,7 @@ test('matching stays exact per layer: 2.4 does not satisfy a need for 2.4.0', ()
     md: ['`req:a#1`', '', 'Needs: impl:a#2.4.0'],
     code: ['// [impl:a#2.4]'],
   });
-  const [defect] = byId(items, 'req:a#1').defects;
+  const [{ message: defect }] = byId(items, 'req:a#1').defects;
   assert.match(defect, /^uncovered: needs impl:a#2\.4\.0/);
   // the near-miss revision is offered as a hint
   assert.match(defect, /revision mismatch/);
@@ -76,20 +76,20 @@ test('revision-mismatch hints are ordered semver-aware', () => {
       '`impl:a#2.9.0`',
     ],
   });
-  const [defect] = byId(items, 'req:a#1').defects;
+  const [{ message: defect }] = byId(items, 'req:a#1').defects;
   assert.match(defect, /existing revision\(s\) of impl:a: 2\.9, 2\.9\.0, 2\.10/);
 });
 
 test('covering a non-existent item is orphaned', () => {
   const items = run({ md: ['`req:a#1`', '', 'Covers: feat:x#1'] });
-  assert.match(byId(items, 'req:a#1').defects[0], /^orphaned: covers feat:x#1/);
+  assert.match(byId(items, 'req:a#1').defects[0].message, /^orphaned: covers feat:x#1/);
 });
 
 test('covering an item that does not need you is unwanted', () => {
   const items = run({
     md: ['`feat:auth#1`', '', '`req:a#1`', '', 'Covers: feat:auth#1'],
   });
-  assert.match(byId(items, 'req:a#1').defects[0], /^unwanted: covers feat:auth#1/);
+  assert.match(byId(items, 'req:a#1').defects[0].message, /^unwanted: covers feat:auth#1/);
 });
 
 test('a covers entry matched by the target’s needs is valid', () => {
@@ -110,7 +110,7 @@ test('a covers entry matched by the target’s needs is valid', () => {
 test('defining the same full ID twice flags both as duplicates', () => {
   const items = run({ md: ['`req:a#1`', '', '`req:a#1`'] });
   assert.equal(items.length, 2);
-  for (const item of items) assert.match(item.defects[0], /^duplicate: ID req:a#1/);
+  for (const item of items) assert.match(item.defects[0].message, /^duplicate: ID req:a#1/);
 });
 
 test('a wildcard need is satisfied by any matching concrete item', () => {
@@ -127,9 +127,9 @@ test('a wildcard matches only within the same layer count', () => {
     md: ['`req:a#1`', '', 'Needs: impl:a#2.x'],
     code: ['// [impl:a#2.5.0]'],
   });
-  assert.match(byId(items, 'req:a#1').defects[0], /^uncovered: needs impl:a#2\.x/);
+  assert.match(byId(items, 'req:a#1').defects[0].message, /^uncovered: needs impl:a#2\.x/);
   // the near-miss item is not what the wildcard asked for, so it stays unwanted
-  assert.match(byId(items, 'impl:a#2.5.0').defects[0], /^unwanted: no item needs/);
+  assert.match(byId(items, 'impl:a#2.5.0').defects[0].message, /^unwanted: no item needs/);
 });
 
 test('three-layer wildcards match any tail of the same shape', () => {
@@ -171,7 +171,7 @@ test('a wildcard need is shallow-covered but not deep when its match is defectiv
   const reqA = byId(items, 'req:a#1');
   assert.deepEqual(reqA.defects, []); // its wildcard need is matched
   assert.equal(reqA.deepCovered, false); // but dsn:b#2.5 is itself uncovered
-  assert.match(byId(items, 'dsn:b#2.5').defects[0], /^uncovered: needs impl:c#1/);
+  assert.match(byId(items, 'dsn:b#2.5').defects[0].message, /^uncovered: needs impl:c#1/);
 });
 
 test('a wildcard need matching nothing is uncovered with a revision hint', () => {
@@ -179,14 +179,14 @@ test('a wildcard need matching nothing is uncovered with a revision hint', () =>
     md: ['`req:a#1`', '', 'Needs: impl:a#9.x'],
     code: ['// [impl:a#2.5]'],
   });
-  const [defect] = byId(items, 'req:a#1').defects;
+  const [{ message: defect }] = byId(items, 'req:a#1').defects;
   assert.match(defect, /^uncovered: needs impl:a#9\.x/);
   assert.match(defect, /existing revision\(s\) of impl:a: 2\.5/);
 });
 
 test('a code item nobody needs is unwanted', () => {
   const items = run({ code: ['// [impl:stray#1]'] });
-  assert.match(byId(items, 'impl:stray#1').defects[0], /^unwanted: no item needs/);
+  assert.match(byId(items, 'impl:stray#1').defects[0].message, /^unwanted: no item needs/);
 });
 
 test('a defect further down the chain breaks deep coverage only', () => {
@@ -204,7 +204,7 @@ test('a defect further down the chain breaks deep coverage only', () => {
   const reqA = byId(items, 'req:a#1');
   assert.deepEqual(reqA.defects, []); // its own need exists
   assert.equal(reqA.deepCovered, false); // but dsn:b is itself defective
-  assert.match(byId(items, 'dsn:b#1').defects[0], /^uncovered/);
+  assert.match(byId(items, 'dsn:b#1').defects[0].message, /^uncovered/);
 });
 
 test('forwarding excuses the item’s own needs and follows the target', () => {
@@ -228,7 +228,7 @@ test('forwarding to a missing item is uncovered, with revision hint', () => {
   const items = run({
     md: ['`req:a#1`', '', '`dsn:b#1`', '', '[req:a#1 --> dsn:b#2]'],
   });
-  const [defect] = byId(items, 'req:a#1').defects;
+  const [{ message: defect }] = byId(items, 'req:a#1').defects;
   assert.match(defect, /^uncovered: forwards to dsn:b#2, which does not exist/);
   assert.match(defect, /revision mismatch/);
 });
@@ -256,7 +256,7 @@ test('a second forwarding for the same item is a duplicate defect', () => {
     ],
   });
   assert.match(
-    byId(items, 'req:a#1').defects[0],
+    byId(items, 'req:a#1').defects[0].message,
     /^duplicate: forwarding for req:a#1 is declared 2 times/,
   );
 });
@@ -303,7 +303,7 @@ test('cyclic forwarding is a problem and the forwardings have no effect', () => 
   for (const problem of problems)
     assert.match(problem.message, /^cyclic forwarding: req:a#1 --> req:b#1 --> req:a#1$/);
   // the forwardings are inert: req:a#1 falls back to its own needs
-  assert.match(byId(items, 'req:a#1').defects[0], /^uncovered: needs impl:missing#1/);
+  assert.match(byId(items, 'req:a#1').defects[0].message, /^uncovered: needs impl:missing#1/);
   assert.deepEqual(byId(items, 'req:b#1').defects, []);
 });
 

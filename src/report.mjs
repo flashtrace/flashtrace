@@ -111,7 +111,7 @@ function renderVerbose(items, out, style, dimLocation) {
       `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
       ...edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation),
     );
-    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect}`);
+    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect.message}`);
   }
   if (sorted.length) out.push('');
 }
@@ -123,7 +123,7 @@ function renderDefective(defective, out, style, dimLocation) {
     out.push(
       `${statusOf(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`,
     );
-    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect}`);
+    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect.message}`);
     out.push('');
   }
 }
