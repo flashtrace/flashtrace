@@ -400,6 +400,48 @@ test('a wildcard revision is not accepted in an item definition', () => {
   assert.equal(items.length, 0);
 });
 
+test('a short-form need is resolved with the item\'s [group/]name', () => {
+  const { items, problems } = parse([
+    '`req:auth/login#1`',
+    '',
+    'Needs: impl#1, `utest#2.x`',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:auth/login#1', 'utest:auth/login#2.x']);
+});
+
+test('a short-form need of an ungrouped item carries only the name', () => {
+  const { items, problems } = parse(['`req:a#1`', '', 'Needs: impl#1']);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:a#1']);
+});
+
+test('a short-form need in a table column is resolved like an inline entry', () => {
+  const { items, problems } = parse([
+    '`req:auth/login#1`',
+    '',
+    '| Needs   |',
+    '|---------|',
+    '| impl#1  |',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['impl:auth/login#1']);
+});
+
+test('a bare type without a revision is not a need entry', () => {
+  const { items, problems } = parse(['`req:a#1`', '', 'Needs: impl']);
+  assert.deepEqual(items[0].needs, []);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "impl" in Needs: list of req:a#1/);
+});
+
+test('the short form is not accepted in Covers', () => {
+  const { items, problems } = parse(['`impl:auth/login#1`', '', 'Covers: req#1']);
+  assert.deepEqual(items[0].covers, []);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /invalid ID "req#1" in Covers/);
+});
+
 test('an item definition ends at the next ID line or heading', () => {
   const { items } = parse([
     '`req:a#1`',

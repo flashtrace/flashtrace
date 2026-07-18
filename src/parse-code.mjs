@@ -8,22 +8,25 @@
  *   - `[<source-id> >> <id>]` attaches the need to the preceding item tag with
  *     exactly that source ID instead (error if there is none), so tags placed
  *     in between cannot steal the attachment (spaces around `>>` optional).
+ *   - The need target of either form may be the short form `<type>#<rev>`,
+ *     resolved with the [group/]name of the item the need attaches to.
  *   - `[<id> --> <id>]` inside a comment forwards the first item's coverage
  *     obligation to the second (spaces optional).
  */
 
 import path from 'node:path';
 
-import { FORWARD_SRC, ID_SRC, NEED_ID_SRC, makeForward, makeId, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, NEED_ID_SRC, SHORT_NEED_SRC, makeForward, makeId, newItem, resolveShortNeed } from './ids.mjs';
 import { cLike, grammarFor } from './languages.mjs';
 
 // Alternation: need tag with optional explicit source (groups 1-4 source,
-// 5-8 target), or plain item tag (groups 9-12). The need target uses
-// NEED_ID_SRC so it may carry a wildcard revision; the source and item tags
-// stay concrete (ID_SRC). NEED_ID_SRC captures the same four groups as ID_SRC,
-// so the group numbering is unchanged.
+// 5-8 full target, 9-10 short-form target), or plain item tag (groups 11-14).
+// The need target uses NEED_ID_SRC so it may carry a wildcard revision, or
+// SHORT_NEED_SRC (a bare type and revision) to be resolved with the anchor
+// item's [group/]name; the source and item tags stay full and concrete
+// (ID_SRC).
 const TAG_RE = new RegExp(
-  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${NEED_ID_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
+  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*(?:${NEED_ID_SRC}|${SHORT_NEED_SRC})\s*\]|\[\s*${ID_SRC}\s*\]`,
   'g',
 );
 const FORWARD_RE = new RegExp(FORWARD_SRC, 'g');
@@ -216,38 +219,33 @@ function commentText(line, state, grammar) {
 
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
-    if (m[9]) {
+    if (m[11]) {
       // [<id>] item tag
-      const item = newItem(makeId(m[9], m[10], m[11], m[12]), 'code', file, line);
+      const item = newItem(makeId(m[11], m[12], m[13], m[14]), 'code', file, line);
       state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
       continue;
     }
-    const id = makeId(m[5], m[6], m[7], m[8]);
-    if (m[1]) {
-      // [<source-id> >> ...] explicit need tag
-      const source = makeId(m[1], m[2], m[3], m[4]);
-      const anchor = state.byId.get(source);
-      if (anchor) {
-        anchor.needs.push(id);
-      } else {
-        problems.push({
-          file,
-          line,
-          message: `need tag [${source} >> ${id}] has no preceding item tag [${source}] in this file`,
-        });
-      }
-    } else if (state.lastItem) {
-      // [>>...] need tag
-      state.lastItem.needs.push(id);
-    } else {
+    // need tag: the explicit form [<source-id> >> ...] anchors at the item
+    // tag named by its source ID, the implicit form [>>...] at the nearest
+    // preceding item tag
+    const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
+    const anchor = source ? state.byId.get(source) : state.lastItem;
+    // the target as written, for problem messages
+    const written = m[5] ? makeId(m[5], m[6], m[7], m[8]) : `${m[9]}#${m[10]}`;
+    if (!anchor) {
       problems.push({
         file,
         line,
-        message: `need tag [>>${id}] has no preceding item tag in this file`,
+        message: source
+          ? `need tag [${source} >> ${written}] has no preceding item tag [${source}] in this file`
+          : `need tag [>>${written}] has no preceding item tag in this file`,
       });
+      continue;
     }
+    // a short-form target is resolved with the anchor item's [group/]name
+    anchor.needs.push(m[5] ? written : resolveShortNeed(m[9], anchor.id, m[10]));
   }
 }
 

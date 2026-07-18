@@ -96,6 +96,39 @@ test('a wildcard revision is not accepted in an item tag', () => {
   assert.equal(items.length, 0);
 });
 
+test('a short-form need target is resolved with the anchor item\'s [group/]name', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [impl:auth/login#1]',
+    '// [>>utest#1]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['utest:auth/login#1']);
+});
+
+test('an explicit short-form need target is resolved with the named source item', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [impl:a#1]',
+    '// [impl:b#1]',
+    '// [impl:a#1 >> utest#2.x]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['utest:a#2.x']);
+  assert.deepEqual(items[1].needs, []);
+});
+
+test('a short-form need tag without a preceding item tag is a problem', () => {
+  const { items, problems } = parse('src.ts', ['// [>>utest#1]']);
+  assert.equal(items.length, 0);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /\[>>utest#1\] has no preceding item tag/);
+});
+
+test('the short form is not accepted in an item tag', () => {
+  const { items, problems } = parse('src.ts', ['// [impl#1]']);
+  assert.equal(items.length, 0);
+  assert.equal(problems.length, 0);
+});
+
 test('tags outside comments are ignored', () => {
   const { items } = parse('src.ts', ['const s = "[impl:a#1]";']);
   assert.equal(items.length, 0);

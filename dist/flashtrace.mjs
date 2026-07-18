@@ -235,6 +235,8 @@ var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?
 var ID_RE = new RegExp(`^${ID_SRC}$`);
 var NEED_ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_REF_SRC})`;
 var NEED_ID_RE = new RegExp(`^${NEED_ID_SRC}$`);
+var SHORT_NEED_SRC = String.raw`([A-Za-z]+)#(${REV_REF_SRC})`;
+var SHORT_NEED_RE = new RegExp(`^${SHORT_NEED_SRC}$`);
 var FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
 var makeId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
 var makeForward = (m, base, file, line) => ({
@@ -245,6 +247,8 @@ var makeForward = (m, base, file, line) => ({
 });
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => id.slice(id.lastIndexOf("#") + 1);
+var pathOf = (id) => id.slice(id.indexOf(":") + 1, id.lastIndexOf("#"));
+var resolveShortNeed = (type, ownerId, rev) => `${type}:${pathOf(ownerId)}#${rev}`;
 function compareRev(a, b) {
   const partsA = a.split(".");
   const partsB = b.split(".");
@@ -273,10 +277,12 @@ function parseIdEntry(raw) {
   const m = cleaned.match(ID_RE);
   return m ? makeId(m[1], m[2], m[3], m[4]) : null;
 }
-function parseNeedEntry(raw) {
+function parseNeedEntry(raw, ownerId) {
   const cleaned = raw.replaceAll("`", "").trim();
   const m = cleaned.match(NEED_ID_RE);
-  return m ? makeId(m[1], m[2], m[3], m[4]) : null;
+  if (m) return makeId(m[1], m[2], m[3], m[4]);
+  const short = cleaned.match(SHORT_NEED_RE);
+  return short ? resolveShortNeed(short[1], ownerId, short[2]) : null;
 }
 function newItem(id, origin, file, line) {
   return {
@@ -432,9 +438,8 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
     return;
   }
   const target = keyword === "Needs" ? "needs" : "covers";
-  const parse = keyword === "Needs" ? parseNeedEntry : parseIdEntry;
   for (const entry of entries) {
-    const id = parse(entry);
+    const id = keyword === "Needs" ? parseNeedEntry(entry, item.id) : parseIdEntry(entry);
     if (id) item[target].push(id);
     else
       problems.push({
@@ -516,7 +521,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
 // src/parse-code.mjs
 import path2 from "node:path";
 var TAG_RE = new RegExp(
-  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*${NEED_ID_SRC}\s*\]|\[\s*${ID_SRC}\s*\]`,
+  String.raw`\[(?:\s*${ID_SRC}\s*)?>>\s*(?:${NEED_ID_SRC}|${SHORT_NEED_SRC})\s*\]|\[\s*${ID_SRC}\s*\]`,
   "g"
 );
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
@@ -655,35 +660,25 @@ function commentText(line, state, grammar) {
 }
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
-    if (m[9]) {
-      const item = newItem(makeId(m[9], m[10], m[11], m[12]), "code", file, line);
+    if (m[11]) {
+      const item = newItem(makeId(m[11], m[12], m[13], m[14]), "code", file, line);
       state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
       continue;
     }
-    const id = makeId(m[5], m[6], m[7], m[8]);
-    if (m[1]) {
-      const source = makeId(m[1], m[2], m[3], m[4]);
-      const anchor = state.byId.get(source);
-      if (anchor) {
-        anchor.needs.push(id);
-      } else {
-        problems.push({
-          file,
-          line,
-          message: `need tag [${source} >> ${id}] has no preceding item tag [${source}] in this file`
-        });
-      }
-    } else if (state.lastItem) {
-      state.lastItem.needs.push(id);
-    } else {
+    const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
+    const anchor = source ? state.byId.get(source) : state.lastItem;
+    const written = m[5] ? makeId(m[5], m[6], m[7], m[8]) : `${m[9]}#${m[10]}`;
+    if (!anchor) {
       problems.push({
         file,
         line,
-        message: `need tag [>>${id}] has no preceding item tag in this file`
+        message: source ? `need tag [${source} >> ${written}] has no preceding item tag [${source}] in this file` : `need tag [>>${written}] has no preceding item tag in this file`
       });
+      continue;
     }
+    anchor.needs.push(m[5] ? written : resolveShortNeed(m[9], anchor.id, m[10]));
   }
 }
 function parseCode(file, text, problems, forwards = []) {

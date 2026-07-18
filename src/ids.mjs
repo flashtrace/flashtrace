@@ -30,6 +30,13 @@ export const NEED_ID_SRC =
   String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_REF_SRC})`;
 export const NEED_ID_RE = new RegExp(`^${NEED_ID_SRC}$`);
 
+// Short-form need reference: a bare type and revision reference (impl#1,
+// utest#2.x) with no [group/]name of its own - resolveShortNeed completes it
+// with the path of the item specifying the need. Accepted only where needs
+// are written (Markdown Needs entries and the target of a code need tag).
+export const SHORT_NEED_SRC = String.raw`([A-Za-z]+)#(${REV_REF_SRC})`;
+export const SHORT_NEED_RE = new RegExp(`^${SHORT_NEED_SRC}$`);
+
 // Forwarding tag: [<source-id> --> <target-id>], spaces optional.
 // Contains two ID_SRC captures (4 groups each); makeForward turns a match into
 // a forwarding record given the index of the first captured group.
@@ -46,6 +53,12 @@ export const makeForward = (m, base, file, line) => ({
 });
 export const keyOf = (id) => id.slice(0, id.lastIndexOf('#'));
 export const revOf = (id) => id.slice(id.lastIndexOf('#') + 1);
+// the [group/[group/]]name part of an ID, between the type and the revision
+const pathOf = (id) => id.slice(id.indexOf(':') + 1, id.lastIndexOf('#'));
+
+// Full ID of a short-form need: the given type and revision reference with
+// exactly the [group/]name of ownerId, the item specifying the need.
+export const resolveShortNeed = (type, ownerId, rev) => `${type}:${pathOf(ownerId)}#${rev}`;
 
 // Order two concrete revisions: compare layer by layer numerically, and when
 // one is a prefix of the other the shorter sorts first (so 2.4 precedes 2.4.0).
@@ -91,11 +104,14 @@ export function parseIdEntry(raw) {
 }
 
 // A need reference, which - unlike parseIdEntry - also accepts a wildcard
-// revision (2.x, 2.3.x, 2.x.y).
-export function parseNeedEntry(raw) {
+// revision (2.x, 2.3.x, 2.x.y) and the short form <type>#<rev> (impl#1),
+// resolved with the [group/]name of ownerId, the item specifying the need.
+export function parseNeedEntry(raw, ownerId) {
   const cleaned = raw.replaceAll('`', '').trim();
   const m = cleaned.match(NEED_ID_RE);
-  return m ? makeId(m[1], m[2], m[3], m[4]) : null;
+  if (m) return makeId(m[1], m[2], m[3], m[4]);
+  const short = cleaned.match(SHORT_NEED_RE);
+  return short ? resolveShortNeed(short[1], ownerId, short[2]) : null;
 }
 
 export function newItem(id, origin, file, line) {

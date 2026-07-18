@@ -8,7 +8,9 @@
  *     ID is allowed) up to the next blank line.
  *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated, as a
  *     bullet list on the following lines, or as a table column whose header
- *     cell is the bare keyword name. Needs/Covers list full, explicit IDs.
+ *     cell is the bare keyword name. Needs/Covers list explicit IDs; a Needs
+ *     entry may also be the short form <type>#<rev> (impl#1), resolved with
+ *     the item's own [group/]name.
  *   - Neither a table cell nor a setext heading can define an item: a
  *     backticked ID in a table cell, or an ID line with no blank line below it
  *     (which folds into the following heading), is reported, not defined.
@@ -251,10 +253,10 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
     return;
   }
   const target = keyword === 'Needs' ? 'needs' : 'covers';
-  // Needs may reference a wildcard revision (2.x); Covers must be concrete.
-  const parse = keyword === 'Needs' ? parseNeedEntry : parseIdEntry;
+  // Needs may reference a wildcard revision (2.x) or use the short form
+  // (impl#1); Covers must be full, concrete IDs.
   for (const entry of entries) {
-    const id = parse(entry);
+    const id = keyword === 'Needs' ? parseNeedEntry(entry, item.id) : parseIdEntry(entry);
     if (id) item[target].push(id);
     else
       problems.push({
