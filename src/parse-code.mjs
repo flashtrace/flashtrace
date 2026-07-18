@@ -31,7 +31,10 @@ const FORWARD_RE = new RegExp(FORWARD_SRC, 'g');
 // URL-shaped text: a scheme followed by ://, extending until a character that
 // ends a URL in practice (whitespace, quotes/backtick, brackets, angle
 // brackets - so a tag or an HTML tag right next to a URL stays outside).
-const URL_RE = /[A-Za-z][A-Za-z0-9+.-]*:\/\/[^\s"'`<>[\]]*/g;
+// The scheme repetition is bounded so a long run of scheme-valid characters
+// with no :// cannot force super-linear backtracking; 63 clears every real
+// scheme (RFC 3986 and reverse-DNS custom schemes stay well under it).
+const URL_RE = /[A-Za-z][A-Za-z0-9+.-]{0,63}:\/\/[^\s"'`<>[\]]*/g;
 
 // spans [start, end) of URL-shaped text in a line, in order. Comment *openers*
 // inside a span are ignored (see markerIndex), so the `//`, `#`, `--` or `/*`

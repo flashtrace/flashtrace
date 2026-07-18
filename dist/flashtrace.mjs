@@ -445,7 +445,7 @@ var TAG_RE = new RegExp(
   "g"
 );
 var FORWARD_RE = new RegExp(FORWARD_SRC, "g");
-var URL_RE = /[A-Za-z][A-Za-z0-9+.-]*:\/\/[^\s"'`<>[\]]*/g;
+var URL_RE = /[A-Za-z][A-Za-z0-9+.-]{0,63}:\/\/[^\s"'`<>[\]]*/g;
 function urlSpans(line) {
   if (!line.includes("://")) return [];
   return [...line.matchAll(URL_RE)].map((m) => ({ start: m.index, end: m.index + m[0].length }));
