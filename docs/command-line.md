@@ -13,9 +13,11 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
 
 Long options also accept `=`-attached values, e.g. `--tags=a,b`; values containing spaces must be shell-quoted (`--tags="a , b"`).
 
-Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note) ending in `ok` / `not ok`.
-
 Exit codes: `0` clean trace · `1` defects or problems found · `2` usage error.
+
+## Default report
+
+Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note) ending in `ok` / `not ok`.
 
 ## Verbose report
 
