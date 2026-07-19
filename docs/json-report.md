@@ -190,11 +190,10 @@ The same input processed by the same flashtrace version produces a byte-identica
 - Additive changes - a new optional field, a new `mode` value - do not bump it. Consumers must therefore ignore fields they do not know (tolerant reader).
 - `flashtrace` carries the producing tool version for provenance and debugging; it says nothing about the format.
 
-## Schema and examples
+## Schema
 
 The machine-readable contract lives next to this page:
 
 - `docs/json/report.schema.json` - JSON Schema (draft 2020-12) covering both modes.
-- `docs/json/example-base.json` and `docs/json/example-rich.json` - complete documents for the same small project, one per mode.
 
 The schema deliberately leaves unknown fields unconstrained: validating a newer document against an older schema must not fail on additive fields.
