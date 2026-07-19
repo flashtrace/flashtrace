@@ -6,10 +6,10 @@ Tags are written inside comments. The comment style is chosen per file extension
 
 | Comment family | Line | Block | Extensions |
 |---|---|---|---|
-| C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cs` `.java` `.go` `.dart` `.proto` `.scss` `.less` |
+| C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cxx` `.hxx` `.ino` `.inl` `.tpp` `.cs` `.java` `.go` `.groovy` `.gradle` `.sol` `.dart` `.proto` `.scss` `.less` |
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
 | PHP | `//` `#` | `/* … */` | `.php` |
-| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.graphql` `.gql` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.cmake` `.graphql` `.gql` |
 | CoffeeScript | `#` | `### … ###` (opener not followed by `#`) | `.coffee` |
 | Julia | `#` | `#= … =#` (nestable) | `.jl` |
 | Nim | `#` | `#[ … ]#` `##[ … ]##` (nestable) | `.nim` |
@@ -21,7 +21,7 @@ Tags are written inside comments. The comment style is chosen per file extension
 | SQL | `--` | `/* … */` | `.sql` |
 | Dash (line only) | `--` | – | `.adb` `.ads` `.vhd` `.vhdl` |
 | Lua | `--` | `--[[ … ]]` | `.lua` |
-| Haskell | `--` | `{- … -}` (nestable) | `.hs` |
+| Haskell | `--` | `{- … -}` (nestable) | `.hs` `.elm` `.purs` |
 | ML-family | `//` (F#) | `(* … *)` (nestable) | `.ml` `.mli` `.fs` `.fsi` `.fsx` |
 | Pascal | `//` | `{ … }`, `(* … *)` | `.pas` `.dpr` |
 | CSS | – | `/* … */` | `.css` |
