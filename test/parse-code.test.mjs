@@ -706,6 +706,19 @@ test('a code item tag records the column of its opening bracket', () => {
   assert.equal(items[0].character, 8); // the '[' past "    // "
 });
 
+test('a trailing line comment on real code records the tag column', () => {
+  const { items, problems } = parse('src.ts', [
+    'let variable = someFunctionReturningSomeValue(); // [impl:variable#1]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:variable#1');
+  assert.equal(items[0].origin, 'code');
+  assert.equal(items[0].line, 1);
+  assert.deepEqual(items[0].needs, []);
+  assert.equal(items[0].character, 53); // the '[' past the code and "// "
+});
+
 test('a code item tag inside a block comment carries its bracket column', () => {
   const { items } = parse('src.ts', ['/* [impl:b#1] */']);
   assert.equal(items[0].character, 4); // the '[' past "/* "
