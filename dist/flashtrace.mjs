@@ -239,11 +239,12 @@ var REF_RE = new RegExp(`^${REF_SRC}$`);
 var COVER_REF_RE = new RegExp(`^([A-Za-z]+)(?::(${PATH_SRC}))?(?:#(${REV_SRC}))?$`);
 var FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
 var makeId = (type, group, name, rev) => `${type}:${group ? group + "/" : ""}${name}#${rev}`;
-var makeForward = (m, base, file, line) => ({
+var makeForward = (m, base, file, line, character) => ({
   from: makeId(m[base], m[base + 1], m[base + 2], m[base + 3]),
   to: makeId(m[base + 4], m[base + 5], m[base + 6], m[base + 7]),
   file,
-  line
+  line,
+  character
 });
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => id.slice(id.lastIndexOf("#") + 1);
@@ -282,7 +283,7 @@ function parseCoverEntry(raw, ownerId) {
   const m = cleaned.match(COVER_REF_RE);
   return m ? resolveRef(m[1], m[2], m[3], ownerId) : null;
 }
-function newItem(id, origin, file, line) {
+function newItem(id, origin, file, line, character) {
   return {
     id,
     key: keyOf(id),
@@ -291,6 +292,8 @@ function newItem(id, origin, file, line) {
     // 'markdown' | 'code'
     file,
     line,
+    character,
+    // 1-based column of the first character of the defining construct
     title: null,
     description: [],
     needs: [],
@@ -311,9 +314,10 @@ var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 var DELIMITER_CELL_RE = /^:?-+:?$/;
 var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
+var firstNonBlankColumn = (line) => line.search(/\S/) + 1;
 function takeForward(line, file, lineIndex, forwards) {
   const forward = line.match(FORWARD_LINE_RE);
-  if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1));
+  if (forward) forwards.push(makeForward(forward, 2, file, lineIndex + 1, firstNonBlankColumn(line)));
   return !!forward;
 }
 function isParagraphLine(line) {
@@ -362,13 +366,24 @@ function titleAbove(lines, inTable, definitionIndex) {
 }
 function keywordEntries(lines, j, inline) {
   if (inline.trim() !== "") {
-    return { entries: inline.split(",").map((s) => s.trim()).filter(Boolean), j };
+    const inlineStart = lines[j].length - inline.length;
+    const entries2 = [];
+    let pos = 0;
+    for (const part of inline.split(",")) {
+      const value = part.trim();
+      if (value) {
+        const leading = part.length - part.trimStart().length;
+        entries2.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
+      }
+      pos += part.length + 1;
+    }
+    return { entries: entries2, j };
   }
   const entries = [];
   while (j + 1 < lines.length) {
     const bullet = lines[j + 1].match(BULLET_RE);
     if (!bullet) break;
-    entries.push(bullet[1].trim());
+    entries.push({ value: bullet[1].trim(), line: j + 2, character: lines[j + 1].indexOf(bullet[1]) + 1 });
     j++;
   }
   return { entries, j };
@@ -379,6 +394,26 @@ function rowCells(line) {
   if (row.startsWith("|")) row = row.slice(1);
   if (row.endsWith("|")) row = row.slice(0, -1);
   return row.split("|").map((cell) => cell.trim());
+}
+function rowCellColumns(line) {
+  if (rowCells(line) === null) return [firstNonBlankColumn(line)];
+  let base = line.length - line.trimStart().length;
+  const trimmed = line.trim();
+  let body = trimmed;
+  if (body.startsWith("|")) {
+    body = body.slice(1);
+    base += 1;
+  }
+  if (body.endsWith("|")) body = body.slice(0, -1);
+  const columns = [];
+  let pos = 0;
+  for (const part of body.split("|")) {
+    const value = part.trim();
+    const leading = value ? part.length - part.trimStart().length : 0;
+    columns.push(base + pos + leading + 1);
+    pos += part.length + 1;
+  }
+  return columns;
 }
 function tableStartsAt(lines, j) {
   const header = rowCells(lines[j]);
@@ -407,12 +442,14 @@ function scanTables(lines, file, problems) {
     for (let k = start; k <= end; k++) {
       inTable[k] = true;
       if (k === start + 1) continue;
+      const columns = rowCellColumns(lines[k]);
       rowCellsInTable(lines[k]).forEach((cell, col) => {
         const definition = keywordColumns.has(col) ? null : cell.match(DEFINITION_RE);
         if (definition)
           problems.push({
             file,
             line: k + 1,
+            character: columns[col],
             message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a table; a table cell is not an item definition`
           });
       });
@@ -432,28 +469,37 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
   while (j + 1 < lines.length && inTable[j + 1]) {
     j++;
     const cells = rowCellsInTable(lines[j]);
+    const cellColumns = rowCellColumns(lines[j]);
     for (const [col, keyword] of columns) {
       if (cells[col])
-        applyKeyword(item, keyword, [cells[col]], file, j + 1, problems, `the ${keyword} column of ${item.id}`);
+        applyKeyword(
+          item,
+          keyword,
+          [{ value: cells[col], line: j + 1, character: cellColumns[col] }],
+          file,
+          problems,
+          `the ${keyword} column of ${item.id}`
+        );
     }
   }
   return j;
 }
-function applyKeyword(item, keyword, entries, file, keywordLine, problems, source) {
+function applyKeyword(item, keyword, entries, file, problems, source) {
   if (keyword === "Tags") {
-    item.tags.push(...entries);
+    for (const entry of entries) item.tags.push(entry.value);
     return;
   }
   const target = keyword === "Needs" ? "needs" : "covers";
   const parse = keyword === "Needs" ? parseNeedEntry : parseCoverEntry;
   for (const entry of entries) {
-    const id = parse(entry, item.id);
+    const id = parse(entry.value, item.id);
     if (id) item[target].push(id);
     else
       problems.push({
         file,
-        line: keywordLine,
-        message: `invalid ID "${entry}" in ${source}`
+        line: entry.line,
+        character: entry.character,
+        message: `invalid ID "${entry.value}" in ${source}`
       });
   }
 }
@@ -477,7 +523,6 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
         keywordMatch[1],
         collected.entries,
         file,
-        j + 1,
         problems,
         `${keywordMatch[1]}: list of ${item.id}`
       );
@@ -512,6 +557,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
       problems.push({
         file,
         line: i + 1,
+        character: firstNonBlankColumn(lines[i]),
         message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a setext heading; a heading is not an item definition`
       });
       i++;
@@ -521,7 +567,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
       i++;
       continue;
     }
-    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "markdown", file, i + 1);
+    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "markdown", file, i + 1, firstNonBlankColumn(lines[i]));
     item.title = titleAbove(lines, inTable, i);
     i = parseItemBody(lines, boundary, i + 1, item, file, problems, forwards);
     items.push(item);
@@ -611,9 +657,9 @@ function readBlockRest(line, pos, block, limit = line.length) {
     }
     block.depth--;
     i = closeIdx + close.length;
-    if (block.depth === 0) return { text: line.slice(pos, closeIdx) + " ", pos: i, closed: true };
+    if (block.depth === 0) return { end: closeIdx, pos: i, closed: true };
   }
-  return { text: line.slice(pos, limit) + " ", pos: limit, closed: false };
+  return { end: limit, pos: limit, closed: false };
 }
 function regionExitAt(line, pos, region) {
   const m = matchAt(region.exit, line, pos);
@@ -623,31 +669,34 @@ function consumeBlock(line, pos, state, exit) {
   const rest = readBlockRest(line, pos, state.block, exit ? exit.idx : line.length);
   if (rest.closed) {
     state.block = null;
-    return { text: rest.text, pos: rest.pos };
+    return { end: rest.end, pos: rest.pos };
   }
   if (exit) {
     state.block = null;
     state.region = null;
-    return { text: rest.text, pos: exit.idx + exit.len };
+    return { end: rest.end, pos: exit.idx + exit.len };
   }
-  return { text: rest.text, pos: rest.pos };
+  return { end: rest.end, pos: rest.pos };
 }
 function consumeLine(line, pos, state, exit) {
   if (exit) {
     state.region = null;
-    return { text: line.slice(pos, exit.idx) + " ", pos: exit.idx + exit.len, done: false };
+    return { end: exit.idx, pos: exit.idx + exit.len, done: false };
   }
-  return { text: line.slice(pos) + " ", pos: line.length, done: true };
+  return { end: line.length, pos: line.length, done: true };
 }
 function commentText(line, state, grammar) {
   const spans = urlSpans(line);
-  let comment = "";
+  const buffer = new Array(line.length).fill(" ");
+  const keep = (from, to) => {
+    for (let k = from; k < to; k++) buffer[k] = line[k];
+  };
   let pos = 0;
   while (pos < line.length) {
     const exit = state.region ? regionExitAt(line, pos, state.region) : null;
     if (state.block) {
       const consumed = consumeBlock(line, pos, state, exit);
-      comment += consumed.text;
+      keep(pos, consumed.end);
       pos = consumed.pos;
       continue;
     }
@@ -656,7 +705,7 @@ function commentText(line, state, grammar) {
     pos = event.idx + event.len;
     if (event.kind === "line") {
       const consumed = consumeLine(line, pos, state, exit);
-      comment += consumed.text;
+      keep(pos, consumed.end);
       pos = consumed.pos;
       if (consumed.done) break;
     } else if (event.kind === "block") {
@@ -667,9 +716,9 @@ function commentText(line, state, grammar) {
       state.region = null;
     }
   }
-  return comment;
+  return buffer.join("");
 }
-function attachNeed(m, file, line, state, problems) {
+function attachNeed(m, file, line, character, state, problems) {
   const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
   const anchor = source ? state.byId.get(source) : state.lastItem;
   if (!anchor) {
@@ -677,6 +726,7 @@ function attachNeed(m, file, line, state, problems) {
     problems.push({
       file,
       line,
+      character,
       message: source ? `need tag [${source} >> ${written}] has no preceding item tag [${source}] in this file` : `need tag [>>${written}] has no preceding item tag in this file`
     });
     return;
@@ -685,13 +735,14 @@ function attachNeed(m, file, line, state, problems) {
 }
 function collectTags(comment, file, line, state, items, problems) {
   for (const m of comment.matchAll(TAG_RE)) {
+    const character = m.index + 1;
     if (m[8]) {
-      const item = newItem(makeId(m[8], m[9], m[10], m[11]), "code", file, line);
+      const item = newItem(makeId(m[8], m[9], m[10], m[11]), "code", file, line, character);
       state.lastItem = item;
       state.byId.set(item.id, item);
       items.push(item);
     } else {
-      attachNeed(m, file, line, state, problems);
+      attachNeed(m, file, line, character, state, problems);
     }
   }
 }
@@ -704,7 +755,7 @@ function parseCode(file, text, problems, forwards = []) {
   for (let i = 0; i < lines.length; i++) {
     const comment = commentText(lines[i], state, grammar);
     for (const m of comment.matchAll(FORWARD_RE)) {
-      forwards.push(makeForward(m, 1, file, i + 1));
+      forwards.push(makeForward(m, 1, file, i + 1, m.index + 1));
     }
     collectTags(comment, file, i + 1, state, items, problems);
   }
@@ -752,7 +803,12 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
       const chain = [...cycle, current].join(" --> ");
       for (const id of cycle) {
         const declaration = declarationBySource.get(id);
-        problems.push({ file: declaration.file, line: declaration.line, message: `cyclic forwarding: ${chain}` });
+        problems.push({
+          file: declaration.file,
+          line: declaration.line,
+          character: declaration.character,
+          message: `cyclic forwarding: ${chain}`
+        });
         forwardTargets.delete(id);
       }
     }
@@ -773,6 +829,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
         problems.push({
           file: forward.file,
           line: forward.line,
+          character: forward.character,
           message: `forwarding from ${from}, which does not exist${revHint(from)}`
         });
       continue;

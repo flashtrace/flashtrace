@@ -534,8 +534,8 @@ test('forwarding tag in a comment, spaces around --> optional', () => {
   assert.equal(problems.length, 0);
   assert.equal(items.length, 0); // a forwarding tag defines no item
   assert.deepEqual(forwards, [
-    { from: 'req:login#1', to: 'dsn:auth#2', file: 'src.ts', line: 1 },
-    { from: 'req:logout#1', to: 'dsn:auth#2', file: 'src.ts', line: 2 },
+    { from: 'req:login#1', to: 'dsn:auth#2', file: 'src.ts', line: 1, character: 4 },
+    { from: 'req:logout#1', to: 'dsn:auth#2', file: 'src.ts', line: 2, character: 4 },
   ]);
 });
 
@@ -694,4 +694,46 @@ test('a plain <style> still treats // as not-a-comment', () => {
     '</style>',
   ]);
   assert.equal(items.length, 0);
+});
+
+// Source columns: comment extraction is position-preserving, so a tag's column
+// is the column of its opening bracket in the source line, whatever comment
+// syntax and indentation precede it.
+
+test('a code item tag records the column of its opening bracket', () => {
+  const { items } = parse('src.ts', ['    // [impl:a#1]']);
+  assert.equal(items[0].line, 1);
+  assert.equal(items[0].character, 8); // the '[' past "    // "
+});
+
+test('a trailing line comment on real code records the tag column', () => {
+  const { items, problems } = parse('src.ts', [
+    'let variable = someFunctionReturningSomeValue(); // [impl:variable#1]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:variable#1');
+  assert.equal(items[0].origin, 'code');
+  assert.equal(items[0].line, 1);
+  assert.deepEqual(items[0].needs, []);
+  assert.equal(items[0].character, 53); // the '[' past the code and "// "
+});
+
+test('a code item tag inside a block comment carries its bracket column', () => {
+  const { items } = parse('src.ts', ['/* [impl:b#1] */']);
+  assert.equal(items[0].character, 4); // the '[' past "/* "
+});
+
+test('an orphan need tag problem points at its bracket column', () => {
+  const { problems } = parse('src.ts', ['  // [>>utest:a#1]']);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /no preceding item tag/);
+  assert.equal(problems[0].character, 6); // the '[' past "  // "
+});
+
+test('an unanchored explicit need tag problem points at its bracket column', () => {
+  const { problems } = parse('src.ts', ['// [impl:x#1 >> utest:a#1]']);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0].message, /no preceding item tag \[impl:x#1\]/);
+  assert.equal(problems[0].character, 4); // the '[' past "// "
 });

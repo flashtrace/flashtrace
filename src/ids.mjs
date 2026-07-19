@@ -49,11 +49,12 @@ export const FORWARD_SRC = String.raw`\[\s*${ID_SRC}\s*-->\s*${ID_SRC}\s*\]`;
 export const makeId = (type, group, name, rev) =>
   `${type}:${group ? group + '/' : ''}${name}#${rev}`;
 
-export const makeForward = (m, base, file, line) => ({
+export const makeForward = (m, base, file, line, character) => ({
   from: makeId(m[base], m[base + 1], m[base + 2], m[base + 3]),
   to: makeId(m[base + 4], m[base + 5], m[base + 6], m[base + 7]),
   file,
   line,
+  character,
 });
 export const keyOf = (id) => id.slice(0, id.lastIndexOf('#'));
 export const revOf = (id) => id.slice(id.lastIndexOf('#') + 1);
@@ -123,7 +124,7 @@ export function parseCoverEntry(raw, ownerId) {
   return m ? resolveRef(m[1], m[2], m[3], ownerId) : null;
 }
 
-export function newItem(id, origin, file, line) {
+export function newItem(id, origin, file, line, character) {
   return {
     id,
     key: keyOf(id),
@@ -131,6 +132,7 @@ export function newItem(id, origin, file, line) {
     origin, // 'markdown' | 'code'
     file,
     line,
+    character, // 1-based column of the first character of the defining construct
     title: null,
     description: [],
     needs: [],
