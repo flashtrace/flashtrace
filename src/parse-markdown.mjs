@@ -8,7 +8,10 @@
  *     ID is allowed) up to the next blank line.
  *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated, as a
  *     bullet list on the following lines, or as a table column whose header
- *     cell is the bare keyword name. Needs/Covers list full, explicit IDs.
+ *     cell is the bare keyword name. A Needs or Covers entry is a reference:
+ *     a full ID, or a short form (impl, impl:name, impl#2) whose omitted
+ *     [group/]name and revision are taken from the item stating it. Needs may
+ *     demand a wildcard revision; Covers stay concrete.
  *   - Neither a table cell nor a setext heading can define an item: a
  *     backticked ID in a table cell, or an ID line with no blank line below it
  *     (which folds into the following heading), is reported, not defined.
@@ -16,7 +19,7 @@
  *     the first item's coverage obligation to the second (spaces optional).
  */
 
-import { FORWARD_SRC, ID_SRC, makeForward, makeId, parseIdEntry, parseNeedEntry, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, makeForward, makeId, parseCoverEntry, parseNeedEntry, newItem } from './ids.mjs';
 
 const DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
@@ -262,10 +265,12 @@ function applyKeyword(item, keyword, entries, file, keywordLine, problems, sourc
     return;
   }
   const target = keyword === 'Needs' ? 'needs' : 'covers';
-  // Needs may reference a wildcard revision (2.x); Covers must be concrete.
-  const parse = keyword === 'Needs' ? parseNeedEntry : parseIdEntry;
+  // Needs and Covers both accept the short form (impl, impl:name, impl#2),
+  // completed from the item's own [group/]name and revision; Needs may demand
+  // a wildcard revision, Covers stay concrete.
+  const parse = keyword === 'Needs' ? parseNeedEntry : parseCoverEntry;
   for (const entry of entries) {
-    const id = parse(entry);
+    const id = parse(entry, item.id);
     if (id) item[target].push(id);
     else
       problems.push({

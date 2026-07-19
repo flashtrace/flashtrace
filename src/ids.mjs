@@ -22,13 +22,24 @@ export const ID_SRC =
   String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_SRC})`;
 export const ID_RE = new RegExp(`^${ID_SRC}$`);
 
-// Same four captures as ID_SRC, but the revision may be a wildcard. Used for
-// need references (Markdown Needs and the target of a code need tag) so an
-// item can demand "any downstream revision" without loosening exact matching
-// elsewhere. Definitions, Covers and forwarding stay concrete (ID_SRC).
-export const NEED_ID_SRC =
-  String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_REF_SRC})`;
-export const NEED_ID_RE = new RegExp(`^${NEED_ID_SRC}$`);
+// A need/cover reference completes into a full ID against the item that states
+// it. Beyond a full ID it may drop the [group/]name, the revision, or both, and
+// each dropped part is taken from that stating item (resolveRef):
+//   impl:auth/login#2  full ID - nothing to complete
+//   impl:auth/login    name given, revision from the stating item
+//   impl#2             revision given, [group/]name from the stating item
+//   impl               type only, [group/]name and revision both taken
+// The revision may be a wildcard here (REV_REF_SRC), as needs may demand a
+// range. Captures: type, optional [group/]name, optional revision. Definitions,
+// forwarding and the source anchor of a code need tag stay full IDs (ID_SRC).
+const PATH_SRC = String.raw`(?:${SEGMENT_SRC}\/)*${SEGMENT_SRC}`;
+export const REF_SRC = `([A-Za-z]+)(?::(${PATH_SRC}))?(?:#(${REV_REF_SRC}))?`;
+export const REF_RE = new RegExp(`^${REF_SRC}$`);
+
+// Like REF_SRC but a given revision must be concrete - Covers never take a
+// wildcard. An omitted name or revision still completes from the stating item
+// (whose revision is always concrete).
+export const COVER_REF_RE = new RegExp(`^([A-Za-z]+)(?::(${PATH_SRC}))?(?:#(${REV_SRC}))?$`);
 
 // Forwarding tag: [<source-id> --> <target-id>], spaces optional.
 // Contains two ID_SRC captures (4 groups each); makeForward turns a match into
@@ -46,6 +57,15 @@ export const makeForward = (m, base, file, line) => ({
 });
 export const keyOf = (id) => id.slice(0, id.lastIndexOf('#'));
 export const revOf = (id) => id.slice(id.lastIndexOf('#') + 1);
+// the [group/[group/]]name part of an ID, between the type and the revision
+const pathOf = (id) => id.slice(id.indexOf(':') + 1, id.lastIndexOf('#'));
+
+// Complete a reference (type, and an optionally omitted [group/]name and
+// revision) into a full ID against ownerId, the item that states it: a missing
+// name or revision is taken from ownerId. Its revision is always concrete, so a
+// completed revision is concrete too.
+export const resolveRef = (type, path, rev, ownerId) =>
+  `${type}:${path ?? pathOf(ownerId)}#${rev ?? revOf(ownerId)}`;
 
 // Order two concrete revisions: compare layer by layer numerically, and when
 // one is a prefix of the other the shorter sorts first (so 2.4 precedes 2.4.0).
@@ -84,18 +104,23 @@ export function revMatches(pattern, concrete) {
 export const idMatches = (need, id) =>
   keyOf(need) === keyOf(id) && revMatches(revOf(need), revOf(id));
 
-export function parseIdEntry(raw) {
+// A need reference (Markdown Needs, the target of a code need tag): a full ID,
+// a wildcard revision (2.x), or a short form completed from ownerId, the item
+// stating it - see REF_SRC. Returns the full ID, or null when the text is not a
+// valid reference.
+export function parseNeedEntry(raw, ownerId) {
   const cleaned = raw.replaceAll('`', '').trim();
-  const m = cleaned.match(ID_RE);
-  return m ? makeId(m[1], m[2], m[3], m[4]) : null;
+  const m = cleaned.match(REF_RE);
+  return m ? resolveRef(m[1], m[2], m[3], ownerId) : null;
 }
 
-// A need reference, which - unlike parseIdEntry - also accepts a wildcard
-// revision (2.x, 2.3.x, 2.x.y).
-export function parseNeedEntry(raw) {
+// A cover reference: like a need, but a given revision must be concrete (Covers
+// never take a wildcard). An omitted name or revision still completes from
+// ownerId just the same.
+export function parseCoverEntry(raw, ownerId) {
   const cleaned = raw.replaceAll('`', '').trim();
-  const m = cleaned.match(NEED_ID_RE);
-  return m ? makeId(m[1], m[2], m[3], m[4]) : null;
+  const m = cleaned.match(COVER_REF_RE);
+  return m ? resolveRef(m[1], m[2], m[3], ownerId) : null;
 }
 
 export function newItem(id, origin, file, line) {
