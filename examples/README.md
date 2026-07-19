@@ -5,6 +5,8 @@ Each directory is a self-contained project traceable with a plain
 
 - [basic](basic/) - the smallest complete setup: one Markdown requirement
   covered by one TypeScript item tag.
+- [shortforms](shortforms/) - short-form `Needs`/`Covers` entries and a
+  short-form code need, each completed from the item stating it.
 - [revisions-and-forwarding](revisions-and-forwarding/) - exact multi-layer
   revisions, wildcard needs and a forwarding chain.
 - [polyglot-web](polyglot-web/) - keyword tables, tag filtering and code tags
