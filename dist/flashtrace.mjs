@@ -249,7 +249,7 @@ var makeForward = (m, base, file, line, character) => ({
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => id.slice(id.lastIndexOf("#") + 1);
 var pathOf = (id) => id.slice(id.indexOf(":") + 1, id.lastIndexOf("#"));
-var resolveRef = (type, path5, rev, ownerId) => `${type}:${path5 ?? pathOf(ownerId)}#${rev ?? revOf(ownerId)}`;
+var resolveRef = (type, path6, rev, ownerId) => `${type}:${path6 ?? pathOf(ownerId)}#${rev ?? revOf(ownerId)}`;
 function compareRev(a, b) {
   const partsA = a.split(".");
   const partsB = b.split(".");
@@ -1196,13 +1196,12 @@ function packageVersion() {
 }
 function splitLongOption(token) {
   const eqIndex = token.startsWith("--") ? token.indexOf("=") : -1;
-  return eqIndex === -1 ? [token, null] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
+  return eqIndex === -1 ? [token, void 0] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
 }
 function rejectValue(name, inline) {
-  if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
+  if (inline !== void 0) throw new UsageError(`option ${name} does not take a value`);
 }
-function jsonMode(inline) {
-  const mode = inline ?? "base";
+function jsonMode(mode = "base") {
   if (mode !== "base" && mode !== "rich")
     throw new UsageError(`invalid mode for --json: "${mode}" (expected "base" or "rich")`);
   return mode;

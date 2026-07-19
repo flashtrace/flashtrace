@@ -43,16 +43,15 @@ function packageVersion() {
 // options keep POSIX semantics and never carry one
 function splitLongOption(token) {
   const eqIndex = token.startsWith('--') ? token.indexOf('=') : -1;
-  return eqIndex === -1 ? [token, null] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
+  return eqIndex === -1 ? [token, undefined] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
 }
 
 function rejectValue(name, inline) {
-  if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
+  if (inline !== undefined) throw new UsageError(`option ${name} does not take a value`);
 }
 
 // --json is shorthand for --json=base; detail is chosen by mode, not verbosity
-function jsonMode(inline) {
-  const mode = inline ?? 'base';
+function jsonMode(mode = 'base') {
   if (mode !== 'base' && mode !== 'rich')
     throw new UsageError(`invalid mode for --json: "${mode}" (expected "base" or "rich")`);
   return mode;
