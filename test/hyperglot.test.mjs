@@ -14,12 +14,19 @@
  *     fixture for .ts" is something this suite can look up at all;
  *   - fixtures grouped in a folder per comment grammar, shared by exactly the
  *     extensions resolving to the same grammar object;
- *   - each fixture tagging every comment form its grammar offers, so a new
- *     fixture cannot cover an extension in name only.
+ *   - each fixture writing every marker its grammar defines and defining an
+ *     item per comment form, so a new fixture cannot cover an extension in
+ *     name only.
+ *
+ * That last pair is an approximation, not the statement it stands in for: it
+ * counts items and searches for marker text separately, so it never ties an
+ * item to the comment form that carried it. A fixture spending all its tags in
+ * line comments and writing its block markers in the prose beneath them would
+ * satisfy both halves. Pinning where each item actually comes from is the
+ * end-to-end snapshots' job, and they pin it byte-for-byte.
  *
  * It deliberately says nothing about what a fixture contains beyond that: the
- * prose, the tag IDs and the spec wiring are the example's own business, and
- * the end-to-end snapshots already pin the result byte-for-byte.
+ * prose, the tag IDs and the spec wiring are the example's own business.
  */
 
 import { test } from 'node:test';
@@ -67,6 +74,15 @@ const tagsRequiredBy = (grammar) =>
   grammar.regions
     ? 1
     : grammar.line.length + grammar.block.length + 2 * grammar.block.filter((pair) => pair[2]).length;
+
+// Every marker a grammar defines as literal text: its line markers plus both
+// ends of every block pair. A composite grammar contributes its default
+// grammar's markers for the same reason it has no tag count - the embedded
+// grammars a file reaches follow the convention of the extension.
+const markersOf = (grammar) =>
+  grammar.regions
+    ? markersOf(grammar.default)
+    : [...new Set([...grammar.line, ...grammar.block.flatMap((pair) => pair.slice(0, 2))])];
 
 const fixtures = await collectFixtures();
 const byExtension = new Map(fixtures.map((f) => [f.ext, f]));
@@ -124,18 +140,30 @@ test('extensions are grouped by shared grammar, not by similarity', () => {
   assert.deepEqual(shared, [], `folders holding more than one grammar: ${shared.join(', ')}`);
 });
 
-test('each fixture tags every comment form its grammar offers', () => {
+test('each fixture writes every marker and defines an item per comment form', () => {
   const short = [];
+  const unwritten = [];
   for (const [ext, fixture] of byExtension) {
     if (!CODE_EXT.has(ext)) continue; // reported by the second test
-    const required = tagsRequiredBy(grammarFor(ext));
+    const grammar = grammarFor(ext);
+    const where = `${fixture.folder}/${fixture.name}`;
+
+    const required = tagsRequiredBy(grammar);
     const found = parseCode(fixture.name, fixture.text, []).length;
-    if (found < required) short.push(`${fixture.folder}/${fixture.name}: ${found} of ${required}`);
+    if (found < required) short.push(`${where}: ${found} of ${required}`);
+
+    const missing = markersOf(grammar).filter((marker) => !fixture.text.includes(marker));
+    if (missing.length) unwritten.push(`${where}: ${missing.join(' ')}`);
   }
+  assert.deepEqual(
+    unwritten.sort(byName),
+    [],
+    `fixtures never writing a marker their grammar defines: ${unwritten.join('; ')}`,
+  );
   assert.deepEqual(
     short.sort(byName),
     [],
-    'fixtures tagging fewer comment forms than their grammar offers ' +
-      `(one tag per line marker, one per block pair, two per nesting pair): ${short.join('; ')}`,
+    'fixtures defining fewer items than their grammar has comment forms ' +
+      `(one per line marker, one per block pair, two per nesting pair): ${short.join('; ')}`,
   );
 });
