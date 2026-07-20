@@ -1,0 +1,8 @@
+/*
+ * hyperglot fixture: .css has block comments and no line comments.
+ * [impl:css/css#1]
+ */
+
+.hyperglot {
+  display: block;
+}

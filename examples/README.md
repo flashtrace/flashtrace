@@ -11,6 +11,9 @@ Each directory is a self-contained project traceable with a plain
   revisions, wildcard needs and a forwarding chain.
 - [polyglot-web](polyglot-web/) - keyword tables, tag filtering and code tags
   across TypeScript, Python, SQL, HTML and Vue.
+- [hyperglot](hyperglot/) - every file extension flashtrace knows, one file
+  each exercising every comment form its grammar offers, grouped by shared
+  grammar.
 - [diagnostics](diagnostics/) - an intentionally defective project showing
   every defect and problem kind flashtrace reports.
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fixture>
+  <!--
+    hyperglot fixture: .xml has block comments and no line comments.
+    [impl:xml/xml#1]
+  -->
+</fixture>

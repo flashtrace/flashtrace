@@ -1,0 +1,2 @@
+-- hyperglot fixture: .ads has line comments only.
+-- [impl:dash-line/ads#1]

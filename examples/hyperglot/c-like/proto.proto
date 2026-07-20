@@ -1,0 +1,6 @@
+// hyperglot fixture: .proto is scanned with the C-like comment grammar.
+// [impl:c-like/proto-line#1]
+
+/*
+ * [impl:c-like/proto-block#1]
+ */
