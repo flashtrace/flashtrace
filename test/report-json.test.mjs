@@ -22,22 +22,22 @@ function build({ md = [], code = [] }) {
   return buildReportDocument(items, forwards, problems, '', { version: '9.9.9' });
 }
 
-const itemOf = (doc, id) => doc.items.find((item) => item.id === id);
+const itemOf = (document, id) => document.items.find((item) => item.id === id);
 
 test('document: envelope, ordering and a resolved need', () => {
-  const doc = build({
+  const document = build({
     md: ['`req:a#1`', '', 'Needs: impl:a#1'],
     code: ['// [impl:a#1]'],
   });
-  assert.equal(doc.schemaVersion, 0);
-  assert.equal(doc.flashtrace, '9.9.9');
-  assert.equal(doc.ok, true);
-  assert.deepEqual(doc.forwards, []);
+  assert.equal(document.schemaVersion, 0);
+  assert.equal(document.flashtrace, '9.9.9');
+  assert.equal(document.ok, true);
+  assert.deepEqual(document.forwards, []);
 
   // items are sorted by file, then line, then character
-  assert.deepEqual(doc.items.map((i) => i.id), ['req:a#1', 'impl:a#1']);
+  assert.deepEqual(document.items.map((i) => i.id), ['req:a#1', 'impl:a#1']);
 
-  const req = itemOf(doc, 'req:a#1');
+  const req = itemOf(document, 'req:a#1');
   assert.deepEqual(req, {
     id: 'req:a#1',
     title: null,
@@ -57,7 +57,7 @@ test('document: envelope, ordering and a resolved need', () => {
     wantedBy: [],
   });
 
-  assert.deepEqual(doc.summary, {
+  assert.deepEqual(document.summary, {
     items: 2,
     specItems: 1,
     codeItems: 1,
@@ -69,32 +69,32 @@ test('document: envelope, ordering and a resolved need', () => {
 });
 
 test('a wildcard need resolves to every match in ascending revision order', () => {
-  const doc = build({
+  const document = build({
     md: ['`req:a#1`', '', 'Needs: impl:a#2.x'],
     code: ['// [impl:a#2.10]', '// [impl:a#2.2]'],
   });
-  assert.deepEqual(itemOf(doc, 'req:a#1').needs, [
+  assert.deepEqual(itemOf(document, 'req:a#1').needs, [
     { ref: 'impl:a#2.x', resolvedTo: ['impl:a#2.2', 'impl:a#2.10'] },
   ]);
 });
 
 test('an uncovered need is a defect carrying the revision-mismatch data', () => {
-  const doc = build({
+  const document = build({
     md: ['`req:a#1`', '', 'Needs: impl:a#2'],
     code: ['// [impl:a#1]'],
   });
-  const [defect] = itemOf(doc, 'req:a#1').defects;
+  const [defect] = itemOf(document, 'req:a#1').defects;
   // existingRevisions sits before message, per the documented key order
   assert.deepEqual(Object.keys(defect), ['kind', 'ref', 'existingRevisions', 'message']);
   assert.equal(defect.kind, 'uncovered-need');
   assert.equal(defect.ref, 'impl:a#2');
   assert.deepEqual(defect.existingRevisions, ['1']);
   assert.match(defect.message, /revision mismatch: existing revision\(s\) of impl:a: 1/);
-  assert.equal(itemOf(doc, 'req:a#1').status, 'defective');
+  assert.equal(itemOf(document, 'req:a#1').status, 'defective');
 });
 
 test('covers entries are classified valid, unwanted or orphaned', () => {
-  const doc = build({
+  const document = build({
     md: [
       '`req:cover#1`',
       '',
@@ -107,7 +107,7 @@ test('covers entries are classified valid, unwanted or orphaned', () => {
       '`req:nowant#1`',
     ],
   });
-  const cover = itemOf(doc, 'req:cover#1');
+  const cover = itemOf(document, 'req:cover#1');
   assert.deepEqual(cover.covers, [
     { ref: 'req:wants#1', status: 'valid' },
     { ref: 'req:nowant#1', status: 'unwanted' },
@@ -124,7 +124,7 @@ test('defective and deepCovered are independent of each other', () => {
   // both items are defective for the same reason - an unwanted cover - but one
   // has a sound chain below it and the other does not. `status` says
   // "defective" for both; the booleans keep the two axes apart.
-  const doc = build({
+  const document = build({
     md: [
       '`feat:x#1`',
       '',
@@ -147,8 +147,8 @@ test('defective and deepCovered are independent of each other', () => {
     code: ['// [impl:a#1]'],
   });
 
-  const clean = itemOf(doc, 'req:clean#1');
-  const broken = itemOf(doc, 'req:broken#1');
+  const clean = itemOf(document, 'req:clean#1');
+  const broken = itemOf(document, 'req:broken#1');
   assert.equal(clean.status, broken.status, 'status collapses the two');
   assert.equal(clean.status, 'defective');
 
@@ -159,18 +159,18 @@ test('defective and deepCovered are independent of each other', () => {
 });
 
 test('defective agrees with the defects array on every item', () => {
-  const doc = build({
+  const document = build({
     md: ['`req:a#1`', '', 'Needs: impl:gone#1', '', '`req:b#1`'],
     code: ['// [impl:stray#1]'],
   });
-  for (const item of doc.items)
+  for (const item of document.items)
     assert.equal(item.defective, item.defects.length > 0, `${item.id} disagrees`);
 });
 
 test('a valid cover stays valid on an item that is defective for another reason', () => {
   // cover status is read off the defects, so an unrelated defect on the same
   // item must not colour it
-  const doc = build({
+  const document = build({
     md: [
       '`req:wants#1`',
       '',
@@ -183,7 +183,7 @@ test('a valid cover stays valid on an item that is defective for another reason'
       'Needs: impl:missing#1',
     ],
   });
-  const item = itemOf(doc, 'req:a#1');
+  const item = itemOf(document, 'req:a#1');
   assert.deepEqual(item.covers, [
     { ref: 'req:wants#1', status: 'valid' },
     { ref: 'req:gone#1', status: 'orphaned' },
@@ -196,7 +196,7 @@ test('a valid cover stays valid on an item that is defective for another reason'
 
 test('a forwarding source still has its covers classified', () => {
   // forwarding excuses the source's needs but not its covers
-  const doc = build({
+  const document = build({
     md: [
       '`req:legacy#1`',
       '',
@@ -209,13 +209,13 @@ test('a forwarding source still has its covers classified', () => {
       '`[req:legacy#1 --> dsn:b#1]`',
     ],
   });
-  assert.deepEqual(itemOf(doc, 'req:legacy#1').covers, [
+  assert.deepEqual(itemOf(document, 'req:legacy#1').covers, [
     { ref: 'req:nowant#1', status: 'unwanted' },
   ]);
 });
 
 test('status distinguishes deep-covered, shallow-covered and defective', () => {
-  const doc = build({
+  const document = build({
     md: [
       '`req:top#1`',
       '',
@@ -226,12 +226,12 @@ test('status distinguishes deep-covered, shallow-covered and defective', () => {
       'Needs: impl:missing#1',
     ],
   });
-  assert.equal(itemOf(doc, 'req:top#1').status, 'shallow-covered'); // chain broken below
-  assert.equal(itemOf(doc, 'req:mid#1').status, 'defective');
+  assert.equal(itemOf(document, 'req:top#1').status, 'shallow-covered'); // chain broken below
+  assert.equal(itemOf(document, 'req:mid#1').status, 'defective');
 });
 
 test('forwards and wantedBy record the reverse edges', () => {
-  const doc = build({
+  const document = build({
     md: [
       '`req:a#1`',
       '',
@@ -244,27 +244,27 @@ test('forwards and wantedBy record the reverse edges', () => {
     code: ['// [impl:a#1]'],
   });
 
-  assert.deepEqual(doc.forwards, [
+  assert.deepEqual(document.forwards, [
     { from: 'req:legacy#1', to: 'req:a#1', file: 'docs/spec.md', line: 7, character: 1, effective: true },
   ]);
   // impl:a#1 is wanted by req:a#1; forwarding demand is not counted here
-  assert.deepEqual(itemOf(doc, 'impl:a#1').wantedBy, [
+  assert.deepEqual(itemOf(document, 'impl:a#1').wantedBy, [
     { id: 'req:a#1', file: 'docs/spec.md', line: 1, character: 1 },
   ]);
-  assert.deepEqual(itemOf(doc, 'req:a#1').wantedBy, []);
-  assert.equal(itemOf(doc, 'req:a#1').forwardsTo, null);
-  assert.equal(itemOf(doc, 'req:legacy#1').forwardsTo, 'req:a#1');
+  assert.deepEqual(itemOf(document, 'req:a#1').wantedBy, []);
+  assert.equal(itemOf(document, 'req:a#1').forwardsTo, null);
+  assert.equal(itemOf(document, 'req:legacy#1').forwardsTo, 'req:a#1');
 
   // the forwarding demand wantedBy leaves out shows up here instead
-  assert.deepEqual(itemOf(doc, 'req:a#1').forwardedFrom, [
+  assert.deepEqual(itemOf(document, 'req:a#1').forwardedFrom, [
     { id: 'req:legacy#1', file: 'docs/spec.md', line: 5, character: 1 },
   ]);
-  assert.deepEqual(itemOf(doc, 'req:legacy#1').forwardedFrom, []);
+  assert.deepEqual(itemOf(document, 'req:legacy#1').forwardedFrom, []);
 });
 
 test('forwardedFrom lists only effective forwardings', () => {
   // the duplicate declaration is voided, so dsn:c#1 is forwarded from nobody
-  const doc = build({
+  const document = build({
     md: [
       '`req:dup#1`',
       '',
@@ -277,20 +277,20 @@ test('forwardedFrom lists only effective forwardings', () => {
     ],
   });
   assert.deepEqual(
-    itemOf(doc, 'dsn:b#1').forwardedFrom.map((ref) => ref.id),
+    itemOf(document, 'dsn:b#1').forwardedFrom.map((ref) => ref.id),
     ['req:dup#1'],
   );
-  assert.deepEqual(itemOf(doc, 'dsn:c#1').forwardedFrom, []);
+  assert.deepEqual(itemOf(document, 'dsn:c#1').forwardedFrom, []);
 });
 
 test('a forwarding to a missing target contributes no forwardedFrom anywhere', () => {
-  const doc = build({ md: ['`req:a#1`', '', '`[req:a#1 --> dsn:gone#1]`'] });
-  assert.equal(itemOf(doc, 'req:a#1').forwardsTo, 'dsn:gone#1');
-  for (const item of doc.items) assert.deepEqual(item.forwardedFrom, []);
+  const document = build({ md: ['`req:a#1`', '', '`[req:a#1 --> dsn:gone#1]`'] });
+  assert.equal(itemOf(document, 'req:a#1').forwardsTo, 'dsn:gone#1');
+  for (const item of document.items) assert.deepEqual(item.forwardedFrom, []);
 });
 
 test('forwards record every void reason and mirror forwardsTo', () => {
-  const doc = build({
+  const document = build({
     md: [
       '`req:dup#1`',
       '',
@@ -309,20 +309,20 @@ test('forwards record every void reason and mirror forwardsTo', () => {
     ],
   });
   const reason = (from, to) =>
-    doc.forwards.find((f) => f.from === from && f.to === to);
+    document.forwards.find((f) => f.from === from && f.to === to);
   assert.equal(reason('req:dup#1', 'dsn:b#1').effective, true);
   assert.equal(reason('req:dup#1', 'dsn:b#1').voidedBy, undefined);
   assert.equal(reason('req:dup#1', 'dsn:c#1').voidedBy, 'duplicate');
   assert.equal(reason('req:eta#1', 'req:eta#1').voidedBy, 'cycle');
   assert.equal(reason('req:ghost#1', 'dsn:b#1').voidedBy, 'missing-source');
   // the effective declaration is the only one mirrored on the item
-  assert.equal(itemOf(doc, 'req:dup#1').forwardsTo, 'dsn:b#1');
+  assert.equal(itemOf(document, 'req:dup#1').forwardsTo, 'dsn:b#1');
 });
 
 test('problems are reported with location and fail the run without any defect', () => {
-  const doc = build({ code: ['// [>>utest:a#1]'] });
-  assert.equal(doc.ok, false);
-  assert.deepEqual(doc.problems, [
+  const document = build({ code: ['// [>>utest:a#1]'] });
+  assert.equal(document.ok, false);
+  assert.deepEqual(document.problems, [
     {
       file: 'src/impl.js',
       line: 1,
@@ -330,15 +330,15 @@ test('problems are reported with location and fail the run without any defect', 
       message: 'need tag [>>utest:a#1] has no preceding item tag in this file',
     },
   ]);
-  assert.equal(doc.summary.defectiveItems, 0);
-  assert.equal(doc.summary.problems, 1);
+  assert.equal(document.summary.defectiveItems, 0);
+  assert.equal(document.summary.problems, 1);
 });
 
 test('a document carries every field the schema marks required', () => {
   // one document exercising every $def: an item with a resolved and an
   // uncovered need, a valid cover, a defect and an incoming wanter; an
   // effective and a voided forwarding; and a problem
-  const doc = build({
+  const document = build({
     md: [
       '`req:a#1`',
       '',
@@ -363,25 +363,25 @@ test('a document carries every field the schema marks required', () => {
     for (const key of definition.required) assert.ok(key in object, `${where} missing "${key}"`);
   };
 
-  const req = itemOf(doc, 'req:a#1');
-  hasRequired(doc, schema, 'document');
+  const req = itemOf(document, 'req:a#1');
+  hasRequired(document, schema, 'document');
   hasRequired(req, schema.$defs.item, 'item');
   hasRequired(req.needs[0], schema.$defs.need, 'need');
   hasRequired(req.covers[0], schema.$defs.cover, 'cover');
   hasRequired(req.defects[0], schema.$defs.defect, 'defect');
   hasRequired(req.wantedBy[0], schema.$defs.itemRef, 'wantedBy entry');
-  hasRequired(itemOf(doc, 'req:a#1').forwardedFrom[0], schema.$defs.itemRef, 'forwardedFrom entry');
-  hasRequired(doc.forwards[0], schema.$defs.forward, 'forward');
-  hasRequired(doc.problems[0], schema.$defs.problem, 'problem');
-  hasRequired(doc.summary, schema.$defs.summary, 'summary');
+  hasRequired(itemOf(document, 'req:a#1').forwardedFrom[0], schema.$defs.itemRef, 'forwardedFrom entry');
+  hasRequired(document.forwards[0], schema.$defs.forward, 'forward');
+  hasRequired(document.problems[0], schema.$defs.problem, 'problem');
+  hasRequired(document.summary, schema.$defs.summary, 'summary');
 });
 
 test('items, forwards and problems are sorted by file, line, character', () => {
-  const doc = build({
+  const document = build({
     md: ['`req:b#1`', '', '`req:a#1`'],
   });
   // two items on the same file: order follows line, not id
-  assert.deepEqual(doc.items.map((i) => i.id), ['req:b#1', 'req:a#1']);
-  assert.deepEqual(doc.items.map((i) => i.line), [1, 3]);
-  for (const item of doc.items) assert.ok(!item.file.includes('\\')); // forward slashes only
+  assert.deepEqual(document.items.map((i) => i.id), ['req:b#1', 'req:a#1']);
+  assert.deepEqual(document.items.map((i) => i.line), [1, 3]);
+  for (const item of document.items) assert.ok(!item.file.includes('\\')); // forward slashes only
 });

@@ -504,9 +504,9 @@ test('--json prints the JSON document to stdout and keeps the exit code', async 
     const res = runCli(dir, ['--json']);
     assert.equal(res.status, 0, res.stderr);
     assert.equal(res.stderr, '');
-    const doc = JSON.parse(res.stdout);
-    assert.equal(doc.ok, true);
-    assert.ok(doc.items.some((i) => i.id === 'req:login#1'));
+    const document = JSON.parse(res.stdout);
+    assert.equal(document.ok, true);
+    assert.ok(document.items.some((i) => i.id === 'req:login#1'));
     assert.ok(res.stdout.endsWith('}\n')); // single trailing newline
   });
 });
@@ -515,12 +515,12 @@ test('--json carries the forwards array and wantedBy on every item', async () =>
   await withProject(JSON_FIXTURE, (dir) => {
     const res = runCli(dir, ['--json']);
     assert.equal(res.status, 0, res.stderr);
-    const doc = JSON.parse(res.stdout);
+    const document = JSON.parse(res.stdout);
     assert.deepEqual(
-      doc.forwards.map((f) => [f.from, f.to, f.effective]),
+      document.forwards.map((f) => [f.from, f.to, f.effective]),
       [['req:legacy#1', 'req:login#1', true]],
     );
-    assert.ok(doc.items.every((i) => 'wantedBy' in i));
+    assert.ok(document.items.every((i) => 'wantedBy' in i));
   });
 });
 
@@ -529,8 +529,8 @@ test('--json reports the flashtrace version that produced it', async () => {
     await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'),
   );
   await withProject(JSON_FIXTURE, (dir) => {
-    const doc = JSON.parse(runCli(dir, ['--json']).stdout);
-    assert.equal(doc.flashtrace, version);
+    const document = JSON.parse(runCli(dir, ['--json']).stdout);
+    assert.equal(document.flashtrace, version);
   });
 });
 
@@ -540,18 +540,18 @@ test('--json on a defective project exits 1 with ok false', async () => {
     (dir) => {
       const res = runCli(dir, ['--json']);
       assert.equal(res.status, 1);
-      const doc = JSON.parse(res.stdout);
-      assert.equal(doc.ok, false);
-      assert.equal(doc.summary.defectiveItems, 1);
+      const document = JSON.parse(res.stdout);
+      assert.equal(document.ok, false);
+      assert.equal(document.summary.defectiveItems, 1);
     },
   );
 });
 
 test('--json honors --tags import filtering', async () => {
   await withProject(TAGS_FIXTURE, (dir) => {
-    const doc = JSON.parse(runCli(dir, ['--json', '-t', 'Auth']).stdout);
-    assert.equal(doc.summary.items, 1);
-    assert.equal(doc.items[0].id, 'req:a#1');
+    const document = JSON.parse(runCli(dir, ['--json', '-t', 'Auth']).stdout);
+    assert.equal(document.summary.items, 1);
+    assert.equal(document.items[0].id, 'req:a#1');
   });
 });
 
