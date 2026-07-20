@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://flashtrace.github.io/schemas/report/v1.json",
   "title": "flashtrace JSON report",
-  "description": "A flashtrace run reported as JSON (--json). Unknown fields are deliberately left unconstrained - additive changes do not bump schemaVersion, so consumers and validators must tolerate them.",
+  "description": "A flashtrace run reported as JSON (--format json). Unknown fields are deliberately left unconstrained - additive changes do not bump schemaVersion, so consumers and validators must tolerate them.",
   "type": "object",
   "required": ["schemaVersion", "flashtrace", "ok", "items", "forwards", "problems", "summary"],
   "properties": {

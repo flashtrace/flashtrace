@@ -1,6 +1,6 @@
 /*
- * JSON report (--json): the run as a single JSON document on stdout, in place
- * of the plain-text report. It carries every item with its declared
+ * JSON report (--format json): the run as a single JSON document on stdout,
+ * in place of the plain-text report. It carries every item with its declared
  * references, their resolution, its defects and the items that want it, plus
  * every forwarding declaration, all problems and the summary.
  *

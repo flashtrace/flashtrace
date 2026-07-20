@@ -564,12 +564,48 @@ test('--json takes no value', async () => {
   });
 });
 
-test('--json cannot be combined with -v/--verbose', async () => {
+test('-f/--format json produces the same document as --json', async () => {
+  await withProject(JSON_FIXTURE, (dir) => {
+    const shorthand = runCli(dir, ['--json']);
+    for (const args of [['-f', 'json'], ['--format', 'json'], ['--format=json']]) {
+      const res = runCli(dir, args);
+      assert.equal(res.status, 0, res.stderr);
+      assert.equal(res.stdout, shorthand.stdout, args.join(' '));
+    }
+  });
+});
+
+test('-f/--format text is the default plain-text report', async () => {
+  await withProject(JSON_FIXTURE, (dir) => {
+    const explicit = runCli(dir, ['-f', 'text']);
+    assert.equal(explicit.status, 0, explicit.stderr);
+    assert.equal(explicit.stdout, runCli(dir, []).stdout);
+  });
+});
+
+test('an unknown format is a usage error on stderr', async () => {
   await withProject({}, (dir) => {
-    for (const args of [['--json', '-v'], ['-v', '--json'], ['--json', '--verbose']]) {
+    const res = runCli(dir, ['-f', 'yaml']);
+    assert.equal(res.status, 2);
+    assert.equal(res.stdout, '');
+    assert.match(res.stderr, /invalid value for -f: "yaml" \(expected "text" or "json"\)/);
+  });
+});
+
+test('--format requires a value', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['--format']);
+    assert.equal(res.status, 2);
+    assert.match(res.stderr, /missing value for --format/);
+  });
+});
+
+test('-v/--verbose is rejected for the JSON format, whichever spelling selects it', async () => {
+  await withProject({}, (dir) => {
+    for (const args of [['--json', '-v'], ['-v', '--json'], ['-f', 'json', '--verbose']]) {
       const res = runCli(dir, args);
       assert.equal(res.status, 2, args.join(' '));
-      assert.match(res.stderr, /--json cannot be combined with -v\/--verbose/);
+      assert.match(res.stderr, /-v\/--verbose applies to the text format only/);
     }
   });
 });

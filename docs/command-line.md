@@ -5,10 +5,10 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
 
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
+  -f, --format <format>    report format: "text" (default) or "json"; --json
+                           is shorthand for --format json
   -v, --verbose            list every item with its coverage status and trace
-                           edges, not only the defective ones
-      --json               print the report as a JSON document instead of the
-                           plain-text report
+                           edges, not only the defective ones; text format only
   -V, --version            print the version number
   -h, --help
 ```
@@ -21,7 +21,7 @@ Exit codes: `0` clean trace · `1` defects or problems found · `2` usage error.
 
 Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note) ending in `ok` / `not ok`.
 
-With `--json` the report is a single JSON document instead - see [JSON report](json-report.md). `--json` cannot be combined with `-v`/`--verbose`: verbosity selects which items the plain-text report lists, and the JSON document always carries them all.
+With `-f json` (or its shorthand `--json`) the report is a single JSON document instead - see [JSON report](json-report.md). Any other format value is a usage error, as is combining the JSON format with `-v`/`--verbose`: verbosity selects which items the plain-text report lists, and the JSON document always carries them all.
 
 ## Verbose report
 

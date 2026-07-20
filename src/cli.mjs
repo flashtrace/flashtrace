@@ -19,10 +19,10 @@ by git are excluded.
 Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
+  -f, --format <format>    report format: "text" (default) or "json"; --json
+                           is shorthand for --format json
   -v, --verbose            list every item with its coverage status and trace
-                           edges, not only the defective ones
-      --json               print the report as a JSON document instead of the
-                           plain-text report
+                           edges, not only the defective ones; text format only
   -V, --version            print the version number
   -h, --help               show this help
 
@@ -50,11 +50,23 @@ function rejectValue(name, inline) {
   if (inline !== undefined) throw new UsageError(`option ${name} does not take a value`);
 }
 
+function reportFormat(raw, value) {
+  if (value !== 'text' && value !== 'json')
+    throw new UsageError(`invalid value for ${raw}: "${value}" (expected "text" or "json")`);
+  return value;
+}
+
 // short option to its long spelling, so the parser compares one name per option
-const LONG_ALIAS = { '-h': '--help', '-v': '--verbose', '-V': '--version', '-t': '--tags' };
+const LONG_ALIAS = {
+  '-h': '--help',
+  '-v': '--verbose',
+  '-V': '--version',
+  '-t': '--tags',
+  '-f': '--format',
+};
 
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null, verbose: false, json: false };
+  const opts = { dirs: [], tags: null, verbose: false, format: 'text' };
   for (let i = 0; i < argv.length; i++) {
     const [raw, inline] = splitLongOption(argv[i]);
     const name = LONG_ALIAS[raw] ?? raw;
@@ -71,7 +83,11 @@ function parseArgs(argv) {
       opts.verbose = true;
     } else if (name === '--json') {
       rejectValue(raw, inline);
-      opts.json = true;
+      opts.format = 'json';
+    } else if (name === '--format') {
+      const value = inline ?? argv[++i];
+      if (!value) throw new UsageError(`missing value for ${raw}`);
+      opts.format = reportFormat(raw, value);
     } else if (name === '--tags') {
       const value = inline ?? argv[++i];
       if (!value) throw new UsageError(`missing value for ${raw}`);
@@ -84,8 +100,8 @@ function parseArgs(argv) {
   }
   // -v selects which items the plain-text report lists; the JSON document
   // always carries them all, leaving it nothing to act on
-  if (opts.json && opts.verbose)
-    throw new UsageError('--json cannot be combined with -v/--verbose');
+  if (opts.format === 'json' && opts.verbose)
+    throw new UsageError('-v/--verbose applies to the text format only');
   if (opts.dirs.length === 0) opts.dirs.push('.');
   return opts;
 }
@@ -118,7 +134,7 @@ async function main() {
   }
 
   analyze(items, forwards, problems);
-  const clean = opts.json
+  const clean = opts.format === 'json'
     ? reportJson(items, forwards, problems, process.cwd(), { version: packageVersion() })
     : report(items, problems, process.cwd(), { verbose: opts.verbose });
   process.exit(clean ? 0 : 1);

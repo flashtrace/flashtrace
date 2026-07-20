@@ -18,8 +18,9 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 | Option | Effect |
 |---|---|
 | `-t, --tags <t1,t2,...>` | Only import spec items carrying one of these tags; add `_` to also include untagged items. Code items are always kept. |
-| `-v, --verbose` | List every item with its coverage status and trace edges, not only the defective ones. See [Command line](command-line.md). |
-| `--json` | Print the report as a JSON document instead of plain text. See [JSON report](json-report.md). |
+| `-f, --format <format>` | Report format: `text` (default) or `json`. See [JSON report](json-report.md). |
+| `--json` | Shorthand for `--format json`. |
+| `-v, --verbose` | List every item with its coverage status and trace edges, not only the defective ones. Text format only. See [Command line](command-line.md). |
 | `-V, --version` | Print the version number and exit. |
 | `-h, --help` | Show help. |
 

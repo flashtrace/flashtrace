@@ -1,8 +1,15 @@
 # JSON report
 
-`--json` replaces the plain-text report on stdout with a single JSON document describing the run. Everything the plain-text report shows - items, defects, problems, summary, verdict - is contained in the document; nothing else is written to stdout. Exit codes are unchanged (see [Command line](command-line.md)).
+`-f json`, or its shorthand `--json`, replaces the plain-text report on stdout with a single JSON document describing the run. Everything the plain-text report shows - items, defects, problems, summary, verdict - is contained in the document; nothing else is written to stdout. Exit codes are unchanged (see [Command line](command-line.md)).
 
-The document is the complete run: every item, every forwarding declaration and every problem, whatever their status. Selecting a subset is the consumer's job, and `jq` does it in one filter - so `--json` takes no value, and combining it with `-v`/`--verbose` is a usage error (exit code `2`): verbosity picks which items the plain-text report lists, and the document already carries them all. Usage errors are reported as plain text on stderr; a JSON document is only ever produced by a completed run.
+The document is the complete run: every item, every forwarding declaration and every problem, whatever their status. Selecting a subset is the consumer's job, and `jq` does it in one filter - so the format takes no further options, and combining it with `-v`/`--verbose` is a usage error (exit code `2`): verbosity picks which items the plain-text report lists, and the document already carries them all. Usage errors are reported as plain text on stderr; a JSON document is only ever produced by a completed run.
+
+The document goes to stdout, never to a file; redirect it if you want one:
+
+```sh
+flashtrace -f json src > report.json
+flashtrace --json src | jq '.items[] | select(.status == "defective")'
+```
 
 ## Document
 
