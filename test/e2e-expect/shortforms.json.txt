@@ -12,6 +12,8 @@
       "line": 1,
       "character": 4,
       "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
       "needs": [],
       "covers": [],
       "forwardsTo": null,
@@ -34,6 +36,8 @@
       "line": 1,
       "character": 4,
       "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
       "needs": [
         {
           "ref": "impl:auth/session#1",
@@ -63,6 +67,8 @@
       "line": 1,
       "character": 4,
       "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
       "needs": [],
       "covers": [],
       "forwardsTo": null,
@@ -85,6 +91,8 @@
       "line": 3,
       "character": 1,
       "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
       "needs": [
         {
           "ref": "req:auth/login#1",
@@ -107,6 +115,8 @@
       "line": 11,
       "character": 1,
       "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
       "needs": [
         {
           "ref": "impl:auth/login#1",

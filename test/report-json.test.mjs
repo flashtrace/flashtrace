@@ -47,6 +47,8 @@ test('document: envelope, ordering and a resolved need', () => {
     line: 1,
     character: 1,
     status: 'deep-covered',
+    defective: false,
+    deepCovered: true,
     needs: [{ ref: 'impl:a#1', resolvedTo: ['impl:a#1'] }],
     covers: [],
     forwardsTo: null,
@@ -115,6 +117,53 @@ test('covers entries are classified valid, unwanted or orphaned', () => {
     cover.defects.map((defect) => defect.kind).sort(),
     ['orphaned-cover', 'unwanted-cover'],
   );
+});
+
+test('defective and deepCovered are independent of each other', () => {
+  // both items are defective for the same reason - an unwanted cover - but one
+  // has a sound chain below it and the other does not. `status` says
+  // "defective" for both; the booleans keep the two axes apart.
+  const doc = build({
+    md: [
+      '`feat:x#1`',
+      '',
+      '`req:clean#1`',
+      '',
+      'Needs: impl:a#1',
+      '',
+      'Covers: feat:x#1',
+      '',
+      '`req:broken#1`',
+      '',
+      'Needs: dsn:z#1',
+      '',
+      'Covers: feat:x#1',
+      '',
+      '`dsn:z#1`',
+      '',
+      'Needs: impl:gone#1',
+    ],
+    code: ['// [impl:a#1]'],
+  });
+
+  const clean = itemOf(doc, 'req:clean#1');
+  const broken = itemOf(doc, 'req:broken#1');
+  assert.equal(clean.status, broken.status, 'status collapses the two');
+  assert.equal(clean.status, 'defective');
+
+  assert.equal(clean.defective, true);
+  assert.equal(clean.deepCovered, true); // fixing the cover leaves nothing below
+  assert.equal(broken.defective, true);
+  assert.equal(broken.deepCovered, false); // dsn:z#1 is itself uncovered
+});
+
+test('defective agrees with the defects array on every item', () => {
+  const doc = build({
+    md: ['`req:a#1`', '', 'Needs: impl:gone#1', '', '`req:b#1`'],
+    code: ['// [impl:stray#1]'],
+  });
+  for (const item of doc.items)
+    assert.equal(item.defective, item.defects.length > 0, `${item.id} disagrees`);
 });
 
 test('a valid cover stays valid on an item that is defective for another reason', () => {

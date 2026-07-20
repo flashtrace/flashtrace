@@ -56,7 +56,7 @@
     },
     "item": {
       "type": "object",
-      "required": ["id", "title", "origin", "tags", "file", "line", "character", "status", "needs", "covers", "forwardsTo", "defects", "wantedBy"],
+      "required": ["id", "title", "origin", "tags", "file", "line", "character", "status", "defective", "deepCovered", "needs", "covers", "forwardsTo", "defects", "wantedBy"],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "title": {
@@ -73,8 +73,16 @@
         "line": { "$ref": "#/$defs/line" },
         "character": { "$ref": "#/$defs/character" },
         "status": {
-          "description": "defective: at least one defect; shallow-covered: no defects, but not deep-covered; deep-covered otherwise.",
+          "description": "The single label the reports show: defective when the item has any defect, shallow-covered when it has none but is not deep-covered, deep-covered otherwise. defective is decided first and so hides the coverage axis - read `defective` and `deepCovered` for the two independently.",
           "enum": ["deep-covered", "shallow-covered", "defective"]
+        },
+        "defective": {
+          "description": "True iff `defects` is non-empty. Equivalent to status == \"defective\".",
+          "type": "boolean"
+        },
+        "deepCovered": {
+          "description": "True iff every need resolves and every item it resolves to is itself deep-covered; a forwarding source follows its target instead of its own needs. Independent of `defective`: an item whose only defect does not break the chain below it - an unwanted cover, say - is defective and deep-covered at once, and resolving that defect leaves nothing further down to fix.",
+          "type": "boolean"
         },
         "needs": {
           "description": "One entry per declared Needs reference, in declaration order.",

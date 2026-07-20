@@ -1181,6 +1181,8 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
       tags: item.tags,
       ...location(item),
       status: statusOf2(item),
+      defective: item.defects.length > 0,
+      deepCovered: item.deepCovered,
       needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
       covers: item.covers.map((ref) => ({ ref, status: coverStatus(ref) })),
       forwardsTo: item.forwardsTo,
