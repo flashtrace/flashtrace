@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://flashtrace.github.io/schemas/report/v1.json",
+  "$id": "https://flashtrace.github.io/schemas/report/v0.json",
   "title": "flashtrace JSON report",
-  "description": "A flashtrace run reported as JSON (--format json). Unknown fields are deliberately left unconstrained - additive changes do not bump schemaVersion, so consumers and validators must tolerate them.",
+  "description": "A flashtrace run reported as JSON (--format json). Format version 0 is unstable: while flashtrace is pre-1.0 this schema changes in place, breaking changes included. Unknown fields are deliberately left unconstrained, so consumers and validators must tolerate them.",
   "type": "object",
   "required": ["schemaVersion", "flashtrace", "ok", "items", "forwards", "problems", "summary"],
   "properties": {
     "schemaVersion": {
-      "description": "Integer version of this format; bumped only by breaking changes.",
-      "const": 1
+      "description": "Integer version of this format. 0 means unstable: no compatibility promise until flashtrace 1.0.0, which starts the format at 1.",
+      "const": 0
     },
     "flashtrace": {
       "description": "Version of the flashtrace that produced the document. Provenance only.",

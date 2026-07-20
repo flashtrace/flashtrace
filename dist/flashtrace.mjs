@@ -1076,7 +1076,7 @@ function report(items, problems, cwd, opts = {}) {
 
 // src/report-json.mjs
 import path4 from "node:path";
-var SCHEMA_VERSION = 1;
+var SCHEMA_VERSION = 0;
 function statusOf2(item) {
   if (item.defects.length > 0) return "defective";
   return item.deepCovered ? "deep-covered" : "shallow-covered";

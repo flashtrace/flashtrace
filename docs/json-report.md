@@ -15,17 +15,21 @@ flashtrace --json src | jq .
 
 ## Schema
 
-The structure of the document - every field, its type and its meaning - is defined by a JSON Schema (draft 2020-12). That schema is the contract; this page does not restate it. It is kept in the repository at `schemas/report/v1.json` and served at <https://flashtrace.github.io/schemas/report/v1.json>. Every schema version keeps its own URL; <https://flashtrace.github.io/schemas/report/latest.json> serves the newest one.
+The structure of the document - every field, its type and its meaning - is defined by a JSON Schema (draft 2020-12). That schema is the contract; this page does not restate it. It is kept in the repository at `schemas/report/v0.json` and served at <https://flashtrace.github.io/schemas/report/v0.json>. Every schema version keeps its own URL; <https://flashtrace.github.io/schemas/report/latest.json> serves the newest one.
 
 The schema deliberately leaves unknown fields unconstrained: validating a newer document against an older schema must not fail on additive fields.
 
 ## Versioning
 
-The document carries the version of the format it follows, and the schema pins that version.
+The document carries the version of the format it follows in `schemaVersion`, and the schema pins that version. It is an integer.
 
-- It is bumped only by a breaking change: a field removed, renamed or re-typed, or a documented meaning changed. Each bump is published as a new schema under its own URL.
+**The format is version `0`, which means unstable.** While flashtrace is pre-1.0 the document shape carries no compatibility promise: fields may be removed, renamed or re-typed, and their documented meaning may change. Those changes are published to the same schema URL, in place, and `schemaVersion` stays `0` through all of them - a version number that only ever said "still unstable" is not worth churning. Pin a flashtrace version if you need a fixed shape; the `flashtrace` field in every document records which one produced it.
+
+Versioning proper starts with flashtrace 1.0.0, which sets the format to `1` and publishes it at its own URL. From there:
+
+- `schemaVersion` is bumped only by a breaking change: a field removed, renamed or re-typed, or a documented meaning changed. Each bump is published as a new schema under its own URL, and earlier ones stay served.
 - Additive changes - a new optional field - do not bump it. Consumers must therefore ignore fields they do not know (tolerant reader).
-- The document also carries the version of the flashtrace that produced it. That is provenance for debugging; consumers must not derive the format from it.
+- The `flashtrace` field remains provenance for debugging; consumers must not derive the format from it.
 
 ## Ordering and determinism
 

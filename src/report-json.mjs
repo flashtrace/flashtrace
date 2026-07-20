@@ -7,7 +7,7 @@
  * The document is deterministic: items, forwards and problems are sorted by
  * file, then line, then character; object keys serialize in a fixed order; the
  * output is two-space indented and ends with a single newline. See
- * schemas/report/v1.json for the contract and docs/json-report.md for how the
+ * schemas/report/v0.json for the contract and docs/json-report.md for how the
  * format is invoked and what it guarantees beyond the schema.
  */
 
@@ -16,7 +16,8 @@ import path from 'node:path';
 import { buildResolver } from './analyze.mjs';
 import { compareRev, idMatches, revOf } from './ids.mjs';
 
-const SCHEMA_VERSION = 1;
+// 0 marks the format unstable; it becomes 1 with flashtrace 1.0.0
+const SCHEMA_VERSION = 0;
 
 // item status, matching the three states the summary and verbose report show
 function statusOf(item) {

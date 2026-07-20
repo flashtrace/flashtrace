@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { analyze, buildReportDocument, parseCode, parseMarkdown } from '../src/main.mjs';
 
 const schema = JSON.parse(
-  readFileSync(new URL('../schemas/report/v1.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../schemas/report/v0.json', import.meta.url), 'utf8'),
 );
 
 // Build the JSON document straight from the real parsers and analyze, so the
@@ -29,7 +29,7 @@ test('document: envelope, ordering and a resolved need', () => {
     md: ['`req:a#1`', '', 'Needs: impl:a#1'],
     code: ['// [impl:a#1]'],
   });
-  assert.equal(doc.schemaVersion, 1);
+  assert.equal(doc.schemaVersion, 0);
   assert.equal(doc.flashtrace, '9.9.9');
   assert.equal(doc.ok, true);
   assert.deepEqual(doc.forwards, []);
