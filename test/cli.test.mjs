@@ -609,3 +609,35 @@ test('-v/--verbose is rejected for the JSON format, whichever spelling selects i
     }
   });
 });
+
+test('selecting the report format twice is a usage error', async () => {
+  await withProject({}, (dir) => {
+    // conflicting, agreeing and repeated-spelling selections alike: one rule
+    const cases = [
+      [['--json', '--format', 'text'], '--json'],
+      [['--format', 'text', '--json'], '--format'],
+      [['--json', '--format', 'json'], '--json'],
+      [['--json', '--json'], '--json'],
+      [['-f', 'json', '--format=text'], '-f'],
+    ];
+    for (const [args, blamed] of cases) {
+      const res = runCli(dir, args);
+      assert.equal(res.status, 2, args.join(' '));
+      assert.equal(res.stdout, '', args.join(' '));
+      assert.match(
+        res.stderr,
+        new RegExp(`the report format is already selected by ${blamed}`),
+        args.join(' '),
+      );
+    }
+  });
+});
+
+test('the format may still be selected once, in any spelling', async () => {
+  await withProject({ 'spec.md': ['# T', '`req:a#1`'] }, (dir) => {
+    for (const args of [['--json'], ['-f', 'json'], ['--format', 'json'], ['--format=json']]) {
+      const res = runCli(dir, args);
+      assert.equal(JSON.parse(res.stdout).schemaVersion, 0, args.join(' '));
+    }
+  });
+});

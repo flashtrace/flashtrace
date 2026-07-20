@@ -20,7 +20,8 @@ Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
   -f, --format <format>    report format: "text" (default) or "json"; --json
-                           is shorthand for --format json
+                           is shorthand for --format json. The format may be
+                           selected only once
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones; text format only
   -V, --version            print the version number
@@ -48,6 +49,18 @@ function splitLongOption(token) {
 
 function rejectValue(name, inline) {
   if (inline !== undefined) throw new UsageError(`option ${name} does not take a value`);
+}
+
+// The report format is selected at most once, whichever spelling does it.
+// Rejecting a second selection outright - rather than letting the last one win,
+// or comparing the two values - keeps one rule to state and to rely on: a
+// command line that names the format twice is a mistake worth surfacing, and
+// the error names the option to drop.
+function selectFormat(opts, raw, format) {
+  if (opts.formatSelectedBy !== null)
+    throw new UsageError(`the report format is already selected by ${opts.formatSelectedBy}`);
+  opts.format = format;
+  opts.formatSelectedBy = raw;
 }
 
 function reportFormat(raw, value) {
@@ -79,8 +92,8 @@ function enableVerbose(opts) {
   opts.verbose = true;
 }
 
-function selectJsonFormat(opts) {
-  opts.format = 'json';
+function selectJsonFormat(opts, raw) {
+  selectFormat(opts, raw, 'json');
 }
 
 // every option that never carries a value, mapped to the effect it has on the
@@ -93,7 +106,7 @@ const VALUELESS_OPTIONS = new Map([
 ]);
 
 function setFormat(opts, raw, value) {
-  opts.format = reportFormat(raw, value);
+  selectFormat(opts, raw, reportFormat(raw, value));
 }
 
 function setTags(opts, raw, value) {
@@ -108,7 +121,9 @@ const VALUED_OPTIONS = new Map([
 ]);
 
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null, verbose: false, format: 'text' };
+  // formatSelectedBy holds the option that set the format, so a second
+  // selection can be rejected and can name the first one
+  const opts = { dirs: [], tags: null, verbose: false, format: 'text', formatSelectedBy: null };
   for (let i = 0; i < argv.length; i++) {
     const [raw, inline] = splitLongOption(argv[i]);
     const name = LONG_ALIAS[raw] ?? raw;
@@ -116,7 +131,7 @@ function parseArgs(argv) {
     const applyValuedOption = VALUED_OPTIONS.get(name);
     if (applyValuelessOption) {
       rejectValue(raw, inline);
-      applyValuelessOption(opts);
+      applyValuelessOption(opts, raw);
     } else if (applyValuedOption) {
       const value = inline ?? argv[++i];
       if (!value) throw new UsageError(`missing value for ${raw}`);
