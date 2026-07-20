@@ -2,8 +2,8 @@
 
 Every file extension flashtrace knows, each in a file that exercises every
 comment form its grammar offers, and a Markdown spec that exercises every
-construct the Markdown parser reads. 83 extensions in 22 folders, one folder per
-comment grammar.
+construct the Markdown parser reads. One folder per comment grammar, one file
+per extension inside it.
 
 Extensions share a folder only when they resolve to the very same grammar - not
 when they merely look alike. That is why `.scss` and `.less` sit under
@@ -24,30 +24,33 @@ reachable from the root spec; the run is clean and exits 0.
 
 ## The grammars
 
-| Folder | Comment forms | Extensions |
-|---|---|---|
-| [c-like/](c-like/) | line, block | 20, from `.ts` to `.proto` |
-| [c-like-nested/](c-like-nested/) | line, block, nesting block | `.kt` `.kts` `.rs` `.scala` `.swift` |
-| [php/](php/) | two line markers, block | `.php` |
-| [hash/](hash/) | line | 15, from `.py` to `.gql` |
-| [julia/](julia/) | line, block, nesting block | `.jl` |
-| [nim/](nim/) | line, block and doc block, both nesting | `.nim` |
-| [coffee/](coffee/) | line, block with identical open and close | `.coffee` |
-| [powershell/](powershell/) | line, block | `.ps1` `.psm1` |
-| [hcl/](hcl/) | two line markers, block | `.hcl` `.tf` `.tfvars` |
-| [semicolon/](semicolon/) | line | `.clj` `.cljc` `.cljs` `.edn` `.el` `.lisp` |
-| [scheme/](scheme/) | line, nesting block | `.rkt` `.scm` `.ss` |
-| [percent/](percent/) | line | `.erl` `.hrl` `.sty` `.tex` |
-| [dash-line/](dash-line/) | line | `.adb` `.ads` `.vhd` `.vhdl` |
-| [ml/](ml/) | nesting block only | `.ml` `.mli` |
-| [fsharp/](fsharp/) | line, nesting block | `.fs` `.fsi` `.fsx` |
-| [pascal/](pascal/) | line, two non-nesting blocks | `.dpr` `.pas` |
-| [sql/](sql/) | line, block | `.sql` |
-| [lua/](lua/) | line, block sharing the line prefix | `.lua` |
-| [haskell/](haskell/) | line, nesting block | `.hs` |
-| [css/](css/) | block only | `.css` |
-| [xml/](xml/) | block only | `.svg` `.xml` |
-| [html/](html/) | markup, plus script and style regions | `.htm` `.html` `.svelte` `.vue` |
+Which extensions each folder holds is what the folder itself shows, so it is
+not repeated here - only what its grammar offers.
+
+| Folder | Comment forms |
+|---|---|
+| [c-like/](c-like/) | line, block |
+| [c-like-nested/](c-like-nested/) | line, block, nesting block |
+| [php/](php/) | two line markers, block |
+| [hash/](hash/) | line |
+| [julia/](julia/) | line, block, nesting block |
+| [nim/](nim/) | line, block and doc block, both nesting |
+| [coffee/](coffee/) | line, block with identical open and close |
+| [powershell/](powershell/) | line, block |
+| [hcl/](hcl/) | two line markers, block |
+| [semicolon/](semicolon/) | line |
+| [scheme/](scheme/) | line, nesting block |
+| [percent/](percent/) | line |
+| [dash-line/](dash-line/) | line |
+| [ml/](ml/) | nesting block only |
+| [fsharp/](fsharp/) | line, nesting block |
+| [pascal/](pascal/) | line, two non-nesting blocks |
+| [sql/](sql/) | line, block |
+| [lua/](lua/) | line, block sharing the line prefix |
+| [haskell/](haskell/) | line, nesting block |
+| [css/](css/) | block only |
+| [xml/](xml/) | block only |
+| [html/](html/) | markup, plus script and style regions |
 
 ## What each fixture asserts
 

@@ -9,7 +9,7 @@ one tag per comment form the grammar offers.
 
 `feat:support-grammar/c-like#1`
 
-Line comments and block comments that do not nest. 20 extensions resolve to this grammar.
+Line comments and block comments that do not nest.
 
 Needs: req:c-like/grammar#1
 
@@ -17,7 +17,7 @@ Needs: req:c-like/grammar#1
 
 `feat:support-grammar/c-like-nested#1`
 
-Line comments plus block comments that nest. 5 extensions resolve to this grammar.
+Line comments plus block comments that nest.
 
 Needs: req:c-like-nested/grammar#1
 
@@ -25,7 +25,7 @@ Needs: req:c-like-nested/grammar#1
 
 `feat:support-grammar/coffee#1`
 
-Hash line comments plus a block pair whose opener and closer are identical. 1 extension resolves to this grammar.
+Hash line comments plus a block pair whose opener and closer are identical.
 
 Needs: req:coffee/grammar#1
 
@@ -33,7 +33,7 @@ Needs: req:coffee/grammar#1
 
 `feat:support-grammar/css#1`
 
-One block pair and no line comments at all. 1 extension resolves to this grammar.
+One block pair and no line comments at all.
 
 Needs: req:css/grammar#1
 
@@ -41,7 +41,7 @@ Needs: req:css/grammar#1
 
 `feat:support-grammar/dash-line#1`
 
-A single line-comment marker and no block comments. 4 extensions resolve to this grammar.
+A single line-comment marker and no block comments.
 
 Needs: req:dash-line/grammar#1
 
@@ -49,7 +49,7 @@ Needs: req:dash-line/grammar#1
 
 `feat:support-grammar/fsharp#1`
 
-Line comments plus block comments that nest. 3 extensions resolve to this grammar.
+Line comments plus block comments that nest.
 
 Needs: req:fsharp/grammar#1
 
@@ -57,7 +57,7 @@ Needs: req:fsharp/grammar#1
 
 `feat:support-grammar/hash#1`
 
-A single line-comment marker and no block comments. 15 extensions resolve to this grammar.
+A single line-comment marker and no block comments.
 
 Needs: req:hash/grammar#1
 
@@ -65,7 +65,7 @@ Needs: req:hash/grammar#1
 
 `feat:support-grammar/haskell#1`
 
-Dash line comments plus block comments that nest. 1 extension resolves to this grammar.
+Dash line comments plus block comments that nest.
 
 Needs: req:haskell/grammar#1
 
@@ -73,7 +73,7 @@ Needs: req:haskell/grammar#1
 
 `feat:support-grammar/hcl#1`
 
-Two line-comment markers plus one block pair. 3 extensions resolve to this grammar.
+Two line-comment markers plus one block pair.
 
 Needs: req:hcl/grammar#1
 
@@ -81,7 +81,7 @@ Needs: req:hcl/grammar#1
 
 `feat:support-grammar/html#1`
 
-Markup comments by default, with script and style regions that switch grammar. 4 extensions resolve to this grammar.
+Markup comments by default, with script and style regions that switch grammar.
 
 Needs: req:html/grammar#1
 
@@ -89,7 +89,7 @@ Needs: req:html/grammar#1
 
 `feat:support-grammar/julia#1`
 
-Hash line comments plus block comments that nest. 1 extension resolves to this grammar.
+Hash line comments plus block comments that nest.
 
 Needs: req:julia/grammar#1
 
@@ -97,7 +97,7 @@ Needs: req:julia/grammar#1
 
 `feat:support-grammar/lua#1`
 
-Dash line comments plus a long-bracket block pair sharing their prefix. 1 extension resolves to this grammar.
+Dash line comments plus a long-bracket block pair sharing their prefix.
 
 Needs: req:lua/grammar#1
 
@@ -105,7 +105,7 @@ Needs: req:lua/grammar#1
 
 `feat:support-grammar/ml#1`
 
-Block comments that nest, and no line comments at all. 2 extensions resolve to this grammar.
+Block comments that nest, and no line comments at all.
 
 Needs: req:ml/grammar#1
 
@@ -113,7 +113,7 @@ Needs: req:ml/grammar#1
 
 `feat:support-grammar/nim#1`
 
-Hash line comments plus two nesting block pairs, one of them a doc block. 1 extension resolves to this grammar.
+Hash line comments plus two nesting block pairs, one of them a doc block.
 
 Needs: req:nim/grammar#1
 
@@ -121,7 +121,7 @@ Needs: req:nim/grammar#1
 
 `feat:support-grammar/pascal#1`
 
-Line comments plus two block pairs, neither of which nests. 2 extensions resolve to this grammar.
+Line comments plus two block pairs, neither of which nests.
 
 Needs: req:pascal/grammar#1
 
@@ -129,7 +129,7 @@ Needs: req:pascal/grammar#1
 
 `feat:support-grammar/percent#1`
 
-A single line-comment marker and no block comments. 4 extensions resolve to this grammar.
+A single line-comment marker and no block comments.
 
 Needs: req:percent/grammar#1
 
@@ -137,7 +137,7 @@ Needs: req:percent/grammar#1
 
 `feat:support-grammar/php#1`
 
-Two line-comment markers plus one block pair. 1 extension resolves to this grammar.
+Two line-comment markers plus one block pair.
 
 Needs: req:php/grammar#1
 
@@ -145,7 +145,7 @@ Needs: req:php/grammar#1
 
 `feat:support-grammar/powershell#1`
 
-Hash line comments plus a block pair that does not nest. 2 extensions resolve to this grammar.
+Hash line comments plus a block pair that does not nest.
 
 Needs: req:powershell/grammar#1
 
@@ -153,7 +153,7 @@ Needs: req:powershell/grammar#1
 
 `feat:support-grammar/scheme#1`
 
-Semicolon line comments plus block comments that nest. 3 extensions resolve to this grammar.
+Semicolon line comments plus block comments that nest.
 
 Needs: req:scheme/grammar#1
 
@@ -161,7 +161,7 @@ Needs: req:scheme/grammar#1
 
 `feat:support-grammar/semicolon#1`
 
-A single line-comment marker and no block comments. 6 extensions resolve to this grammar.
+A single line-comment marker and no block comments.
 
 Needs: req:semicolon/grammar#1
 
@@ -169,7 +169,7 @@ Needs: req:semicolon/grammar#1
 
 `feat:support-grammar/sql#1`
 
-Dash line comments plus a block pair that does not nest. 1 extension resolves to this grammar.
+Dash line comments plus a block pair that does not nest.
 
 Needs: req:sql/grammar#1
 
@@ -177,6 +177,6 @@ Needs: req:sql/grammar#1
 
 `feat:support-grammar/xml#1`
 
-One block pair and no line comments at all. 2 extensions resolve to this grammar.
+One block pair and no line comments at all.
 
 Needs: req:xml/grammar#1
