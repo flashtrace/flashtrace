@@ -14,7 +14,7 @@
 import path from 'node:path';
 
 import { buildResolver, isClean, summarize } from './analyze.mjs';
-import { compareRev, idMatches, revOf } from './ids.mjs';
+import { compareRev, revOf } from './ids.mjs';
 
 // 0 marks the format unstable; it becomes 1 with flashtrace 1.0.0
 const SCHEMA_VERSION = 0;
@@ -25,14 +25,16 @@ function statusOf(item) {
   return item.deepCovered ? 'deep-covered' : 'shallow-covered';
 }
 
-// a covers relation classified per the coverage rules: valid when the target
-// exists and needs this item, orphaned when it does not exist, unwanted otherwise
-function coverStatus(item, coverId, byId) {
-  const targets = byId.get(coverId);
-  if (!targets) return 'orphaned';
-  return targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))
-    ? 'valid'
-    : 'unwanted';
+// covers ref -> its status, read off the defects analyze raised rather than
+// re-deciding the coverage rules here: it emits orphaned-cover / unwanted-cover
+// for exactly the refs that are not valid, so anything unmentioned is valid.
+function coverStatusOf(item) {
+  const status = new Map();
+  for (const defect of item.defects) {
+    if (defect.kind === 'orphaned-cover') status.set(defect.ref, 'orphaned');
+    else if (defect.kind === 'unwanted-cover') status.set(defect.ref, 'unwanted');
+  }
+  return (ref) => status.get(ref) ?? 'valid';
 }
 
 // defect record in documented key order: existingRevisions, when present, sits
@@ -54,7 +56,7 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     return a.character - b.character;
   };
 
-  const { byId, matchesOf, wantedBy } = buildResolver(items);
+  const { matchesOf, wantedBy } = buildResolver(items);
 
   // a need's resolution: the defined IDs matching it, ascending by revision
   const resolvedTo = (ref) =>
@@ -67,19 +69,22 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
       .map((wanter) => ({ id: wanter.id, ...location(wanter) }))
       .sort(byLocation);
 
-  const itemDocument = (item) => ({
-    id: item.id,
-    title: item.title,
-    origin: item.origin,
-    tags: item.tags,
-    ...location(item),
-    status: statusOf(item),
-    needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
-    covers: item.covers.map((ref) => ({ ref, status: coverStatus(item, ref, byId) })),
-    forwardsTo: item.forwardsTo,
-    defects: item.defects.map(defectDocument),
-    wantedBy: wantedByDocument(item),
-  });
+  const itemDocument = (item) => {
+    const coverStatus = coverStatusOf(item);
+    return {
+      id: item.id,
+      title: item.title,
+      origin: item.origin,
+      tags: item.tags,
+      ...location(item),
+      status: statusOf(item),
+      needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
+      covers: item.covers.map((ref) => ({ ref, status: coverStatus(ref) })),
+      forwardsTo: item.forwardsTo,
+      defects: item.defects.map(defectDocument),
+      wantedBy: wantedByDocument(item),
+    };
+  };
 
   const forwardDocument = (forward) => {
     const document = { from: forward.from, to: forward.to, ...location(forward), effective: forward.effective };

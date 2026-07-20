@@ -1145,10 +1145,13 @@ function statusOf2(item) {
   if (item.defects.length > 0) return "defective";
   return item.deepCovered ? "deep-covered" : "shallow-covered";
 }
-function coverStatus(item, coverId, byId) {
-  const targets = byId.get(coverId);
-  if (!targets) return "orphaned";
-  return targets.some((target) => target.needs.some((need) => idMatches(need, item.id))) ? "valid" : "unwanted";
+function coverStatusOf(item) {
+  const status = /* @__PURE__ */ new Map();
+  for (const defect of item.defects) {
+    if (defect.kind === "orphaned-cover") status.set(defect.ref, "orphaned");
+    else if (defect.kind === "unwanted-cover") status.set(defect.ref, "unwanted");
+  }
+  return (ref) => status.get(ref) ?? "valid";
 }
 function defectDocument(defect) {
   const out = { kind: defect.kind, ref: defect.ref };
@@ -1165,22 +1168,25 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     if (a.line !== b.line) return a.line - b.line;
     return a.character - b.character;
   };
-  const { byId, matchesOf, wantedBy } = buildResolver(items);
+  const { matchesOf, wantedBy } = buildResolver(items);
   const resolvedTo = (ref) => matchesOf(ref).slice().sort((a, b) => compareRev(revOf(a), revOf(b)));
   const wantedByDocument = (item) => [...wantedBy.get(item) ?? []].map((wanter) => ({ id: wanter.id, ...location(wanter) })).sort(byLocation);
-  const itemDocument = (item) => ({
-    id: item.id,
-    title: item.title,
-    origin: item.origin,
-    tags: item.tags,
-    ...location(item),
-    status: statusOf2(item),
-    needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
-    covers: item.covers.map((ref) => ({ ref, status: coverStatus(item, ref, byId) })),
-    forwardsTo: item.forwardsTo,
-    defects: item.defects.map(defectDocument),
-    wantedBy: wantedByDocument(item)
-  });
+  const itemDocument = (item) => {
+    const coverStatus = coverStatusOf(item);
+    return {
+      id: item.id,
+      title: item.title,
+      origin: item.origin,
+      tags: item.tags,
+      ...location(item),
+      status: statusOf2(item),
+      needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
+      covers: item.covers.map((ref) => ({ ref, status: coverStatus(ref) })),
+      forwardsTo: item.forwardsTo,
+      defects: item.defects.map(defectDocument),
+      wantedBy: wantedByDocument(item)
+    };
+  };
   const forwardDocument = (forward) => {
     const document = { from: forward.from, to: forward.to, ...location(forward), effective: forward.effective };
     if (!forward.effective) document.voidedBy = forward.voidedBy;

@@ -117,6 +117,53 @@ test('covers entries are classified valid, unwanted or orphaned', () => {
   );
 });
 
+test('a valid cover stays valid on an item that is defective for another reason', () => {
+  // cover status is read off the defects, so an unrelated defect on the same
+  // item must not colour it
+  const doc = build({
+    md: [
+      '`req:wants#1`',
+      '',
+      'Needs: req:a#1',
+      '',
+      '`req:a#1`',
+      '',
+      'Covers: req:wants#1, req:gone#1',
+      '',
+      'Needs: impl:missing#1',
+    ],
+  });
+  const item = itemOf(doc, 'req:a#1');
+  assert.deepEqual(item.covers, [
+    { ref: 'req:wants#1', status: 'valid' },
+    { ref: 'req:gone#1', status: 'orphaned' },
+  ]);
+  assert.deepEqual(item.defects.map((defect) => defect.kind).sort(), [
+    'orphaned-cover',
+    'uncovered-need',
+  ]);
+});
+
+test('a forwarding source still has its covers classified', () => {
+  // forwarding excuses the source's needs but not its covers
+  const doc = build({
+    md: [
+      '`req:legacy#1`',
+      '',
+      'Covers: req:nowant#1',
+      '',
+      '`req:nowant#1`',
+      '',
+      '`dsn:b#1`',
+      '',
+      '`[req:legacy#1 --> dsn:b#1]`',
+    ],
+  });
+  assert.deepEqual(itemOf(doc, 'req:legacy#1').covers, [
+    { ref: 'req:nowant#1', status: 'unwanted' },
+  ]);
+});
+
 test('status distinguishes deep-covered, shallow-covered and defective', () => {
   const doc = build({
     md: [
