@@ -12,7 +12,7 @@ long form would hurt readability. Use them consistently - and use no others.
 | `rev` | revision | Part of the item-ID grammar (`<name>#<revision>`, see [docs/revisions.md](docs/revisions.md)); used in names like `revOf`, `compareRev`, `revMatches`, `isWildcardRev`. |
 | `id` | identifier | An item ID such as `req:auth/login#1`. |
 | `ext` | file extension | Always lowercased, with the leading dot (`.mjs`). |
-| `md` | Markdown | E.g. `MD_EXT`. |
+| `md` | Markdown | The `.md` file extension; used in names like the `md` fixture parameter carrying Markdown input in `test/analyze.test.mjs`. |
 | `url` | Uniform Resource Locator | URL-shaped text (`scheme://…`), exempt from comment detection (see [docs/code-tags.md](docs/code-tags.md)); used in `URL_RE`, `urlSpans`. |
 
 ## Regex conventions (src/ids.mjs and the parsers)
