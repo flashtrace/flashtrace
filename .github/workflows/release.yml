@@ -85,7 +85,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build
         run: pnpm build
@@ -221,8 +221,11 @@ jobs:
             -f "client_payload[tag]=$TAG"
 
       - name: Update npm for trusted publishing
-        # OIDC trusted publishing requires npm >= 11.5.1; Node 22 ships an older npm.
-        run: npm install -g npm@latest
+        # OIDC trusted publishing requires npm >= 11.5.1; Node 22 ships an older
+        # npm. The version is pinned rather than "latest" so a release installs
+        # the npm this repository was tested against, and --ignore-scripts keeps
+        # this credential-bearing job from executing install hooks.
+        run: npm install -g --ignore-scripts npm@11.18.0
 
       - name: Publish to npmjs
         run: npm publish --ignore-scripts
