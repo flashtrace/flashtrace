@@ -5,4 +5,7 @@
  * [impl:c-like-nested/scala-block#1]
  */
 
-/* outer /* inner */ [impl:c-like-nested/scala-nested#1] still inside the outer block */
+/* outer
+  /* [impl:c-like-nested/scala-nested/deep#1] inner */
+  [impl:c-like-nested/scala-nested/after-close#1] still inside the outer block
+*/

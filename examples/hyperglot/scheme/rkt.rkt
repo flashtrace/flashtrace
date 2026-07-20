@@ -5,4 +5,7 @@
   [impl:scheme/rkt-block#1]
 |#
 
-#| outer #| inner |# [impl:scheme/rkt-nested#1] still inside the outer block |#
+#| outer
+  #| [impl:scheme/rkt-nested/deep#1] inner |#
+  [impl:scheme/rkt-nested/after-close#1] still inside the outer block
+|#

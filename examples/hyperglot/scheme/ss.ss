@@ -5,4 +5,7 @@
   [impl:scheme/ss-block#1]
 |#
 
-#| outer #| inner |# [impl:scheme/ss-nested#1] still inside the outer block |#
+#| outer
+  #| [impl:scheme/ss-nested/deep#1] inner |#
+  [impl:scheme/ss-nested/after-close#1] still inside the outer block
+|#

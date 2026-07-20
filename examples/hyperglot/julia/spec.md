@@ -15,4 +15,8 @@ Tags: grammar, hash
 
 `req:julia/jl#1`
 
-Needs: impl:julia/jl-line#1, impl:julia/jl-block#1, impl:julia/jl-nested#1
+Needs:
+- impl:julia/jl-line#1
+- impl:julia/jl-block#1
+- impl:julia/jl-nested/deep#1
+- impl:julia/jl-nested/after-close#1

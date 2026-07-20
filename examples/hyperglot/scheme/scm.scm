@@ -5,4 +5,7 @@
   [impl:scheme/scm-block#1]
 |#
 
-#| outer #| inner |# [impl:scheme/scm-nested#1] still inside the outer block |#
+#| outer
+  #| [impl:scheme/scm-nested/deep#1] inner |#
+  [impl:scheme/scm-nested/after-close#1] still inside the outer block
+|#

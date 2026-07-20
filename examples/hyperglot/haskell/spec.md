@@ -14,4 +14,8 @@ Tags: grammar, dash
 
 `req:haskell/hs#1`
 
-Needs: impl:haskell/hs-line#1, impl:haskell/hs-block#1, impl:haskell/hs-nested#1
+Needs:
+- impl:haskell/hs-line#1
+- impl:haskell/hs-block#1
+- impl:haskell/hs-nested/deep#1
+- impl:haskell/hs-nested/after-close#1

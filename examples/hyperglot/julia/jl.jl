@@ -5,4 +5,7 @@
   [impl:julia/jl-block#1]
 =#
 
-#= outer #= inner =# [impl:julia/jl-nested#1] still inside the outer block =#
+#= outer
+  #= [impl:julia/jl-nested/deep#1] inner =#
+  [impl:julia/jl-nested/after-close#1] still inside the outer block
+=#

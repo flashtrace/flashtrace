@@ -49,12 +49,25 @@ const tag = (id) => `[${id}]`;
 const blockLines = (open, close, id, indent = '  ', header = null) =>
   [open, ...(header ? [`${indent}${header}`] : []), `${indent}${tag(id)}`, close].join('\n');
 
-// A nesting block whose tag sits *after* the inner closer: only a scanner that
-// counts depth is still inside the comment there. A non-nesting one ends the
-// comment at that closer and reads the tag as code, defining no item - which is
-// what makes these tags a real assertion rather than decoration.
-const nestedLine = (open, close, id) =>
-  `${open} outer ${open} inner ${close} ${tag(id)} still inside the outer block ${close}`;
+// A nesting block carrying one tag at each depth the nesting creates:
+//   deep         sits inside the inner block, which is comment text under any
+//                grammar. It asserts the inner region is scanned exactly once:
+//                a scanner that read it again as part of the outer block would
+//                define the ID twice, which is a duplicate defect.
+//   after-close  sits after the inner closer, where only a scanner that counts
+//                depth is still inside the comment. A non-nesting grammar ends
+//                the comment at that closer and reads the tag as code, defining
+//                no item - which is what makes nesting a real assertion here
+//                rather than decoration.
+const nestedBlock = (open, close, id, form) => [
+  `${open} outer`,
+  `  ${open} ${tag(id(`${form}/deep`))} inner ${close}`,
+  `  ${tag(id(`${form}/after-close`))} still inside the outer block`,
+  close,
+].join('\n');
+
+// the two forms nestedBlock tags, spliced into a grammar's form list
+const nestedForms = (form) => [`${form}/deep`, `${form}/after-close`];
 
 // ---------------------------------------------------------------- grammars ---
 // Keyed by a signature of the grammar's comment vocabulary. The signature only
@@ -76,14 +89,14 @@ const CONFIG = {
   [JSON.stringify({ line: ['//'], block: [['/*', '*/', true]] })]: {
     dir: 'c-like-nested', title: 'Nesting C-like', family: 'c-like',
     blurb: 'Line comments plus block comments that nest.',
-    forms: ['line', 'block', 'nested'],
+    forms: ['line', 'block', ...nestedForms('nested')],
     render: (ext, id) => [
       `// hyperglot fixture: .${ext} nests its block comments.`,
       `// ${tag(id('line'))}`,
       '',
       blockLines('/*', ' */', id('block'), ' * '),
       '',
-      nestedLine('/*', '*/', id('nested')),
+      nestedBlock('/*', '*/', id, 'nested'),
       '',
     ].join('\n'),
   },
@@ -114,33 +127,33 @@ const CONFIG = {
   [JSON.stringify({ line: ['#'], block: [['#=', '=#', true]] })]: {
     dir: 'julia', title: 'Julia', family: 'hash',
     blurb: 'Hash line comments plus block comments that nest.',
-    forms: ['line', 'block', 'nested'],
+    forms: ['line', 'block', ...nestedForms('nested')],
     render: (ext, id) => [
       `# hyperglot fixture: .${ext} nests its block comments.`,
       `# ${tag(id('line'))}`,
       '',
       blockLines('#=', '=#', id('block')),
       '',
-      nestedLine('#=', '=#', id('nested')),
+      nestedBlock('#=', '=#', id, 'nested'),
       '',
     ].join('\n'),
   },
   [JSON.stringify({ line: ['#'], block: [['#[', ']#', true], ['##[', ']##', true]] })]: {
     dir: 'nim', title: 'Nim', family: 'hash',
     blurb: 'Hash line comments plus two nesting block pairs, one of them a doc block.',
-    forms: ['line', 'block', 'nested', 'doc-block', 'doc-nested'],
+    forms: ['line', 'block', ...nestedForms('nested'), 'doc-block', ...nestedForms('doc-nested')],
     render: (ext, id) => [
       `# hyperglot fixture: .${ext} has a plain and a doc block pair, both nesting.`,
       `# ${tag(id('line'))}`,
       '',
       blockLines('#[', ']#', id('block')),
       '',
-      nestedLine('#[', ']#', id('nested')),
+      nestedBlock('#[', ']#', id, 'nested'),
       '',
       '# the longer doc opener wins the tie against both shorter openers',
       blockLines('##[', ']##', id('doc-block')),
       '',
-      nestedLine('##[', ']##', id('doc-nested')),
+      nestedBlock('##[', ']##', id, 'doc-nested'),
       '',
     ].join('\n'),
   },
@@ -194,14 +207,14 @@ const CONFIG = {
   [JSON.stringify({ line: [';'], block: [['#|', '|#', true]] })]: {
     dir: 'scheme', title: 'Scheme', family: 'lisp',
     blurb: 'Semicolon line comments plus block comments that nest.',
-    forms: ['line', 'block', 'nested'],
+    forms: ['line', 'block', ...nestedForms('nested')],
     render: (ext, id) => [
       `; hyperglot fixture: .${ext} nests its block comments.`,
       `; ${tag(id('line'))}`,
       '',
       blockLines('#|', '|#', id('block')),
       '',
-      nestedLine('#|', '|#', id('nested')),
+      nestedBlock('#|', '|#', id, 'nested'),
       '',
     ].join('\n'),
   },
@@ -228,25 +241,25 @@ const CONFIG = {
   [JSON.stringify({ line: [], block: [['(*', '*)', true]] })]: {
     dir: 'ml', title: 'ML', family: 'ml',
     blurb: 'Block comments that nest, and no line comments at all.',
-    forms: ['block', 'nested'],
+    forms: ['block', ...nestedForms('nested')],
     render: (ext, id) => [
       blockLines('(*', ' *)', id('block'), ' * ', `hyperglot fixture: .${ext} nests blocks and has no line comments.`),
       '',
-      nestedLine('(*', '*)', id('nested')),
+      nestedBlock('(*', '*)', id, 'nested'),
       '',
     ].join('\n'),
   },
   [JSON.stringify({ line: ['//'], block: [['(*', '*)', true]] })]: {
     dir: 'fsharp', title: 'F#', family: 'ml',
     blurb: 'Line comments plus block comments that nest.',
-    forms: ['line', 'block', 'nested'],
+    forms: ['line', 'block', ...nestedForms('nested')],
     render: (ext, id) => [
       `// hyperglot fixture: .${ext} nests its block comments.`,
       `// ${tag(id('line'))}`,
       '',
       blockLines('(*', ' *)', id('block'), ' * '),
       '',
-      nestedLine('(*', '*)', id('nested')),
+      nestedBlock('(*', '*)', id, 'nested'),
       '',
     ].join('\n'),
   },
@@ -291,14 +304,14 @@ const CONFIG = {
   [JSON.stringify({ line: ['--'], block: [['{-', '-}', true]] })]: {
     dir: 'haskell', title: 'Haskell', family: 'dash',
     blurb: 'Dash line comments plus block comments that nest.',
-    forms: ['line', 'block', 'nested'],
+    forms: ['line', 'block', ...nestedForms('nested')],
     render: (ext, id) => [
       `-- hyperglot fixture: .${ext} nests its block comments.`,
       `-- ${tag(id('line'))}`,
       '',
       blockLines('{-', '-}', id('block')),
       '',
-      nestedLine('{-', '-}', id('nested')),
+      nestedBlock('{-', '-}', id, 'nested'),
       '',
     ].join('\n'),
   },

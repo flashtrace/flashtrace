@@ -14,16 +14,28 @@ Tags: grammar, lisp
 
 `req:scheme/rkt#1`
 
-Needs: impl:scheme/rkt-line#1, impl:scheme/rkt-block#1, impl:scheme/rkt-nested#1
+Needs:
+- impl:scheme/rkt-line#1
+- impl:scheme/rkt-block#1
+- impl:scheme/rkt-nested/deep#1
+- impl:scheme/rkt-nested/after-close#1
 
 ## .scm
 
 `req:scheme/scm#1`
 
-Needs: impl:scheme/scm-line#1, impl:scheme/scm-block#1, impl:scheme/scm-nested#1
+Needs:
+- impl:scheme/scm-line#1
+- impl:scheme/scm-block#1
+- impl:scheme/scm-nested/deep#1
+- impl:scheme/scm-nested/after-close#1
 
 ## .ss
 
 `req:scheme/ss#1`
 
-Needs: impl:scheme/ss-line#1, impl:scheme/ss-block#1, impl:scheme/ss-nested#1
+Needs:
+- impl:scheme/ss-line#1
+- impl:scheme/ss-block#1
+- impl:scheme/ss-nested/deep#1
+- impl:scheme/ss-nested/after-close#1

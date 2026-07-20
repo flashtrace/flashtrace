@@ -5,4 +5,7 @@
  * [impl:c-like-nested/kt-block#1]
  */
 
-/* outer /* inner */ [impl:c-like-nested/kt-nested#1] still inside the outer block */
+/* outer
+  /* [impl:c-like-nested/kt-nested/deep#1] inner */
+  [impl:c-like-nested/kt-nested/after-close#1] still inside the outer block
+*/

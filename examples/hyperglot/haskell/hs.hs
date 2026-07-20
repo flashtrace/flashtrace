@@ -5,4 +5,7 @@
   [impl:haskell/hs-block#1]
 -}
 
-{- outer {- inner -} [impl:haskell/hs-nested#1] still inside the outer block -}
+{- outer
+  {- [impl:haskell/hs-nested/deep#1] inner -}
+  [impl:haskell/hs-nested/after-close#1] still inside the outer block
+-}

@@ -5,4 +5,7 @@
  * [impl:fsharp/fs-block#1]
  *)
 
-(* outer (* inner *) [impl:fsharp/fs-nested#1] still inside the outer block *)
+(* outer
+  (* [impl:fsharp/fs-nested/deep#1] inner *)
+  [impl:fsharp/fs-nested/after-close#1] still inside the outer block
+*)

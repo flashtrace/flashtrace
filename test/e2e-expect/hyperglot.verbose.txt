@@ -2,70 +2,85 @@
     wanted by req:c-like-nested/kt#1  c-like-nested/spec.md:19
 ✔ impl:c-like-nested/kt-block#1  c-like-nested/kt.kt:5  [deep-covered]
     wanted by req:c-like-nested/kt#1  c-like-nested/spec.md:19
-✔ impl:c-like-nested/kt-nested#1  c-like-nested/kt.kt:8  [deep-covered]
+✔ impl:c-like-nested/kt-nested/deep#1  c-like-nested/kt.kt:9  [deep-covered]
+    wanted by req:c-like-nested/kt#1  c-like-nested/spec.md:19
+✔ impl:c-like-nested/kt-nested/after-close#1  c-like-nested/kt.kt:10  [deep-covered]
     wanted by req:c-like-nested/kt#1  c-like-nested/spec.md:19
 
 ✔ impl:c-like-nested/kts-line#1  c-like-nested/kts.kts:2  [deep-covered]
-    wanted by req:c-like-nested/kts#1  c-like-nested/spec.md:25
+    wanted by req:c-like-nested/kts#1  c-like-nested/spec.md:29
 ✔ impl:c-like-nested/kts-block#1  c-like-nested/kts.kts:5  [deep-covered]
-    wanted by req:c-like-nested/kts#1  c-like-nested/spec.md:25
-✔ impl:c-like-nested/kts-nested#1  c-like-nested/kts.kts:8  [deep-covered]
-    wanted by req:c-like-nested/kts#1  c-like-nested/spec.md:25
+    wanted by req:c-like-nested/kts#1  c-like-nested/spec.md:29
+✔ impl:c-like-nested/kts-nested/deep#1  c-like-nested/kts.kts:9  [deep-covered]
+    wanted by req:c-like-nested/kts#1  c-like-nested/spec.md:29
+✔ impl:c-like-nested/kts-nested/after-close#1  c-like-nested/kts.kts:10  [deep-covered]
+    wanted by req:c-like-nested/kts#1  c-like-nested/spec.md:29
 
 ✔ impl:c-like-nested/rs-line#1  c-like-nested/rs.rs:2  [deep-covered]
-    wanted by req:c-like-nested/rs#1  c-like-nested/spec.md:31
+    wanted by req:c-like-nested/rs#1  c-like-nested/spec.md:39
 ✔ impl:c-like-nested/rs-block#1  c-like-nested/rs.rs:5  [deep-covered]
-    wanted by req:c-like-nested/rs#1  c-like-nested/spec.md:31
-✔ impl:c-like-nested/rs-nested#1  c-like-nested/rs.rs:8  [deep-covered]
-    wanted by req:c-like-nested/rs#1  c-like-nested/spec.md:31
+    wanted by req:c-like-nested/rs#1  c-like-nested/spec.md:39
+✔ impl:c-like-nested/rs-nested/deep#1  c-like-nested/rs.rs:9  [deep-covered]
+    wanted by req:c-like-nested/rs#1  c-like-nested/spec.md:39
+✔ impl:c-like-nested/rs-nested/after-close#1  c-like-nested/rs.rs:10  [deep-covered]
+    wanted by req:c-like-nested/rs#1  c-like-nested/spec.md:39
 
 ✔ impl:c-like-nested/scala-line#1  c-like-nested/scala.scala:2  [deep-covered]
-    wanted by req:c-like-nested/scala#1  c-like-nested/spec.md:37
+    wanted by req:c-like-nested/scala#1  c-like-nested/spec.md:49
 ✔ impl:c-like-nested/scala-block#1  c-like-nested/scala.scala:5  [deep-covered]
-    wanted by req:c-like-nested/scala#1  c-like-nested/spec.md:37
-✔ impl:c-like-nested/scala-nested#1  c-like-nested/scala.scala:8  [deep-covered]
-    wanted by req:c-like-nested/scala#1  c-like-nested/spec.md:37
+    wanted by req:c-like-nested/scala#1  c-like-nested/spec.md:49
+✔ impl:c-like-nested/scala-nested/deep#1  c-like-nested/scala.scala:9  [deep-covered]
+    wanted by req:c-like-nested/scala#1  c-like-nested/spec.md:49
+✔ impl:c-like-nested/scala-nested/after-close#1  c-like-nested/scala.scala:10  [deep-covered]
+    wanted by req:c-like-nested/scala#1  c-like-nested/spec.md:49
 
 ✔ req:c-like-nested/grammar#1 "Nesting C-like comment grammar"  c-like-nested/spec.md:3  [deep-covered]
     needs req:c-like-nested/kt#1  ✔ c-like-nested/spec.md:19
-    needs req:c-like-nested/kts#1  ✔ c-like-nested/spec.md:25
-    needs req:c-like-nested/rs#1  ✔ c-like-nested/spec.md:31
-    needs req:c-like-nested/scala#1  ✔ c-like-nested/spec.md:37
-    needs req:c-like-nested/swift#1  ✔ c-like-nested/spec.md:43
+    needs req:c-like-nested/kts#1  ✔ c-like-nested/spec.md:29
+    needs req:c-like-nested/rs#1  ✔ c-like-nested/spec.md:39
+    needs req:c-like-nested/scala#1  ✔ c-like-nested/spec.md:49
+    needs req:c-like-nested/swift#1  ✔ c-like-nested/spec.md:59
     covers feat:support-grammar/c-like-nested#1  ✔ spec.md:18
     wanted by feat:support-grammar/c-like-nested#1  spec.md:18
 ✔ req:c-like-nested/kt#1 ".kt"  c-like-nested/spec.md:19  [deep-covered]
     needs impl:c-like-nested/kt-line#1  ✔ c-like-nested/kt.kt:2
     needs impl:c-like-nested/kt-block#1  ✔ c-like-nested/kt.kt:5
-    needs impl:c-like-nested/kt-nested#1  ✔ c-like-nested/kt.kt:8
+    needs impl:c-like-nested/kt-nested/deep#1  ✔ c-like-nested/kt.kt:9
+    needs impl:c-like-nested/kt-nested/after-close#1  ✔ c-like-nested/kt.kt:10
     wanted by req:c-like-nested/grammar#1  c-like-nested/spec.md:3
-✔ req:c-like-nested/kts#1 ".kts"  c-like-nested/spec.md:25  [deep-covered]
+✔ req:c-like-nested/kts#1 ".kts"  c-like-nested/spec.md:29  [deep-covered]
     needs impl:c-like-nested/kts-line#1  ✔ c-like-nested/kts.kts:2
     needs impl:c-like-nested/kts-block#1  ✔ c-like-nested/kts.kts:5
-    needs impl:c-like-nested/kts-nested#1  ✔ c-like-nested/kts.kts:8
+    needs impl:c-like-nested/kts-nested/deep#1  ✔ c-like-nested/kts.kts:9
+    needs impl:c-like-nested/kts-nested/after-close#1  ✔ c-like-nested/kts.kts:10
     wanted by req:c-like-nested/grammar#1  c-like-nested/spec.md:3
-✔ req:c-like-nested/rs#1 ".rs"  c-like-nested/spec.md:31  [deep-covered]
+✔ req:c-like-nested/rs#1 ".rs"  c-like-nested/spec.md:39  [deep-covered]
     needs impl:c-like-nested/rs-line#1  ✔ c-like-nested/rs.rs:2
     needs impl:c-like-nested/rs-block#1  ✔ c-like-nested/rs.rs:5
-    needs impl:c-like-nested/rs-nested#1  ✔ c-like-nested/rs.rs:8
+    needs impl:c-like-nested/rs-nested/deep#1  ✔ c-like-nested/rs.rs:9
+    needs impl:c-like-nested/rs-nested/after-close#1  ✔ c-like-nested/rs.rs:10
     wanted by req:c-like-nested/grammar#1  c-like-nested/spec.md:3
-✔ req:c-like-nested/scala#1 ".scala"  c-like-nested/spec.md:37  [deep-covered]
+✔ req:c-like-nested/scala#1 ".scala"  c-like-nested/spec.md:49  [deep-covered]
     needs impl:c-like-nested/scala-line#1  ✔ c-like-nested/scala.scala:2
     needs impl:c-like-nested/scala-block#1  ✔ c-like-nested/scala.scala:5
-    needs impl:c-like-nested/scala-nested#1  ✔ c-like-nested/scala.scala:8
+    needs impl:c-like-nested/scala-nested/deep#1  ✔ c-like-nested/scala.scala:9
+    needs impl:c-like-nested/scala-nested/after-close#1  ✔ c-like-nested/scala.scala:10
     wanted by req:c-like-nested/grammar#1  c-like-nested/spec.md:3
-✔ req:c-like-nested/swift#1 ".swift"  c-like-nested/spec.md:43  [deep-covered]
+✔ req:c-like-nested/swift#1 ".swift"  c-like-nested/spec.md:59  [deep-covered]
     needs impl:c-like-nested/swift-line#1  ✔ c-like-nested/swift.swift:2
     needs impl:c-like-nested/swift-block#1  ✔ c-like-nested/swift.swift:5
-    needs impl:c-like-nested/swift-nested#1  ✔ c-like-nested/swift.swift:8
+    needs impl:c-like-nested/swift-nested/deep#1  ✔ c-like-nested/swift.swift:9
+    needs impl:c-like-nested/swift-nested/after-close#1  ✔ c-like-nested/swift.swift:10
     wanted by req:c-like-nested/grammar#1  c-like-nested/spec.md:3
 
 ✔ impl:c-like-nested/swift-line#1  c-like-nested/swift.swift:2  [deep-covered]
-    wanted by req:c-like-nested/swift#1  c-like-nested/spec.md:43
+    wanted by req:c-like-nested/swift#1  c-like-nested/spec.md:59
 ✔ impl:c-like-nested/swift-block#1  c-like-nested/swift.swift:5  [deep-covered]
-    wanted by req:c-like-nested/swift#1  c-like-nested/spec.md:43
-✔ impl:c-like-nested/swift-nested#1  c-like-nested/swift.swift:8  [deep-covered]
-    wanted by req:c-like-nested/swift#1  c-like-nested/spec.md:43
+    wanted by req:c-like-nested/swift#1  c-like-nested/spec.md:59
+✔ impl:c-like-nested/swift-nested/deep#1  c-like-nested/swift.swift:9  [deep-covered]
+    wanted by req:c-like-nested/swift#1  c-like-nested/spec.md:59
+✔ impl:c-like-nested/swift-nested/after-close#1  c-like-nested/swift.swift:10  [deep-covered]
+    wanted by req:c-like-nested/swift#1  c-like-nested/spec.md:59
 
 ✔ impl:c-like/c-line#1  c-like/c.c:2  [deep-covered]
     wanted by req:c-like/c#1  c-like/spec.md:35
@@ -332,43 +347,52 @@
     wanted by req:fsharp/fs#1  fsharp/spec.md:18
 ✔ impl:fsharp/fs-block#1  fsharp/fs.fs:5  [deep-covered]
     wanted by req:fsharp/fs#1  fsharp/spec.md:18
-✔ impl:fsharp/fs-nested#1  fsharp/fs.fs:8  [deep-covered]
+✔ impl:fsharp/fs-nested/deep#1  fsharp/fs.fs:9  [deep-covered]
+    wanted by req:fsharp/fs#1  fsharp/spec.md:18
+✔ impl:fsharp/fs-nested/after-close#1  fsharp/fs.fs:10  [deep-covered]
     wanted by req:fsharp/fs#1  fsharp/spec.md:18
 
 ✔ impl:fsharp/fsi-line#1  fsharp/fsi.fsi:2  [deep-covered]
-    wanted by req:fsharp/fsi#1  fsharp/spec.md:24
+    wanted by req:fsharp/fsi#1  fsharp/spec.md:28
 ✔ impl:fsharp/fsi-block#1  fsharp/fsi.fsi:5  [deep-covered]
-    wanted by req:fsharp/fsi#1  fsharp/spec.md:24
-✔ impl:fsharp/fsi-nested#1  fsharp/fsi.fsi:8  [deep-covered]
-    wanted by req:fsharp/fsi#1  fsharp/spec.md:24
+    wanted by req:fsharp/fsi#1  fsharp/spec.md:28
+✔ impl:fsharp/fsi-nested/deep#1  fsharp/fsi.fsi:9  [deep-covered]
+    wanted by req:fsharp/fsi#1  fsharp/spec.md:28
+✔ impl:fsharp/fsi-nested/after-close#1  fsharp/fsi.fsi:10  [deep-covered]
+    wanted by req:fsharp/fsi#1  fsharp/spec.md:28
 
 ✔ impl:fsharp/fsx-line#1  fsharp/fsx.fsx:2  [deep-covered]
-    wanted by req:fsharp/fsx#1  fsharp/spec.md:30
+    wanted by req:fsharp/fsx#1  fsharp/spec.md:38
 ✔ impl:fsharp/fsx-block#1  fsharp/fsx.fsx:5  [deep-covered]
-    wanted by req:fsharp/fsx#1  fsharp/spec.md:30
-✔ impl:fsharp/fsx-nested#1  fsharp/fsx.fsx:8  [deep-covered]
-    wanted by req:fsharp/fsx#1  fsharp/spec.md:30
+    wanted by req:fsharp/fsx#1  fsharp/spec.md:38
+✔ impl:fsharp/fsx-nested/deep#1  fsharp/fsx.fsx:9  [deep-covered]
+    wanted by req:fsharp/fsx#1  fsharp/spec.md:38
+✔ impl:fsharp/fsx-nested/after-close#1  fsharp/fsx.fsx:10  [deep-covered]
+    wanted by req:fsharp/fsx#1  fsharp/spec.md:38
 
 ✔ req:fsharp/grammar#1 "F# comment grammar"  fsharp/spec.md:3  [deep-covered]
     needs req:fsharp/fs#1  ✔ fsharp/spec.md:18
-    needs req:fsharp/fsi#1  ✔ fsharp/spec.md:24
-    needs req:fsharp/fsx#1  ✔ fsharp/spec.md:30
+    needs req:fsharp/fsi#1  ✔ fsharp/spec.md:28
+    needs req:fsharp/fsx#1  ✔ fsharp/spec.md:38
     covers feat:support-grammar/fsharp#1  ✔ spec.md:50
     wanted by feat:support-grammar/fsharp#1  spec.md:50
 ✔ req:fsharp/fs#1 ".fs"  fsharp/spec.md:18  [deep-covered]
     needs impl:fsharp/fs-line#1  ✔ fsharp/fs.fs:2
     needs impl:fsharp/fs-block#1  ✔ fsharp/fs.fs:5
-    needs impl:fsharp/fs-nested#1  ✔ fsharp/fs.fs:8
+    needs impl:fsharp/fs-nested/deep#1  ✔ fsharp/fs.fs:9
+    needs impl:fsharp/fs-nested/after-close#1  ✔ fsharp/fs.fs:10
     wanted by req:fsharp/grammar#1  fsharp/spec.md:3
-✔ req:fsharp/fsi#1 ".fsi"  fsharp/spec.md:24  [deep-covered]
+✔ req:fsharp/fsi#1 ".fsi"  fsharp/spec.md:28  [deep-covered]
     needs impl:fsharp/fsi-line#1  ✔ fsharp/fsi.fsi:2
     needs impl:fsharp/fsi-block#1  ✔ fsharp/fsi.fsi:5
-    needs impl:fsharp/fsi-nested#1  ✔ fsharp/fsi.fsi:8
+    needs impl:fsharp/fsi-nested/deep#1  ✔ fsharp/fsi.fsi:9
+    needs impl:fsharp/fsi-nested/after-close#1  ✔ fsharp/fsi.fsi:10
     wanted by req:fsharp/grammar#1  fsharp/spec.md:3
-✔ req:fsharp/fsx#1 ".fsx"  fsharp/spec.md:30  [deep-covered]
+✔ req:fsharp/fsx#1 ".fsx"  fsharp/spec.md:38  [deep-covered]
     needs impl:fsharp/fsx-line#1  ✔ fsharp/fsx.fsx:2
     needs impl:fsharp/fsx-block#1  ✔ fsharp/fsx.fsx:5
-    needs impl:fsharp/fsx-nested#1  ✔ fsharp/fsx.fsx:8
+    needs impl:fsharp/fsx-nested/deep#1  ✔ fsharp/fsx.fsx:9
+    needs impl:fsharp/fsx-nested/after-close#1  ✔ fsharp/fsx.fsx:10
     wanted by req:fsharp/grammar#1  fsharp/spec.md:3
 
 ✔ impl:hash/bash#2.5  hash/bash.bash:2  [deep-covered]
@@ -484,7 +508,9 @@
     wanted by req:haskell/hs#1  haskell/spec.md:15
 ✔ impl:haskell/hs-block#1  haskell/hs.hs:5  [deep-covered]
     wanted by req:haskell/hs#1  haskell/spec.md:15
-✔ impl:haskell/hs-nested#1  haskell/hs.hs:8  [deep-covered]
+✔ impl:haskell/hs-nested/deep#1  haskell/hs.hs:9  [deep-covered]
+    wanted by req:haskell/hs#1  haskell/spec.md:15
+✔ impl:haskell/hs-nested/after-close#1  haskell/hs.hs:10  [deep-covered]
     wanted by req:haskell/hs#1  haskell/spec.md:15
 
 ✔ req:haskell/grammar#1 "Haskell comment grammar"  haskell/spec.md:3  [deep-covered]
@@ -494,7 +520,8 @@
 ✔ req:haskell/hs#1 ".hs"  haskell/spec.md:15  [deep-covered]
     needs impl:haskell/hs-line#1  ✔ haskell/hs.hs:2
     needs impl:haskell/hs-block#1  ✔ haskell/hs.hs:5
-    needs impl:haskell/hs-nested#1  ✔ haskell/hs.hs:8
+    needs impl:haskell/hs-nested/deep#1  ✔ haskell/hs.hs:9
+    needs impl:haskell/hs-nested/after-close#1  ✔ haskell/hs.hs:10
     wanted by req:haskell/grammar#1  haskell/spec.md:3
 
 ✔ impl:hcl/hcl-line-hash#1  hcl/hcl.hcl:2  [deep-covered]
@@ -632,7 +659,9 @@
     wanted by req:julia/jl#1  julia/spec.md:16
 ✔ impl:julia/jl-block#1  julia/jl.jl:5  [deep-covered]
     wanted by req:julia/jl#1  julia/spec.md:16
-✔ impl:julia/jl-nested#1  julia/jl.jl:8  [deep-covered]
+✔ impl:julia/jl-nested/deep#1  julia/jl.jl:9  [deep-covered]
+    wanted by req:julia/jl#1  julia/spec.md:16
+✔ impl:julia/jl-nested/after-close#1  julia/jl.jl:10  [deep-covered]
     wanted by req:julia/jl#1  julia/spec.md:16
 
 ✔ req:julia/grammar#1 "Julia comment grammar"  julia/spec.md:3  [deep-covered]
@@ -642,7 +671,8 @@
 ✔ req:julia/jl#1 ".jl"  julia/spec.md:16  [deep-covered]
     needs impl:julia/jl-line#1  ✔ julia/jl.jl:2
     needs impl:julia/jl-block#1  ✔ julia/jl.jl:5
-    needs impl:julia/jl-nested#1  ✔ julia/jl.jl:8
+    needs impl:julia/jl-nested/deep#1  ✔ julia/jl.jl:9
+    needs impl:julia/jl-nested/after-close#1  ✔ julia/jl.jl:10
     wanted by req:julia/grammar#1  julia/spec.md:3
 
 ✔ impl:lua/lua-line#1  lua/lua.lua:2  [deep-covered]
@@ -661,12 +691,16 @@
 
 ✔ impl:ml/ml-block#1  ml/ml.ml:3  [deep-covered]
     wanted by req:ml/ml#1  ml/spec.md:15
-✔ impl:ml/ml-nested#1  ml/ml.ml:6  [deep-covered]
+✔ impl:ml/ml-nested/deep#1  ml/ml.ml:7  [deep-covered]
+    wanted by req:ml/ml#1  ml/spec.md:15
+✔ impl:ml/ml-nested/after-close#1  ml/ml.ml:8  [deep-covered]
     wanted by req:ml/ml#1  ml/spec.md:15
 
 ✔ impl:ml/mli-block#1  ml/mli.mli:3  [deep-covered]
     wanted by req:ml/mli#1  ml/spec.md:21
-✔ impl:ml/mli-nested#1  ml/mli.mli:6  [deep-covered]
+✔ impl:ml/mli-nested/deep#1  ml/mli.mli:7  [deep-covered]
+    wanted by req:ml/mli#1  ml/spec.md:21
+✔ impl:ml/mli-nested/after-close#1  ml/mli.mli:8  [deep-covered]
     wanted by req:ml/mli#1  ml/spec.md:21
 
 ✔ req:ml/grammar#1 "ML comment grammar"  ml/spec.md:3  [deep-covered]
@@ -676,22 +710,28 @@
     wanted by feat:support-grammar/ml#1  spec.md:106
 ✔ req:ml/ml#1 ".ml"  ml/spec.md:15  [deep-covered]
     needs impl:ml/ml-block#1  ✔ ml/ml.ml:3
-    needs impl:ml/ml-nested#1  ✔ ml/ml.ml:6
+    needs impl:ml/ml-nested/deep#1  ✔ ml/ml.ml:7
+    needs impl:ml/ml-nested/after-close#1  ✔ ml/ml.ml:8
     wanted by req:ml/grammar#1  ml/spec.md:3
 ✔ req:ml/mli#1 ".mli"  ml/spec.md:21  [deep-covered]
     needs impl:ml/mli-block#1  ✔ ml/mli.mli:3
-    needs impl:ml/mli-nested#1  ✔ ml/mli.mli:6
+    needs impl:ml/mli-nested/deep#1  ✔ ml/mli.mli:7
+    needs impl:ml/mli-nested/after-close#1  ✔ ml/mli.mli:8
     wanted by req:ml/grammar#1  ml/spec.md:3
 
 ✔ impl:nim/nim-line#1  nim/nim.nim:2  [deep-covered]
     wanted by req:nim/nim#1  nim/spec.md:15
 ✔ impl:nim/nim-block#1  nim/nim.nim:5  [deep-covered]
     wanted by req:nim/nim#1  nim/spec.md:15
-✔ impl:nim/nim-nested#1  nim/nim.nim:8  [deep-covered]
+✔ impl:nim/nim-nested/deep#1  nim/nim.nim:9  [deep-covered]
     wanted by req:nim/nim#1  nim/spec.md:15
-✔ impl:nim/nim-doc-block#1  nim/nim.nim:12  [deep-covered]
+✔ impl:nim/nim-nested/after-close#1  nim/nim.nim:10  [deep-covered]
     wanted by req:nim/nim#1  nim/spec.md:15
-✔ impl:nim/nim-doc-nested#1  nim/nim.nim:15  [deep-covered]
+✔ impl:nim/nim-doc-block#1  nim/nim.nim:15  [deep-covered]
+    wanted by req:nim/nim#1  nim/spec.md:15
+✔ impl:nim/nim-doc-nested/deep#1  nim/nim.nim:19  [deep-covered]
+    wanted by req:nim/nim#1  nim/spec.md:15
+✔ impl:nim/nim-doc-nested/after-close#1  nim/nim.nim:20  [deep-covered]
     wanted by req:nim/nim#1  nim/spec.md:15
 
 ✔ req:nim/grammar#1 "Nim comment grammar"  nim/spec.md:3  [deep-covered]
@@ -701,9 +741,11 @@
 ✔ req:nim/nim#1 ".nim"  nim/spec.md:15  [deep-covered]
     needs impl:nim/nim-line#1  ✔ nim/nim.nim:2
     needs impl:nim/nim-block#1  ✔ nim/nim.nim:5
-    needs impl:nim/nim-nested#1  ✔ nim/nim.nim:8
-    needs impl:nim/nim-doc-block#1  ✔ nim/nim.nim:12
-    needs impl:nim/nim-doc-nested#1  ✔ nim/nim.nim:15
+    needs impl:nim/nim-nested/deep#1  ✔ nim/nim.nim:9
+    needs impl:nim/nim-nested/after-close#1  ✔ nim/nim.nim:10
+    needs impl:nim/nim-doc-block#1  ✔ nim/nim.nim:15
+    needs impl:nim/nim-doc-nested/deep#1  ✔ nim/nim.nim:19
+    needs impl:nim/nim-doc-nested/after-close#1  ✔ nim/nim.nim:20
     wanted by req:nim/grammar#1  nim/spec.md:3
 
 ✔ impl:pascal/dpr-line#1  pascal/dpr.dpr:2  [deep-covered]
@@ -813,44 +855,53 @@
     wanted by req:scheme/rkt#1  scheme/spec.md:15
 ✔ impl:scheme/rkt-block#1  scheme/rkt.rkt:5  [deep-covered]
     wanted by req:scheme/rkt#1  scheme/spec.md:15
-✔ impl:scheme/rkt-nested#1  scheme/rkt.rkt:8  [deep-covered]
+✔ impl:scheme/rkt-nested/deep#1  scheme/rkt.rkt:9  [deep-covered]
+    wanted by req:scheme/rkt#1  scheme/spec.md:15
+✔ impl:scheme/rkt-nested/after-close#1  scheme/rkt.rkt:10  [deep-covered]
     wanted by req:scheme/rkt#1  scheme/spec.md:15
 
 ✔ impl:scheme/scm-line#1  scheme/scm.scm:2  [deep-covered]
-    wanted by req:scheme/scm#1  scheme/spec.md:21
+    wanted by req:scheme/scm#1  scheme/spec.md:25
 ✔ impl:scheme/scm-block#1  scheme/scm.scm:5  [deep-covered]
-    wanted by req:scheme/scm#1  scheme/spec.md:21
-✔ impl:scheme/scm-nested#1  scheme/scm.scm:8  [deep-covered]
-    wanted by req:scheme/scm#1  scheme/spec.md:21
+    wanted by req:scheme/scm#1  scheme/spec.md:25
+✔ impl:scheme/scm-nested/deep#1  scheme/scm.scm:9  [deep-covered]
+    wanted by req:scheme/scm#1  scheme/spec.md:25
+✔ impl:scheme/scm-nested/after-close#1  scheme/scm.scm:10  [deep-covered]
+    wanted by req:scheme/scm#1  scheme/spec.md:25
 
 ✔ req:scheme/grammar#1 "Scheme comment grammar"  scheme/spec.md:3  [deep-covered]
     needs req:scheme/rkt#1  ✔ scheme/spec.md:15
-    needs req:scheme/scm#1  ✔ scheme/spec.md:21
-    needs req:scheme/ss#1  ✔ scheme/spec.md:27
+    needs req:scheme/scm#1  ✔ scheme/spec.md:25
+    needs req:scheme/ss#1  ✔ scheme/spec.md:35
     covers feat:support-grammar/scheme#1  ✔ spec.md:154
     wanted by feat:support-grammar/scheme#1  spec.md:154
 ✔ req:scheme/rkt#1 ".rkt"  scheme/spec.md:15  [deep-covered]
     needs impl:scheme/rkt-line#1  ✔ scheme/rkt.rkt:2
     needs impl:scheme/rkt-block#1  ✔ scheme/rkt.rkt:5
-    needs impl:scheme/rkt-nested#1  ✔ scheme/rkt.rkt:8
+    needs impl:scheme/rkt-nested/deep#1  ✔ scheme/rkt.rkt:9
+    needs impl:scheme/rkt-nested/after-close#1  ✔ scheme/rkt.rkt:10
     wanted by req:scheme/grammar#1  scheme/spec.md:3
-✔ req:scheme/scm#1 ".scm"  scheme/spec.md:21  [deep-covered]
+✔ req:scheme/scm#1 ".scm"  scheme/spec.md:25  [deep-covered]
     needs impl:scheme/scm-line#1  ✔ scheme/scm.scm:2
     needs impl:scheme/scm-block#1  ✔ scheme/scm.scm:5
-    needs impl:scheme/scm-nested#1  ✔ scheme/scm.scm:8
+    needs impl:scheme/scm-nested/deep#1  ✔ scheme/scm.scm:9
+    needs impl:scheme/scm-nested/after-close#1  ✔ scheme/scm.scm:10
     wanted by req:scheme/grammar#1  scheme/spec.md:3
-✔ req:scheme/ss#1 ".ss"  scheme/spec.md:27  [deep-covered]
+✔ req:scheme/ss#1 ".ss"  scheme/spec.md:35  [deep-covered]
     needs impl:scheme/ss-line#1  ✔ scheme/ss.ss:2
     needs impl:scheme/ss-block#1  ✔ scheme/ss.ss:5
-    needs impl:scheme/ss-nested#1  ✔ scheme/ss.ss:8
+    needs impl:scheme/ss-nested/deep#1  ✔ scheme/ss.ss:9
+    needs impl:scheme/ss-nested/after-close#1  ✔ scheme/ss.ss:10
     wanted by req:scheme/grammar#1  scheme/spec.md:3
 
 ✔ impl:scheme/ss-line#1  scheme/ss.ss:2  [deep-covered]
-    wanted by req:scheme/ss#1  scheme/spec.md:27
+    wanted by req:scheme/ss#1  scheme/spec.md:35
 ✔ impl:scheme/ss-block#1  scheme/ss.ss:5  [deep-covered]
-    wanted by req:scheme/ss#1  scheme/spec.md:27
-✔ impl:scheme/ss-nested#1  scheme/ss.ss:8  [deep-covered]
-    wanted by req:scheme/ss#1  scheme/spec.md:27
+    wanted by req:scheme/ss#1  scheme/spec.md:35
+✔ impl:scheme/ss-nested/deep#1  scheme/ss.ss:9  [deep-covered]
+    wanted by req:scheme/ss#1  scheme/spec.md:35
+✔ impl:scheme/ss-nested/after-close#1  scheme/ss.ss:10  [deep-covered]
+    wanted by req:scheme/ss#1  scheme/spec.md:35
 
 ✔ impl:semicolon/clj#1  semicolon/clj.clj:2  [deep-covered]
     wanted by req:semicolon/clj#1  semicolon/spec.md:22
@@ -976,8 +1027,8 @@
     wanted by req:xml/xml#1  xml/spec.md:24
 
 Summary
-  items       299  (127 from specs, 172 from code)
-  ok          299
+  items       316  (127 from specs, 189 from code)
+  ok          316
   defective   0
 
 ok

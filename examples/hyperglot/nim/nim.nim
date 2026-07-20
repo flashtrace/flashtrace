@@ -5,11 +5,17 @@
   [impl:nim/nim-block#1]
 ]#
 
-#[ outer #[ inner ]# [impl:nim/nim-nested#1] still inside the outer block ]#
+#[ outer
+  #[ [impl:nim/nim-nested/deep#1] inner ]#
+  [impl:nim/nim-nested/after-close#1] still inside the outer block
+]#
 
 # the longer doc opener wins the tie against both shorter openers
 ##[
   [impl:nim/nim-doc-block#1]
 ]##
 
-##[ outer ##[ inner ]## [impl:nim/nim-doc-nested#1] still inside the outer block ]##
+##[ outer
+  ##[ [impl:nim/nim-doc-nested/deep#1] inner ]##
+  [impl:nim/nim-doc-nested/after-close#1] still inside the outer block
+]##

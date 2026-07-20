@@ -58,9 +58,15 @@ reachable from the root spec; the run is clean and exits 0.
 - **Blocks span lines.** Every block-comment tag sits on its own line between
   the opener and the closer, so the scanner has to carry the open block across
   lines to find it.
-- **Nesting is real.** In a nesting grammar the `-nested` tag sits *after* the
-  inner closer. A scanner that ended the comment there would read the tag as
-  code and define no item, so these tags only appear when nesting works.
+- **Nesting is real.** A nesting grammar's block carries one tag at each depth
+  the nesting creates. The `/deep` tag sits inside the inner block, so it
+  asserts that region is scanned exactly once - a scanner that read it again as
+  part of the outer block would define the ID twice, which is a duplicate
+  defect. The `/after-close` tag sits *after* the inner closer, where only a
+  scanner that counts depth is still inside the comment; a scanner that ended
+  the comment there would read the tag as code and define no item. Scanning
+  [c-like-nested/rs.rs](c-like-nested/rs.rs) with the non-nesting C-like grammar
+  yields 3 items instead of 4, and the missing one is `/after-close`.
 - **The longest opener wins.** Lua's block opener is a longer form of its line
   marker, CoffeeScript opens and closes with the same marker, and Nim's doc
   opener shares a prefix with both its line marker and its plain block opener.
@@ -91,6 +97,9 @@ into one file:
 - **`Covers`** - each folder item covers the feature item that needs it back.
 - **Reference forms** - full IDs, `impl:hash/toml` (revision taken from the
   stating item), `impl#1.2` (name taken) and bare `impl` (both taken).
+- **Group paths** - the nesting fixtures' tags carry a two-segment group
+  (`impl:c-like-nested/rs-nested/deep#1`); every other ID here nests its group
+  path one level only.
 - **Revisions and wildcards** - the [hash/](hash/) items carry one-, two- and
   three-layer revisions, needed through `#x`, `#x.y`, `#x.y.z`, `#1.x` and
   `#1.2.x`.
