@@ -95,7 +95,7 @@
           "items": { "$ref": "#/$defs/defect" }
         },
         "wantedBy": {
-          "description": "The items whose needs resolve to this item, sorted by file, line, character.",
+          "description": "The items whose declared needs resolve to this item, sorted by file, line, character. Declared needs only: an item wanted solely because a forwarding targets it has an empty wantedBy, so this array is not a test for whether an item is wanted - the unwanted-item defect is.",
           "type": "array",
           "items": { "$ref": "#/$defs/wanter" }
         }
