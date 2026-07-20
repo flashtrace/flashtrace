@@ -1,0 +1,6 @@
+Summary
+  items       307  (127 from specs, 180 from code)
+  ok          307
+  defective   0
+
+ok
