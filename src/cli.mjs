@@ -20,14 +20,14 @@ Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
   -f, --format <format>    report format: "text" (default) or "json"; --json
-                           is shorthand for --format json. The format may be
-                           selected only once
+                           is shorthand for --format json
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones; text format only
   -V, --version            print the version number
   -h, --help               show this help
 
 Long options also accept "="-attached values, e.g. --tags=a,b.
+The report format and the tag filter may each be selected only once.
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error`;
 
@@ -51,16 +51,22 @@ function rejectValue(name, inline) {
   if (inline !== undefined) throw new UsageError(`option ${name} does not take a value`);
 }
 
-// The report format is selected at most once, whichever spelling does it.
-// Rejecting a second selection outright - rather than letting the last one win,
-// or comparing the two values - keeps one rule to state and to rely on: a
-// command line that names the format twice is a mistake worth surfacing, and
-// the error names the option to drop.
+// A setting is selected at most once, whichever spelling does it. Rejecting a
+// second selection outright - rather than letting the last one win, or
+// comparing the two values - keeps one rule to state and to rely on: a command
+// line that names the same setting twice is a mistake worth surfacing, and the
+// error names the option to drop. opts.selectedBy remembers the option that
+// made each selection, so the second one can name the first.
+function selectOnce(opts, raw, setting, subject) {
+  const selectedBy = opts.selectedBy.get(setting);
+  if (selectedBy !== undefined)
+    throw new UsageError(`${subject} is already selected by ${selectedBy}`);
+  opts.selectedBy.set(setting, raw);
+}
+
 function selectFormat(opts, raw, format) {
-  if (opts.formatSelectedBy !== null)
-    throw new UsageError(`the report format is already selected by ${opts.formatSelectedBy}`);
+  selectOnce(opts, raw, 'format', 'the report format');
   opts.format = format;
-  opts.formatSelectedBy = raw;
 }
 
 function reportFormat(raw, value) {
@@ -110,6 +116,7 @@ function setFormat(opts, raw, value) {
 }
 
 function setTags(opts, raw, value) {
+  selectOnce(opts, raw, 'tags', 'the tag filter');
   opts.tags = value.split(',').map((tag) => tag.trim()).filter(Boolean);
 }
 
@@ -121,9 +128,7 @@ const VALUED_OPTIONS = new Map([
 ]);
 
 function parseArgs(argv) {
-  // formatSelectedBy holds the option that set the format, so a second
-  // selection can be rejected and can name the first one
-  const opts = { dirs: [], tags: null, verbose: false, format: 'text', formatSelectedBy: null };
+  const opts = { dirs: [], tags: null, verbose: false, format: 'text', selectedBy: new Map() };
   for (let i = 0; i < argv.length; i++) {
     const [raw, inline] = splitLongOption(argv[i]);
     const name = LONG_ALIAS[raw] ?? raw;
