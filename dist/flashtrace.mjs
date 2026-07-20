@@ -163,7 +163,7 @@ var CODE_EXT = new Set(Object.keys(BY_EXT));
 var grammarFor = (ext) => BY_EXT[ext] ?? null;
 
 // src/files.mjs
-var MD_EXT = /* @__PURE__ */ new Set([".md", ".markdown"]);
+var SPEC_EXT = /* @__PURE__ */ new Set([".md", ".markdown"]);
 var GIT_LOCATIONS = process.platform === "win32" ? [
   String.raw`C:\Program Files\Git\cmd\git.exe`,
   String.raw`C:\Program Files (x86)\Git\cmd\git.exe`
@@ -222,7 +222,7 @@ async function collectFiles(dirs) {
   }
   return [...files].filter((file) => {
     const ext = path.extname(file).toLowerCase();
-    return MD_EXT.has(ext) || CODE_EXT.has(ext);
+    return SPEC_EXT.has(ext) || CODE_EXT.has(ext);
   }).sort(compareStrings);
 }
 
@@ -289,7 +289,7 @@ function newItem(id, origin, file, line, character) {
     key: keyOf(id),
     revision: revOf(id),
     origin,
-    // 'markdown' | 'code'
+    // 'spec' | 'code'
     file,
     line,
     character,
@@ -567,7 +567,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
       i++;
       continue;
     }
-    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "markdown", file, i + 1, firstNonBlankColumn(lines[i]));
+    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "spec", file, i + 1, firstNonBlankColumn(lines[i]));
     item.title = titleAbove(lines, inTable, i);
     i = parseItemBody(lines, boundary, i + 1, item, file, problems, forwards);
     items.push(item);
@@ -981,7 +981,7 @@ function coverEdges(item, byId, style, dimLocation) {
 function edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation) {
   const lines = [];
   if (item.forwardsTo !== null) lines.push(forwardEdge(item, byId, style, dimLocation));
-  else if (item.origin === "markdown") lines.push(...needEdges(item, byId, matchesOf, style, dimLocation));
+  else if (item.origin === "spec") lines.push(...needEdges(item, byId, matchesOf, style, dimLocation));
   lines.push(...coverEdges(item, byId, style, dimLocation));
   for (const wanting of wantedBy.get(item) ?? [])
     lines.push(`    ${style.dim("wanted by")} ${wanting.id}  ${dimLocation(wanting.file, wanting.line)}`);
@@ -1018,8 +1018,8 @@ function renderDefective(defective, out, style, dimLocation) {
 function renderSummary(items, defective, problems, out, style) {
   const okCount = items.length - defective.length;
   const shallowCount = items.filter((item) => item.defects.length === 0 && !item.deepCovered).length;
-  const markdownCount = items.filter((item) => item.origin === "markdown").length;
-  const originBreakdown = style.dim(`(${markdownCount} from markdown, ${items.length - markdownCount} from code)`);
+  const specCount = items.filter((item) => item.origin === "spec").length;
+  const originBreakdown = style.dim(`(${specCount} from specs, ${items.length - specCount} from code)`);
   out.push(
     style.bold("Summary"),
     `  items       ${items.length}  ${originBreakdown}`,
@@ -1058,7 +1058,7 @@ Traces requirement coverage between Markdown specifications and source code
 by git are excluded.
 
 Options:
-  -t, --tags <t1,t2,...>   only import markdown items carrying one of these
+  -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
@@ -1117,7 +1117,7 @@ async function main() {
     const text = await fs2.readFile(file, "utf8");
     const ext = path4.extname(file).toLowerCase();
     items.push(
-      ...MD_EXT.has(ext) ? parseMarkdown(file, text, problems, forwards) : parseCode(file, text, problems, forwards)
+      ...SPEC_EXT.has(ext) ? parseMarkdown(file, text, problems, forwards) : parseCode(file, text, problems, forwards)
     );
   }
   if (opts.tags) {

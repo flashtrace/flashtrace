@@ -33,7 +33,7 @@
     wanted by req:api/metrics#1  spec.md:16
 
 Summary
-  items       12  (5 from markdown, 7 from code)
+  items       12  (5 from specs, 7 from code)
   ok          12
   defective   0
 

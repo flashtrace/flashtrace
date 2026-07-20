@@ -81,14 +81,14 @@ function coverEdges(item, byId, style, dimLocation) {
   return lines;
 }
 
-// role-appropriate edges: a markdown item its needs, a forwarding source its
+// role-appropriate edges: a spec item its needs, a forwarding source its
 // target (its own needs are excused, its covers are not), every item its
 // covers and who wants it - so a code item's own needs stay visible on their
 // targets, whatever origin those have
 function edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation) {
   const lines = [];
   if (item.forwardsTo !== null) lines.push(forwardEdge(item, byId, style, dimLocation));
-  else if (item.origin === 'markdown') lines.push(...needEdges(item, byId, matchesOf, style, dimLocation));
+  else if (item.origin === 'spec') lines.push(...needEdges(item, byId, matchesOf, style, dimLocation));
   lines.push(...coverEdges(item, byId, style, dimLocation));
   for (const wanting of wantedBy.get(item) ?? [])
     lines.push(`    ${style.dim('wanted by')} ${wanting.id}  ${dimLocation(wanting.file, wanting.line)}`);
@@ -131,8 +131,8 @@ function renderDefective(defective, out, style, dimLocation) {
 function renderSummary(items, defective, problems, out, style) {
   const okCount = items.length - defective.length;
   const shallowCount = items.filter((item) => item.defects.length === 0 && !item.deepCovered).length;
-  const markdownCount = items.filter((item) => item.origin === 'markdown').length;
-  const originBreakdown = style.dim(`(${markdownCount} from markdown, ${items.length - markdownCount} from code)`);
+  const specCount = items.filter((item) => item.origin === 'spec').length;
+  const originBreakdown = style.dim(`(${specCount} from specs, ${items.length - specCount} from code)`);
 
   out.push(
     style.bold('Summary'),

@@ -31,7 +31,7 @@
 ⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:93
 
 Summary
-  items       14  (12 from markdown, 2 from code)
+  items       14  (12 from specs, 2 from code)
   ok          5
   defective   9
   of the ok items, 1 are only shallow-covered (an item further down the tracing chain is defective)

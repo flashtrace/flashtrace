@@ -16,7 +16,7 @@
     wanted by feat:auth/login#1  spec.md:3
 
 Summary
-  items       5  (2 from markdown, 3 from code)
+  items       5  (2 from specs, 3 from code)
   ok          5
   defective   0
 

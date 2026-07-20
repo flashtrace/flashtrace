@@ -35,7 +35,7 @@ test('full item: title, description, needs, covers, tags', () => {
   assert.equal(item.id, 'req:auth/login#1');
   assert.equal(item.key, 'req:auth/login');
   assert.equal(item.revision, '1');
-  assert.equal(item.origin, 'markdown');
+  assert.equal(item.origin, 'spec');
   assert.equal(item.file, 'spec.md');
   assert.equal(item.line, 2);
   assert.equal(item.title, 'Login requires a valid session token');
