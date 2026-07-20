@@ -188,6 +188,15 @@ export function buildResolver(items) {
   };
 }
 
+// the single status label both reports render, decided here alone so they
+// cannot disagree on it. "defective" wins over the coverage axis and so hides
+// whether the item is deep-covered; the JSON document carries `defective` and
+// `deepCovered` beside the label for the two independently.
+export function statusOf(item) {
+  if (item.defects.length > 0) return 'defective';
+  return item.deepCovered ? 'deep-covered' : 'shallow-covered';
+}
+
 // the counts both reports show, in the key order the JSON document uses.
 // Derived here alone so the two reports cannot disagree on them.
 export function summarize(items, problems) {

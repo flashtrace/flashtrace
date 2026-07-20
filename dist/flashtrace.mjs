@@ -952,6 +952,10 @@ function buildResolver(items) {
     }
   };
 }
+function statusOf(item) {
+  if (item.defects.length > 0) return "defective";
+  return item.deepCovered ? "deep-covered" : "shallow-covered";
+}
 function summarize(items, problems) {
   const specItems = items.filter((item) => item.origin === "spec").length;
   const defectiveItems = items.filter((item) => item.defects.length > 0).length;
@@ -1030,10 +1034,15 @@ function makeStyler() {
     bold: wrap("1")
   };
 }
-function statusOf(item, style) {
-  if (item.defects.length > 0) return { mark: style.red("\u2718"), tag: style.red("[defective]") };
-  if (!item.deepCovered) return { mark: style.yellow("~"), tag: style.yellow("[shallow-covered]") };
-  return { mark: style.green("\u2714"), tag: style.green("[deep-covered]") };
+var STATUS_STYLES = {
+  defective: ["\u2718", "red"],
+  "shallow-covered": ["~", "yellow"],
+  "deep-covered": ["\u2714", "green"]
+};
+function styledStatus(item, style) {
+  const status = statusOf(item);
+  const [mark, color] = STATUS_STYLES[status];
+  return { mark: style[color](mark), tag: style[color](`[${status}]`) };
 }
 function byFileLine(a, b) {
   if (a.file !== b.file) return a.file < b.file ? -1 : 1;
@@ -1042,7 +1051,7 @@ function byFileLine(a, b) {
 function forwardEdge(item, byId, style, dimLocation) {
   const target = byId.get(item.forwardsTo)?.[0];
   if (!target) return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${style.red("\u2718 missing")}`;
-  return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${statusOf(target, style).mark} ${dimLocation(target.file, target.line)}`;
+  return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${styledStatus(target, style).mark} ${dimLocation(target.file, target.line)}`;
 }
 function needEdges(item, byId, matchesOf, style, dimLocation) {
   const lines = [];
@@ -1057,7 +1066,7 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
       const covering = byId.get(id)[0];
       const arrow = style.dim(`(\u2192 ${id})`);
       const ref = wildcard ? `${need} ${arrow}` : need;
-      lines.push(`    ${style.dim("needs")} ${ref}  ${statusOf(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
+      lines.push(`    ${style.dim("needs")} ${ref}  ${styledStatus(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
   }
   return lines;
@@ -1087,7 +1096,7 @@ function renderVerbose(items, out, style, dimLocation) {
   for (const item of sorted) {
     if (prevFile !== null && item.file !== prevFile) out.push("");
     prevFile = item.file;
-    const { mark, tag } = statusOf(item, style);
+    const { mark, tag } = styledStatus(item, style);
     const title = item.title ? " " + style.dim(`"${item.title}"`) : "";
     out.push(
       `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
@@ -1101,7 +1110,7 @@ function renderDefective(defective, out, style, dimLocation) {
   for (const item of defective) {
     const title = item.title ? " " + style.dim(`"${item.title}"`) : "";
     out.push(
-      `${statusOf(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`
+      `${styledStatus(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`
     );
     for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect.message}`);
     out.push("");
@@ -1142,10 +1151,6 @@ function report(items, problems, cwd, opts = {}) {
 // src/report-json.mjs
 import path4 from "node:path";
 var SCHEMA_VERSION = 0;
-function statusOf2(item) {
-  if (item.defects.length > 0) return "defective";
-  return item.deepCovered ? "deep-covered" : "shallow-covered";
-}
 function coverStatusOf(item) {
   const status = /* @__PURE__ */ new Map();
   for (const defect of item.defects) {
@@ -1190,7 +1195,7 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
       origin: item.origin,
       tags: item.tags,
       ...location(item),
-      status: statusOf2(item),
+      status: statusOf(item),
       defective: item.defects.length > 0,
       deepCovered: item.deepCovered,
       needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),

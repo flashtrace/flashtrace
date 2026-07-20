@@ -1,7 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
 
-import { buildResolver, isClean, summarize } from './analyze.mjs';
+import { buildResolver, isClean, statusOf, summarize } from './analyze.mjs';
 import { isWildcardRev, revOf } from './ids.mjs';
 
 function makeStyler() {
@@ -17,11 +17,18 @@ function makeStyler() {
   };
 }
 
-// marker + label for the three states the summary distinguishes
-function statusOf(item, style) {
-  if (item.defects.length > 0) return { mark: style.red('✘'), tag: style.red('[defective]') };
-  if (!item.deepCovered) return { mark: style.yellow('~'), tag: style.yellow('[shallow-covered]') };
-  return { mark: style.green('✔'), tag: style.green('[deep-covered]') };
+// marker and color per status; the bracketed label is the status name itself,
+// so this renders what analyze decided rather than deciding it again
+const STATUS_STYLES = {
+  defective: ['✘', 'red'],
+  'shallow-covered': ['~', 'yellow'],
+  'deep-covered': ['✔', 'green'],
+};
+
+function styledStatus(item, style) {
+  const status = statusOf(item);
+  const [mark, color] = STATUS_STYLES[status];
+  return { mark: style[color](mark), tag: style[color](`[${status}]`) };
 }
 
 function byFileLine(a, b) {
@@ -35,7 +42,7 @@ function byFileLine(a, b) {
 function forwardEdge(item, byId, style, dimLocation) {
   const target = byId.get(item.forwardsTo)?.[0];
   if (!target) return `    ${style.cyan('→')} ${item.forwardsTo}  ${style.red('✘ missing')}`;
-  return `    ${style.cyan('→')} ${item.forwardsTo}  ${statusOf(target, style).mark} ${dimLocation(target.file, target.line)}`;
+  return `    ${style.cyan('→')} ${item.forwardsTo}  ${styledStatus(target, style).mark} ${dimLocation(target.file, target.line)}`;
 }
 
 // one line per need: the covering item's own status mark and location, or
@@ -53,7 +60,7 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
       const covering = byId.get(id)[0];
       const arrow = style.dim(`(→ ${id})`);
       const ref = wildcard ? `${need} ${arrow}` : need;
-      lines.push(`    ${style.dim('needs')} ${ref}  ${statusOf(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
+      lines.push(`    ${style.dim('needs')} ${ref}  ${styledStatus(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
   }
   return lines;
@@ -94,7 +101,7 @@ function renderVerbose(items, out, style, dimLocation) {
   for (const item of sorted) {
     if (prevFile !== null && item.file !== prevFile) out.push('');
     prevFile = item.file;
-    const { mark, tag } = statusOf(item, style);
+    const { mark, tag } = styledStatus(item, style);
     const title = item.title ? ' ' + style.dim(`"${item.title}"`) : '';
     out.push(
       `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
@@ -110,7 +117,7 @@ function renderDefective(defective, out, style, dimLocation) {
   for (const item of defective) {
     const title = item.title ? ' ' + style.dim(`"${item.title}"`) : '';
     out.push(
-      `${statusOf(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`,
+      `${styledStatus(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`,
     );
     for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect.message}`);
     out.push('');

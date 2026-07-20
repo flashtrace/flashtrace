@@ -13,20 +13,11 @@
 
 import path from 'node:path';
 
-import { buildResolver, isClean, summarize } from './analyze.mjs';
+import { buildResolver, isClean, statusOf, summarize } from './analyze.mjs';
 import { compareRev, revOf } from './ids.mjs';
 
 // 0 marks the format unstable; it becomes 1 with flashtrace 1.0.0
 const SCHEMA_VERSION = 0;
-
-// item status, matching the three states the summary and verbose report show.
-// "defective" wins over the coverage axis, so it hides whether the item is
-// deep-covered; the document carries `defective` and `deepCovered` beside it
-// for the two independently.
-function statusOf(item) {
-  if (item.defects.length > 0) return 'defective';
-  return item.deepCovered ? 'deep-covered' : 'shallow-covered';
-}
 
 // covers ref -> its status, read off the defects analyze raised rather than
 // re-deciding the coverage rules here: it emits orphaned-cover / unwanted-cover
