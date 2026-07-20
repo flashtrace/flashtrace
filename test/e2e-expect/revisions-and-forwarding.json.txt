@@ -1,7 +1,6 @@
 {
   "schemaVersion": 1,
   "flashtrace": "<version>",
-  "mode": "base",
   "ok": true,
   "items": [
     {
@@ -16,7 +15,8 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     },
     {
       "id": "feat:session#1",
@@ -43,7 +43,8 @@
       ],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     },
     {
       "id": "req:session/store#2.4.0",
@@ -70,7 +71,15 @@
       ],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:session#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
     },
     {
       "id": "req:session/api#1",
@@ -84,7 +93,15 @@
       "needs": [],
       "covers": [],
       "forwardsTo": "dsn:session/api#2",
-      "defects": []
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:session#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
     },
     {
       "id": "dsn:session/api#2",
@@ -98,7 +115,8 @@
       "needs": [],
       "covers": [],
       "forwardsTo": "impl:session/api#1.3",
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     },
     {
       "id": "impl:session/store#2.4.1",
@@ -112,7 +130,15 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:session/store#2.4.0",
+          "file": "spec.md",
+          "line": 11,
+          "character": 1
+        }
+      ]
     },
     {
       "id": "utest:session/store#1.2",
@@ -126,7 +152,33 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:session/store#2.4.0",
+          "file": "spec.md",
+          "line": 11,
+          "character": 1
+        }
+      ]
+    }
+  ],
+  "forwards": [
+    {
+      "from": "req:session/api#1",
+      "to": "dsn:session/api#2",
+      "file": "spec.md",
+      "line": 24,
+      "character": 1,
+      "effective": true
+    },
+    {
+      "from": "dsn:session/api#2",
+      "to": "impl:session/api#1.3",
+      "file": "spec.md",
+      "line": 32,
+      "character": 1,
+      "effective": true
     }
   ],
   "problems": [],

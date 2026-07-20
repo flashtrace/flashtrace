@@ -21,8 +21,8 @@ Options:
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
-      --json[=<mode>]      print the report as a JSON document; <mode> selects
-                           "base" (default) or "rich" detail
+      --json               print the report as a JSON document instead of the
+                           plain-text report
   -V, --version            print the version number
   -h, --help               show this help
 
@@ -50,18 +50,11 @@ function rejectValue(name, inline) {
   if (inline !== undefined) throw new UsageError(`option ${name} does not take a value`);
 }
 
-// --json is shorthand for --json=base; detail is chosen by mode, not verbosity
-function jsonMode(mode = 'base') {
-  if (mode !== 'base' && mode !== 'rich')
-    throw new UsageError(`invalid mode for --json: "${mode}" (expected "base" or "rich")`);
-  return mode;
-}
-
 // short option to its long spelling, so the parser compares one name per option
 const LONG_ALIAS = { '-h': '--help', '-v': '--verbose', '-V': '--version', '-t': '--tags' };
 
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null, verbose: false, json: null };
+  const opts = { dirs: [], tags: null, verbose: false, json: false };
   for (let i = 0; i < argv.length; i++) {
     const [raw, inline] = splitLongOption(argv[i]);
     const name = LONG_ALIAS[raw] ?? raw;
@@ -77,7 +70,8 @@ function parseArgs(argv) {
       rejectValue(raw, inline);
       opts.verbose = true;
     } else if (name === '--json') {
-      opts.json = jsonMode(inline);
+      rejectValue(raw, inline);
+      opts.json = true;
     } else if (name === '--tags') {
       const value = inline ?? argv[++i];
       if (!value) throw new UsageError(`missing value for ${raw}`);
@@ -88,7 +82,8 @@ function parseArgs(argv) {
       opts.dirs.push(raw);
     }
   }
-  // JSON detail is selected by mode, not by verbosity, so the two are exclusive
+  // -v selects which items the plain-text report lists; the JSON document
+  // always carries them all, leaving it nothing to act on
   if (opts.json && opts.verbose)
     throw new UsageError('--json cannot be combined with -v/--verbose');
   if (opts.dirs.length === 0) opts.dirs.push('.');
@@ -124,7 +119,7 @@ async function main() {
 
   analyze(items, forwards, problems);
   const clean = opts.json
-    ? reportJson(items, forwards, problems, process.cwd(), { mode: opts.json, version: packageVersion() })
+    ? reportJson(items, forwards, problems, process.cwd(), { version: packageVersion() })
     : report(items, problems, process.cwd(), { verbose: opts.verbose });
   process.exit(clean ? 0 : 1);
 }

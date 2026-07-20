@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://flashtrace.github.io/schemas/report/v1.json",
   "title": "flashtrace JSON report",
-  "description": "A flashtrace run reported as JSON (--json[=<mode>]). Covers both modes: 'rich' is a strict superset of 'base'. Unknown fields are deliberately left unconstrained - additive changes do not bump schemaVersion, so consumers and validators must tolerate them.",
+  "description": "A flashtrace run reported as JSON (--json). Unknown fields are deliberately left unconstrained - additive changes do not bump schemaVersion, so consumers and validators must tolerate them.",
   "type": "object",
-  "required": ["schemaVersion", "flashtrace", "mode", "ok", "items", "problems", "summary"],
+  "required": ["schemaVersion", "flashtrace", "ok", "items", "forwards", "problems", "summary"],
   "properties": {
     "schemaVersion": {
       "description": "Integer version of this format; bumped only by breaking changes.",
@@ -13,9 +13,6 @@
     "flashtrace": {
       "description": "Version of the flashtrace that produced the document. Provenance only.",
       "type": "string"
-    },
-    "mode": {
-      "enum": ["base", "rich"]
     },
     "ok": {
       "description": "Run verdict: true iff no item is defective and no problem occurred. Matches the exit code (0 iff true).",
@@ -27,7 +24,7 @@
       "items": { "$ref": "#/$defs/item" }
     },
     "forwards": {
-      "description": "Rich mode only: every forwarding declaration, voided ones included, sorted by file, line, character.",
+      "description": "Every forwarding declaration, voided ones included, sorted by file, line, character.",
       "type": "array",
       "items": { "$ref": "#/$defs/forward" }
     },
@@ -38,20 +35,6 @@
     },
     "summary": { "$ref": "#/$defs/summary" }
   },
-  "allOf": [
-    {
-      "if": {
-        "properties": { "mode": { "const": "rich" } },
-        "required": ["mode"]
-      },
-      "then": {
-        "required": ["forwards"],
-        "properties": {
-          "items": { "items": { "required": ["wantedBy"] } }
-        }
-      }
-    }
-  ],
   "$defs": {
     "id": {
       "description": "A full item ID: <type>:[<group>/...]<name>#<revision>.",
@@ -73,7 +56,7 @@
     },
     "item": {
       "type": "object",
-      "required": ["id", "title", "origin", "tags", "file", "line", "character", "status", "needs", "covers", "forwardsTo", "defects"],
+      "required": ["id", "title", "origin", "tags", "file", "line", "character", "status", "needs", "covers", "forwardsTo", "defects", "wantedBy"],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "title": {
@@ -112,7 +95,7 @@
           "items": { "$ref": "#/$defs/defect" }
         },
         "wantedBy": {
-          "description": "Rich mode only: the items whose needs resolve to this item, sorted by file, line, character.",
+          "description": "The items whose needs resolve to this item, sorted by file, line, character.",
           "type": "array",
           "items": { "$ref": "#/$defs/wanter" }
         }

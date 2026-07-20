@@ -11,7 +11,7 @@ const schema = JSON.parse(
 // Build the JSON document straight from the real parsers and analyze, so the
 // shapes always match production. Markdown lands in docs/spec.md, code in
 // src/impl.js; cwd is '' so the relative paths come out as those names.
-function build({ md = [], code = [], mode = 'base' }) {
+function build({ md = [], code = [] }) {
   const problems = [];
   const forwards = [];
   const items = [
@@ -19,21 +19,20 @@ function build({ md = [], code = [], mode = 'base' }) {
     ...parseCode('src/impl.js', code.join('\n'), problems, forwards),
   ];
   analyze(items, forwards, problems);
-  return buildReportDocument(items, forwards, problems, '', { mode, version: '9.9.9' });
+  return buildReportDocument(items, forwards, problems, '', { version: '9.9.9' });
 }
 
 const itemOf = (doc, id) => doc.items.find((item) => item.id === id);
 
-test('base document: envelope, ordering and a resolved need', () => {
+test('document: envelope, ordering and a resolved need', () => {
   const doc = build({
     md: ['`req:a#1`', '', 'Needs: impl:a#1'],
     code: ['// [impl:a#1]'],
   });
   assert.equal(doc.schemaVersion, 1);
   assert.equal(doc.flashtrace, '9.9.9');
-  assert.equal(doc.mode, 'base');
   assert.equal(doc.ok, true);
-  assert.equal('forwards' in doc, false); // base omits forwards
+  assert.deepEqual(doc.forwards, []);
 
   // items are sorted by file, then line, then character
   assert.deepEqual(doc.items.map((i) => i.id), ['req:a#1', 'impl:a#1']);
@@ -52,8 +51,8 @@ test('base document: envelope, ordering and a resolved need', () => {
     covers: [],
     forwardsTo: null,
     defects: [],
+    wantedBy: [],
   });
-  assert.equal('wantedBy' in req, false); // base omits wantedBy
 
   assert.deepEqual(doc.summary, {
     items: 2,
@@ -134,8 +133,8 @@ test('status distinguishes deep-covered, shallow-covered and defective', () => {
   assert.equal(itemOf(doc, 'req:mid#1').status, 'defective');
 });
 
-test('rich mode adds forwards and wantedBy; base does not', () => {
-  const fixture = {
+test('forwards and wantedBy record the reverse edges', () => {
+  const doc = build({
     md: [
       '`req:a#1`',
       '',
@@ -146,24 +145,22 @@ test('rich mode adds forwards and wantedBy; base does not', () => {
       '`[req:legacy#1 --> req:a#1]`',
     ],
     code: ['// [impl:a#1]'],
-  };
-  const rich = build({ ...fixture, mode: 'rich' });
+  });
 
-  assert.deepEqual(rich.forwards, [
+  assert.deepEqual(doc.forwards, [
     { from: 'req:legacy#1', to: 'req:a#1', file: 'docs/spec.md', line: 7, character: 1, effective: true },
   ]);
   // impl:a#1 is wanted by req:a#1; forwarding demand is not counted here
-  assert.deepEqual(itemOf(rich, 'impl:a#1').wantedBy, [
+  assert.deepEqual(itemOf(doc, 'impl:a#1').wantedBy, [
     { id: 'req:a#1', file: 'docs/spec.md', line: 1, character: 1 },
   ]);
-  assert.deepEqual(itemOf(rich, 'req:a#1').wantedBy, []);
-  assert.equal(itemOf(rich, 'req:a#1').forwardsTo, null);
-  assert.equal(itemOf(rich, 'req:legacy#1').forwardsTo, 'req:a#1');
+  assert.deepEqual(itemOf(doc, 'req:a#1').wantedBy, []);
+  assert.equal(itemOf(doc, 'req:a#1').forwardsTo, null);
+  assert.equal(itemOf(doc, 'req:legacy#1').forwardsTo, 'req:a#1');
 });
 
 test('forwards record every void reason and mirror forwardsTo', () => {
   const doc = build({
-    mode: 'rich',
     md: [
       '`req:dup#1`',
       '',
@@ -207,12 +204,11 @@ test('problems are reported with location and fail the run without any defect', 
   assert.equal(doc.summary.problems, 1);
 });
 
-test('a rich document carries every field the schema marks required', () => {
+test('a document carries every field the schema marks required', () => {
   // one document exercising every $def: an item with a resolved and an
   // uncovered need, a valid cover, a defect and an incoming wanter; an
   // effective and a voided forwarding; and a problem
   const doc = build({
-    mode: 'rich',
     md: [
       '`req:a#1`',
       '',
@@ -239,9 +235,7 @@ test('a rich document carries every field the schema marks required', () => {
 
   const req = itemOf(doc, 'req:a#1');
   hasRequired(doc, schema, 'document');
-  assert.ok('forwards' in doc, 'rich document has forwards'); // required by the schema's allOf
   hasRequired(req, schema.$defs.item, 'item');
-  assert.ok('wantedBy' in req, 'rich item has wantedBy');
   hasRequired(req.needs[0], schema.$defs.need, 'need');
   hasRequired(req.covers[0], schema.$defs.cover, 'cover');
   hasRequired(req.defects[0], schema.$defs.defect, 'defect');
@@ -253,7 +247,6 @@ test('a rich document carries every field the schema marks required', () => {
 
 test('items, forwards and problems are sorted by file, line, character', () => {
   const doc = build({
-    mode: 'rich',
     md: ['`req:b#1`', '', '`req:a#1`'],
   });
   // two items on the same file: order follows line, not id

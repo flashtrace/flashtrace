@@ -499,26 +499,23 @@ const JSON_FIXTURE = {
   'login.ts': ['// [impl:login#1]'],
 };
 
-test('--json writes a base JSON document to stdout and keeps the exit code', async () => {
+test('--json prints the JSON document to stdout and keeps the exit code', async () => {
   await withProject(JSON_FIXTURE, (dir) => {
     const res = runCli(dir, ['--json']);
     assert.equal(res.status, 0, res.stderr);
     assert.equal(res.stderr, '');
     const doc = JSON.parse(res.stdout);
-    assert.equal(doc.mode, 'base');
     assert.equal(doc.ok, true);
-    assert.equal('forwards' in doc, false);
     assert.ok(doc.items.some((i) => i.id === 'req:login#1'));
     assert.ok(res.stdout.endsWith('}\n')); // single trailing newline
   });
 });
 
-test('--json=rich adds the forwards array and wantedBy on every item', async () => {
+test('--json carries the forwards array and wantedBy on every item', async () => {
   await withProject(JSON_FIXTURE, (dir) => {
-    const res = runCli(dir, ['--json=rich']);
+    const res = runCli(dir, ['--json']);
     assert.equal(res.status, 0, res.stderr);
     const doc = JSON.parse(res.stdout);
-    assert.equal(doc.mode, 'rich');
     assert.deepEqual(
       doc.forwards.map((f) => [f.from, f.to, f.effective]),
       [['req:legacy#1', 'req:login#1', true]],
@@ -558,18 +555,18 @@ test('--json honors --tags import filtering', async () => {
   });
 });
 
-test('an invalid --json mode is a usage error on stderr', async () => {
+test('--json takes no value', async () => {
   await withProject({}, (dir) => {
-    const res = runCli(dir, ['--json=fancy']);
+    const res = runCli(dir, ['--json=pretty']);
     assert.equal(res.status, 2);
     assert.equal(res.stdout, '');
-    assert.match(res.stderr, /invalid mode for --json: "fancy"/);
+    assert.match(res.stderr, /option --json does not take a value/);
   });
 });
 
 test('--json cannot be combined with -v/--verbose', async () => {
   await withProject({}, (dir) => {
-    for (const args of [['--json', '-v'], ['-v', '--json'], ['--json=rich', '--verbose']]) {
+    for (const args of [['--json', '-v'], ['-v', '--json'], ['--json', '--verbose']]) {
       const res = runCli(dir, args);
       assert.equal(res.status, 2, args.join(' '));
       assert.match(res.stderr, /--json cannot be combined with -v\/--verbose/);

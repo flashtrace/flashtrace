@@ -1,17 +1,8 @@
 # JSON report
 
-`--json[=<mode>]` replaces the plain-text report on stdout with a single JSON document describing the run. Everything the plain-text report shows - items, defects, problems, summary, verdict - is contained in the document; nothing else is written to stdout. Exit codes are unchanged (see [Command line](command-line.md)).
+`--json` replaces the plain-text report on stdout with a single JSON document describing the run. Everything the plain-text report shows - items, defects, problems, summary, verdict - is contained in the document; nothing else is written to stdout. Exit codes are unchanged (see [Command line](command-line.md)).
 
-Two modes select the amount of detail:
-
-| Mode | Content |
-|---|---|
-| `base` (default) | every item with its declared references, their resolution and its defects, plus all problems and the summary |
-| `rich` | a strict superset of `base`: additionally the top-level `forwards` array and a `wantedBy` array on every item |
-
-`--json` is shorthand for `--json=base`. Any other mode value is a usage error (exit code `2`), as is combining `--json` with `-v`/`--verbose` - JSON detail is selected by mode, not by verbosity. Usage errors are reported as plain text on stderr; a JSON document is only ever produced by a completed run.
-
-Because `rich` only adds fields and never changes the shape or meaning of anything in `base`, a consumer written against `base` reads `rich` output unchanged.
+The document is the complete run: every item, every forwarding declaration and every problem, whatever their status. Selecting a subset is the consumer's job, and `jq` does it in one filter - so `--json` takes no value, and combining it with `-v`/`--verbose` is a usage error (exit code `2`): verbosity picks which items the plain-text report lists, and the document already carries them all. Usage errors are reported as plain text on stderr; a JSON document is only ever produced by a completed run.
 
 ## Document
 
@@ -19,28 +10,27 @@ Because `rich` only adds fields and never changes the shape or meaning of anythi
 {
   "schemaVersion": 1,
   "flashtrace": "0.9.1",
-  "mode": "base",
   "ok": false,
   "items": [],
+  "forwards": [],
   "problems": [],
   "summary": {}
 }
 ```
 
-| Field | Mode | Meaning |
-|---|---|---|
-| `schemaVersion` | both | Integer version of this format; see [Versioning](#versioning). |
-| `flashtrace` | both | Version of the flashtrace that produced the document. Provenance only - consumers must not derive the format from it. |
-| `mode` | both | `base` or `rich` - the mode that produced the document. |
-| `ok` | both | The run verdict: `true` iff no item is defective and no problem occurred. Matches the plain-text `ok` / `not ok` footer and the exit code (`0` iff `true`). |
-| `items` | both | Every item, regardless of status; see [Items](#items). |
-| `forwards` | rich | Every forwarding declaration; see [Forwards](#forwards-rich-mode). |
-| `problems` | both | Parse- and analysis-level problems; see [Problems](#problems). |
-| `summary` | both | The summary counts; see [Summary](#summary). |
+| Field | Meaning |
+|---|---|
+| `schemaVersion` | Integer version of this format; see [Versioning](#versioning). |
+| `flashtrace` | Version of the flashtrace that produced the document. Provenance only - consumers must not derive the format from it. |
+| `ok` | The run verdict: `true` iff no item is defective and no problem occurred. Matches the plain-text `ok` / `not ok` footer and the exit code (`0` iff `true`). |
+| `items` | Every item, regardless of status; see [Items](#items). |
+| `forwards` | Every forwarding declaration; see [Forwards](#forwards). |
+| `problems` | Parse- and analysis-level problems; see [Problems](#problems). |
+| `summary` | The summary counts; see [Summary](#summary). |
 
 ## Items
 
-One entry per defined item. The document always contains *all* items, also in `base` mode - the defective-only filtering of the plain-text default report is presentation, not data; consumers filter on `status` themselves. Tag import filtering (`-t, --tags`) applies before analysis, exactly as for the plain-text report.
+One entry per defined item, whatever its status - the defective-only filtering of the plain-text default report is presentation, not data; consumers filter on `status` themselves. Tag import filtering (`-t, --tags`) applies before analysis, exactly as for the plain-text report.
 
 ```json
 {
@@ -65,23 +55,24 @@ One entry per defined item. The document always contains *all* items, also in `b
       "existingRevisions": ["2"],
       "message": "uncovered: needs dsn:flow#1, which does not exist (revision mismatch: existing revision(s) of dsn:flow: 2)"
     }
-  ]
+  ],
+  "wantedBy": []
 }
 ```
 
-| Field | Mode | Meaning |
-|---|---|---|
-| `id` | both | The item's full ID. Not unique on its own - a *duplicate* defect means several entries share it; `id` + `file` + `line` + `character` is unique (see [Locations](#locations)). |
-| `title` | both | The heading above a Markdown item, or `null` if there is none. Always `null` for code items. |
-| `origin` | both | `markdown` or `code`. |
-| `tags` | both | The item's `Tags` entries. Always `[]` for code items. |
-| `file`, `line`, `character` | both | Source location of the defining ID/tag; see [Locations](#locations). |
-| `status` | both | `defective` (at least one defect), `shallow-covered` (no defects, but not deep-covered) or `deep-covered` - the three states the summary and the verbose plain-text report distinguish, per the [Coverage rules](coverage-rules.md). |
-| `needs` | both | One entry per declared `Needs` reference, in declaration order; see below. |
-| `covers` | both | One entry per declared `Covers` reference, in declaration order; see below. |
-| `forwardsTo` | both | The ID of the effective forwarding target, or `null`. Voided declarations (duplicate, cyclic, missing source) never appear here - they surface as defects/problems and, in `rich` mode, in `forwards`. |
-| `defects` | both | The item's defects; see below. Empty iff the item is not defective. |
-| `wantedBy` | rich | The items whose needs this item satisfies; see below. |
+| Field | Meaning |
+|---|---|
+| `id` | The item's full ID. Not unique on its own - a *duplicate* defect means several entries share it; `id` + `file` + `line` + `character` is unique (see [Locations](#locations)). |
+| `title` | The heading above a Markdown item, or `null` if there is none. Always `null` for code items. |
+| `origin` | `markdown` or `code`. |
+| `tags` | The item's `Tags` entries. Always `[]` for code items. |
+| `file`, `line`, `character` | Source location of the defining ID/tag; see [Locations](#locations). |
+| `status` | `defective` (at least one defect), `shallow-covered` (no defects, but not deep-covered) or `deep-covered` - the three states the summary and the verbose plain-text report distinguish, per the [Coverage rules](coverage-rules.md). |
+| `needs` | One entry per declared `Needs` reference, in declaration order; see below. |
+| `covers` | One entry per declared `Covers` reference, in declaration order; see below. |
+| `forwardsTo` | The ID of the effective forwarding target, or `null`. Voided declarations (duplicate, cyclic, missing source) never appear here - they surface as defects/problems and in `forwards`. |
+| `defects` | The item's defects; see below. Empty iff the item is not defective. |
+| `wantedBy` | The items whose needs this item satisfies; see below. |
 
 ### Needs entries
 
@@ -106,11 +97,11 @@ A non-`valid` covers entry additionally appears as the matching `orphaned` / `un
 - `message` - the defect exactly as the plain-text report words it
 - `existingRevisions` - present exactly when the revision-mismatch hint applies: the defined revisions of the same `type:group/name`, bare (without `#`), in ascending order
 
-### wantedBy entries (rich mode)
+### wantedBy entries
 
 One entry `{ "id": "req:login#1", "file": "docs/spec.md", "line": 12, "character": 1 }` per item whose needs resolve to this item, wildcard needs included; empty if nothing needs it. Forwarding demand is not listed here - it is visible in `forwards`.
 
-## Forwards (rich mode)
+## Forwards
 
 One entry per forwarding declaration found in the sources - including voided declarations and declarations whose source item does not exist, which have no item to carry a `forwardsTo`:
 
@@ -187,11 +178,11 @@ The same input processed by the same flashtrace version produces a byte-identica
 ## Versioning
 
 - `schemaVersion` is an integer owned by this page. It is bumped only by a breaking change: a field removed, renamed or re-typed, or a documented meaning changed.
-- Additive changes - a new optional field, a new `mode` value - do not bump it. Consumers must therefore ignore fields they do not know (tolerant reader).
+- Additive changes - a new optional field - do not bump it. Consumers must therefore ignore fields they do not know (tolerant reader).
 - `flashtrace` carries the producing tool version for provenance and debugging; it says nothing about the format.
 
 ## Schema
 
-The machine-readable contract is a JSON Schema (draft 2020-12) covering both modes. It is published at <https://flashtrace.github.io/schemas/report/v1.json> and kept in the repository at `schemas/report/v1.json`. Every `schemaVersion` keeps its own URL; <https://flashtrace.github.io/schemas/report/latest.json> serves the newest one.
+The machine-readable contract is a JSON Schema (draft 2020-12). It is published at <https://flashtrace.github.io/schemas/report/v1.json> and kept in the repository at `schemas/report/v1.json`. Every `schemaVersion` keeps its own URL; <https://flashtrace.github.io/schemas/report/latest.json> serves the newest one.
 
 The schema deliberately leaves unknown fields unconstrained: validating a newer document against an older schema must not fail on additive fields.

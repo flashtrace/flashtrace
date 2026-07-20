@@ -1,7 +1,6 @@
 {
   "schemaVersion": 1,
   "flashtrace": "<version>",
-  "mode": "base",
   "ok": true,
   "items": [
     {
@@ -16,7 +15,15 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:auth/login#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
     },
     {
       "id": "req:auth/login#1",
@@ -37,9 +44,11 @@
       ],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     }
   ],
+  "forwards": [],
   "problems": [],
   "summary": {
     "items": 2,

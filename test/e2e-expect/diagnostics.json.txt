@@ -1,7 +1,6 @@
 {
   "schemaVersion": 1,
   "flashtrace": "<version>",
-  "mode": "base",
   "ok": false,
   "items": [
     {
@@ -23,7 +22,8 @@
       ],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     },
     {
       "id": "req:alpha#1",
@@ -47,6 +47,14 @@
           "kind": "uncovered",
           "ref": "impl:alpha#1",
           "message": "uncovered: needs impl:alpha#1, which does not exist"
+        }
+      ],
+      "wantedBy": [
+        {
+          "id": "feat:alpha#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
         }
       ]
     },
@@ -73,7 +81,8 @@
           "ref": "feat:beta#1",
           "message": "orphaned: covers feat:beta#1, which does not exist"
         }
-      ]
+      ],
+      "wantedBy": []
     },
     {
       "id": "req:gamma#1",
@@ -98,7 +107,8 @@
           "ref": "feat:gamma#1",
           "message": "unwanted: covers feat:gamma#1, but feat:gamma#1 does not need req:gamma#1"
         }
-      ]
+      ],
+      "wantedBy": []
     },
     {
       "id": "feat:gamma#1",
@@ -112,7 +122,8 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     },
     {
       "id": "req:delta#1",
@@ -140,7 +151,8 @@
           ],
           "message": "uncovered: needs impl:delta#2, which does not exist (revision mismatch: existing revision(s) of impl:delta: 1)"
         }
-      ]
+      ],
+      "wantedBy": []
     },
     {
       "id": "req:epsilon#1",
@@ -160,7 +172,8 @@
           "ref": "req:epsilon#1",
           "message": "duplicate: ID req:epsilon#1 is defined 2 times"
         }
-      ]
+      ],
+      "wantedBy": []
     },
     {
       "id": "req:epsilon#1",
@@ -180,7 +193,8 @@
           "ref": "req:epsilon#1",
           "message": "duplicate: ID req:epsilon#1 is defined 2 times"
         }
-      ]
+      ],
+      "wantedBy": []
     },
     {
       "id": "req:zeta#1",
@@ -200,7 +214,8 @@
           "ref": "req:zeta#1",
           "message": "duplicate: forwarding for req:zeta#1 is declared 2 times"
         }
-      ]
+      ],
+      "wantedBy": []
     },
     {
       "id": "dsn:zeta#1",
@@ -214,7 +229,8 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     },
     {
       "id": "req:eta#1",
@@ -228,7 +244,8 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     },
     {
       "id": "req:theta#1",
@@ -242,7 +259,8 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
-      "defects": []
+      "defects": [],
+      "wantedBy": []
     },
     {
       "id": "impl:delta#1",
@@ -262,7 +280,8 @@
           "ref": "impl:delta#1",
           "message": "unwanted: no item needs impl:delta#1"
         }
-      ]
+      ],
+      "wantedBy": []
     },
     {
       "id": "impl:omega#1",
@@ -282,7 +301,54 @@
           "ref": "impl:omega#1",
           "message": "unwanted: no item needs impl:omega#1"
         }
-      ]
+      ],
+      "wantedBy": []
+    }
+  ],
+  "forwards": [
+    {
+      "from": "req:zeta#1",
+      "to": "dsn:zeta#1",
+      "file": "spec.md",
+      "line": 69,
+      "character": 1,
+      "effective": true
+    },
+    {
+      "from": "req:zeta#1",
+      "to": "dsn:zeta-other#1",
+      "file": "spec.md",
+      "line": 70,
+      "character": 1,
+      "effective": false,
+      "voidedBy": "duplicate"
+    },
+    {
+      "from": "req:eta#1",
+      "to": "req:theta#1",
+      "file": "spec.md",
+      "line": 85,
+      "character": 1,
+      "effective": false,
+      "voidedBy": "cycle"
+    },
+    {
+      "from": "req:theta#1",
+      "to": "req:eta#1",
+      "file": "spec.md",
+      "line": 93,
+      "character": 1,
+      "effective": false,
+      "voidedBy": "cycle"
+    },
+    {
+      "from": "req:ghost#1",
+      "to": "req:alpha#1",
+      "file": "spec.md",
+      "line": 97,
+      "character": 1,
+      "effective": false,
+      "voidedBy": "missing-source"
     }
   ],
   "problems": [

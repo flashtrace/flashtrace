@@ -1,10 +1,8 @@
 /*
- * JSON report (--json[=<mode>]): the run as a single JSON document on stdout,
- * in place of the plain-text report. Two modes select the detail:
- *   - base (default): every item with its declared references, their resolution
- *     and its defects, plus all problems and the summary.
- *   - rich: a strict superset of base, adding the top-level `forwards` array and
- *     a `wantedBy` array on every item.
+ * JSON report (--json): the run as a single JSON document on stdout, in place
+ * of the plain-text report. It carries every item with its declared
+ * references, their resolution, its defects and the items that want it, plus
+ * every forwarding declaration, all problems and the summary.
  *
  * The document is deterministic: items, forwards and problems are sorted by
  * file, then line, then character; object keys serialize in a fixed order; the
@@ -37,8 +35,8 @@ function coverStatus(item, coverId, byId) {
 }
 
 // item -> the items whose needs resolve to it (wildcard needs included), the
-// data behind a rich item's wantedBy. Mirrors the verbose report's edge so the
-// two cannot drift.
+// data behind an item's wantedBy. Mirrors the verbose report's edge so the two
+// cannot drift.
 function buildWantedBy(items, byId, matchesOf) {
   const wantedBy = new Map();
   for (const item of items)
@@ -59,8 +57,7 @@ function defectDocument(defect) {
 }
 
 export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
-  const { mode = 'base', version } = opts;
-  const rich = mode === 'rich';
+  const { version } = opts;
   const relative = (file) => (path.relative(cwd, file) || file).replaceAll('\\', '/');
   const location = (x) => ({ file: relative(x.file), line: x.line, character: x.character });
   const byLocation = (a, b) => {
@@ -70,7 +67,7 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   };
 
   const { byId, matchesOf } = buildResolver(items);
-  const wantedBy = rich ? buildWantedBy(items, byId, matchesOf) : null;
+  const wantedBy = buildWantedBy(items, byId, matchesOf);
 
   // a need's resolution: the defined IDs matching it, ascending by revision
   const resolvedTo = (ref) =>
@@ -83,22 +80,19 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
       .map((wanter) => ({ id: wanter.id, ...location(wanter) }))
       .sort(byLocation);
 
-  const itemDocument = (item) => {
-    const document = {
-      id: item.id,
-      title: item.title,
-      origin: item.origin,
-      tags: item.tags,
-      ...location(item),
-      status: statusOf(item),
-      needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
-      covers: item.covers.map((ref) => ({ ref, status: coverStatus(item, ref, byId) })),
-      forwardsTo: item.forwardsTo,
-      defects: item.defects.map(defectDocument),
-    };
-    if (rich) document.wantedBy = wantedByDocument(item);
-    return document;
-  };
+  const itemDocument = (item) => ({
+    id: item.id,
+    title: item.title,
+    origin: item.origin,
+    tags: item.tags,
+    ...location(item),
+    status: statusOf(item),
+    needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
+    covers: item.covers.map((ref) => ({ ref, status: coverStatus(item, ref, byId) })),
+    forwardsTo: item.forwardsTo,
+    defects: item.defects.map(defectDocument),
+    wantedBy: wantedByDocument(item),
+  });
 
   const forwardDocument = (forward) => {
     const document = { from: forward.from, to: forward.to, ...location(forward), effective: forward.effective };
@@ -118,25 +112,23 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   ).length;
   const ok = defectiveItems === 0 && problems.length === 0;
 
-  const document = {
+  return {
     schemaVersion: SCHEMA_VERSION,
     flashtrace: version,
-    mode,
     ok,
     items: itemDocuments,
+    forwards: forwards.map(forwardDocument).sort(byLocation),
+    problems: problemDocuments,
+    summary: {
+      items: items.length,
+      markdownItems,
+      codeItems: items.length - markdownItems,
+      okItems: items.length - defectiveItems,
+      defectiveItems,
+      shallowCoveredItems,
+      problems: problems.length,
+    },
   };
-  if (rich) document.forwards = forwards.map(forwardDocument).sort(byLocation);
-  document.problems = problemDocuments;
-  document.summary = {
-    items: items.length,
-    markdownItems,
-    codeItems: items.length - markdownItems,
-    okItems: items.length - defectiveItems,
-    defectiveItems,
-    shallowCoveredItems,
-    problems: problems.length,
-  };
-  return document;
 }
 
 // Build the JSON document, print it, and return the run verdict (true iff no

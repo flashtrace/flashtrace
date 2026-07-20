@@ -1102,8 +1102,7 @@ function defectDocument(defect) {
   return out;
 }
 function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
-  const { mode = "base", version } = opts;
-  const rich = mode === "rich";
+  const { version } = opts;
   const relative = (file) => (path4.relative(cwd, file) || file).replaceAll("\\", "/");
   const location = (x) => ({ file: relative(x.file), line: x.line, character: x.character });
   const byLocation = (a, b) => {
@@ -1112,29 +1111,26 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     return a.character - b.character;
   };
   const { byId, matchesOf } = buildResolver(items);
-  const wantedBy = rich ? buildWantedBy2(items, byId, matchesOf) : null;
+  const wantedBy = buildWantedBy2(items, byId, matchesOf);
   const resolvedTo = (ref) => matchesOf(ref).slice().sort((a, b) => compareRev(revOf(a), revOf(b)));
   const wantedByDocument = (item) => [...wantedBy.get(item) ?? []].map((wanter) => ({ id: wanter.id, ...location(wanter) })).sort(byLocation);
-  const itemDocument = (item) => {
-    const document2 = {
-      id: item.id,
-      title: item.title,
-      origin: item.origin,
-      tags: item.tags,
-      ...location(item),
-      status: statusOf2(item),
-      needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
-      covers: item.covers.map((ref) => ({ ref, status: coverStatus(item, ref, byId) })),
-      forwardsTo: item.forwardsTo,
-      defects: item.defects.map(defectDocument)
-    };
-    if (rich) document2.wantedBy = wantedByDocument(item);
-    return document2;
-  };
+  const itemDocument = (item) => ({
+    id: item.id,
+    title: item.title,
+    origin: item.origin,
+    tags: item.tags,
+    ...location(item),
+    status: statusOf2(item),
+    needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
+    covers: item.covers.map((ref) => ({ ref, status: coverStatus(item, ref, byId) })),
+    forwardsTo: item.forwardsTo,
+    defects: item.defects.map(defectDocument),
+    wantedBy: wantedByDocument(item)
+  });
   const forwardDocument = (forward) => {
-    const document2 = { from: forward.from, to: forward.to, ...location(forward), effective: forward.effective };
-    if (!forward.effective) document2.voidedBy = forward.voidedBy;
-    return document2;
+    const document = { from: forward.from, to: forward.to, ...location(forward), effective: forward.effective };
+    if (!forward.effective) document.voidedBy = forward.voidedBy;
+    return document;
   };
   const itemDocuments = items.map(itemDocument).sort(byLocation);
   const problemDocuments = problems.map((problem) => ({ ...location(problem), message: problem.message })).sort(byLocation);
@@ -1144,25 +1140,23 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     (item) => item.defects.length === 0 && !item.deepCovered
   ).length;
   const ok = defectiveItems === 0 && problems.length === 0;
-  const document = {
+  return {
     schemaVersion: SCHEMA_VERSION,
     flashtrace: version,
-    mode,
     ok,
-    items: itemDocuments
+    items: itemDocuments,
+    forwards: forwards.map(forwardDocument).sort(byLocation),
+    problems: problemDocuments,
+    summary: {
+      items: items.length,
+      markdownItems,
+      codeItems: items.length - markdownItems,
+      okItems: items.length - defectiveItems,
+      defectiveItems,
+      shallowCoveredItems,
+      problems: problems.length
+    }
   };
-  if (rich) document.forwards = forwards.map(forwardDocument).sort(byLocation);
-  document.problems = problemDocuments;
-  document.summary = {
-    items: items.length,
-    markdownItems,
-    codeItems: items.length - markdownItems,
-    okItems: items.length - defectiveItems,
-    defectiveItems,
-    shallowCoveredItems,
-    problems: problems.length
-  };
-  return document;
 }
 function reportJson(items, forwards, problems, cwd, opts = {}) {
   const document = buildReportDocument(items, forwards, problems, cwd, opts);
@@ -1182,8 +1176,8 @@ Options:
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
-      --json[=<mode>]      print the report as a JSON document; <mode> selects
-                           "base" (default) or "rich" detail
+      --json               print the report as a JSON document instead of the
+                           plain-text report
   -V, --version            print the version number
   -h, --help               show this help
 
@@ -1201,14 +1195,9 @@ function splitLongOption(token) {
 function rejectValue(name, inline) {
   if (inline !== void 0) throw new UsageError(`option ${name} does not take a value`);
 }
-function jsonMode(mode = "base") {
-  if (mode !== "base" && mode !== "rich")
-    throw new UsageError(`invalid mode for --json: "${mode}" (expected "base" or "rich")`);
-  return mode;
-}
 var LONG_ALIAS = { "-h": "--help", "-v": "--verbose", "-V": "--version", "-t": "--tags" };
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null, verbose: false, json: null };
+  const opts = { dirs: [], tags: null, verbose: false, json: false };
   for (let i = 0; i < argv.length; i++) {
     const [raw, inline] = splitLongOption(argv[i]);
     const name = LONG_ALIAS[raw] ?? raw;
@@ -1224,7 +1213,8 @@ function parseArgs(argv) {
       rejectValue(raw, inline);
       opts.verbose = true;
     } else if (name === "--json") {
-      opts.json = jsonMode(inline);
+      rejectValue(raw, inline);
+      opts.json = true;
     } else if (name === "--tags") {
       const value = inline ?? argv[++i];
       if (!value) throw new UsageError(`missing value for ${raw}`);
@@ -1260,7 +1250,7 @@ async function main() {
     );
   }
   analyze(items, forwards, problems);
-  const clean = opts.json ? reportJson(items, forwards, problems, process3.cwd(), { mode: opts.json, version: packageVersion() }) : report(items, problems, process3.cwd(), { verbose: opts.verbose });
+  const clean = opts.json ? reportJson(items, forwards, problems, process3.cwd(), { version: packageVersion() }) : report(items, problems, process3.cwd(), { verbose: opts.verbose });
   process3.exit(clean ? 0 : 1);
 }
 function runCli() {
