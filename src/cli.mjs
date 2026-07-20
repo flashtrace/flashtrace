@@ -65,33 +65,62 @@ const LONG_ALIAS = {
   '-f': '--format',
 };
 
+function printHelp() {
+  console.log(HELP);
+  process.exit(0);
+}
+
+function printVersion() {
+  console.log(packageVersion());
+  process.exit(0);
+}
+
+function enableVerbose(opts) {
+  opts.verbose = true;
+}
+
+function selectJsonFormat(opts) {
+  opts.format = 'json';
+}
+
+// every option that never carries a value, mapped to the effect it has on the
+// parsed options; the printing ones end the process instead of returning
+const VALUELESS_OPTIONS = new Map([
+  ['--help', printHelp],
+  ['--version', printVersion],
+  ['--verbose', enableVerbose],
+  ['--json', selectJsonFormat],
+]);
+
+function setFormat(opts, raw, value) {
+  opts.format = reportFormat(raw, value);
+}
+
+function setTags(opts, raw, value) {
+  opts.tags = value.split(',').map((tag) => tag.trim()).filter(Boolean);
+}
+
+// every option that carries a value, either "="-attached or as the next
+// argument, mapped to the effect it has on the parsed options
+const VALUED_OPTIONS = new Map([
+  ['--format', setFormat],
+  ['--tags', setTags],
+]);
+
 function parseArgs(argv) {
   const opts = { dirs: [], tags: null, verbose: false, format: 'text' };
   for (let i = 0; i < argv.length; i++) {
     const [raw, inline] = splitLongOption(argv[i]);
     const name = LONG_ALIAS[raw] ?? raw;
-    if (name === '--help') {
+    const applyValuelessOption = VALUELESS_OPTIONS.get(name);
+    const applyValuedOption = VALUED_OPTIONS.get(name);
+    if (applyValuelessOption) {
       rejectValue(raw, inline);
-      console.log(HELP);
-      process.exit(0);
-    } else if (name === '--version') {
-      rejectValue(raw, inline);
-      console.log(packageVersion());
-      process.exit(0);
-    } else if (name === '--verbose') {
-      rejectValue(raw, inline);
-      opts.verbose = true;
-    } else if (name === '--json') {
-      rejectValue(raw, inline);
-      opts.format = 'json';
-    } else if (name === '--format') {
+      applyValuelessOption(opts);
+    } else if (applyValuedOption) {
       const value = inline ?? argv[++i];
       if (!value) throw new UsageError(`missing value for ${raw}`);
-      opts.format = reportFormat(raw, value);
-    } else if (name === '--tags') {
-      const value = inline ?? argv[++i];
-      if (!value) throw new UsageError(`missing value for ${raw}`);
-      opts.tags = value.split(',').map((s) => s.trim()).filter(Boolean);
+      applyValuedOption(opts, raw, value);
     } else if (raw.startsWith('-')) {
       throw new UsageError(`unknown option: ${raw}`);
     } else {
