@@ -7,7 +7,7 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
-      --json[=<mode>]      write the report as a JSON document; <mode> selects
+      --json[=<mode>]      print the report as a JSON document; <mode> selects
                            "base" (default) or "rich" detail
   -V, --version            print the version number
   -h, --help

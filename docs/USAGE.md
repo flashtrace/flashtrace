@@ -19,7 +19,7 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 |---|---|
 | `-t, --tags <t1,t2,...>` | Only import spec items carrying one of these tags; add `_` to also include untagged items. Code items are always kept. |
 | `-v, --verbose` | List every item with its coverage status and trace edges, not only the defective ones. See [Command line](command-line.md). |
-| `--json[=<mode>]` | Write the report as a JSON document instead of plain text, with `base` (default) or `rich` detail. See [JSON report](json-report.md). |
+| `--json[=<mode>]` | Print the report as a JSON document instead of plain text, with `base` (default) or `rich` detail. See [JSON report](json-report.md). |
 | `-V, --version` | Print the version number and exit. |
 | `-h, --help` | Show help. |
 
