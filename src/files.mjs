@@ -9,9 +9,9 @@ import { execFileSync } from 'node:child_process';
 
 import { UsageError } from './errors.mjs';
 import { CODE_EXT } from './languages.mjs';
+import { SPEC_EXT } from './parse-spec.mjs';
 
-export const SPEC_EXT = new Set(['.md', '.markdown']);
-export { CODE_EXT };
+export { CODE_EXT, SPEC_EXT };
 
 // git is looked up in fixed, non-user-writable install locations only, never
 // via PATH (writable PATH entries would allow binary planting).

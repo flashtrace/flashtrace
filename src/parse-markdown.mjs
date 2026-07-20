@@ -17,9 +17,13 @@
  *     (which folds into the following heading), is reported, not defined.
  *   - A line containing only `[<id> --> <id>]` (optionally backticked) forwards
  *     the first item's coverage obligation to the second (spaces optional).
+ *
+ * Only the Markdown spelling lives here; what a keyword's entries mean for an
+ * item is format-neutral and lives in src/spec-items.mjs.
  */
 
-import { FORWARD_SRC, ID_SRC, makeForward, makeId, parseCoverEntry, parseNeedEntry, newItem } from './ids.mjs';
+import { FORWARD_SRC, ID_SRC, makeForward, makeId, newItem } from './ids.mjs';
+import { KEYWORDS, applyKeyword, isKeyword } from './spec-items.mjs';
 
 const DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
@@ -31,7 +35,7 @@ const SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 // setext underline, and it only matters inside a table - under a paragraph the
 // setext underline still wins (CommonMark).
 const THEMATIC_BREAK_RE = /^ {0,3}-{3,}[ \t]*$/;
-const KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
+const KEYWORD_RE = new RegExp(String.raw`^(${KEYWORDS.join('|')}):\s*((?:\S.*)?)$`);
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 const DELIMITER_CELL_RE = /^:?-+:?$/;
 // group 1 is the optional backtick; the \1 backreference keeps it balanced,
@@ -238,8 +242,6 @@ const continuesTable = (line) =>
 // single-cell row - its text fills the first column
 const rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
 
-const isKeywordCell = (cell) => cell === 'Needs' || cell === 'Covers' || cell === 'Tags';
-
 // Mark every line belonging to a table so heading detection can rule them out:
 // a table row above an underline stays a row. While scanning, flag a cell that
 // holds nothing but a backticked ID - an item cannot be defined inside a table.
@@ -254,7 +256,7 @@ function scanTables(lines, file, problems) {
     }
     const keywordColumns = new Set();
     rowCells(lines[j]).forEach((cell, col) => {
-      if (isKeywordCell(cell)) keywordColumns.add(col);
+      if (isKeyword(cell)) keywordColumns.add(col);
     });
     const start = j;
     let end = j + 1;
@@ -289,7 +291,7 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
   if (!inTable[j] || (j > 0 && inTable[j - 1])) return null;
   const columns = [];
   rowCells(lines[j]).forEach((cell, col) => {
-    if (isKeywordCell(cell)) columns.push([col, cell]);
+    if (isKeyword(cell)) columns.push([col, cell]);
   });
   if (columns.length === 0) return null;
   j++; // the delimiter row
@@ -310,33 +312,6 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
     }
   }
   return j;
-}
-
-// `source` names where the entries were read from - the keyword line's list
-// or the table column the cell sits in - so a problem report points at the
-// right spot. Each entry is a { value, line, character } record locating it in
-// the source, so an invalid one is reported at its own position.
-function applyKeyword(item, keyword, entries, file, problems, source) {
-  if (keyword === 'Tags') {
-    for (const entry of entries) item.tags.push(entry.value);
-    return;
-  }
-  const target = keyword === 'Needs' ? 'needs' : 'covers';
-  // Needs and Covers both accept the short form (impl, impl:name, impl#2),
-  // completed from the item's own [group/]name and revision; Needs may demand
-  // a wildcard revision, Covers stay concrete.
-  const parse = keyword === 'Needs' ? parseNeedEntry : parseCoverEntry;
-  for (const entry of entries) {
-    const id = parse(entry.value, item.id);
-    if (id) item[target].push(id);
-    else
-      problems.push({
-        file,
-        line: entry.line,
-        character: entry.character,
-        message: `invalid ID "${entry.value}" in ${source}`,
-      });
-  }
 }
 
 // consume the item's body (description and keyword lines) starting at `start`;

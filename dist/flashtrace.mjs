@@ -162,70 +162,6 @@ var BY_EXT = {
 var CODE_EXT = new Set(Object.keys(BY_EXT));
 var grammarFor = (ext) => BY_EXT[ext] ?? null;
 
-// src/files.mjs
-var SPEC_EXT = /* @__PURE__ */ new Set([".md", ".markdown"]);
-var GIT_LOCATIONS = process.platform === "win32" ? [
-  String.raw`C:\Program Files\Git\cmd\git.exe`,
-  String.raw`C:\Program Files (x86)\Git\cmd\git.exe`
-] : ["/usr/bin/git", "/bin/git"];
-var gitBin;
-function findGit() {
-  if (gitBin === void 0) {
-    gitBin = GIT_LOCATIONS.find((p) => existsSync(p)) ?? null;
-  }
-  return gitBin;
-}
-function compareStrings(a, b) {
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
-}
-async function walk(dir, out) {
-  let entries;
-  try {
-    entries = await fs.readdir(dir, { withFileTypes: true });
-  } catch {
-    return out;
-  }
-  for (const entry of entries) {
-    if (entry.name === ".git" || entry.name === "node_modules") continue;
-    const entryPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) await walk(entryPath, out);
-    else if (entry.isFile()) out.push(entryPath);
-  }
-  return out;
-}
-async function collectFiles(dirs) {
-  const files = /* @__PURE__ */ new Set();
-  for (const dir of dirs) {
-    const abs = path.resolve(dir);
-    const stats = await fs.stat(abs).catch(() => null);
-    if (!stats) throw new UsageError(`input path does not exist: ${dir}`);
-    if (stats.isFile()) {
-      files.add(abs);
-      continue;
-    }
-    let list = null;
-    const git = findGit();
-    try {
-      if (!git) throw new Error("git not found");
-      const out = execFileSync(
-        git,
-        ["-C", abs, "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
-        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
-      );
-      list = out.split("\0").filter(Boolean).map((f) => path.join(abs, f));
-    } catch {
-      list = await walk(abs, []);
-    }
-    for (const file of list) files.add(file);
-  }
-  return [...files].filter((file) => {
-    const ext = path.extname(file).toLowerCase();
-    return SPEC_EXT.has(ext) || CODE_EXT.has(ext);
-  }).sort(compareStrings);
-}
-
 // src/ids.mjs
 var SEGMENT_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
 var REV_SRC = String.raw`\d+(?:\.\d+){0,2}`;
@@ -305,12 +241,35 @@ function newItem(id, origin, file, line, character) {
   };
 }
 
+// src/spec-items.mjs
+var KEYWORDS = ["Needs", "Covers", "Tags"];
+var isKeyword = (text) => KEYWORDS.includes(text);
+function applyKeyword(item, keyword, entries, file, problems, source) {
+  if (keyword === "Tags") {
+    for (const entry of entries) item.tags.push(entry.value);
+    return;
+  }
+  const target = keyword === "Needs" ? "needs" : "covers";
+  const parse = keyword === "Needs" ? parseNeedEntry : parseCoverEntry;
+  for (const entry of entries) {
+    const id = parse(entry.value, item.id);
+    if (id) item[target].push(id);
+    else
+      problems.push({
+        file,
+        line: entry.line,
+        character: entry.character,
+        message: `invalid ID "${entry.value}" in ${source}`
+      });
+  }
+}
+
 // src/parse-markdown.mjs
 var DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
 var SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 var THEMATIC_BREAK_RE = /^ {0,3}-{3,}[ \t]*$/;
-var KEYWORD_RE = /^(Needs|Covers|Tags):\s*((?:\S.*)?)$/;
+var KEYWORD_RE = new RegExp(String.raw`^(${KEYWORDS.join("|")}):\s*((?:\S.*)?)$`);
 var BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 var DELIMITER_CELL_RE = /^:?-+:?$/;
 var FORWARD_LINE_RE = new RegExp(String.raw`^\s*(\`?)${FORWARD_SRC}\1\s*$`);
@@ -423,7 +382,6 @@ function tableStartsAt(lines, j) {
 }
 var continuesTable = (line) => line.trim() !== "" && !HEADING_RE.test(line) && !THEMATIC_BREAK_RE.test(line) && (line.includes("|") || SETEXT_UNDERLINE_RE.test(line) || DEFINITION_RE.test(line));
 var rowCellsInTable = (line) => rowCells(line) ?? [line.trim()];
-var isKeywordCell = (cell) => cell === "Needs" || cell === "Covers" || cell === "Tags";
 function scanTables(lines, file, problems) {
   const inTable = new Array(lines.length).fill(false);
   let j = 0;
@@ -434,7 +392,7 @@ function scanTables(lines, file, problems) {
     }
     const keywordColumns = /* @__PURE__ */ new Set();
     rowCells(lines[j]).forEach((cell, col) => {
-      if (isKeywordCell(cell)) keywordColumns.add(col);
+      if (isKeyword(cell)) keywordColumns.add(col);
     });
     const start = j;
     let end = j + 1;
@@ -462,7 +420,7 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
   if (!inTable[j] || j > 0 && inTable[j - 1]) return null;
   const columns = [];
   rowCells(lines[j]).forEach((cell, col) => {
-    if (isKeywordCell(cell)) columns.push([col, cell]);
+    if (isKeyword(cell)) columns.push([col, cell]);
   });
   if (columns.length === 0) return null;
   j++;
@@ -483,25 +441,6 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
     }
   }
   return j;
-}
-function applyKeyword(item, keyword, entries, file, problems, source) {
-  if (keyword === "Tags") {
-    for (const entry of entries) item.tags.push(entry.value);
-    return;
-  }
-  const target = keyword === "Needs" ? "needs" : "covers";
-  const parse = keyword === "Needs" ? parseNeedEntry : parseCoverEntry;
-  for (const entry of entries) {
-    const id = parse(entry.value, item.id);
-    if (id) item[target].push(id);
-    else
-      problems.push({
-        file,
-        line: entry.line,
-        character: entry.character,
-        message: `invalid ID "${entry.value}" in ${source}`
-      });
-  }
 }
 function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
   const { inTable, opensHeading } = boundary;
@@ -573,6 +512,77 @@ function parseMarkdown(file, text, problems, forwards = []) {
     items.push(item);
   }
   return items;
+}
+
+// src/parse-spec.mjs
+var BY_EXT2 = {
+  ".md": parseMarkdown,
+  ".markdown": parseMarkdown
+};
+var SPEC_EXT = new Set(Object.keys(BY_EXT2));
+var specParserFor = (ext) => BY_EXT2[ext] ?? null;
+
+// src/files.mjs
+var GIT_LOCATIONS = process.platform === "win32" ? [
+  String.raw`C:\Program Files\Git\cmd\git.exe`,
+  String.raw`C:\Program Files (x86)\Git\cmd\git.exe`
+] : ["/usr/bin/git", "/bin/git"];
+var gitBin;
+function findGit() {
+  if (gitBin === void 0) {
+    gitBin = GIT_LOCATIONS.find((p) => existsSync(p)) ?? null;
+  }
+  return gitBin;
+}
+function compareStrings(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+async function walk(dir, out) {
+  let entries;
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
+    if (entry.name === ".git" || entry.name === "node_modules") continue;
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) await walk(entryPath, out);
+    else if (entry.isFile()) out.push(entryPath);
+  }
+  return out;
+}
+async function collectFiles(dirs) {
+  const files = /* @__PURE__ */ new Set();
+  for (const dir of dirs) {
+    const abs = path.resolve(dir);
+    const stats = await fs.stat(abs).catch(() => null);
+    if (!stats) throw new UsageError(`input path does not exist: ${dir}`);
+    if (stats.isFile()) {
+      files.add(abs);
+      continue;
+    }
+    let list = null;
+    const git = findGit();
+    try {
+      if (!git) throw new Error("git not found");
+      const out = execFileSync(
+        git,
+        ["-C", abs, "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+      );
+      list = out.split("\0").filter(Boolean).map((f) => path.join(abs, f));
+    } catch {
+      list = await walk(abs, []);
+    }
+    for (const file of list) files.add(file);
+  }
+  return [...files].filter((file) => {
+    const ext = path.extname(file).toLowerCase();
+    return SPEC_EXT.has(ext) || CODE_EXT.has(ext);
+  }).sort(compareStrings);
 }
 
 // src/parse-code.mjs
@@ -1345,9 +1355,8 @@ async function main() {
   for (const file of files) {
     const text = await fs2.readFile(file, "utf8");
     const ext = path5.extname(file).toLowerCase();
-    items.push(
-      ...SPEC_EXT.has(ext) ? parseMarkdown(file, text, problems, forwards) : parseCode(file, text, problems, forwards)
-    );
+    const parse = specParserFor(ext) ?? parseCode;
+    items.push(...parse(file, text, problems, forwards));
   }
   if (opts.tags) {
     const wantUntagged = opts.tags.includes("_");
