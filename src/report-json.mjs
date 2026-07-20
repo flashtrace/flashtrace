@@ -76,11 +76,9 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   const { byId, matchesOf, wantedBy } = buildResolver(items);
   const forwardedFrom = buildForwardedFrom(items, byId);
 
-  // a need's resolution: the defined IDs matching it, ascending by revision
-  const resolvedTo = (ref) =>
-    matchesOf(ref)
-      .slice()
-      .sort((a, b) => compareRev(revOf(a), revOf(b)));
+  // a need's resolution: the defined IDs matching it, ascending by revision.
+  // matchesOf filters, so it already hands back an array of its own to sort.
+  const resolvedTo = (ref) => matchesOf(ref).sort((a, b) => compareRev(revOf(a), revOf(b)));
 
   // both inverse edges serialize as located item references, sorted alike
   const itemRefs = (related) =>

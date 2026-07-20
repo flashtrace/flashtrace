@@ -376,6 +376,33 @@ test('a document carries every field the schema marks required', () => {
   hasRequired(document.summary, schema.$defs.summary, 'summary');
 });
 
+test('building the document twice over the same items yields the same bytes', () => {
+  // resolvedTo sorts the array matchesOf hands back in place; that is only safe
+  // while matchesOf keeps returning a fresh one, so pin the guarantee here
+  const problems = [];
+  const forwards = [];
+  const items = [
+    ...parseMarkdown(
+      'docs/spec.md',
+      ['`req:a#1`', '', 'Needs: impl:a#2.x', '', '`req:b#1`', '', 'Needs: impl:a#2.x'].join('\n'),
+      problems,
+      forwards,
+    ),
+    ...parseCode('src/impl.js', ['// [impl:a#2.10]', '// [impl:a#2.2]'].join('\n'), problems, forwards),
+  ];
+  analyze(items, forwards, problems);
+
+  const first = buildReportDocument(items, forwards, problems, '', { version: '9.9.9' });
+  const second = buildReportDocument(items, forwards, problems, '', { version: '9.9.9' });
+  assert.equal(JSON.stringify(first, null, 2), JSON.stringify(second, null, 2));
+  // and the wildcard still resolves in ascending revision order both times
+  for (const document of [first, second])
+    assert.deepEqual(itemOf(document, 'req:a#1').needs[0].resolvedTo, [
+      'impl:a#2.2',
+      'impl:a#2.10',
+    ]);
+});
+
 test('items, forwards and problems are sorted by file, line, character', () => {
   const document = build({
     md: ['`req:b#1`', '', '`req:a#1`'],

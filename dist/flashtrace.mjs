@@ -1180,7 +1180,7 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   };
   const { byId, matchesOf, wantedBy } = buildResolver(items);
   const forwardedFrom = buildForwardedFrom(items, byId);
-  const resolvedTo = (ref) => matchesOf(ref).slice().sort((a, b) => compareRev(revOf(a), revOf(b)));
+  const resolvedTo = (ref) => matchesOf(ref).sort((a, b) => compareRev(revOf(a), revOf(b)));
   const itemRefs = (related) => [...related].map((other) => ({ id: other.id, ...location(other) })).sort(byLocation);
   const itemDocument = (item) => {
     const coverStatus = coverStatusOf(item);
