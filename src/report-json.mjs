@@ -13,7 +13,7 @@
 
 import path from 'node:path';
 
-import { buildResolver } from './analyze.mjs';
+import { buildResolver, isClean, summarize } from './analyze.mjs';
 import { compareRev, idMatches, revOf } from './ids.mjs';
 
 // 0 marks the format unstable; it becomes 1 with flashtrace 1.0.0
@@ -35,19 +35,6 @@ function coverStatus(item, coverId, byId) {
     : 'unwanted';
 }
 
-// item -> the items whose needs resolve to it (wildcard needs included), the
-// data behind an item's wantedBy. Mirrors the verbose report's edge so the two
-// cannot drift.
-function buildWantedBy(items, byId, matchesOf) {
-  const wantedBy = new Map();
-  for (const item of items)
-    for (const need of item.needs)
-      for (const id of matchesOf(need))
-        for (const provider of byId.get(id))
-          (wantedBy.get(provider) ?? wantedBy.set(provider, new Set()).get(provider)).add(item);
-  return wantedBy;
-}
-
 // defect record in documented key order: existingRevisions, when present, sits
 // before the message
 function defectDocument(defect) {
@@ -67,8 +54,7 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     return a.character - b.character;
   };
 
-  const { byId, matchesOf } = buildResolver(items);
-  const wantedBy = buildWantedBy(items, byId, matchesOf);
+  const { byId, matchesOf, wantedBy } = buildResolver(items);
 
   // a need's resolution: the defined IDs matching it, ascending by revision
   const resolvedTo = (ref) =>
@@ -106,29 +92,17 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     .map((problem) => ({ ...location(problem), message: problem.message }))
     .sort(byLocation);
 
-  const specItems = items.filter((item) => item.origin === 'spec').length;
-  const defectiveItems = items.filter((item) => item.defects.length > 0).length;
-  const shallowCoveredItems = items.filter(
-    (item) => item.defects.length === 0 && !item.deepCovered,
-  ).length;
-  const ok = defectiveItems === 0 && problems.length === 0;
+  // summarize returns the counts already in the document's key order
+  const summary = summarize(items, problems);
 
   return {
     schemaVersion: SCHEMA_VERSION,
     flashtrace: version,
-    ok,
+    ok: isClean(summary),
     items: itemDocuments,
     forwards: forwards.map(forwardDocument).sort(byLocation),
     problems: problemDocuments,
-    summary: {
-      items: items.length,
-      specItems,
-      codeItems: items.length - specItems,
-      okItems: items.length - defectiveItems,
-      defectiveItems,
-      shallowCoveredItems,
-      problems: problems.length,
-    },
+    summary,
   };
 }
 

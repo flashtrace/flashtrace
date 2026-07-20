@@ -153,16 +153,61 @@ function groupIdsByKey(byId) {
   return idsByKey;
 }
 
+// item -> the items whose needs resolve to it, wildcard needs included: the
+// inverse of need resolution. Note this counts declared needs only - an item
+// wanted solely as a forwarding target has no entry here (see isNeeded, which
+// does count forwarding demand).
+function buildWantedBy(items, byId, matchesOf) {
+  const wantedBy = new Map();
+  for (const item of items)
+    for (const need of item.needs)
+      for (const id of matchesOf(need))
+        for (const provider of byId.get(id))
+          (wantedBy.get(provider) ?? wantedBy.set(provider, new Set()).get(provider)).add(item);
+  return wantedBy;
+}
+
 // items grouped by ID plus need resolution over them: matchesOf(ref) returns
-// the defined IDs satisfying a (possibly wildcard) reference. Shared with the
-// verbose report so rendered edges cannot drift from what analyze checked.
+// the defined IDs satisfying a (possibly wildcard) reference, wantedBy the
+// inverse edge. Shared with both reports so what they render cannot drift from
+// what analyze checked.
 export function buildResolver(items) {
   const byId = new Map();
   for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  return { byId, matchesOf };
+  // only the reports walk the inverse edge, so pay for it when one asks
+  let wantedBy = null;
+  return {
+    byId,
+    matchesOf,
+    get wantedBy() {
+      return (wantedBy ??= buildWantedBy(items, byId, matchesOf));
+    },
+  };
 }
+
+// the counts both reports show, in the key order the JSON document uses.
+// Derived here alone so the two reports cannot disagree on them.
+export function summarize(items, problems) {
+  const specItems = items.filter((item) => item.origin === 'spec').length;
+  const defectiveItems = items.filter((item) => item.defects.length > 0).length;
+  const shallowCoveredItems = items.filter(
+    (item) => item.defects.length === 0 && !item.deepCovered,
+  ).length;
+  return {
+    items: items.length,
+    specItems,
+    codeItems: items.length - specItems,
+    okItems: items.length - defectiveItems,
+    defectiveItems,
+    shallowCoveredItems,
+    problems: problems.length,
+  };
+}
+
+// the run verdict both reports end on, and the exit code behind it
+export const isClean = (summary) => summary.defectiveItems === 0 && summary.problems === 0;
 
 // split all need references into exact IDs (fast membership) and wildcard
 // patterns (matched individually)

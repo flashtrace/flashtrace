@@ -928,13 +928,46 @@ function groupIdsByKey(byId) {
     (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
   return idsByKey;
 }
+function buildWantedBy(items, byId, matchesOf) {
+  const wantedBy = /* @__PURE__ */ new Map();
+  for (const item of items)
+    for (const need of item.needs)
+      for (const id of matchesOf(need))
+        for (const provider of byId.get(id))
+          (wantedBy.get(provider) ?? wantedBy.set(provider, /* @__PURE__ */ new Set()).get(provider)).add(item);
+  return wantedBy;
+}
 function buildResolver(items) {
   const byId = /* @__PURE__ */ new Map();
   for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  return { byId, matchesOf };
+  let wantedBy = null;
+  return {
+    byId,
+    matchesOf,
+    get wantedBy() {
+      return wantedBy ??= buildWantedBy(items, byId, matchesOf);
+    }
+  };
 }
+function summarize(items, problems) {
+  const specItems = items.filter((item) => item.origin === "spec").length;
+  const defectiveItems = items.filter((item) => item.defects.length > 0).length;
+  const shallowCoveredItems = items.filter(
+    (item) => item.defects.length === 0 && !item.deepCovered
+  ).length;
+  return {
+    items: items.length,
+    specItems,
+    codeItems: items.length - specItems,
+    okItems: items.length - defectiveItems,
+    defectiveItems,
+    shallowCoveredItems,
+    problems: problems.length
+  };
+}
+var isClean = (summary) => summary.defectiveItems === 0 && summary.problems === 0;
 function splitNeeds(items) {
   const exact = /* @__PURE__ */ new Set();
   const wildcard = [];
@@ -1001,15 +1034,6 @@ function statusOf(item, style) {
   if (!item.deepCovered) return { mark: style.yellow("~"), tag: style.yellow("[shallow-covered]") };
   return { mark: style.green("\u2714"), tag: style.green("[deep-covered]") };
 }
-function buildWantedBy(items, byId, matchesOf) {
-  const wantedBy = /* @__PURE__ */ new Map();
-  for (const item of items)
-    for (const need of item.needs)
-      for (const id of matchesOf(need))
-        for (const provider of byId.get(id))
-          (wantedBy.get(provider) ?? wantedBy.set(provider, /* @__PURE__ */ new Set()).get(provider)).add(item);
-  return wantedBy;
-}
 function byFileLine(a, b) {
   if (a.file !== b.file) return a.file < b.file ? -1 : 1;
   return a.line - b.line;
@@ -1056,8 +1080,7 @@ function edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation) {
   return lines;
 }
 function renderVerbose(items, out, style, dimLocation) {
-  const { byId, matchesOf } = buildResolver(items);
-  const wantedBy = buildWantedBy(items, byId, matchesOf);
+  const { byId, matchesOf, wantedBy } = buildResolver(items);
   const sorted = [...items].sort(byFileLine);
   let prevFile = null;
   for (const item of sorted) {
@@ -1083,19 +1106,16 @@ function renderDefective(defective, out, style, dimLocation) {
     out.push("");
   }
 }
-function renderSummary(items, defective, problems, out, style) {
-  const okCount = items.length - defective.length;
-  const shallowCount = items.filter((item) => item.defects.length === 0 && !item.deepCovered).length;
-  const specCount = items.filter((item) => item.origin === "spec").length;
-  const originBreakdown = style.dim(`(${specCount} from specs, ${items.length - specCount} from code)`);
+function renderSummary(summary, out, style) {
+  const originBreakdown = style.dim(`(${summary.specItems} from specs, ${summary.codeItems} from code)`);
   out.push(
     style.bold("Summary"),
-    `  items       ${items.length}  ${originBreakdown}`,
-    `  ok          ${style.green(String(okCount))}`,
-    `  defective   ${defective.length ? style.red(String(defective.length)) : "0"}`
+    `  items       ${summary.items}  ${originBreakdown}`,
+    `  ok          ${style.green(String(summary.okItems))}`,
+    `  defective   ${summary.defectiveItems ? style.red(String(summary.defectiveItems)) : "0"}`
   );
-  if (shallowCount) out.push("  " + style.dim(`of the ok items, ${shallowCount} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (problems.length) out.push(`  problems    ${style.yellow(String(problems.length))}`);
+  if (summary.shallowCoveredItems) out.push("  " + style.dim(`of the ok items, ${summary.shallowCoveredItems} are only shallow-covered (an item further down the tracing chain is defective)`));
+  if (summary.problems) out.push(`  problems    ${style.yellow(String(summary.problems))}`);
   out.push("");
 }
 function report(items, problems, cwd, opts = {}) {
@@ -1103,16 +1123,16 @@ function report(items, problems, cwd, opts = {}) {
   const style = makeStyler();
   const relativePath = (file) => path3.relative(cwd, file) || file;
   const dimLocation = (file, line) => style.dim(`${relativePath(file)}:${line}`);
-  const defective = items.filter((item) => item.defects.length > 0);
+  const summary = summarize(items, problems);
   const out = [];
   if (verbose) renderVerbose(items, out, style, dimLocation);
-  else renderDefective(defective, out, style, dimLocation);
+  else renderDefective(items.filter((item) => item.defects.length > 0), out, style, dimLocation);
   for (const problem of problems) {
     out.push(`${style.yellow("\u26A0")} ${problem.message}  ${dimLocation(problem.file, problem.line)}`);
   }
   if (problems.length) out.push("");
-  renderSummary(items, defective, problems, out, style);
-  const clean = defective.length === 0 && problems.length === 0;
+  renderSummary(summary, out, style);
+  const clean = isClean(summary);
   out.push(clean ? style.green(style.bold("ok")) : style.red(style.bold("not ok")));
   console.log(out.join("\n"));
   return clean;
@@ -1130,15 +1150,6 @@ function coverStatus(item, coverId, byId) {
   if (!targets) return "orphaned";
   return targets.some((target) => target.needs.some((need) => idMatches(need, item.id))) ? "valid" : "unwanted";
 }
-function buildWantedBy2(items, byId, matchesOf) {
-  const wantedBy = /* @__PURE__ */ new Map();
-  for (const item of items)
-    for (const need of item.needs)
-      for (const id of matchesOf(need))
-        for (const provider of byId.get(id))
-          (wantedBy.get(provider) ?? wantedBy.set(provider, /* @__PURE__ */ new Set()).get(provider)).add(item);
-  return wantedBy;
-}
 function defectDocument(defect) {
   const out = { kind: defect.kind, ref: defect.ref };
   if (defect.existingRevisions) out.existingRevisions = defect.existingRevisions;
@@ -1154,8 +1165,7 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     if (a.line !== b.line) return a.line - b.line;
     return a.character - b.character;
   };
-  const { byId, matchesOf } = buildResolver(items);
-  const wantedBy = buildWantedBy2(items, byId, matchesOf);
+  const { byId, matchesOf, wantedBy } = buildResolver(items);
   const resolvedTo = (ref) => matchesOf(ref).slice().sort((a, b) => compareRev(revOf(a), revOf(b)));
   const wantedByDocument = (item) => [...wantedBy.get(item) ?? []].map((wanter) => ({ id: wanter.id, ...location(wanter) })).sort(byLocation);
   const itemDocument = (item) => ({
@@ -1178,28 +1188,15 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   };
   const itemDocuments = items.map(itemDocument).sort(byLocation);
   const problemDocuments = problems.map((problem) => ({ ...location(problem), message: problem.message })).sort(byLocation);
-  const specItems = items.filter((item) => item.origin === "spec").length;
-  const defectiveItems = items.filter((item) => item.defects.length > 0).length;
-  const shallowCoveredItems = items.filter(
-    (item) => item.defects.length === 0 && !item.deepCovered
-  ).length;
-  const ok = defectiveItems === 0 && problems.length === 0;
+  const summary = summarize(items, problems);
   return {
     schemaVersion: SCHEMA_VERSION,
     flashtrace: version,
-    ok,
+    ok: isClean(summary),
     items: itemDocuments,
     forwards: forwards.map(forwardDocument).sort(byLocation),
     problems: problemDocuments,
-    summary: {
-      items: items.length,
-      specItems,
-      codeItems: items.length - specItems,
-      okItems: items.length - defectiveItems,
-      defectiveItems,
-      shallowCoveredItems,
-      problems: problems.length
-    }
+    summary
   };
 }
 function reportJson(items, forwards, problems, cwd, opts = {}) {
