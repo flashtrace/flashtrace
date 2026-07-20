@@ -947,7 +947,8 @@ function buildResolver(items) {
     byId,
     matchesOf,
     get wantedBy() {
-      return wantedBy ??= buildWantedBy(items, byId, matchesOf);
+      wantedBy ??= buildWantedBy(items, byId, matchesOf);
+      return wantedBy;
     }
   };
 }
