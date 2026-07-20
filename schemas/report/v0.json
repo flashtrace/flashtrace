@@ -60,10 +60,10 @@
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "title": {
-          "description": "The heading above a Markdown item; null if there is none and always null for code items.",
+          "description": "The heading above a spec item; null if there is none and always null for code items.",
           "type": ["string", "null"]
         },
-        "origin": { "enum": ["markdown", "code"] },
+        "origin": { "enum": ["spec", "code"] },
         "tags": {
           "description": "The item's Tags entries; always [] for code items.",
           "type": "array",
@@ -192,10 +192,10 @@
     },
     "summary": {
       "type": "object",
-      "required": ["items", "markdownItems", "codeItems", "okItems", "defectiveItems", "shallowCoveredItems", "problems"],
+      "required": ["items", "specItems", "codeItems", "okItems", "defectiveItems", "shallowCoveredItems", "problems"],
       "properties": {
         "items": { "type": "integer", "minimum": 0 },
-        "markdownItems": { "type": "integer", "minimum": 0 },
+        "specItems": { "type": "integer", "minimum": 0 },
         "codeItems": { "type": "integer", "minimum": 0 },
         "okItems": {
           "description": "Items without defects; items - defectiveItems.",

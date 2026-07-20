@@ -138,7 +138,7 @@
     {
       "id": "req:web/dashboard#1",
       "title": "Web dashboard",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [
         "web"
       ],
@@ -180,7 +180,7 @@
     {
       "id": "req:api/metrics#1",
       "title": "Metrics API",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [
         "web",
         "data"
@@ -211,7 +211,7 @@
     {
       "id": "req:data/aggregation#1",
       "title": "Metrics aggregation",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [
         "data"
       ],
@@ -235,7 +235,7 @@
     {
       "id": "doc:web/style-guide#1",
       "title": "Style guide",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [
         "guide"
       ],
@@ -259,7 +259,7 @@
     {
       "id": "doc:web/color-palette#1",
       "title": "Color palette",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [
         "guide"
       ],
@@ -307,7 +307,7 @@
   "problems": [],
   "summary": {
     "items": 12,
-    "markdownItems": 5,
+    "specItems": 5,
     "codeItems": 7,
     "okItems": 12,
     "defectiveItems": 0,

@@ -1134,7 +1134,7 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   };
   const itemDocuments = items.map(itemDocument).sort(byLocation);
   const problemDocuments = problems.map((problem) => ({ ...location(problem), message: problem.message })).sort(byLocation);
-  const markdownItems = items.filter((item) => item.origin === "markdown").length;
+  const specItems = items.filter((item) => item.origin === "spec").length;
   const defectiveItems = items.filter((item) => item.defects.length > 0).length;
   const shallowCoveredItems = items.filter(
     (item) => item.defects.length === 0 && !item.deepCovered
@@ -1149,8 +1149,8 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     problems: problemDocuments,
     summary: {
       items: items.length,
-      markdownItems,
-      codeItems: items.length - markdownItems,
+      specItems,
+      codeItems: items.length - specItems,
       okItems: items.length - defectiveItems,
       defectiveItems,
       shallowCoveredItems,

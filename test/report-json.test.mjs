@@ -41,7 +41,7 @@ test('document: envelope, ordering and a resolved need', () => {
   assert.deepEqual(req, {
     id: 'req:a#1',
     title: null,
-    origin: 'markdown',
+    origin: 'spec',
     tags: [],
     file: 'docs/spec.md',
     line: 1,
@@ -56,7 +56,7 @@ test('document: envelope, ordering and a resolved need', () => {
 
   assert.deepEqual(doc.summary, {
     items: 2,
-    markdownItems: 1,
+    specItems: 1,
     codeItems: 1,
     okItems: 2,
     defectiveItems: 0,

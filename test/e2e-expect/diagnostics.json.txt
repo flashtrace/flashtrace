@@ -6,7 +6,7 @@
     {
       "id": "feat:alpha#1",
       "title": "Alpha feature",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 3,
@@ -28,7 +28,7 @@
     {
       "id": "req:alpha#1",
       "title": "Alpha requirement",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 12,
@@ -61,7 +61,7 @@
     {
       "id": "req:beta#1",
       "title": "Beta requirement",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 21,
@@ -87,7 +87,7 @@
     {
       "id": "req:gamma#1",
       "title": "Gamma requirement",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 29,
@@ -113,7 +113,7 @@
     {
       "id": "feat:gamma#1",
       "title": "Gamma feature",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 37,
@@ -128,7 +128,7 @@
     {
       "id": "req:delta#1",
       "title": "Delta requirement",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 43,
@@ -157,7 +157,7 @@
     {
       "id": "req:epsilon#1",
       "title": "Epsilon requirement",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 52,
@@ -178,7 +178,7 @@
     {
       "id": "req:epsilon#1",
       "title": "Epsilon requirement (defined again)",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 58,
@@ -199,7 +199,7 @@
     {
       "id": "req:zeta#1",
       "title": "Zeta requirement",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 64,
@@ -220,7 +220,7 @@
     {
       "id": "dsn:zeta#1",
       "title": "Zeta design",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 74,
@@ -235,7 +235,7 @@
     {
       "id": "req:eta#1",
       "title": "Eta requirement",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 80,
@@ -250,7 +250,7 @@
     {
       "id": "req:theta#1",
       "title": "Theta requirement",
-      "origin": "markdown",
+      "origin": "spec",
       "tags": [],
       "file": "spec.md",
       "line": 89,
@@ -379,7 +379,7 @@
   ],
   "summary": {
     "items": 14,
-    "markdownItems": 12,
+    "specItems": 12,
     "codeItems": 2,
     "okItems": 5,
     "defectiveItems": 9,
