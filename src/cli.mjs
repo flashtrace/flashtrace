@@ -3,7 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { UsageError } from './errors.mjs';
-import { MD_EXT, collectFiles } from './files.mjs';
+import { SPEC_EXT, collectFiles } from './files.mjs';
 import { parseMarkdown } from './parse-markdown.mjs';
 import { parseCode } from './parse-code.mjs';
 import { analyze } from './analyze.mjs';
@@ -16,7 +16,7 @@ Traces requirement coverage between Markdown specifications and source code
 by git are excluded.
 
 Options:
-  -t, --tags <t1,t2,...>   only import markdown items carrying one of these
+  -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones
@@ -87,7 +87,7 @@ async function main() {
     const text = await fs.readFile(file, 'utf8');
     const ext = path.extname(file).toLowerCase();
     items.push(
-      ...(MD_EXT.has(ext)
+      ...(SPEC_EXT.has(ext)
         ? parseMarkdown(file, text, problems, forwards)
         : parseCode(file, text, problems, forwards)),
     );

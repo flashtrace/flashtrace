@@ -3,7 +3,7 @@
 ```
 flashtrace [options] [directory-or-file ...]     # defaults to "."
 
-  -t, --tags <t1,t2,...>   import only Markdown items carrying one of these
+  -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones

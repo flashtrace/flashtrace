@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { UsageError } from './errors.mjs';
 import { CODE_EXT } from './languages.mjs';
 
-export const MD_EXT = new Set(['.md', '.markdown']);
+export const SPEC_EXT = new Set(['.md', '.markdown']);
 export { CODE_EXT };
 
 // git is looked up in fixed, non-user-writable install locations only, never
@@ -82,7 +82,7 @@ export async function collectFiles(dirs) {
   return [...files]
     .filter((file) => {
       const ext = path.extname(file).toLowerCase();
-      return MD_EXT.has(ext) || CODE_EXT.has(ext);
+      return SPEC_EXT.has(ext) || CODE_EXT.has(ext);
     })
     .sort(compareStrings);
 }

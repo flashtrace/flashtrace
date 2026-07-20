@@ -5,7 +5,7 @@
     needs impl:auth/login#1  ✔ login.ts:1
 
 Summary
-  items       2  (1 from markdown, 1 from code)
+  items       2  (1 from specs, 1 from code)
   ok          2
   defective   0
 

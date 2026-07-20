@@ -129,7 +129,7 @@ export function newItem(id, origin, file, line, character) {
     id,
     key: keyOf(id),
     revision: revOf(id),
-    origin, // 'markdown' | 'code'
+    origin, // 'spec' | 'code'
     file,
     line,
     character, // 1-based column of the first character of the defining construct

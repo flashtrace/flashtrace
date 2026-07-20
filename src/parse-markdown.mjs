@@ -417,7 +417,7 @@ export function parseMarkdown(file, text, problems, forwards = []) {
       i++;
       continue;
     }
-    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), 'markdown', file, i + 1, firstNonBlankColumn(lines[i]));
+    const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), 'spec', file, i + 1, firstNonBlankColumn(lines[i]));
     item.title = titleAbove(lines, inTable, i);
     i = parseItemBody(lines, boundary, i + 1, item, file, problems, forwards);
     items.push(item);
