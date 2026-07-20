@@ -44,7 +44,7 @@
       "forwardsTo": null,
       "defects": [
         {
-          "kind": "uncovered",
+          "kind": "uncovered-need",
           "ref": "impl:alpha#1",
           "message": "uncovered: needs impl:alpha#1, which does not exist"
         }
@@ -77,7 +77,7 @@
       "forwardsTo": null,
       "defects": [
         {
-          "kind": "orphaned",
+          "kind": "orphaned-cover",
           "ref": "feat:beta#1",
           "message": "orphaned: covers feat:beta#1, which does not exist"
         }
@@ -103,7 +103,7 @@
       "forwardsTo": null,
       "defects": [
         {
-          "kind": "unwanted",
+          "kind": "unwanted-cover",
           "ref": "feat:gamma#1",
           "message": "unwanted: covers feat:gamma#1, but feat:gamma#1 does not need req:gamma#1"
         }
@@ -144,7 +144,7 @@
       "forwardsTo": null,
       "defects": [
         {
-          "kind": "uncovered",
+          "kind": "uncovered-need",
           "ref": "impl:delta#2",
           "existingRevisions": [
             "1"
@@ -168,7 +168,7 @@
       "forwardsTo": null,
       "defects": [
         {
-          "kind": "duplicate",
+          "kind": "duplicate-id",
           "ref": "req:epsilon#1",
           "message": "duplicate: ID req:epsilon#1 is defined 2 times"
         }
@@ -189,7 +189,7 @@
       "forwardsTo": null,
       "defects": [
         {
-          "kind": "duplicate",
+          "kind": "duplicate-id",
           "ref": "req:epsilon#1",
           "message": "duplicate: ID req:epsilon#1 is defined 2 times"
         }
@@ -210,7 +210,7 @@
       "forwardsTo": "dsn:zeta#1",
       "defects": [
         {
-          "kind": "duplicate",
+          "kind": "duplicate-forwarding",
           "ref": "req:zeta#1",
           "message": "duplicate: forwarding for req:zeta#1 is declared 2 times"
         }
@@ -276,7 +276,7 @@
       "forwardsTo": null,
       "defects": [
         {
-          "kind": "unwanted",
+          "kind": "unwanted-item",
           "ref": "impl:delta#1",
           "message": "unwanted: no item needs impl:delta#1"
         }
@@ -297,7 +297,7 @@
       "forwardsTo": null,
       "defects": [
         {
-          "kind": "unwanted",
+          "kind": "unwanted-item",
           "ref": "impl:omega#1",
           "message": "unwanted: no item needs impl:omega#1"
         }

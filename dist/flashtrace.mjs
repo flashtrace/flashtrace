@@ -762,28 +762,74 @@ function parseCode(file, text, problems, forwards = []) {
   return items;
 }
 
+// src/defects.mjs
+var DEFECT_KINDS = Object.freeze([
+  "uncovered-need",
+  "uncovered-forward",
+  "orphaned-cover",
+  "unwanted-cover",
+  "unwanted-item",
+  "duplicate-id",
+  "duplicate-forwarding"
+]);
+var uncoveredNeed = (need) => ({
+  kind: "uncovered-need",
+  ref: need,
+  message: `uncovered: needs ${need}, which does not exist`
+});
+var uncoveredForward = (target) => ({
+  kind: "uncovered-forward",
+  ref: target,
+  message: `uncovered: forwards to ${target}, which does not exist`
+});
+var orphanedCover = (coverId) => ({
+  kind: "orphaned-cover",
+  ref: coverId,
+  message: `orphaned: covers ${coverId}, which does not exist`
+});
+var unwantedCover = (coverId, itemId) => ({
+  kind: "unwanted-cover",
+  ref: coverId,
+  message: `unwanted: covers ${coverId}, but ${coverId} does not need ${itemId}`
+});
+var unwantedItem = (itemId) => ({
+  kind: "unwanted-item",
+  ref: itemId,
+  message: `unwanted: no item needs ${itemId}`
+});
+var duplicateId = (id, count) => ({
+  kind: "duplicate-id",
+  ref: id,
+  message: `duplicate: ID ${id} is defined ${count} times`
+});
+var duplicateForwarding = (from, count) => ({
+  kind: "duplicate-forwarding",
+  ref: from,
+  message: `duplicate: forwarding for ${from} is declared ${count} times`
+});
+
 // src/analyze.mjs
-function checkItemReferences(item, byId, matchesOf, isNeeded, revDefect, forwardTargets) {
+function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
   const forwardTarget = forwardTargets.get(item.id);
   if (forwardTarget !== void 0) {
     if (!byId.has(forwardTarget))
-      item.defects.push(revDefect("uncovered", forwardTarget, `uncovered: forwards to ${forwardTarget}, which does not exist`));
+      item.defects.push(withRevisions(uncoveredForward(forwardTarget)));
   } else {
     for (const need of item.needs) {
       if (matchesOf(need).length === 0)
-        item.defects.push(revDefect("uncovered", need, `uncovered: needs ${need}, which does not exist`));
+        item.defects.push(withRevisions(uncoveredNeed(need)));
     }
   }
   for (const coverId of item.covers) {
     const targets = byId.get(coverId);
     if (!targets) {
-      item.defects.push(revDefect("orphaned", coverId, `orphaned: covers ${coverId}, which does not exist`));
+      item.defects.push(withRevisions(orphanedCover(coverId)));
     } else if (!targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))) {
-      item.defects.push({ kind: "unwanted", ref: coverId, message: `unwanted: covers ${coverId}, but ${coverId} does not need ${item.id}` });
+      item.defects.push(unwantedCover(coverId, item.id));
     }
   }
   if (item.origin === "code" && !isNeeded(item.id)) {
-    item.defects.push({ kind: "unwanted", ref: item.id, message: `unwanted: no item needs ${item.id}` });
+    item.defects.push(unwantedItem(item.id));
   }
 }
 function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
@@ -840,8 +886,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
       continue;
     }
     if (group.length > 1)
-      for (const item of sources)
-        item.defects.push({ kind: "duplicate", ref: from, message: `duplicate: forwarding for ${from} is declared ${group.length} times` });
+      for (const item of sources) item.defects.push(duplicateForwarding(from, group.length));
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {
       group[i].effective = false;
@@ -908,8 +953,7 @@ function analyze(items, forwards = [], problems = []) {
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
   for (const [id, group] of byId) {
-    if (group.length > 1)
-      for (const item of group) item.defects.push({ kind: "duplicate", ref: id, message: `duplicate: ID ${id} is defined ${group.length} times` });
+    if (group.length > 1) for (const item of group) item.defects.push(duplicateId(id, group.length));
   }
   const existingRevisionsOf = (id) => {
     const revs = revsByKey.get(keyOf(id));
@@ -919,20 +963,20 @@ function analyze(items, forwards = [], problems = []) {
     const revs = existingRevisionsOf(id);
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${revs.join(", ")})` : "";
   };
-  const revDefect = (kind, ref, base) => {
-    const existingRevisions = existingRevisionsOf(ref);
-    if (!existingRevisions) return { kind, ref, message: base };
+  const withRevisions = (defect) => {
+    const existingRevisions = existingRevisionsOf(defect.ref);
+    if (!existingRevisions) return defect;
     return {
-      kind,
-      ref,
-      message: `${base} (revision mismatch: existing revision(s) of ${keyOf(ref)}: ${existingRevisions.join(", ")})`,
-      existingRevisions
+      kind: defect.kind,
+      ref: defect.ref,
+      existingRevisions,
+      message: `${defect.message} (revision mismatch: existing revision(s) of ${keyOf(defect.ref)}: ${existingRevisions.join(", ")})`
     };
   };
   const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
   for (const item of items) {
     item.forwardsTo = forwardTargets.get(item.id) ?? null;
-    checkItemReferences(item, byId, matchesOf, isNeeded, revDefect, forwardTargets);
+    checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets);
   }
   markDeepCoverage(items, byId, matchesOf, forwardTargets);
 }
@@ -1310,6 +1354,7 @@ function runAsCli() {
 }
 if (runAsCli()) runCli();
 export {
+  DEFECT_KINDS,
   UsageError,
   analyze,
   buildReportDocument,

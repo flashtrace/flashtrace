@@ -83,7 +83,7 @@ test('an uncovered need is a defect carrying the revision-mismatch data', () => 
   const [defect] = itemOf(doc, 'req:a#1').defects;
   // existingRevisions sits before message, per the documented key order
   assert.deepEqual(Object.keys(defect), ['kind', 'ref', 'existingRevisions', 'message']);
-  assert.equal(defect.kind, 'uncovered');
+  assert.equal(defect.kind, 'uncovered-need');
   assert.equal(defect.ref, 'impl:a#2');
   assert.deepEqual(defect.existingRevisions, ['1']);
   assert.match(defect.message, /revision mismatch: existing revision\(s\) of impl:a: 1/);
@@ -112,8 +112,8 @@ test('covers entries are classified valid, unwanted or orphaned', () => {
   ]);
   // a non-valid cover also surfaces as a defect on the same item
   assert.deepEqual(
-    cover.defects.map((d) => d.kind).sort(),
-    ['orphaned', 'unwanted'],
+    cover.defects.map((defect) => defect.kind).sort(),
+    ['orphaned-cover', 'unwanted-cover'],
   );
 });
 

@@ -1,32 +1,40 @@
+import {
+  duplicateForwarding,
+  duplicateId,
+  orphanedCover,
+  uncoveredForward,
+  uncoveredNeed,
+  unwantedCover,
+  unwantedItem,
+} from './defects.mjs';
 import { compareRev, idMatches, isWildcardRev, keyOf, revOf } from './ids.mjs';
 
 // a forwarded item (source of an [A --> B] tag) has its own needs excused; its
 // coverage obligation is redirected to the target, checked here instead.
 // matchesOf(ref) returns the defined items satisfying a (possibly wildcard)
 // need; isNeeded(id) tells whether any need - exact or wildcard - wants that id.
-// revDefect builds a defect whose message carries the revision-mismatch hint.
-// A defect is { kind, ref, message } plus, when the hint applies, existingRevisions.
-function checkItemReferences(item, byId, matchesOf, isNeeded, revDefect, forwardTargets) {
+// withRevisions adds the revision-mismatch hint to a defect where it applies.
+function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
   const forwardTarget = forwardTargets.get(item.id);
   if (forwardTarget !== undefined) {
     if (!byId.has(forwardTarget))
-      item.defects.push(revDefect('uncovered', forwardTarget, `uncovered: forwards to ${forwardTarget}, which does not exist`));
+      item.defects.push(withRevisions(uncoveredForward(forwardTarget)));
   } else {
     for (const need of item.needs) {
       if (matchesOf(need).length === 0)
-        item.defects.push(revDefect('uncovered', need, `uncovered: needs ${need}, which does not exist`));
+        item.defects.push(withRevisions(uncoveredNeed(need)));
     }
   }
   for (const coverId of item.covers) {
     const targets = byId.get(coverId);
     if (!targets) {
-      item.defects.push(revDefect('orphaned', coverId, `orphaned: covers ${coverId}, which does not exist`));
+      item.defects.push(withRevisions(orphanedCover(coverId)));
     } else if (!targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))) {
-      item.defects.push({ kind: 'unwanted', ref: coverId, message: `unwanted: covers ${coverId}, but ${coverId} does not need ${item.id}` });
+      item.defects.push(unwantedCover(coverId, item.id));
     }
   }
   if (item.origin === 'code' && !isNeeded(item.id)) {
-    item.defects.push({ kind: 'unwanted', ref: item.id, message: `unwanted: no item needs ${item.id}` });
+    item.defects.push(unwantedItem(item.id));
   }
 }
 
@@ -95,8 +103,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     // only the first declaration takes effect; later ones for the same source
     // are voided as duplicates (and flagged as a defect on the source item)
     if (group.length > 1)
-      for (const item of sources)
-        item.defects.push({ kind: 'duplicate', ref: from, message: `duplicate: forwarding for ${from} is declared ${group.length} times` });
+      for (const item of sources) item.defects.push(duplicateForwarding(from, group.length));
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {
       group[i].effective = false;
@@ -182,8 +189,7 @@ export function analyze(items, forwards = [], problems = []) {
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
 
   for (const [id, group] of byId) {
-    if (group.length > 1)
-      for (const item of group) item.defects.push({ kind: 'duplicate', ref: id, message: `duplicate: ID ${id} is defined ${group.length} times` });
+    if (group.length > 1) for (const item of group) item.defects.push(duplicateId(id, group.length));
   }
 
   // sibling revisions of a key, ascending - the revision-mismatch hint's data
@@ -196,16 +202,16 @@ export function analyze(items, forwards = [], problems = []) {
     const revs = existingRevisionsOf(id);
     return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${revs.join(', ')})` : '';
   };
-  // a { kind, ref, message } defect, carrying existingRevisions and the hint in
-  // its message exactly when a sibling revision of ref's key exists
-  const revDefect = (kind, ref, base) => {
-    const existingRevisions = existingRevisionsOf(ref);
-    if (!existingRevisions) return { kind, ref, message: base };
+  // a defect about a missing ID gains existingRevisions, and the same hint in
+  // its message, exactly when a sibling revision of its ref's key exists
+  const withRevisions = (defect) => {
+    const existingRevisions = existingRevisionsOf(defect.ref);
+    if (!existingRevisions) return defect;
     return {
-      kind,
-      ref,
-      message: `${base} (revision mismatch: existing revision(s) of ${keyOf(ref)}: ${existingRevisions.join(', ')})`,
+      kind: defect.kind,
+      ref: defect.ref,
       existingRevisions,
+      message: `${defect.message} (revision mismatch: existing revision(s) of ${keyOf(defect.ref)}: ${existingRevisions.join(', ')})`,
     };
   };
 
@@ -213,7 +219,7 @@ export function analyze(items, forwards = [], problems = []) {
 
   for (const item of items) {
     item.forwardsTo = forwardTargets.get(item.id) ?? null; // effective forwarding target, for renderers
-    checkItemReferences(item, byId, matchesOf, isNeeded, revDefect, forwardTargets);
+    checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets);
   }
 
   markDeepCoverage(items, byId, matchesOf, forwardTargets);

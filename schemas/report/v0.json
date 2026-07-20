@@ -134,13 +134,24 @@
       "type": "object",
       "required": ["kind", "ref", "message"],
       "properties": {
-        "kind": { "enum": ["uncovered", "orphaned", "unwanted", "duplicate"] },
+        "kind": {
+          "description": "What is wrong, one kind per condition, so kind alone tells every defect apart. uncovered-need: a declared need matches no defined item. uncovered-forward: the forwarding target does not exist. orphaned-cover: a covers entry points at an item that does not exist. unwanted-cover: a covers entry points at an existing item that does not need this one. unwanted-item: no item needs this code item. duplicate-id: this full ID is defined more than once. duplicate-forwarding: more than one forwarding is declared for this item.",
+          "enum": [
+            "uncovered-need",
+            "uncovered-forward",
+            "orphaned-cover",
+            "unwanted-cover",
+            "unwanted-item",
+            "duplicate-id",
+            "duplicate-forwarding"
+          ]
+        },
         "ref": {
-          "description": "The ID the defect is about: the needed, covered or forwarded-to ID; for duplicate, the duplicated item ID or forwarding source ID.",
+          "description": "The ID the defect is about: the needed, covered or forwarded-to ID; for unwanted-item, duplicate-id and duplicate-forwarding, the item's own ID.",
           "type": "string"
         },
         "message": {
-          "description": "The defect exactly as the plain-text report words it.",
+          "description": "The defect worded exactly as the plain-text report words it. Offered so a consumer can present the same text; kind and ref carry the same information as data, so the message is never worth parsing and may be reworded without kind changing.",
           "type": "string"
         },
         "existingRevisions": {
