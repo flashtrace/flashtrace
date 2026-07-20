@@ -9,7 +9,7 @@
  * The document is deterministic: items, forwards and problems are sorted by
  * file, then line, then character; object keys serialize in a fixed order; the
  * output is two-space indented and ends with a single newline. See
- * docs/json-report.md for the contract and docs/json/report.schema.json for the
+ * docs/json-report.md for the contract and schemas/report/v1.json for the
  * machine-readable schema.
  */
 

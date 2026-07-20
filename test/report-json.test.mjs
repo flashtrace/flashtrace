@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { analyze, buildReportDocument, parseCode, parseMarkdown } from '../src/main.mjs';
 
 const schema = JSON.parse(
-  readFileSync(new URL('../docs/json/report.schema.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../schemas/report/v1.json', import.meta.url), 'utf8'),
 );
 
 // Build the JSON document straight from the real parsers and analyze, so the

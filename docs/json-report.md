@@ -192,8 +192,6 @@ The same input processed by the same flashtrace version produces a byte-identica
 
 ## Schema
 
-The machine-readable contract lives next to this page:
-
-- `docs/json/report.schema.json` - JSON Schema (draft 2020-12) covering both modes.
+The machine-readable contract is a JSON Schema (draft 2020-12) covering both modes. It is published at <https://flashtrace.github.io/schemas/report/v1.json> and kept in the repository at `schemas/report/v1.json`. Every `schemaVersion` keeps its own URL; <https://flashtrace.github.io/schemas/report/latest.json> serves the newest one.
 
 The schema deliberately leaves unknown fields unconstrained: validating a newer document against an older schema must not fail on additive fields.
