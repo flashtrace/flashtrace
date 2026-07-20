@@ -13,15 +13,6 @@
 export default {};
 </script>
 
-<script type="application/json">
-{ "note": "no comment grammar applies here, so [impl:html/none#1] stays data" }
-</script>
-
-<script type="text/html">
-  <!-- [impl:html/vue-script-template#1] -->
-  <li>inline template</li>
-</script>
-
 <script lang="coffee">
 # [impl:html/vue-script-coffee-line#1]
 ###

@@ -23,10 +23,7 @@ Needs:
 - impl:html/htm-script-line#1
 - impl:html/htm-script-block#1
 - impl:html/htm-script-template#1
-- impl:html/htm-script-coffee-line#1
-- impl:html/htm-script-coffee-block#1
 - impl:html/htm-style-block#1
-- impl:html/htm-style-scss-line#1
 
 [req:html/htm#1 --> req:html/html#1]
 
@@ -39,10 +36,7 @@ Needs:
 - impl:html/html-script-line#1
 - impl:html/html-script-block#1
 - impl:html/html-script-template#1
-- impl:html/html-script-coffee-line#1
-- impl:html/html-script-coffee-block#1
 - impl:html/html-style-block#1
-- impl:html/html-style-scss-line#1
 
 ## .svelte
 
@@ -52,7 +46,6 @@ Needs:
 - impl:html/svelte-markup#1
 - impl:html/svelte-script-line#1
 - impl:html/svelte-script-block#1
-- impl:html/svelte-script-template#1
 - impl:html/svelte-script-coffee-line#1
 - impl:html/svelte-script-coffee-block#1
 - impl:html/svelte-style-block#1
@@ -66,7 +59,6 @@ Needs:
 - impl:html/vue-markup#1
 - impl:html/vue-script-line#1
 - impl:html/vue-script-block#1
-- impl:html/vue-script-template#1
 - impl:html/vue-script-coffee-line#1
 - impl:html/vue-script-coffee-block#1
 - impl:html/vue-style-block#1

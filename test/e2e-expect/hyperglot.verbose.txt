@@ -542,112 +542,91 @@
 
 ✔ impl:html/htm-style-block#1  html/htm.htm:7  [deep-covered]
     wanted by req:html/htm#1  html/spec.md:19
-✔ impl:html/htm-style-scss-line#1  html/htm.htm:13  [deep-covered]
+✔ impl:html/htm-markup#1  html/htm.htm:14  [deep-covered]
     wanted by req:html/htm#1  html/spec.md:19
-✔ impl:html/htm-markup#1  html/htm.htm:19  [deep-covered]
+✔ impl:html/htm-script-line#1  html/htm.htm:18  [deep-covered]
     wanted by req:html/htm#1  html/spec.md:19
-✔ impl:html/htm-script-line#1  html/htm.htm:23  [deep-covered]
+✔ impl:html/htm-script-block#1  html/htm.htm:20  [deep-covered]
     wanted by req:html/htm#1  html/spec.md:19
-✔ impl:html/htm-script-block#1  html/htm.htm:25  [deep-covered]
-    wanted by req:html/htm#1  html/spec.md:19
-✔ impl:html/htm-script-template#1  html/htm.htm:35  [deep-covered]
-    wanted by req:html/htm#1  html/spec.md:19
-✔ impl:html/htm-script-coffee-line#1  html/htm.htm:40  [deep-covered]
-    wanted by req:html/htm#1  html/spec.md:19
-✔ impl:html/htm-script-coffee-block#1  html/htm.htm:42  [deep-covered]
+✔ impl:html/htm-script-template#1  html/htm.htm:30  [deep-covered]
     wanted by req:html/htm#1  html/spec.md:19
 
 ✔ impl:html/html-style-block#1  html/html.html:7  [deep-covered]
-    wanted by req:html/html#1  html/spec.md:35
-✔ impl:html/html-style-scss-line#1  html/html.html:13  [deep-covered]
-    wanted by req:html/html#1  html/spec.md:35
-✔ impl:html/html-markup#1  html/html.html:19  [deep-covered]
-    wanted by req:html/html#1  html/spec.md:35
-✔ impl:html/html-script-line#1  html/html.html:23  [deep-covered]
-    wanted by req:html/html#1  html/spec.md:35
-✔ impl:html/html-script-block#1  html/html.html:25  [deep-covered]
-    wanted by req:html/html#1  html/spec.md:35
-✔ impl:html/html-script-template#1  html/html.html:35  [deep-covered]
-    wanted by req:html/html#1  html/spec.md:35
-✔ impl:html/html-script-coffee-line#1  html/html.html:40  [deep-covered]
-    wanted by req:html/html#1  html/spec.md:35
-✔ impl:html/html-script-coffee-block#1  html/html.html:42  [deep-covered]
-    wanted by req:html/html#1  html/spec.md:35
+    wanted by req:html/html#1  html/spec.md:32
+✔ impl:html/html-markup#1  html/html.html:14  [deep-covered]
+    wanted by req:html/html#1  html/spec.md:32
+✔ impl:html/html-script-line#1  html/html.html:18  [deep-covered]
+    wanted by req:html/html#1  html/spec.md:32
+✔ impl:html/html-script-block#1  html/html.html:20  [deep-covered]
+    wanted by req:html/html#1  html/spec.md:32
+✔ impl:html/html-script-template#1  html/html.html:30  [deep-covered]
+    wanted by req:html/html#1  html/spec.md:32
 
 ✔ req:html/grammar#1 "HTML comment grammar"  html/spec.md:3  [deep-covered]
     needs req:html/htm#1  ✔ html/spec.md:19
-    needs req:html/html#1  ✔ html/spec.md:35
-    needs req:html/svelte#1  ✔ html/spec.md:49
-    needs req:html/vue#1  ✔ html/spec.md:63
+    needs req:html/html#1  ✔ html/spec.md:32
+    needs req:html/svelte#1  ✔ html/spec.md:43
+    needs req:html/vue#1  ✔ html/spec.md:56
     covers feat:support-grammar/html#1  ✔ spec.md:82
     wanted by feat:support-grammar/html#1  spec.md:82
 ✔ req:html/htm#1 ".htm"  html/spec.md:19  [deep-covered]
-    → req:html/html#1  ✔ html/spec.md:35
+    → req:html/html#1  ✔ html/spec.md:32
     wanted by req:html/grammar#1  html/spec.md:3
-✔ req:html/html#1 ".html"  html/spec.md:35  [deep-covered]
-    needs impl:html/html-markup#1  ✔ html/html.html:19
-    needs impl:html/html-script-line#1  ✔ html/html.html:23
-    needs impl:html/html-script-block#1  ✔ html/html.html:25
-    needs impl:html/html-script-template#1  ✔ html/html.html:35
-    needs impl:html/html-script-coffee-line#1  ✔ html/html.html:40
-    needs impl:html/html-script-coffee-block#1  ✔ html/html.html:42
+✔ req:html/html#1 ".html"  html/spec.md:32  [deep-covered]
+    needs impl:html/html-markup#1  ✔ html/html.html:14
+    needs impl:html/html-script-line#1  ✔ html/html.html:18
+    needs impl:html/html-script-block#1  ✔ html/html.html:20
+    needs impl:html/html-script-template#1  ✔ html/html.html:30
     needs impl:html/html-style-block#1  ✔ html/html.html:7
-    needs impl:html/html-style-scss-line#1  ✔ html/html.html:13
     wanted by req:html/grammar#1  html/spec.md:3
-✔ req:html/svelte#1 ".svelte"  html/spec.md:49  [deep-covered]
-    needs impl:html/svelte-markup#1  ✔ html/svelte.svelte:26
+✔ req:html/svelte#1 ".svelte"  html/spec.md:43  [deep-covered]
+    needs impl:html/svelte-markup#1  ✔ html/svelte.svelte:17
     needs impl:html/svelte-script-line#1  ✔ html/svelte.svelte:2
     needs impl:html/svelte-script-block#1  ✔ html/svelte.svelte:4
-    needs impl:html/svelte-script-template#1  ✔ html/svelte.svelte:14
-    needs impl:html/svelte-script-coffee-line#1  ✔ html/svelte.svelte:19
-    needs impl:html/svelte-script-coffee-block#1  ✔ html/svelte.svelte:21
-    needs impl:html/svelte-style-block#1  ✔ html/svelte.svelte:32
-    needs impl:html/svelte-style-scss-line#1  ✔ html/svelte.svelte:38
+    needs impl:html/svelte-script-coffee-line#1  ✔ html/svelte.svelte:10
+    needs impl:html/svelte-script-coffee-block#1  ✔ html/svelte.svelte:12
+    needs impl:html/svelte-style-block#1  ✔ html/svelte.svelte:23
+    needs impl:html/svelte-style-scss-line#1  ✔ html/svelte.svelte:29
     wanted by req:html/grammar#1  html/spec.md:3
-✔ req:html/vue#1 ".vue"  html/spec.md:63  [deep-covered]
+✔ req:html/vue#1 ".vue"  html/spec.md:56  [deep-covered]
     needs impl:html/vue-markup#1  ✔ html/vue.vue:3
     needs impl:html/vue-script-line#1  ✔ html/vue.vue:9
     needs impl:html/vue-script-block#1  ✔ html/vue.vue:11
-    needs impl:html/vue-script-template#1  ✔ html/vue.vue:21
-    needs impl:html/vue-script-coffee-line#1  ✔ html/vue.vue:26
-    needs impl:html/vue-script-coffee-block#1  ✔ html/vue.vue:28
-    needs impl:html/vue-style-block#1  ✔ html/vue.vue:34
-    needs impl:html/vue-style-scss-line#1  ✔ html/vue.vue:40
+    needs impl:html/vue-script-coffee-line#1  ✔ html/vue.vue:17
+    needs impl:html/vue-script-coffee-block#1  ✔ html/vue.vue:19
+    needs impl:html/vue-style-block#1  ✔ html/vue.vue:25
+    needs impl:html/vue-style-scss-line#1  ✔ html/vue.vue:31
     wanted by req:html/grammar#1  html/spec.md:3
 
 ✔ impl:html/svelte-script-line#1  html/svelte.svelte:2  [deep-covered]
-    wanted by req:html/svelte#1  html/spec.md:49
+    wanted by req:html/svelte#1  html/spec.md:43
 ✔ impl:html/svelte-script-block#1  html/svelte.svelte:4  [deep-covered]
-    wanted by req:html/svelte#1  html/spec.md:49
-✔ impl:html/svelte-script-template#1  html/svelte.svelte:14  [deep-covered]
-    wanted by req:html/svelte#1  html/spec.md:49
-✔ impl:html/svelte-script-coffee-line#1  html/svelte.svelte:19  [deep-covered]
-    wanted by req:html/svelte#1  html/spec.md:49
-✔ impl:html/svelte-script-coffee-block#1  html/svelte.svelte:21  [deep-covered]
-    wanted by req:html/svelte#1  html/spec.md:49
-✔ impl:html/svelte-markup#1  html/svelte.svelte:26  [deep-covered]
-    wanted by req:html/svelte#1  html/spec.md:49
-✔ impl:html/svelte-style-block#1  html/svelte.svelte:32  [deep-covered]
-    wanted by req:html/svelte#1  html/spec.md:49
-✔ impl:html/svelte-style-scss-line#1  html/svelte.svelte:38  [deep-covered]
-    wanted by req:html/svelte#1  html/spec.md:49
+    wanted by req:html/svelte#1  html/spec.md:43
+✔ impl:html/svelte-script-coffee-line#1  html/svelte.svelte:10  [deep-covered]
+    wanted by req:html/svelte#1  html/spec.md:43
+✔ impl:html/svelte-script-coffee-block#1  html/svelte.svelte:12  [deep-covered]
+    wanted by req:html/svelte#1  html/spec.md:43
+✔ impl:html/svelte-markup#1  html/svelte.svelte:17  [deep-covered]
+    wanted by req:html/svelte#1  html/spec.md:43
+✔ impl:html/svelte-style-block#1  html/svelte.svelte:23  [deep-covered]
+    wanted by req:html/svelte#1  html/spec.md:43
+✔ impl:html/svelte-style-scss-line#1  html/svelte.svelte:29  [deep-covered]
+    wanted by req:html/svelte#1  html/spec.md:43
 
 ✔ impl:html/vue-markup#1  html/vue.vue:3  [deep-covered]
-    wanted by req:html/vue#1  html/spec.md:63
+    wanted by req:html/vue#1  html/spec.md:56
 ✔ impl:html/vue-script-line#1  html/vue.vue:9  [deep-covered]
-    wanted by req:html/vue#1  html/spec.md:63
+    wanted by req:html/vue#1  html/spec.md:56
 ✔ impl:html/vue-script-block#1  html/vue.vue:11  [deep-covered]
-    wanted by req:html/vue#1  html/spec.md:63
-✔ impl:html/vue-script-template#1  html/vue.vue:21  [deep-covered]
-    wanted by req:html/vue#1  html/spec.md:63
-✔ impl:html/vue-script-coffee-line#1  html/vue.vue:26  [deep-covered]
-    wanted by req:html/vue#1  html/spec.md:63
-✔ impl:html/vue-script-coffee-block#1  html/vue.vue:28  [deep-covered]
-    wanted by req:html/vue#1  html/spec.md:63
-✔ impl:html/vue-style-block#1  html/vue.vue:34  [deep-covered]
-    wanted by req:html/vue#1  html/spec.md:63
-✔ impl:html/vue-style-scss-line#1  html/vue.vue:40  [deep-covered]
-    wanted by req:html/vue#1  html/spec.md:63
+    wanted by req:html/vue#1  html/spec.md:56
+✔ impl:html/vue-script-coffee-line#1  html/vue.vue:17  [deep-covered]
+    wanted by req:html/vue#1  html/spec.md:56
+✔ impl:html/vue-script-coffee-block#1  html/vue.vue:19  [deep-covered]
+    wanted by req:html/vue#1  html/spec.md:56
+✔ impl:html/vue-style-block#1  html/vue.vue:25  [deep-covered]
+    wanted by req:html/vue#1  html/spec.md:56
+✔ impl:html/vue-style-scss-line#1  html/vue.vue:31  [deep-covered]
+    wanted by req:html/vue#1  html/spec.md:56
 
 ✔ impl:julia/jl-line#1  julia/jl.jl:2  [deep-covered]
     wanted by req:julia/jl#1  julia/spec.md:16
@@ -997,8 +976,8 @@
     wanted by req:xml/xml#1  xml/spec.md:24
 
 Summary
-  items       307  (127 from specs, 180 from code)
-  ok          307
+  items       299  (127 from specs, 172 from code)
+  ok          299
   defective   0
 
 ok

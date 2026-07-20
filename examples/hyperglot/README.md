@@ -64,17 +64,18 @@ reachable from the root spec; the run is clean and exits 0.
 - **The longest opener wins.** Lua's block opener is a longer form of its line
   marker, CoffeeScript opens and closes with the same marker, and Nim's doc
   opener shares a prefix with both its line marker and its plain block opener.
-- **Regions switch grammar.** The HTML-family files tag a markup comment, a
-  line and a block comment in a plain script, a markup comment in a
-  `type="text/html"` script, line and block comments in a `lang="coffee"`
-  script, a block comment in a plain style and a line comment in a
-  `lang="scss"` style. Their `type="application/json"` script carries
-  tag-shaped text that must *not* be picked up - JSON has no comment grammar,
-  so it stays data. The item count is what proves it.
-
-Some of these combinations are not idiomatic for the extension they sit in - a
-`lang="coffee"` script inside a `.html` document, say. They are there because
-the grammar accepts them, and the fixture covers the grammar, not the framework.
+- **Regions switch grammar.** All four HTML-family files tag a markup comment,
+  a line and a block comment in a plain script, and a block comment in a plain
+  style. Past that they split by convention: the single-file components
+  (`.vue`, `.svelte`) add a `lang="coffee"` script and a `lang="scss"` style,
+  while the plain documents (`.html`, `.htm`) add a `type="text/html"` inline
+  template. In a plain document a `lang` attribute is HTML's own
+  natural-language one, so it belongs to the component files only. All four
+  resolve to a single grammar, so the folder still covers every branch of the
+  region resolver.
+- **A comment-less region stays data.** The `type="application/json"` script in
+  the plain documents carries tag-shaped text that must *not* be picked up.
+  Nothing renders its absence - the item count is what proves it.
 
 ## What the spec asserts
 

@@ -338,83 +338,105 @@ const CONFIG = {
   composite: {
     dir: 'html', title: 'HTML', family: 'html',
     blurb: 'Markup comments by default, with script and style regions that switch grammar.',
-    forms: [
-      'markup', 'script-line', 'script-block', 'script-template',
-      'script-coffee-line', 'script-coffee-block', 'style-block', 'style-scss-line',
-    ],
+    formsFor: (ext) => (SFC_EXT.has(ext) ? HTML_SFC_FORMS : HTML_DOCUMENT_FORMS),
     render: (ext, id) => renderHtml(ext, id),
   },
 };
 
-// The region-carrying body every HTML-family fixture shares; only the wrapper
-// around it differs per extension. The JSON script deliberately carries
-// tag-shaped text: that region resolves to a comment-less grammar, so the text
-// must stay data. Nothing renders its absence - the item count proves it.
-function htmlParts(id) {
-  return {
-    markup: ['  <!--', `    ${tag(id('markup'))}`, '  -->'].join('\n'),
-    scripts: [
-      '<script>',
-      `// ${tag(id('script-line'))}`,
-      '/*',
-      ` * ${tag(id('script-block'))}`,
-      ' */',
-      'export default {};',
-      '</script>',
-      '',
-      '<script type="application/json">',
-      '{ "note": "no comment grammar applies here, so [impl:html/none#1] stays data" }',
-      '</script>',
-      '',
-      '<script type="text/html">',
-      `  <!-- ${tag(id('script-template'))} -->`,
-      '  <li>inline template</li>',
-      '</script>',
-      '',
-      '<script lang="coffee">',
-      `# ${tag(id('script-coffee-line'))}`,
-      '###',
-      `  ${tag(id('script-coffee-block'))}`,
-      '###',
-      '</script>',
-    ].join('\n'),
-    styles: [
-      '<style>',
-      '/*',
-      ` * ${tag(id('style-block'))}`,
-      ' */',
-      '.hyperglot { display: block; }',
-      '</style>',
-      '',
-      '<style lang="scss">',
-      `// ${tag(id('style-scss-line'))}`,
-      '.hyperglot { .nested { display: block; } }',
-      '</style>',
-    ].join('\n'),
-  };
-}
+// `lang` on <script>/<style> is a single-file-component convention; in a plain
+// document that attribute is HTML's own natural-language one, so the region
+// variants are split by where each actually belongs. The grammar is shared
+// across all four extensions, so every branch of the region resolver is still
+// covered by the folder as a whole.
+const SFC_EXT = new Set(['vue', 'svelte']);
+const HTML_SFC_FORMS = [
+  'markup', 'script-line', 'script-block',
+  'script-coffee-line', 'script-coffee-block', 'style-block', 'style-scss-line',
+];
+const HTML_DOCUMENT_FORMS = ['markup', 'script-line', 'script-block', 'script-template', 'style-block'];
+
+// the region-carrying pieces the HTML-family fixtures are assembled from
+const markupPart = (id) => ['  <!--', `    ${tag(id('markup'))}`, '  -->'].join('\n');
+
+const plainScript = (id) => [
+  '<script>',
+  `// ${tag(id('script-line'))}`,
+  '/*',
+  ` * ${tag(id('script-block'))}`,
+  ' */',
+  'export default {};',
+  '</script>',
+].join('\n');
+
+const plainStyle = (id) => [
+  '<style>',
+  '/*',
+  ` * ${tag(id('style-block'))}`,
+  ' */',
+  '.hyperglot { display: block; }',
+  '</style>',
+].join('\n');
+
+const coffeeScript = (id) => [
+  '<script lang="coffee">',
+  `# ${tag(id('script-coffee-line'))}`,
+  '###',
+  `  ${tag(id('script-coffee-block'))}`,
+  '###',
+  '</script>',
+].join('\n');
+
+const scssStyle = (id) => [
+  '<style lang="scss">',
+  `// ${tag(id('style-scss-line'))}`,
+  '.hyperglot { .nested { display: block; } }',
+  '</style>',
+].join('\n');
+
+const templateScript = (id) => [
+  '<script type="text/html">',
+  `  <!-- ${tag(id('script-template'))} -->`,
+  '  <li>inline template</li>',
+  '</script>',
+].join('\n');
+
+// Deliberately tag-shaped text in a region that resolves to a comment-less
+// grammar, so it must stay data. Nothing renders its absence - the item count
+// is what proves it.
+const jsonScript = [
+  '<script type="application/json">',
+  '{ "note": "no comment grammar applies here, so [impl:html/none#1] stays data" }',
+  '</script>',
+].join('\n');
 
 const indentBlock = (text, pad) => text.split('\n').map((l) => (l ? `${pad}${l}` : l)).join('\n');
 
 function renderHtml(ext, id) {
-  const { markup, scripts, styles } = htmlParts(id);
+  const markup = markupPart(id);
   if (ext === 'vue') {
-    return ['<template>', markup, '  <p>hyperglot fixture</p>', '</template>', '', scripts, '', styles, ''].join('\n');
+    return [
+      '<template>', markup, '  <p>hyperglot fixture</p>', '</template>', '',
+      plainScript(id), '', coffeeScript(id), '', plainStyle(id), '', scssStyle(id), '',
+    ].join('\n');
   }
   if (ext === 'svelte') {
-    return [scripts, '', markup, '  <p>hyperglot fixture</p>', '', styles, ''].join('\n');
+    return [
+      plainScript(id), '', coffeeScript(id), '',
+      markup, '  <p>hyperglot fixture</p>', '',
+      plainStyle(id), '', scssStyle(id), '',
+    ].join('\n');
   }
   return [
     '<!DOCTYPE html>',
     '<html lang="en">',
     '  <head>',
     `    <title>hyperglot fixture: .${ext}</title>`,
-    indentBlock(styles, '    '),
+    indentBlock(plainStyle(id), '    '),
     '  </head>',
     '  <body>',
-    markup,
+    indentBlock(markup, '  '),
     '    <p>hyperglot fixture</p>',
-    indentBlock(scripts, '    '),
+    indentBlock([plainScript(id), '', jsonScript, '', templateScript(id)].join('\n'), '    '),
     '  </body>',
     '</html>',
     '',
@@ -536,14 +558,19 @@ function configFor(grammar, exts) {
   return config;
 }
 
+// the comment forms a fixture tags; a grammar whose regions differ by extension
+// (the HTML family) states them per extension instead of once for the folder
+const formsOf = (group, ext) => (group.formsFor ? group.formsFor(ext) : group.forms);
+
 function renderFolder(group, files) {
-  const { dir, title, blurb, forms, render, exts, family } = group;
+  const { dir, title, blurb, render, exts, family } = group;
   const style = STYLE[dir];
   const extReqs = [];
   const sections = [];
 
   for (const ext of exts) {
     const variant = dir === 'hash' ? HASH_VARIANTS[ext] : null;
+    const forms = formsOf(group, ext);
     const id = (form) => implId(dir, ext, form, forms, variant?.rev ?? '1');
     files.set(`${dir}/${ext}.${ext}`, render(ext, id));
 
