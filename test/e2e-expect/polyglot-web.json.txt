@@ -17,6 +17,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": [
         {
@@ -41,6 +42,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": [
         {
@@ -65,6 +67,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": [
         {
@@ -89,6 +92,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": [
         {
@@ -113,6 +117,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": [
         {
@@ -137,6 +142,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": [
         {
@@ -188,6 +194,7 @@
       ],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": []
     },
@@ -221,6 +228,7 @@
       ],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": []
     },
@@ -247,6 +255,7 @@
       ],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": []
     },
@@ -273,6 +282,7 @@
       ],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": []
     },
@@ -292,6 +302,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": [
         {
@@ -316,6 +327,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": [
         {

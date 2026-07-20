@@ -24,6 +24,7 @@
       ],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": []
     },
@@ -46,6 +47,7 @@
       ],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "uncovered-need",
@@ -81,6 +83,7 @@
         }
       ],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "orphaned-cover",
@@ -109,6 +112,7 @@
         }
       ],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "unwanted-cover",
@@ -132,6 +136,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": []
     },
@@ -154,6 +159,7 @@
       ],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "uncovered-need",
@@ -180,6 +186,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "duplicate-id",
@@ -203,6 +210,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "duplicate-id",
@@ -226,6 +234,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": "dsn:zeta#1",
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "duplicate-forwarding",
@@ -249,6 +258,14 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [
+        {
+          "id": "req:zeta#1",
+          "file": "spec.md",
+          "line": 64,
+          "character": 1
+        }
+      ],
       "defects": [],
       "wantedBy": []
     },
@@ -266,6 +283,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": []
     },
@@ -283,6 +301,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [],
       "wantedBy": []
     },
@@ -300,6 +319,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "unwanted-item",
@@ -323,6 +343,7 @@
       "needs": [],
       "covers": [],
       "forwardsTo": null,
+      "forwardedFrom": [],
       "defects": [
         {
           "kind": "unwanted-item",

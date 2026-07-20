@@ -31,6 +31,19 @@ Versioning proper starts with flashtrace 1.0.0, which sets the format to `1` and
 - Additive changes - a new optional field - do not bump it. Consumers must therefore ignore fields they do not know (tolerant reader).
 - The `flashtrace` field remains provenance for debugging; consumers must not derive the format from it.
 
+## Both directions of every edge
+
+A trace edge is an inverse pair, and the document carries both halves:
+
+| Forward | Inverse |
+|---|---|
+| an item's `needs[].resolvedTo` | the resolved item's `wantedBy` |
+| an item's `forwardsTo` | the target's `forwardedFrom` |
+
+Each inverse is derivable from its forward direction, and is carried anyway so a consumer does not have to index the whole document to walk an edge backwards. **The two halves always agree** - each is built from the same analysis, not recomputed alongside it, so an entry can never appear in one direction and be missing from the other.
+
+An item's incoming edges are therefore `wantedBy` (something declares a need it satisfies) plus `forwardedFrom` (something redirects its coverage obligation here). Neither alone answers "does anything depend on this item"; `wantedBy` in particular is empty for an item wanted only as a forwarding target.
+
 ## Ordering and determinism
 
 The same input processed by the same flashtrace version produces a byte-identical document. The schema cannot express that, so the guarantees are stated here:

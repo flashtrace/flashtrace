@@ -40,6 +40,20 @@ function coverStatusOf(item) {
   return (ref) => status.get(ref) ?? 'valid';
 }
 
+// item -> the items whose effective forwarding targets it. Built from the
+// items' own forwardsTo rather than from the forwards array, so it is the
+// exact inverse of that field by construction and the two cannot disagree.
+// A forwardsTo naming an item that does not exist contributes nothing.
+function buildForwardedFrom(items, byId) {
+  const forwardedFrom = new Map();
+  for (const item of items) {
+    if (item.forwardsTo === null) continue;
+    for (const target of byId.get(item.forwardsTo) ?? [])
+      (forwardedFrom.get(target) ?? forwardedFrom.set(target, []).get(target)).push(item);
+  }
+  return forwardedFrom;
+}
+
 // defect record in documented key order: existingRevisions, when present, sits
 // before the message
 function defectDocument(defect) {
@@ -59,7 +73,8 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     return a.character - b.character;
   };
 
-  const { matchesOf, wantedBy } = buildResolver(items);
+  const { byId, matchesOf, wantedBy } = buildResolver(items);
+  const forwardedFrom = buildForwardedFrom(items, byId);
 
   // a need's resolution: the defined IDs matching it, ascending by revision
   const resolvedTo = (ref) =>
@@ -67,10 +82,9 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
       .slice()
       .sort((a, b) => compareRev(revOf(a), revOf(b)));
 
-  const wantedByDocument = (item) =>
-    [...(wantedBy.get(item) ?? [])]
-      .map((wanter) => ({ id: wanter.id, ...location(wanter) }))
-      .sort(byLocation);
+  // both inverse edges serialize as located item references, sorted alike
+  const itemRefs = (related) =>
+    [...related].map((other) => ({ id: other.id, ...location(other) })).sort(byLocation);
 
   const itemDocument = (item) => {
     const coverStatus = coverStatusOf(item);
@@ -86,8 +100,9 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
       needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
       covers: item.covers.map((ref) => ({ ref, status: coverStatus(ref) })),
       forwardsTo: item.forwardsTo,
+      forwardedFrom: itemRefs(forwardedFrom.get(item) ?? []),
       defects: item.defects.map(defectDocument),
-      wantedBy: wantedByDocument(item),
+      wantedBy: itemRefs(wantedBy.get(item) ?? []),
     };
   };
 

@@ -56,7 +56,7 @@
     },
     "item": {
       "type": "object",
-      "required": ["id", "title", "origin", "tags", "file", "line", "character", "status", "defective", "deepCovered", "needs", "covers", "forwardsTo", "defects", "wantedBy"],
+      "required": ["id", "title", "origin", "tags", "file", "line", "character", "status", "defective", "deepCovered", "needs", "covers", "forwardsTo", "forwardedFrom", "defects", "wantedBy"],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "title": {
@@ -95,17 +95,22 @@
           "items": { "$ref": "#/$defs/cover" }
         },
         "forwardsTo": {
-          "description": "ID of the effective forwarding target, or null.",
+          "description": "ID of the effective forwarding target, or null. Mirrors exactly the effective entries of the top-level forwards array; voided declarations are never reflected here. Inverse of forwardedFrom: item X appears in item Y's forwardedFrom if and only if X's forwardsTo equals Y's id. Both directions are always present and always agree.",
           "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        },
+        "forwardedFrom": {
+          "description": "The items whose effective forwarding targets this one, sorted by file, line, character. The inverse of forwardsTo (see there), and derivable from it - carried so a consumer need not build the index itself. Together with wantedBy this is the complete set of items depending on this one: wantedBy for declared needs, forwardedFrom for redirected obligations.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/itemRef" }
         },
         "defects": {
           "type": "array",
           "items": { "$ref": "#/$defs/defect" }
         },
         "wantedBy": {
-          "description": "The items whose declared needs resolve to this item, sorted by file, line, character. Declared needs only: an item wanted solely because a forwarding targets it has an empty wantedBy, so this array is not a test for whether an item is wanted - the unwanted-item defect is.",
+          "description": "The items whose declared needs resolve to this item, sorted by file, line, character. The inverse of needs[].resolvedTo (see there), and derivable from it - carried so a consumer need not build the index itself. Declared needs only: an item wanted solely because a forwarding targets it has an empty wantedBy, so this is not a test for whether an item is wanted - the unwanted-item defect is, and forwardedFrom carries the forwarding side.",
           "type": "array",
-          "items": { "$ref": "#/$defs/wanter" }
+          "items": { "$ref": "#/$defs/itemRef" }
         }
       }
     },
@@ -118,7 +123,7 @@
           "type": "string"
         },
         "resolvedTo": {
-          "description": "Full IDs of the defined items matching the reference, in ascending revision order. The need is covered exactly when this is non-empty.",
+          "description": "Full IDs of the defined items matching the reference, in ascending revision order. The need is covered exactly when this is non-empty. Inverse of wantedBy: item X appears in item Y's wantedBy if and only if some entry of X's needs has Y's id in its resolvedTo. Both directions are always present and always agree.",
           "type": "array",
           "items": { "$ref": "#/$defs/id" }
         }
@@ -169,7 +174,8 @@
         }
       }
     },
-    "wanter": {
+    "itemRef": {
+      "description": "A reference to another item in this document: its ID and where it is declared.",
       "type": "object",
       "required": ["id", "file", "line", "character"],
       "properties": {

@@ -1154,6 +1154,15 @@ function coverStatusOf(item) {
   }
   return (ref) => status.get(ref) ?? "valid";
 }
+function buildForwardedFrom(items, byId) {
+  const forwardedFrom = /* @__PURE__ */ new Map();
+  for (const item of items) {
+    if (item.forwardsTo === null) continue;
+    for (const target of byId.get(item.forwardsTo) ?? [])
+      (forwardedFrom.get(target) ?? forwardedFrom.set(target, []).get(target)).push(item);
+  }
+  return forwardedFrom;
+}
 function defectDocument(defect) {
   const out = { kind: defect.kind, ref: defect.ref };
   if (defect.existingRevisions) out.existingRevisions = defect.existingRevisions;
@@ -1169,9 +1178,10 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     if (a.line !== b.line) return a.line - b.line;
     return a.character - b.character;
   };
-  const { matchesOf, wantedBy } = buildResolver(items);
+  const { byId, matchesOf, wantedBy } = buildResolver(items);
+  const forwardedFrom = buildForwardedFrom(items, byId);
   const resolvedTo = (ref) => matchesOf(ref).slice().sort((a, b) => compareRev(revOf(a), revOf(b)));
-  const wantedByDocument = (item) => [...wantedBy.get(item) ?? []].map((wanter) => ({ id: wanter.id, ...location(wanter) })).sort(byLocation);
+  const itemRefs = (related) => [...related].map((other) => ({ id: other.id, ...location(other) })).sort(byLocation);
   const itemDocument = (item) => {
     const coverStatus = coverStatusOf(item);
     return {
@@ -1186,8 +1196,9 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
       needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
       covers: item.covers.map((ref) => ({ ref, status: coverStatus(ref) })),
       forwardsTo: item.forwardsTo,
+      forwardedFrom: itemRefs(forwardedFrom.get(item) ?? []),
       defects: item.defects.map(defectDocument),
-      wantedBy: wantedByDocument(item)
+      wantedBy: itemRefs(wantedBy.get(item) ?? [])
     };
   };
   const forwardDocument = (forward) => {

@@ -52,6 +52,7 @@ test('document: envelope, ordering and a resolved need', () => {
     needs: [{ ref: 'impl:a#1', resolvedTo: ['impl:a#1'] }],
     covers: [],
     forwardsTo: null,
+    forwardedFrom: [],
     defects: [],
     wantedBy: [],
   });
@@ -253,6 +254,39 @@ test('forwards and wantedBy record the reverse edges', () => {
   assert.deepEqual(itemOf(doc, 'req:a#1').wantedBy, []);
   assert.equal(itemOf(doc, 'req:a#1').forwardsTo, null);
   assert.equal(itemOf(doc, 'req:legacy#1').forwardsTo, 'req:a#1');
+
+  // the forwarding demand wantedBy leaves out shows up here instead
+  assert.deepEqual(itemOf(doc, 'req:a#1').forwardedFrom, [
+    { id: 'req:legacy#1', file: 'docs/spec.md', line: 5, character: 1 },
+  ]);
+  assert.deepEqual(itemOf(doc, 'req:legacy#1').forwardedFrom, []);
+});
+
+test('forwardedFrom lists only effective forwardings', () => {
+  // the duplicate declaration is voided, so dsn:c#1 is forwarded from nobody
+  const doc = build({
+    md: [
+      '`req:dup#1`',
+      '',
+      '`dsn:b#1`',
+      '',
+      '`dsn:c#1`',
+      '',
+      '`[req:dup#1 --> dsn:b#1]`',
+      '`[req:dup#1 --> dsn:c#1]`',
+    ],
+  });
+  assert.deepEqual(
+    itemOf(doc, 'dsn:b#1').forwardedFrom.map((ref) => ref.id),
+    ['req:dup#1'],
+  );
+  assert.deepEqual(itemOf(doc, 'dsn:c#1').forwardedFrom, []);
+});
+
+test('a forwarding to a missing target contributes no forwardedFrom anywhere', () => {
+  const doc = build({ md: ['`req:a#1`', '', '`[req:a#1 --> dsn:gone#1]`'] });
+  assert.equal(itemOf(doc, 'req:a#1').forwardsTo, 'dsn:gone#1');
+  for (const item of doc.items) assert.deepEqual(item.forwardedFrom, []);
 });
 
 test('forwards record every void reason and mirror forwardsTo', () => {
@@ -335,7 +369,8 @@ test('a document carries every field the schema marks required', () => {
   hasRequired(req.needs[0], schema.$defs.need, 'need');
   hasRequired(req.covers[0], schema.$defs.cover, 'cover');
   hasRequired(req.defects[0], schema.$defs.defect, 'defect');
-  hasRequired(req.wantedBy[0], schema.$defs.wanter, 'wanter');
+  hasRequired(req.wantedBy[0], schema.$defs.itemRef, 'wantedBy entry');
+  hasRequired(itemOf(doc, 'req:a#1').forwardedFrom[0], schema.$defs.itemRef, 'forwardedFrom entry');
   hasRequired(doc.forwards[0], schema.$defs.forward, 'forward');
   hasRequired(doc.problems[0], schema.$defs.problem, 'problem');
   hasRequired(doc.summary, schema.$defs.summary, 'summary');
