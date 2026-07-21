@@ -18,7 +18,7 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 | Option | Effect |
 |---|---|
 | `-t, --tags <t1,t2,...>` | Only import spec items carrying one of these tags; add `_` to also include untagged items. Code items are always kept. |
-| `-f, --format <format>` | Report format: `text` (default) or `json`; may be selected only once. See [JSON report](json-report.md). |
+| `-f, --format <format>` | Report format: `text` (default) or `json`. See [JSON report](json-report.md). |
 | `--json` | Shorthand for `--format json`. |
 | `-v, --verbose` | List every item with its coverage status and trace edges, not only the defective ones. Text format only. See [Command line](command-line.md). |
 | `-V, --version` | Print the version number and exit. |
@@ -26,6 +26,11 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 
 Long options also accept `=`-attached values, e.g. `--tags=a,b`; values
 containing spaces must be shell-quoted (`--tags="a , b"`).
+
+The report format and the tag filter may each be selected only once, whichever
+spelling does it. A second selection (`--json --format text`, `-t a -t b`) is a
+usage error rather than a silent last-one-wins, and the error names the option
+to drop. See [Command line](command-line.md).
 
 Exit codes: `0` clean, `1` defects or problems found, `2` usage error.
 

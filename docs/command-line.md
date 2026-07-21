@@ -6,8 +6,7 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
   -f, --format <format>    report format: "text" (default) or "json"; --json
-                           is shorthand for --format json. The format may be
-                           selected only once
+                           is shorthand for --format json
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones; text format only
   -V, --version            print the version number
@@ -16,6 +15,8 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
 
 Long options also accept `=`-attached values, e.g. `--tags=a,b`; values containing spaces must be shell-quoted (`--tags="a , b"`).
 
+The report format and the tag filter may each be selected only once, whichever spelling does it. A second selection is a usage error rather than a silent last-one-wins - `--json --format text` and `-t a -t b` alike - and so is naming one twice with the same value (`--json --format json`): one rule covers all of them, and the error names the option to drop.
+
 Exit codes: `0` clean trace · `1` defects or problems found · `2` usage error.
 
 ## Default report
@@ -23,8 +24,6 @@ Exit codes: `0` clean trace · `1` defects or problems found · `2` usage error.
 Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note) ending in `ok` / `not ok`.
 
 With `-f json` (or its shorthand `--json`) the report is a single JSON document instead - see [JSON report](json-report.md). Any other format value is a usage error, as is combining the JSON format with `-v`/`--verbose`: verbosity selects which items the plain-text report lists, and the JSON document always carries them all.
-
-The format may be selected only once. `--json --format text` is a usage error rather than a silent last-one-wins, and so is naming it twice with the same value (`--json --format json`): one rule covers both, and the error names the option to drop.
 
 ## Verbose report
 

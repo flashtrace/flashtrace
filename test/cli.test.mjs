@@ -169,6 +169,29 @@ test('--tags= with an empty value: exit 2, missing value', async () => {
   });
 });
 
+test('selecting the tag filter twice is a usage error', async () => {
+  await withProject(TAGS_FIXTURE, (dir) => {
+    // differing, agreeing and mixed spellings alike: one rule
+    const cases = [
+      [['-t', 'Auth', '-t', 'Other'], '-t'],
+      [['--tags', 'Auth', '--tags', 'Other'], '--tags'],
+      [['--tags=Auth', '--tags=Other'], '--tags'],
+      [['-t', 'Auth', '--tags=Auth'], '-t'],
+      [['--tags', 'Auth', '-t', 'Other'], '--tags'],
+    ];
+    for (const [args, blamed] of cases) {
+      const res = runCli(dir, args);
+      assert.equal(res.status, 2, args.join(' '));
+      assert.equal(res.stdout, '', args.join(' '));
+      assert.match(
+        res.stderr,
+        new RegExp(`the tag filter is already selected by ${blamed}`),
+        args.join(' '),
+      );
+    }
+  });
+});
+
 test('a boolean long option rejects an =-attached value', async () => {
   await withProject({}, (dir) => {
     const res = runCli(dir, ['--verbose=1']);
