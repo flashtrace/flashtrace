@@ -150,6 +150,12 @@ jobs:
       # Author the bump commit as the release app's bot user so it shows the
       # app's name and avatar. GitHub resolves the identity from the author
       # email, which embeds the bot's user id.
+      #
+      # The commit and tag are hand-rolled rather than left to npm: the release
+      # carries CITATION.cff's "version" and "date-released" alongside
+      # package.json's version, and npm version refuses to run at all with
+      # another file staged ("Git working directory not clean"). So npm only
+      # rewrites package.json (--no-git-tag-version) and git does the rest.
       - name: Bump version
         id: version
         env:
@@ -160,6 +166,29 @@ jobs:
           bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+          npm version "$LEVEL" --no-git-tag-version --ignore-scripts
+          version=$(node -p "require('./package.json').version")
+
+          # Carry the same version into the citation metadata, dated with the
+          # UTC day of this run. Rewriting the two lines in place keeps the
+          # file's comments, ordering, and quoting intact and needs no YAML
+          # parser - this job installs nothing and runs no repository code.
+          # Each edit is verified, so a renamed or reformatted field fails the
+          # release instead of shipping stale citation metadata.
+          for field in "version:$version" "date-released:$(date -u +%Y-%m-%d)"; do
+            key=${field%%:*}
+            value=${field#*:}
+            if ! grep -q "^${key}: " CITATION.cff; then
+              echo "::error file=CITATION.cff::No \"${key}\" field to update; the release keeps it in sync with package.json." >&2
+              exit 1
+            fi
+            sed -i "s|^${key}: .*|${key}: \"${value}\"|" CITATION.cff
+            if [ "$(sed -n "s|^${key}: ||p" CITATION.cff)" != "\"${value}\"" ]; then
+              echo "::error file=CITATION.cff::Failed to set \"${key}\" to \"${value}\"." >&2
+              exit 1
+            fi
+          done
+
           # The skip-checks trailer stops the bump push from creating runs of
           # the push-triggered workflows, which have nothing to do on this
           # commit: CI verified this exact tree moments ago, the communicator
@@ -170,8 +199,12 @@ jobs:
           # lines, which git's default message cleanup would collapse into
           # one - hence verbatim.
           git config commit.cleanup verbatim
-          npm version "$LEVEL" --ignore-scripts -m "release: v%s"$'\n\n\n'"skip-checks: true"
-          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          git add package.json CITATION.cff
+          git commit -m "release: v${version}"$'\n\n\n'"skip-checks: true"
+          # Annotated, because the push below uses --follow-tags, which skips
+          # lightweight tags.
+          git tag -a "v${version}" -m "release: v${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       # The checkout above holds no credentials, so this push authenticates
       # explicitly with the app token. If a merge lands between the checkout
