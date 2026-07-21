@@ -18,5 +18,5 @@ repository-code: "https://github.com/flashtrace/flashtrace"
 url: "https://flashtrace.github.io"
 
 # 'version' and 'date-released' are managed by release.yml and must not be hand-edited
-version: "0.10.0"
-date-released: "2026-07-19"
+version: "0.11.0"
+date-released: "2026-07-21"
