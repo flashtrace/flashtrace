@@ -186,7 +186,11 @@ async function main() {
   const clean = opts.format === 'json'
     ? reportJson(items, forwards, problems, process.cwd(), { version: packageVersion() })
     : report(items, problems, process.cwd(), { verbose: opts.verbose });
-  process.exit(clean ? 0 : 1);
+  // Set the code and let the process end on its own: writing to a pipe is
+  // asynchronous on POSIX, so process.exit() here would end the process with
+  // the report still buffered, truncating every run whose output outgrows the
+  // pipe - which is exactly the runs a report is worth piping for.
+  process.exitCode = clean ? 0 : 1;
 }
 
 export function runCli() {

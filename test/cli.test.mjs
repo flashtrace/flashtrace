@@ -664,3 +664,36 @@ test('the format may still be selected once, in any spelling', async () => {
     }
   });
 });
+
+// spawnSync gives the run a pipe for stdout, which POSIX writes to
+// asynchronously: a report that outgrows the pipe buffer is still partly
+// buffered when main() returns, so ending the process outright cuts it off
+// mid-character. Losing the tail is a race against the reader draining the
+// pipe, so the report has to beat the 64 KiB buffer by enough that the reader
+// cannot keep up: 400 requirements make this document ~430 KiB. That is why
+// only the JSON format is measured here - both formats leave through the same
+// line of main(), and the text report for the same project is ~90 KiB, close
+// enough to the buffer that it survives being truncated and would leave a
+// guard that cannot fail.
+//
+// Asserting the item count rather than the closing bytes is what proves the
+// document arrived whole: a truncated document can still parse.
+//
+// A pipe is synchronous on Windows, so this only exercises the bug on POSIX.
+const BIG_ITEM_COUNT = 400;
+
+test('a report larger than the pipe buffer is written whole', async () => {
+  const spec = [];
+  const impl = [];
+  for (let i = 0; i < BIG_ITEM_COUNT; i++) {
+    spec.push(`# Requirement number ${i} of an oversized report`);
+    spec.push(`\`req:item-${i}#1\``, '', `Needs: impl:item-${i}#1`, '');
+    impl.push(`// [impl:item-${i}#1]`);
+  }
+  await withProject({ 'spec.md': spec, 'impl.ts': impl }, (dir) => {
+    const res = runCli(dir, ['--json']);
+    assert.equal(res.status, 0);
+    assert.ok(res.stdout.length > 65536, `too small to exercise the pipe: ${res.stdout.length}`);
+    assert.equal(JSON.parse(res.stdout).items.length, BIG_ITEM_COUNT * 2);
+  });
+});
