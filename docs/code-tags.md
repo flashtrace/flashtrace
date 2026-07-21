@@ -10,7 +10,7 @@ Tags are written inside comments. The comment style is chosen per file extension
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
 | PHP | `//` `#` | `/* … */` | `.php` |
 | Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.graphql` `.gql` |
-| CoffeeScript | `#` | `### … ###` | `.coffee` |
+| CoffeeScript | `#` | `### … ###` (opener not followed by `#`) | `.coffee` |
 | Julia | `#` | `#= … =#` (nestable) | `.jl` |
 | Nim | `#` | `#[ … ]#` `##[ … ]##` (nestable) | `.nim` |
 | PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
@@ -27,6 +27,8 @@ Tags are written inside comments. The comment style is chosen per file extension
 | CSS | – | `/* … */` | `.css` |
 | HTML/XML | – | `<!-- … -->` | `.xml` `.svg` |
 | HTML + embedded | – | `<!-- … -->` (markup) | `.html` `.htm` `.vue` `.svelte` |
+
+In CoffeeScript a run of four or more `#` is a line comment, not a block opener, so a `#### Section` heading or a `##########` divider comments out only its own line.
 
 ## HTML and embedded languages
 

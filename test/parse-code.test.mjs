@@ -345,6 +345,27 @@ test('CoffeeScript ### block comment opens and spans multiple lines', () => {
   assert.deepEqual(items[0].needs, ['utest:cs/block#1']);
 });
 
+test('CoffeeScript #### heading is a line comment, not a block opener', () => {
+  // The language opens a block on ### only when no further # follows, so this
+  // heading must not open one and leave the code below scanned as comment text.
+  const { items } = parse('app.coffee', [
+    '#### Section',
+    '[impl:cs/heading#1]',
+    'run()',
+  ]);
+  assert.equal(items.length, 0);
+});
+
+test('CoffeeScript ########## divider is a line comment, not a block opener', () => {
+  const { items } = parse('app.coffee', [
+    '# [impl:cs/divider#1]',
+    '##########',
+    '### [>>utest:cs/divider#1] ###',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:cs/divider#1']);
+});
+
 test('Julia uses # line and #= =# block comments, which nest', () => {
   const { items } = parse('mod.jl', [
     '# [impl:jl/mod#1]',
@@ -675,6 +696,16 @@ test('<script lang="coffee"> uses # line and ### ### block comments', () => {
   ]);
   assert.equal(items.length, 1);
   assert.deepEqual(items[0].needs, ['utest:web/coffee#1']);
+});
+
+test('<script lang="coffee"> treats #### as a line comment', () => {
+  const { items } = parse('page.html', [
+    '<script lang="coffee">',
+    '#### Section',
+    '[impl:web/heading#1]',
+    '</script>',
+  ]);
+  assert.equal(items.length, 0);
 });
 
 test('<style lang="scss"> honours // line comments', () => {
