@@ -176,16 +176,7 @@ export function buildResolver(items) {
   for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  // only the reports walk the inverse edge, so pay for it when one asks
-  let wantedBy = null;
-  return {
-    byId,
-    matchesOf,
-    get wantedBy() {
-      wantedBy ??= buildWantedBy(items, byId, matchesOf);
-      return wantedBy;
-    },
-  };
+  return { byId, matchesOf, wantedBy: buildWantedBy(items, byId, matchesOf) };
 }
 
 // the single status label both reports render, decided here alone so they

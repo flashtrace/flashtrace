@@ -942,15 +942,7 @@ function buildResolver(items) {
   for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  let wantedBy = null;
-  return {
-    byId,
-    matchesOf,
-    get wantedBy() {
-      wantedBy ??= buildWantedBy(items, byId, matchesOf);
-      return wantedBy;
-    }
-  };
+  return { byId, matchesOf, wantedBy: buildWantedBy(items, byId, matchesOf) };
 }
 function statusOf(item) {
   if (item.defects.length > 0) return "defective";
