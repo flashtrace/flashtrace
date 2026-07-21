@@ -26,7 +26,11 @@ const php = { line: ['//', '#'], block: [['/*', '*/']] };
 const hash = { line: ['#'], block: [] };
 // Hash line comments plus the language's own block pair. Julia's #= =# and
 // Nim's #[ ]# nest per their specs; CoffeeScript's ### ### does not.
-const coffee = { line: ['#'], block: [['###', '###']] };
+// CoffeeScript's ### opens a block only when no further # follows, so `#### x`
+// and `##########` are line comments. The #### line marker outranks the ###
+// opener by the longest-match tie-break, which degrades every run of four or
+// more to a line comment while a bare ### still opens a block.
+const coffee = { line: ['#', '####'], block: [['###', '###']] };
 const julia = { line: ['#'], block: [['#=', '=#', true]] };
 // Nim also has ##[ ]## doc blocks; the longer opener wins the tie against both
 // # and #[ at the same position, so doc blocks are recognized as such.
