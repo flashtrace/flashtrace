@@ -58,9 +58,12 @@ async function runInTempCopy(example, args) {
 // Windows runs print backslash paths (e.g. tests\store.test.ts); normalize so
 // both platforms assert against the same snapshot files. The JSON report's
 // `flashtrace` version is provenance only and bumps every release, so pin it to
-// a placeholder rather than re-snapshot on each bump.
+// a placeholder rather than re-snapshot on each bump. Anchored to the line
+// start at top-level indentation: only the document's own field sits there -
+// nested fields sit deeper, and text inside a JSON string cannot open a line
+// with an unescaped quote - so snapshot content can never be rewritten.
 const normalize = (s) =>
-  s.replaceAll('\\', '/').replace(/("flashtrace": ")[^"]*"/, '$1<version>"');
+  s.replaceAll('\\', '/').replace(/^(  "flashtrace": ")[^"]*"/m, '$1<version>"');
 
 function firstDifference(expected, actual) {
   const e = expected.split('\n');
