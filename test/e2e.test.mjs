@@ -42,6 +42,7 @@ const CASES = [
   { example: 'polyglot-web', variant: 'json', args: ['--json'], status: 0 },
   { example: 'hyperglot', variant: 'default', args: [], status: 0 },
   { example: 'hyperglot', variant: 'verbose', args: ['-v'], status: 0 },
+  { example: 'hyperglot', variant: 'json', args: ['--json'], status: 0 },
   { example: 'diagnostics', variant: 'default', args: [], status: 1 },
   { example: 'diagnostics', variant: 'verbose', args: ['-v'], status: 1 },
   { example: 'diagnostics', variant: 'json', args: ['--json'], status: 1 },
