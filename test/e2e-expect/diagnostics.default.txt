@@ -32,9 +32,8 @@
 
 Summary
   items       14  (12 from specs, 2 from code)
-  ok          5
+  ok          5  (4 deep-covered, 1 only shallow-covered)
   defective   9
-  of the ok items, 1 are only shallow-covered (an item further down the tracing chain is defective)
   problems    4
 
 not ok

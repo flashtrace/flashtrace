@@ -21,7 +21,7 @@ Exit codes: `0` clean trace · `1` defects or problems found · `2` usage error.
 
 ## Default report
 
-Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, shallow-only note) ending in `ok` / `not ok`.
+Output is a color-formatted plain-text report to stdout: one block per defective item (ID, title, location, defect list), parse problems, and a summary (item counts, ok/defective, and the deep- versus shallow-covered split of the ok items) ending in `ok` / `not ok`.
 
 With `-f json` (or its shorthand `--json`) the report is a single JSON document instead - see [JSON report](json-report.md). Any other format value is a usage error, as is combining the JSON format with `-v`/`--verbose`: verbosity selects which items the plain-text report lists, and the JSON document always carries them all.
 

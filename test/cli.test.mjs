@@ -363,6 +363,25 @@ test('-v marks an item with a defective downstream chain as shallow-covered', as
   });
 });
 
+test('the summary splits the ok count into deep- and shallow-covered items', async () => {
+  const files = {
+    'spec.md': ['`req:a#1`', '', 'Needs: req:b#1', '', '`req:b#1`', '', 'Needs: impl:missing#1'],
+  };
+  await withProject(files, (dir) => {
+    const res = runCli(dir, []);
+    assert.match(res.stdout, /ok\s+1\s+\(0 deep-covered, 1 only shallow-covered\)/);
+  });
+});
+
+test('the summary omits the coverage breakdown when no item is shallow-covered', async () => {
+  await withProject({ 'spec.md': ['`req:a#1`'] }, (dir) => {
+    const res = runCli(dir, []);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /ok\s+1\n/);
+    assert.ok(!res.stdout.includes('deep-covered'), res.stdout);
+  });
+});
+
 test('-v marks a forwarding to a nonexistent target as missing', async () => {
   await withProject(
     { 'spec.md': ['`req:a#1`', '', '`[req:a#1 --> dsn:gone#1]`'] },
