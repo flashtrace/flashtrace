@@ -179,12 +179,12 @@ jobs:
             key=${field%%:*}
             value=${field#*:}
             if ! grep -q "^${key}: " CITATION.cff; then
-              echo "::error file=CITATION.cff::No \"${key}\" field to update; the release keeps it in sync with package.json." >&2
+              echo "::error file=CITATION.cff::No \"${key}\" field to update; the release keeps it in sync with package.json."
               exit 1
             fi
             sed -i "s|^${key}: .*|${key}: \"${value}\"|" CITATION.cff
             if [ "$(sed -n "s|^${key}: ||p" CITATION.cff)" != "\"${value}\"" ]; then
-              echo "::error file=CITATION.cff::Failed to set \"${key}\" to \"${value}\"." >&2
+              echo "::error file=CITATION.cff::Failed to set \"${key}\" to \"${value}\"."
               exit 1
             fi
           done
