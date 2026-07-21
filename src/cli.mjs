@@ -84,6 +84,10 @@ const LONG_ALIAS = {
   '-f': '--format',
 };
 
+// Both of these end the run mid-parse, which is what stops the parser from
+// reading the rest of the arguments. process.exit() is safe here where it is
+// not at the end of main(): each prints a fixed string far below the buffer of
+// any pipe, so there is nothing left buffered to lose.
 function printHelp() {
   console.log(HELP);
   process.exit(0);
@@ -186,11 +190,19 @@ async function main() {
   const clean = opts.format === 'json'
     ? reportJson(items, forwards, problems, process.cwd(), { version: packageVersion() })
     : report(items, problems, process.cwd(), { verbose: opts.verbose });
-  process.exit(clean ? 0 : 1);
+  // Set the code and let the process end on its own: writing to a pipe is
+  // asynchronous on POSIX, so process.exit() here would end the process with
+  // the report still buffered, truncating every run whose output outgrows the
+  // pipe - which is exactly the runs a report is worth piping for.
+  process.exitCode = clean ? 0 : 1;
 }
 
 export function runCli() {
   main().catch((err) => {
+    // A usage error carries the help text and a crash carries a stack trace,
+    // both small enough that process.exit() leaves nothing buffered behind.
+    // An error path that grows past a pipe buffer would need the exit code
+    // main() sets instead.
     if (err instanceof UsageError) {
       console.error(`error: ${err.message}\n\n${HELP}`);
       process.exit(2);

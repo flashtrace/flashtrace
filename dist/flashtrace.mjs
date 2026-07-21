@@ -1357,7 +1357,7 @@ async function main() {
   }
   analyze(items, forwards, problems);
   const clean = opts.format === "json" ? reportJson(items, forwards, problems, process3.cwd(), { version: packageVersion() }) : report(items, problems, process3.cwd(), { verbose: opts.verbose });
-  process3.exit(clean ? 0 : 1);
+  process3.exitCode = clean ? 0 : 1;
 }
 function runCli() {
   main().catch((err) => {
