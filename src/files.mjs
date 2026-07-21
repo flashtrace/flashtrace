@@ -11,8 +11,6 @@ import { UsageError } from './errors.mjs';
 import { CODE_EXT } from './languages.mjs';
 import { SPEC_EXT } from './parse-spec.mjs';
 
-export { CODE_EXT, SPEC_EXT };
-
 // git is looked up in fixed, non-user-writable install locations only, never
 // via PATH (writable PATH entries would allow binary planting).
 const GIT_LOCATIONS = process.platform === 'win32'
