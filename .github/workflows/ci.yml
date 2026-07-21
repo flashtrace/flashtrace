@@ -43,7 +43,7 @@ jobs:
         run: npm pack --dry-run
 
       - name: Build quality badges
-        run: node .github/scripts/quality-badges.mjs coverage/lcov.info coverage/junit.xml badges
+        run: node .github/scripts/quality-badges.mjs coverage/lcov.info coverage/junit.xml src badges
 
       - name: Hand the quality badges to the publishing job
         if: github.event_name == 'push'
@@ -58,6 +58,12 @@ jobs:
     needs: verify
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    # Serialize publications so two quickly merged PRs - or a merge and the
+    # version bump release.yml pushes on top of it - cannot race on the badges
+    # branch, where the loser would be rejected as non-fast-forward.
+    concurrency:
+      group: publish-badges
+      cancel-in-progress: false
     # The `badges` branch only accepts pushes from the badges app (a ruleset
     # blocks everyone else), so the push below runs on the app's token and
     # GITHUB_TOKEN stays read-only.
