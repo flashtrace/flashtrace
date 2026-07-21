@@ -277,14 +277,23 @@
       "file": "spec.md",
       "line": 80,
       "character": 1,
-      "status": "deep-covered",
-      "defective": false,
+      "status": "defective",
+      "defective": true,
       "deepCovered": true,
       "needs": [],
       "covers": [],
       "forwardsTo": null,
       "forwardedFrom": [],
-      "defects": [],
+      "defects": [
+        {
+          "kind": "cyclic-forwarding",
+          "ref": "req:theta#1",
+          "file": "spec.md",
+          "line": 85,
+          "character": 1,
+          "message": "cyclic: forwards to req:theta#1, closing the cycle req:eta#1 --> req:theta#1 --> req:eta#1, so the forwarding has no effect"
+        }
+      ],
       "wantedBy": []
     },
     {
@@ -295,14 +304,23 @@
       "file": "spec.md",
       "line": 89,
       "character": 1,
-      "status": "deep-covered",
-      "defective": false,
+      "status": "defective",
+      "defective": true,
       "deepCovered": true,
       "needs": [],
       "covers": [],
       "forwardsTo": null,
       "forwardedFrom": [],
-      "defects": [],
+      "defects": [
+        {
+          "kind": "cyclic-forwarding",
+          "ref": "req:eta#1",
+          "file": "spec.md",
+          "line": 93,
+          "character": 1,
+          "message": "cyclic: forwards to req:eta#1, closing the cycle req:eta#1 --> req:theta#1 --> req:eta#1, so the forwarding has no effect"
+        }
+      ],
       "wantedBy": []
     },
     {
@@ -409,18 +427,6 @@
     },
     {
       "file": "spec.md",
-      "line": 85,
-      "character": 1,
-      "message": "cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1"
-    },
-    {
-      "file": "spec.md",
-      "line": 93,
-      "character": 1,
-      "message": "cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1"
-    },
-    {
-      "file": "spec.md",
       "line": 97,
       "character": 1,
       "message": "forwarding from req:ghost#1, which does not exist"
@@ -430,9 +436,9 @@
     "items": 14,
     "specItems": 12,
     "codeItems": 2,
-    "okItems": 5,
-    "defectiveItems": 9,
+    "okItems": 3,
+    "defectiveItems": 11,
     "shallowCoveredItems": 1,
-    "problems": 4
+    "problems": 2
   }
 }

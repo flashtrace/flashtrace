@@ -222,7 +222,7 @@ function buildEverything() {
     '',
     'Tags: web',
     '',
-    'Needs: impl:a#1, dsn:missing#2, impl:wild#3.x',
+    'Needs: impl:a#1, dsn:missing#2, impl:wild#3.x, not/valid',
     '',
     'Covers: req:wants#1, req:nowant#1, req:gone#1',
     '',

@@ -2,7 +2,11 @@
  * Every defect an item can carry, in one place.
  *
  * A defect is { kind, ref, message }, plus existingRevisions when the
- * revision-mismatch hint applies (see withRevisions in analyze.mjs).
+ * revision-mismatch hint applies (see withRevisions in analyze.mjs), plus
+ * file/line/character - all three or none - when the defect has a source
+ * location of its own, distinct from the item's: the invalid entry or the
+ * forwarding declaration it is about. A defect without the location group is
+ * anchored at the item's own location.
  *
  * There is exactly one kind per condition, and every kind is raised from
  * exactly one place. `kind` is therefore a complete discriminator: a consumer
@@ -17,6 +21,7 @@
 
 // every defect kind, in the order the schema lists them
 export const DEFECT_KINDS = Object.freeze([
+  'invalid-reference',
   'uncovered-need',
   'uncovered-forward',
   'orphaned-cover',
@@ -24,7 +29,19 @@ export const DEFECT_KINDS = Object.freeze([
   'unwanted-item',
   'duplicate-id',
   'duplicate-forwarding',
+  'cyclic-forwarding',
 ]);
+
+// a Needs/Covers entry that is not a valid reference; the entry is ignored,
+// so it is also carried nowhere else - ref is the offending text as written
+export const invalidReference = (value, source, { file, line, character }) => ({
+  kind: 'invalid-reference',
+  ref: value,
+  file,
+  line,
+  character,
+  message: `invalid: "${value}" in ${source} is not a valid ID and is ignored`,
+});
 
 // a declared need that no defined item matches
 export const uncoveredNeed = (need) => ({
@@ -75,4 +92,15 @@ export const duplicateForwarding = (from, count) => ({
   kind: 'duplicate-forwarding',
   ref: from,
   message: `duplicate: forwarding for ${from} is declared ${count} times`,
+});
+
+// a forwarding sitting on a cycle; it is voided, so the source falls back to
+// its own needs
+export const cyclicForwarding = (target, chain, { file, line, character }) => ({
+  kind: 'cyclic-forwarding',
+  ref: target,
+  file,
+  line,
+  character,
+  message: `cyclic: forwards to ${target}, closing the cycle ${chain}, so the forwarding has no effect`,
 });

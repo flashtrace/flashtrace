@@ -99,17 +99,21 @@ chains must be acyclic.
 An ID is **covered** when an item with that ID (revisions compared SemVer-equal)
 exists. Reported defects:
 
+- **invalid** - a `Needs:`/`Covers:` entry that is not a valid reference; the
+  entry is ignored.
 - **duplicate** - the same ID is defined more than once.
 - **uncovered** - a needed ID does not exist (a hint is shown when other
   revisions of the same item exist).
 - **orphaned** - `Covers:` references an ID that does not exist.
 - **unwanted** - an item covers something that does not need it back, or a
   code item that nothing needs.
+- **cyclic** - the item's forwarding sits on a cycle; it is voided and the
+  item falls back to its own needs.
 
 Coverage is checked transitively: an item is only *deep-covered* when all of
 its needs exist and are themselves deep-covered. Shallow-covered items are
 counted separately in the summary.
 
-Malformed input (invalid IDs in Needs/Covers lists, a `[>>...]` tag with no
+Malformed input with no item to attach it to (a `[>>...]` tag with no
 preceding item tag, an explicit `[<source-id> >> <id>]` tag whose source item
 tag does not precede it) is reported as a **problem** ⚠ alongside the defects.

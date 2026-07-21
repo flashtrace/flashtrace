@@ -11,7 +11,7 @@
  *   src/languages.mjs      comment grammar per file extension
  *   src/parse-code.mjs     comment-aware code tag scanner
  *   src/analyze.mjs        coverage analysis
- *   src/defects.mjs        the defects analysis can raise, one kind per condition
+ *   src/defects.mjs        the defects an item can carry, one kind per condition
  *   src/report.mjs         terminal report
  *   src/cli.mjs            argument parsing and main flow
  *

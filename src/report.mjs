@@ -80,6 +80,15 @@ function coverEdges(item, byId, style, dimLocation) {
   return lines;
 }
 
+// one bullet per defect; a defect carrying its own source location (an
+// invalid entry, a cyclic forwarding declaration) shows it after the message
+function defectLines(item, style, dimLocation) {
+  return item.defects.map(
+    (defect) =>
+      `    ${style.red('•')} ${defect.message}${defect.file ? `  ${dimLocation(defect.file, defect.line)}` : ''}`,
+  );
+}
+
 // role-appropriate edges: a spec item its needs, a forwarding source its
 // target (its own needs are excused, its covers are not), every item its
 // covers and who wants it - so a code item's own needs stay visible on their
@@ -108,8 +117,8 @@ function renderVerbose(items, out, style, dimLocation) {
     out.push(
       `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
       ...edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation),
+      ...defectLines(item, style, dimLocation),
     );
-    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect.message}`);
   }
   if (sorted.length) out.push('');
 }
@@ -120,9 +129,9 @@ function renderDefective(defective, out, style, dimLocation) {
     const title = item.title ? ' ' + style.dim(`"${item.title}"`) : '';
     out.push(
       `${styledStatus(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`,
+      ...defectLines(item, style, dimLocation),
+      '',
     );
-    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect.message}`);
-    out.push('');
   }
 }
 

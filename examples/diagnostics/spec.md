@@ -79,8 +79,8 @@ Target of the effective forwarding.
 
 `req:eta#1`
 
-On a forwarding cycle with req:theta#1; both forwardings are voided, so the
-item falls back to its own empty needs.
+On a forwarding cycle with req:theta#1; both forwardings are voided and
+flagged as cyclic defects, so the item falls back to its own empty needs.
 
 `[req:eta#1 --> req:theta#1]`
 

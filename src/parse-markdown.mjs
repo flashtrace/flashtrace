@@ -154,8 +154,8 @@ function titleAbove(lines, inTable, definitionIndex) {
 // entries of a keyword line: inline comma-separated, or a bullet list on the
 // following lines. Each entry carries its own source location (the column of
 // its first character, and - for a bullet list - the line it sits on rather
-// than the keyword line), so an invalid-ID problem points at the entry itself.
-// Returns the entries and the index of the last consumed line.
+// than the keyword line), so an invalid-reference defect points at the entry
+// itself. Returns the entries and the index of the last consumed line.
 function keywordEntries(lines, j, inline) {
   if (inline.trim() !== '') {
     // inline is the `$`-anchored tail of lines[j], so it begins at this offset
@@ -290,7 +290,7 @@ function scanTables(lines, file, problems) {
 // or null if `lines[j]` is not the header of such a table. Only the line a
 // scanned table starts at qualifies - a keyword-headed row inside a larger
 // table is a row of that table, not a nested table of its own.
-function takeKeywordTable(lines, inTable, j, item, file, problems) {
+function takeKeywordTable(lines, inTable, j, item, file) {
   if (!inTable[j] || (j > 0 && inTable[j - 1])) return null;
   const columns = [];
   rowCells(lines[j]).forEach((cell, col) => {
@@ -309,7 +309,6 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
           keyword,
           [{ value: cells[col], line: j + 1, character: cellColumns[col] }],
           file,
-          problems,
           `the ${keyword} column of ${item.id}`,
         );
     }
@@ -321,7 +320,7 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
 // returns the index of the first line after the item. `boundary` bundles the
 // two precomputed per-line arrays isBoundary needs (inTable, opensHeading) so
 // they thread through as one parameter instead of two.
-function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
+function parseItemBody(lines, boundary, start, item, file, forwards) {
   const { inTable, opensHeading } = boundary;
   let j = start;
   let descriptionDone = false;
@@ -332,7 +331,7 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
       continue;
     }
     const keywordMatch = line.match(KEYWORD_RE);
-    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
+    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file);
     if (keywordMatch) {
       descriptionDone = true;
       const collected = keywordEntries(lines, j, keywordMatch[2]);
@@ -341,8 +340,7 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
         keywordMatch[1],
         collected.entries,
         file,
-        problems,
-        `${keywordMatch[1]}: list of ${item.id}`,
+        `the ${keywordMatch[1]} list of ${item.id}`,
       );
       j = collected.j;
     } else if (tableEnd !== null) {
@@ -397,7 +395,7 @@ export function parseMarkdown(file, text, problems, forwards = []) {
     }
     const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), 'spec', file, i + 1, firstNonBlankColumn(lines[i]));
     item.title = titleAbove(lines, inTable, i);
-    i = parseItemBody(lines, boundary, i + 1, item, file, problems, forwards);
+    i = parseItemBody(lines, boundary, i + 1, item, file, forwards);
     items.push(item);
   }
   return items;

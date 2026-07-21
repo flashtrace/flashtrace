@@ -369,16 +369,19 @@ test('inline comma-separated covers, IDs bare or backticked', () => {
   assert.deepEqual(items[0].covers, ['feat:a#1', 'feat:b#1']);
 });
 
-test('invalid ID in a Needs list is reported as a problem', () => {
+test('invalid ID in a Needs list is a defect on the item', () => {
   const { items, problems } = parse([
     '`req:a#1`',
     '',
     'Needs: not/valid, impl:ok#1',
   ]);
   assert.deepEqual(items[0].needs, ['impl:ok#1']);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /not\/valid/);
-  assert.equal(problems[0].file, 'spec.md');
+  assert.equal(problems.length, 0);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.equal(defect.ref, 'not/valid');
+  assert.match(defect.message, /^invalid: "not\/valid" in the Needs list of req:a#1 is not a valid ID and is ignored$/);
+  assert.equal(defect.file, 'spec.md');
 });
 
 test('a wildcard revision is accepted in Needs but not in Covers', () => {
@@ -391,19 +394,22 @@ test('a wildcard revision is accepted in Needs but not in Covers', () => {
   ]);
   assert.deepEqual(items[0].needs, ['impl:a#2.x', 'impl:b#2.3.x', 'impl:c#2.*', 'impl:d#x']);
   assert.deepEqual(items[0].covers, []);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "feat:x#1\.x" in Covers/);
+  assert.equal(problems.length, 0);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.match(defect.message, /"feat:x#1\.x" in the Covers list of req:a#1/);
 });
 
 test('a wildcard layer is only valid as the last layer: 2.x.y is no revision', () => {
-  const { items, problems } = parse([
+  const { items } = parse([
     '`req:a#1`',
     '',
     'Needs: impl:a#2.x.y',
   ]);
   assert.deepEqual(items[0].needs, []);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "impl:a#2\.x\.y" in Needs/);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.match(defect.message, /"impl:a#2\.x\.y" in the Needs list of req:a#1/);
 });
 
 test('a wildcard revision is not accepted in an item definition', () => {
@@ -464,8 +470,10 @@ test('a short-form Covers entry is completed from the item, like a Needs entry',
 test('a wildcard revision is rejected in a short-form Covers entry', () => {
   const { items, problems } = parse(['`impl:auth/login#1`', '', 'Covers: feat#2.x']);
   assert.deepEqual(items[0].covers, []);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "feat#2\.x" in Covers/);
+  assert.equal(problems.length, 0);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.match(defect.message, /"feat#2\.x" in the Covers list of impl:auth\/login#1/);
 });
 
 test('an item definition ends at the next ID line or heading', () => {
@@ -596,7 +604,7 @@ test('empty and missing keyword cells are skipped', () => {
   assert.deepEqual(items[0].needs, ['impl:a#1']);
 });
 
-test('invalid ID in a table cell is reported with the row line', () => {
+test('invalid ID in a table cell is a defect carrying the row line', () => {
   const { items, problems } = parse([
     '`req:a#1`',
     '',
@@ -606,9 +614,11 @@ test('invalid ID in a table cell is reported with the row line', () => {
     '| not/valid |',
   ]);
   assert.deepEqual(items[0].needs, ['impl:ok#1']);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "not\/valid" in the Needs column of req:a#1/);
-  assert.equal(problems[0].line, 6);
+  assert.equal(problems.length, 0);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.match(defect.message, /"not\/valid" in the Needs column of req:a#1/);
+  assert.equal(defect.line, 6);
 });
 
 test('a wildcard revision is accepted in a Needs column but not in a Covers column', () => {
@@ -621,8 +631,10 @@ test('a wildcard revision is accepted in a Needs column but not in a Covers colu
   ]);
   assert.deepEqual(items[0].needs, ['impl:a#2.x']);
   assert.deepEqual(items[0].covers, []);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "feat:x#1\.x" in the Covers column of req:a#1/);
+  assert.equal(problems.length, 0);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.match(defect.message, /"feat:x#1\.x" in the Covers column of req:a#1/);
 });
 
 test('a table without a keyword header cell stays plain text', () => {
@@ -697,8 +709,10 @@ test('an underline directly under a table is a row filling the first column, not
     '===========',
     '`req:b#1`',
   ]);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "===========" in the Needs column of req:a#1/);
+  assert.equal(problems.length, 0);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.match(defect.message, /"===========" in the Needs column of req:a#1/);
   assert.equal(items.length, 1);
   assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1', 'req:b#1']);
 });
@@ -754,8 +768,10 @@ test('a dash run too short for a thematic break is swallowed as a row', () => {
     '--',
     '| impl:b#1 |',
   ]);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "--" in the Needs column of req:a#1/);
+  assert.equal(problems.length, 0);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.match(defect.message, /"--" in the Needs column of req:a#1/);
   assert.deepEqual(items[0].needs, ['impl:a#1', 'impl:b#1']);
 });
 
@@ -796,7 +812,8 @@ test('a table continues past a swallowed underline', () => {
 
 // Any pipe-carrying line under a table is a row, even underlined and even when
 // it reads like prose: its cells feed the keyword columns, so an invalid entry
-// is reported rather than becoming a title. The underline below is a row too.
+// is flagged as a defect rather than becoming a title. The underline below is
+// a row too.
 test('a pipe-carrying line under a table is a row even when underlined', () => {
   const { items, problems } = parse([
     '`req:a#1`',
@@ -812,9 +829,11 @@ test('a pipe-carrying line under a table is a row even when underlined', () => {
   // Both `Next | Title` and the `====` run are rows of the table, not a setext
   // heading, so their first column is read as a Needs cell. `Next` is a valid
   // type on its own, so it completes to the short-form need Next:a#1; the `====`
-  // run is not a valid reference and is reported.
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "=============" in the Needs column of req:a#1/);
+  // run is not a valid reference and flags the item.
+  assert.equal(problems.length, 0);
+  const [defect] = items[0].defects;
+  assert.equal(defect.kind, 'invalid-reference');
+  assert.match(defect.message, /"=============" in the Needs column of req:a#1/);
   assert.equal(items.length, 2);
   assert.deepEqual(items[0].needs, ['impl:a#1', 'Next:a#1']);
   assert.equal(items[1].title, null);
@@ -946,7 +965,7 @@ test('a keyword table terminates the description like a keyword line', () => {
 
 // Source columns: every location records the 1-based column of the construct it
 // points at - the backtick of an ID line, the opener of a forwarding line, or
-// the offending entry of a problem.
+// the offending entry of a problem or defect.
 
 test('an item and a forwarding record the column of their construct', () => {
   const { items, forwards } = parse([
@@ -984,41 +1003,42 @@ test('a table-cell item-definition problem points at the cell backtick', () => {
   assert.equal(problems[0].character, 3);
 });
 
-test('an invalid inline Needs entry is reported at the entry column', () => {
-  const { problems } = parse([
+test('an invalid inline Needs entry is flagged at the entry column', () => {
+  const { items } = parse([
     '`req:a#1`',
     '',
     'Needs: impl:ok#1, not/valid',
   ]);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "not\/valid"/);
-  assert.equal(problems[0].line, 3);
-  assert.equal(problems[0].character, 19); // the 'n' of not/valid
+  const [defect] = items[0].defects;
+  assert.match(defect.message, /"not\/valid"/);
+  assert.equal(defect.file, 'spec.md');
+  assert.equal(defect.line, 3);
+  assert.equal(defect.character, 19); // the 'n' of not/valid
 });
 
-test('an invalid bullet Needs entry is reported at its own line and column', () => {
-  const { problems } = parse([
+test('an invalid bullet Needs entry is flagged at its own line and column', () => {
+  const { items } = parse([
     '`req:a#1`',
     '',
     'Needs:',
     '  - not/valid',
   ]);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "not\/valid"/);
-  assert.equal(problems[0].line, 4); // the bullet line, not the keyword line
-  assert.equal(problems[0].character, 5); // the 'n', past "  - "
+  const [defect] = items[0].defects;
+  assert.match(defect.message, /"not\/valid"/);
+  assert.equal(defect.line, 4); // the bullet line, not the keyword line
+  assert.equal(defect.character, 5); // the 'n', past "  - "
 });
 
-test('an invalid Needs-column cell is reported at the cell column', () => {
-  const { problems } = parse([
+test('an invalid Needs-column cell is flagged at the cell column', () => {
+  const { items } = parse([
     '`req:a#1`',
     '',
     '| Needs |',
     '|---|',
     '| not/valid |',
   ]);
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /invalid ID "not\/valid" in the Needs column/);
-  assert.equal(problems[0].line, 5);
-  assert.equal(problems[0].character, 3);
+  const [defect] = items[0].defects;
+  assert.match(defect.message, /"not\/valid" in the Needs column/);
+  assert.equal(defect.line, 5);
+  assert.equal(defect.character, 3);
 });

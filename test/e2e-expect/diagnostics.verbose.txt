@@ -22,8 +22,10 @@
     → dsn:zeta#1  ✔ spec.md:74
     • duplicate: forwarding for req:zeta#1 is declared 2 times
 ✔ dsn:zeta#1 "Zeta design"  spec.md:74  [deep-covered]
-✔ req:eta#1 "Eta requirement"  spec.md:80  [deep-covered]
-✔ req:theta#1 "Theta requirement"  spec.md:89  [deep-covered]
+✘ req:eta#1 "Eta requirement"  spec.md:80  [defective]
+    • cyclic: forwards to req:theta#1, closing the cycle req:eta#1 --> req:theta#1 --> req:eta#1, so the forwarding has no effect  spec.md:85
+✘ req:theta#1 "Theta requirement"  spec.md:89  [defective]
+    • cyclic: forwards to req:eta#1, closing the cycle req:eta#1 --> req:theta#1 --> req:eta#1, so the forwarding has no effect  spec.md:93
 
 ✘ impl:delta#1  unwanted.ts:2  [defective]
     • unwanted: no item needs impl:delta#1
@@ -32,13 +34,11 @@
 
 ⚠ need tag [>>utest:orphan#1] has no preceding item tag in this file  orphan-need.ts:1
 ⚠ forwarding from req:ghost#1, which does not exist  spec.md:97
-⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:85
-⚠ cyclic forwarding: req:eta#1 --> req:theta#1 --> req:eta#1  spec.md:93
 
 Summary
   items       14  (12 from specs, 2 from code)
-  ok          5  (4 deep-covered, 1 only shallow-covered)
-  defective   9
-  problems    4
+  ok          3  (2 deep-covered, 1 only shallow-covered)
+  defective   11
+  problems    2
 
 not ok
