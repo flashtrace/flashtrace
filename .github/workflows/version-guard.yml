@@ -40,3 +40,31 @@ jobs:
             echo '::error file=package.json::The "version" field must not be changed in a PR. It is bumped automatically by the release workflow (release:* labels).'
             exit 1
           fi
+
+      - name: Ensure CITATION.cff release fields are unchanged
+        run: |
+          # Same shape as the package.json guard above: HEAD^1 is already
+          # verified, and a file absent from the base branch (the PR that adds
+          # it) has nothing to compare against.
+          if ! git cat-file -e HEAD^1:CITATION.cff 2>/dev/null; then
+            echo 'CITATION.cff does not exist on the base branch; nothing to guard.'
+            exit 0
+          fi
+          # Read the field's value with the surrounding quotes stripped, so
+          # requoting a line is not reported as a version change.
+          field() {
+            sed -n "s|^$2: *||p" "$1" | sed 's|^"\(.*\)"$|\1|'
+          }
+          git show HEAD^1:CITATION.cff > "$RUNNER_TEMP/base.cff"
+          # Only these two fields are release-owned; authors, keywords and the
+          # rest of the citation metadata stay freely editable in a PR.
+          for key in version date-released; do
+            base_value=$(field "$RUNNER_TEMP/base.cff" "$key")
+            pr_value=$(field CITATION.cff "$key")
+            echo "Base $key: $base_value"
+            echo "PR   $key: $pr_value"
+            if [ "$base_value" != "$pr_value" ]; then
+              echo "::error file=CITATION.cff::The \"$key\" field must not be changed in a PR. It is set automatically by the release workflow (release:* labels)."
+              exit 1
+            fi
+          done

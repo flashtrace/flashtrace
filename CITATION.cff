@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "flashtrace is free to use, no attribution required. If you are citing it in a paper or similar publication, this metadata may save you some typing."
+title: "flashtrace"
+abstract: "CLI tool to manage reference-based requirement tracing in any software project."
+authors:
+- family-names: "Solterbeck"
+  given-names: "Lennard"
+  orcid: "https://orcid.org/0009-0000-6247-4058"
+keywords:
+- "requirements"
+- "traceability"
+- "tracing"
+- "coverage"
+- "markdown"
+- "cli"
+license: "Apache-2.0"
+repository-code: "https://github.com/flashtrace/flashtrace"
+url: "https://flashtrace.github.io"
+
+# 'version' and 'date-released' are managed by release.yml and must not be hand-edited
+version: "0.10.0"
+date-released: "2026-07-19"
