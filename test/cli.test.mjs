@@ -664,3 +664,42 @@ test('the format may still be selected once, in any spelling', async () => {
     }
   });
 });
+
+// spawnSync gives the run a pipe for stdout, which POSIX writes to
+// asynchronously: a report large enough to outgrow the pipe buffer is still
+// buffered when main() returns, so ending the process outright would cut it
+// off mid-character. 400 requirements put both reports well past the 64 KiB a
+// pipe holds on Linux, and asserting the item count rather than the closing
+// bytes proves what survived is the whole run, not a prefix that happens to
+// parse.
+const BIG_ITEM_COUNT = 400;
+
+function bigProject() {
+  const spec = [];
+  const impl = [];
+  for (let i = 0; i < BIG_ITEM_COUNT; i++) {
+    spec.push(`# Requirement number ${i} of an oversized report`);
+    spec.push(`\`req:item-${i}#1\``, '', `Needs: impl:item-${i}#1`, '');
+    impl.push(`// [impl:item-${i}#1]`);
+  }
+  return { 'spec.md': spec, 'impl.ts': impl };
+}
+
+test('a JSON report larger than the pipe buffer is written whole', async () => {
+  await withProject(bigProject(), (dir) => {
+    const res = runCli(dir, ['--json']);
+    assert.equal(res.status, 0);
+    assert.ok(res.stdout.length > 65536, `too small to exercise the pipe: ${res.stdout.length}`);
+    assert.equal(JSON.parse(res.stdout).items.length, BIG_ITEM_COUNT * 2);
+  });
+});
+
+test('a text report larger than the pipe buffer is written whole', async () => {
+  await withProject(bigProject(), (dir) => {
+    const res = runCli(dir, ['-v']);
+    assert.equal(res.status, 0);
+    assert.ok(res.stdout.length > 65536, `too small to exercise the pipe: ${res.stdout.length}`);
+    assert.ok(res.stdout.trim().endsWith('ok'));
+    assert.match(res.stdout, new RegExp(`items\\s+${BIG_ITEM_COUNT * 2}\\b`));
+  });
+});
