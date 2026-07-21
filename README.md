@@ -56,6 +56,12 @@
     <a href="https://sonarcloud.io/component_measures?metric=vulnerabilities&id=flashtrace_flashtrace">
         <img src="https://sonarcloud.io/api/project_badges/measure?project=flashtrace_flashtrace&metric=vulnerabilities" alt="SonarCloud amount of vulnerabilities." />
     </a>
+    <a href="https://github.com/flashtrace/flashtrace/actions/workflows/ci.yml">
+        <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fflashtrace%2Fflashtrace%2Fbadges%2Fcoverage.json" alt="Line coverage of src/, measured by node --test." />
+    </a>
+    <a href="https://github.com/flashtrace/flashtrace/actions/workflows/ci.yml">
+        <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fflashtrace%2Fflashtrace%2Fbadges%2Ftests.json" alt="Number of tests run by node --test." />
+    </a>
 </p>
 
 ## Getting Started
