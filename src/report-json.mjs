@@ -56,6 +56,10 @@ function defectDocument(defect) {
 
 export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   const { version } = opts;
+  // the schema requires the `flashtrace` field, and JSON.stringify would
+  // silently drop it when undefined - refuse to build a non-conforming document
+  if (typeof version !== 'string')
+    throw new TypeError('opts.version is required: it becomes the document\'s "flashtrace" field');
   const relative = (file) => (path.relative(cwd, file) || file).replaceAll('\\', '/');
   const location = (x) => ({ file: relative(x.file), line: x.line, character: x.character });
   const byLocation = (a, b) => {

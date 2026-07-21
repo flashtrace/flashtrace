@@ -412,3 +412,12 @@ test('items, forwards and problems are sorted by file, line, character', () => {
   assert.deepEqual(document.items.map((i) => i.line), [1, 3]);
   for (const item of document.items) assert.ok(!item.file.includes('\\')); // forward slashes only
 });
+
+test('building a document without a version throws instead of dropping the field', () => {
+  // JSON.stringify silently drops an undefined `flashtrace`, so the omission
+  // must be refused up front rather than surface as a non-conforming document
+  assert.throws(
+    () => buildReportDocument([], [], [], ''),
+    { name: 'TypeError', message: /opts\.version is required/ },
+  );
+});

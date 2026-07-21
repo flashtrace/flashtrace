@@ -1168,6 +1168,8 @@ function defectDocument(defect) {
 }
 function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   const { version } = opts;
+  if (typeof version !== "string")
+    throw new TypeError(`opts.version is required: it becomes the document's "flashtrace" field`);
   const relative = (file) => (path4.relative(cwd, file) || file).replaceAll("\\", "/");
   const location = (x) => ({ file: relative(x.file), line: x.line, character: x.character });
   const byLocation = (a, b) => {
