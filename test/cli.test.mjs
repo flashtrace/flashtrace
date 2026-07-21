@@ -483,3 +483,161 @@ test('git-ignored files are excluded from the scan', async (t) => {
     },
   );
 });
+
+// fixture with one clean requirement traced to code and one forwarding
+const JSON_FIXTURE = {
+  'spec.md': [
+    '# Login',
+    '`req:login#1`',
+    '',
+    'Needs: impl:login#1',
+    '',
+    '`req:legacy#1`',
+    '',
+    '`[req:legacy#1 --> req:login#1]`',
+  ],
+  'login.ts': ['// [impl:login#1]'],
+};
+
+test('--json prints the JSON document to stdout and keeps the exit code', async () => {
+  await withProject(JSON_FIXTURE, (dir) => {
+    const res = runCli(dir, ['--json']);
+    assert.equal(res.status, 0, res.stderr);
+    assert.equal(res.stderr, '');
+    const document = JSON.parse(res.stdout);
+    assert.equal(document.ok, true);
+    assert.ok(document.items.some((i) => i.id === 'req:login#1'));
+    assert.ok(res.stdout.endsWith('}\n')); // single trailing newline
+  });
+});
+
+test('--json carries the forwards array and wantedBy on every item', async () => {
+  await withProject(JSON_FIXTURE, (dir) => {
+    const res = runCli(dir, ['--json']);
+    assert.equal(res.status, 0, res.stderr);
+    const document = JSON.parse(res.stdout);
+    assert.deepEqual(
+      document.forwards.map((f) => [f.from, f.to, f.effective]),
+      [['req:legacy#1', 'req:login#1', true]],
+    );
+    assert.ok(document.items.every((i) => 'wantedBy' in i));
+  });
+});
+
+test('--json reports the flashtrace version that produced it', async () => {
+  const { version } = JSON.parse(
+    await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'),
+  );
+  await withProject(JSON_FIXTURE, (dir) => {
+    const document = JSON.parse(runCli(dir, ['--json']).stdout);
+    assert.equal(document.flashtrace, version);
+  });
+});
+
+test('--json on a defective project exits 1 with ok false', async () => {
+  await withProject(
+    { 'spec.md': ['`req:login#1`', '', 'Needs: impl:missing#1'] },
+    (dir) => {
+      const res = runCli(dir, ['--json']);
+      assert.equal(res.status, 1);
+      const document = JSON.parse(res.stdout);
+      assert.equal(document.ok, false);
+      assert.equal(document.summary.defectiveItems, 1);
+    },
+  );
+});
+
+test('--json honors --tags import filtering', async () => {
+  await withProject(TAGS_FIXTURE, (dir) => {
+    const document = JSON.parse(runCli(dir, ['--json', '-t', 'Auth']).stdout);
+    assert.equal(document.summary.items, 1);
+    assert.equal(document.items[0].id, 'req:a#1');
+  });
+});
+
+test('--json takes no value', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['--json=pretty']);
+    assert.equal(res.status, 2);
+    assert.equal(res.stdout, '');
+    assert.match(res.stderr, /option --json does not take a value/);
+  });
+});
+
+test('-f/--format json produces the same document as --json', async () => {
+  await withProject(JSON_FIXTURE, (dir) => {
+    const shorthand = runCli(dir, ['--json']);
+    for (const args of [['-f', 'json'], ['--format', 'json'], ['--format=json']]) {
+      const res = runCli(dir, args);
+      assert.equal(res.status, 0, res.stderr);
+      assert.equal(res.stdout, shorthand.stdout, args.join(' '));
+    }
+  });
+});
+
+test('-f/--format text is the default plain-text report', async () => {
+  await withProject(JSON_FIXTURE, (dir) => {
+    const explicit = runCli(dir, ['-f', 'text']);
+    assert.equal(explicit.status, 0, explicit.stderr);
+    assert.equal(explicit.stdout, runCli(dir, []).stdout);
+  });
+});
+
+test('an unknown format is a usage error on stderr', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['-f', 'yaml']);
+    assert.equal(res.status, 2);
+    assert.equal(res.stdout, '');
+    assert.match(res.stderr, /invalid value for -f: "yaml" \(expected "text" or "json"\)/);
+  });
+});
+
+test('--format requires a value', async () => {
+  await withProject({}, (dir) => {
+    const res = runCli(dir, ['--format']);
+    assert.equal(res.status, 2);
+    assert.match(res.stderr, /missing value for --format/);
+  });
+});
+
+test('-v/--verbose is rejected for the JSON format, whichever spelling selects it', async () => {
+  await withProject({}, (dir) => {
+    for (const args of [['--json', '-v'], ['-v', '--json'], ['-f', 'json', '--verbose']]) {
+      const res = runCli(dir, args);
+      assert.equal(res.status, 2, args.join(' '));
+      assert.match(res.stderr, /-v\/--verbose applies to the text format only/);
+    }
+  });
+});
+
+test('selecting the report format twice is a usage error', async () => {
+  await withProject({}, (dir) => {
+    // conflicting, agreeing and repeated-spelling selections alike: one rule
+    const cases = [
+      [['--json', '--format', 'text'], '--json'],
+      [['--format', 'text', '--json'], '--format'],
+      [['--json', '--format', 'json'], '--json'],
+      [['--json', '--json'], '--json'],
+      [['-f', 'json', '--format=text'], '-f'],
+    ];
+    for (const [args, blamed] of cases) {
+      const res = runCli(dir, args);
+      assert.equal(res.status, 2, args.join(' '));
+      assert.equal(res.stdout, '', args.join(' '));
+      assert.match(
+        res.stderr,
+        new RegExp(`the report format is already selected by ${blamed}`),
+        args.join(' '),
+      );
+    }
+  });
+});
+
+test('the format may still be selected once, in any spelling', async () => {
+  await withProject({ 'spec.md': ['# T', '`req:a#1`'] }, (dir) => {
+    for (const args of [['--json'], ['-f', 'json'], ['--format', 'json'], ['--format=json']]) {
+      const res = runCli(dir, args);
+      assert.equal(JSON.parse(res.stdout).schemaVersion, 0, args.join(' '));
+    }
+  });
+});

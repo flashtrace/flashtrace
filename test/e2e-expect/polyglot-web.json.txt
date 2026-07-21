@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 0,
+  "flashtrace": "<version>",
+  "ok": true,
+  "items": [
+    {
+      "id": "impl:data/aggregation#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "aggregation.sql",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:data/aggregation#1",
+          "file": "spec.md",
+          "line": 26,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:web/markup#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "dashboard.vue",
+      "line": 2,
+      "character": 8,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:web/dashboard#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:web/widget#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "dashboard.vue",
+      "line": 9,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:web/dashboard#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:web/theme#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "dashboard.vue",
+      "line": 19,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:web/dashboard#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:web/page#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "index.html",
+      "line": 2,
+      "character": 6,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:web/dashboard#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:api/metrics#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "metrics.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:api/metrics#1",
+          "file": "spec.md",
+          "line": 16,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:web/dashboard#1",
+      "title": "Web dashboard",
+      "origin": "spec",
+      "tags": [
+        "web"
+      ],
+      "file": "spec.md",
+      "line": 3,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:web/page#1",
+          "resolvedTo": [
+            "impl:web/page#1"
+          ]
+        },
+        {
+          "ref": "impl:web/markup#1",
+          "resolvedTo": [
+            "impl:web/markup#1"
+          ]
+        },
+        {
+          "ref": "impl:web/widget#1",
+          "resolvedTo": [
+            "impl:web/widget#1"
+          ]
+        },
+        {
+          "ref": "impl:web/theme#1",
+          "resolvedTo": [
+            "impl:web/theme#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "req:api/metrics#1",
+      "title": "Metrics API",
+      "origin": "spec",
+      "tags": [
+        "web",
+        "data"
+      ],
+      "file": "spec.md",
+      "line": 16,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:api/metrics#1",
+          "resolvedTo": [
+            "impl:api/metrics#1"
+          ]
+        },
+        {
+          "ref": "utest:api/metrics#1",
+          "resolvedTo": [
+            "utest:api/metrics#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "req:data/aggregation#1",
+      "title": "Metrics aggregation",
+      "origin": "spec",
+      "tags": [
+        "data"
+      ],
+      "file": "spec.md",
+      "line": 26,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:data/aggregation#1",
+          "resolvedTo": [
+            "impl:data/aggregation#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "doc:web/style-guide#1",
+      "title": "Style guide",
+      "origin": "spec",
+      "tags": [
+        "guide"
+      ],
+      "file": "spec.md",
+      "line": 36,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "doc:web/color-palette#1",
+          "resolvedTo": [
+            "doc:web/color-palette#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "doc:web/color-palette#1",
+      "title": "Color palette",
+      "origin": "spec",
+      "tags": [
+        "guide"
+      ],
+      "file": "spec.md",
+      "line": 46,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "doc:web/style-guide#1",
+          "file": "spec.md",
+          "line": 36,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "utest:api/metrics#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "test_metrics.py",
+      "line": 1,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:api/metrics#1",
+          "file": "spec.md",
+          "line": 16,
+          "character": 1
+        }
+      ]
+    }
+  ],
+  "forwards": [],
+  "problems": [],
+  "summary": {
+    "items": 12,
+    "specItems": 5,
+    "codeItems": 7,
+    "okItems": 12,
+    "defectiveItems": 0,
+    "shallowCoveredItems": 0,
+    "problems": 0
+  }
+}

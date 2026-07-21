@@ -8,6 +8,7 @@ import { parseMarkdown } from './parse-markdown.mjs';
 import { parseCode } from './parse-code.mjs';
 import { analyze } from './analyze.mjs';
 import { report } from './report.mjs';
+import { reportJson } from './report-json.mjs';
 
 const HELP = `Usage: flashtrace [options] [directory-or-file ...]
 
@@ -18,8 +19,11 @@ by git are excluded.
 Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
+  -f, --format <format>    report format: "text" (default) or "json"; --json
+                           is shorthand for --format json. The format may be
+                           selected only once
   -v, --verbose            list every item with its coverage status and trace
-                           edges, not only the defective ones
+                           edges, not only the defective ones; text format only
   -V, --version            print the version number
   -h, --help               show this help
 
@@ -40,38 +44,108 @@ function packageVersion() {
 // options keep POSIX semantics and never carry one
 function splitLongOption(token) {
   const eqIndex = token.startsWith('--') ? token.indexOf('=') : -1;
-  return eqIndex === -1 ? [token, null] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
+  return eqIndex === -1 ? [token, undefined] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
 }
 
 function rejectValue(name, inline) {
-  if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
+  if (inline !== undefined) throw new UsageError(`option ${name} does not take a value`);
 }
 
+// The report format is selected at most once, whichever spelling does it.
+// Rejecting a second selection outright - rather than letting the last one win,
+// or comparing the two values - keeps one rule to state and to rely on: a
+// command line that names the format twice is a mistake worth surfacing, and
+// the error names the option to drop.
+function selectFormat(opts, raw, format) {
+  if (opts.formatSelectedBy !== null)
+    throw new UsageError(`the report format is already selected by ${opts.formatSelectedBy}`);
+  opts.format = format;
+  opts.formatSelectedBy = raw;
+}
+
+function reportFormat(raw, value) {
+  if (value !== 'text' && value !== 'json')
+    throw new UsageError(`invalid value for ${raw}: "${value}" (expected "text" or "json")`);
+  return value;
+}
+
+// short option to its long spelling, so the parser compares one name per option
+const LONG_ALIAS = {
+  '-h': '--help',
+  '-v': '--verbose',
+  '-V': '--version',
+  '-t': '--tags',
+  '-f': '--format',
+};
+
+function printHelp() {
+  console.log(HELP);
+  process.exit(0);
+}
+
+function printVersion() {
+  console.log(packageVersion());
+  process.exit(0);
+}
+
+function enableVerbose(opts) {
+  opts.verbose = true;
+}
+
+function selectJsonFormat(opts, raw) {
+  selectFormat(opts, raw, 'json');
+}
+
+// every option that never carries a value, mapped to the effect it has on the
+// parsed options; the printing ones end the process instead of returning
+const VALUELESS_OPTIONS = new Map([
+  ['--help', printHelp],
+  ['--version', printVersion],
+  ['--verbose', enableVerbose],
+  ['--json', selectJsonFormat],
+]);
+
+function setFormat(opts, raw, value) {
+  selectFormat(opts, raw, reportFormat(raw, value));
+}
+
+function setTags(opts, raw, value) {
+  opts.tags = value.split(',').map((tag) => tag.trim()).filter(Boolean);
+}
+
+// every option that carries a value, either "="-attached or as the next
+// argument, mapped to the effect it has on the parsed options
+const VALUED_OPTIONS = new Map([
+  ['--format', setFormat],
+  ['--tags', setTags],
+]);
+
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null, verbose: false };
+  // formatSelectedBy holds the option that set the format, so a second
+  // selection can be rejected and can name the first one
+  const opts = { dirs: [], tags: null, verbose: false, format: 'text', formatSelectedBy: null };
   for (let i = 0; i < argv.length; i++) {
-    const [name, inline] = splitLongOption(argv[i]);
-    if (name === '-h' || name === '--help') {
-      rejectValue(name, inline);
-      console.log(HELP);
-      process.exit(0);
-    } else if (name === '-v' || name === '--verbose') {
-      rejectValue(name, inline);
-      opts.verbose = true;
-    } else if (name === '-V' || name === '--version') {
-      rejectValue(name, inline);
-      console.log(packageVersion());
-      process.exit(0);
-    } else if (name === '-t' || name === '--tags') {
+    const [raw, inline] = splitLongOption(argv[i]);
+    const name = LONG_ALIAS[raw] ?? raw;
+    const applyValuelessOption = VALUELESS_OPTIONS.get(name);
+    const applyValuedOption = VALUED_OPTIONS.get(name);
+    if (applyValuelessOption) {
+      rejectValue(raw, inline);
+      applyValuelessOption(opts, raw);
+    } else if (applyValuedOption) {
       const value = inline ?? argv[++i];
-      if (!value) throw new UsageError(`missing value for ${name}`);
-      opts.tags = value.split(',').map((s) => s.trim()).filter(Boolean);
-    } else if (name.startsWith('-')) {
-      throw new UsageError(`unknown option: ${name}`);
+      if (!value) throw new UsageError(`missing value for ${raw}`);
+      applyValuedOption(opts, raw, value);
+    } else if (raw.startsWith('-')) {
+      throw new UsageError(`unknown option: ${raw}`);
     } else {
-      opts.dirs.push(name);
+      opts.dirs.push(raw);
     }
   }
+  // -v selects which items the plain-text report lists; the JSON document
+  // always carries them all, leaving it nothing to act on
+  if (opts.format === 'json' && opts.verbose)
+    throw new UsageError('-v/--verbose applies to the text format only');
   if (opts.dirs.length === 0) opts.dirs.push('.');
   return opts;
 }
@@ -104,7 +178,9 @@ async function main() {
   }
 
   analyze(items, forwards, problems);
-  const clean = report(items, problems, process.cwd(), { verbose: opts.verbose });
+  const clean = opts.format === 'json'
+    ? reportJson(items, forwards, problems, process.cwd(), { version: packageVersion() })
+    : report(items, problems, process.cwd(), { verbose: opts.verbose });
   process.exit(clean ? 0 : 1);
 }
 

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
 
-import { buildResolver } from './analyze.mjs';
+import { buildResolver, isClean, statusOf, summarize } from './analyze.mjs';
 import { isWildcardRev, revOf } from './ids.mjs';
 
 function makeStyler() {
@@ -17,21 +17,18 @@ function makeStyler() {
   };
 }
 
-// marker + label for the three states the summary distinguishes
-function statusOf(item, style) {
-  if (item.defects.length > 0) return { mark: style.red('✘'), tag: style.red('[defective]') };
-  if (!item.deepCovered) return { mark: style.yellow('~'), tag: style.yellow('[shallow-covered]') };
-  return { mark: style.green('✔'), tag: style.green('[deep-covered]') };
-}
+// marker and color per status; the bracketed label is the status name itself,
+// so this renders what analyze decided rather than deciding it again
+const STATUS_STYLES = {
+  defective: ['✘', 'red'],
+  'shallow-covered': ['~', 'yellow'],
+  'deep-covered': ['✔', 'green'],
+};
 
-function buildWantedBy(items, byId, matchesOf) {
-  const wantedBy = new Map(); // item -> items whose needs it satisfies
-  for (const item of items)
-    for (const need of item.needs)
-      for (const id of matchesOf(need))
-        for (const provider of byId.get(id))
-          (wantedBy.get(provider) ?? wantedBy.set(provider, new Set()).get(provider)).add(item);
-  return wantedBy;
+function styledStatus(item, style) {
+  const status = statusOf(item);
+  const [mark, color] = STATUS_STYLES[status];
+  return { mark: style[color](mark), tag: style[color](`[${status}]`) };
 }
 
 function byFileLine(a, b) {
@@ -45,7 +42,7 @@ function byFileLine(a, b) {
 function forwardEdge(item, byId, style, dimLocation) {
   const target = byId.get(item.forwardsTo)?.[0];
   if (!target) return `    ${style.cyan('→')} ${item.forwardsTo}  ${style.red('✘ missing')}`;
-  return `    ${style.cyan('→')} ${item.forwardsTo}  ${statusOf(target, style).mark} ${dimLocation(target.file, target.line)}`;
+  return `    ${style.cyan('→')} ${item.forwardsTo}  ${styledStatus(target, style).mark} ${dimLocation(target.file, target.line)}`;
 }
 
 // one line per need: the covering item's own status mark and location, or
@@ -63,7 +60,7 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
       const covering = byId.get(id)[0];
       const arrow = style.dim(`(→ ${id})`);
       const ref = wildcard ? `${need} ${arrow}` : need;
-      lines.push(`    ${style.dim('needs')} ${ref}  ${statusOf(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
+      lines.push(`    ${style.dim('needs')} ${ref}  ${styledStatus(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
   }
   return lines;
@@ -98,20 +95,19 @@ function edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation) {
 // full item list for --verbose: every item with status and trace edges,
 // grouped by file, then line
 function renderVerbose(items, out, style, dimLocation) {
-  const { byId, matchesOf } = buildResolver(items);
-  const wantedBy = buildWantedBy(items, byId, matchesOf);
+  const { byId, matchesOf, wantedBy } = buildResolver(items);
   const sorted = [...items].sort(byFileLine);
   let prevFile = null;
   for (const item of sorted) {
     if (prevFile !== null && item.file !== prevFile) out.push('');
     prevFile = item.file;
-    const { mark, tag } = statusOf(item, style);
+    const { mark, tag } = styledStatus(item, style);
     const title = item.title ? ' ' + style.dim(`"${item.title}"`) : '';
     out.push(
       `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
       ...edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation),
     );
-    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect}`);
+    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect.message}`);
   }
   if (sorted.length) out.push('');
 }
@@ -121,27 +117,24 @@ function renderDefective(defective, out, style, dimLocation) {
   for (const item of defective) {
     const title = item.title ? ' ' + style.dim(`"${item.title}"`) : '';
     out.push(
-      `${statusOf(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`,
+      `${styledStatus(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`,
     );
-    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect}`);
+    for (const defect of item.defects) out.push(`    ${style.red('•')} ${defect.message}`);
     out.push('');
   }
 }
 
-function renderSummary(items, defective, problems, out, style) {
-  const okCount = items.length - defective.length;
-  const shallowCount = items.filter((item) => item.defects.length === 0 && !item.deepCovered).length;
-  const specCount = items.filter((item) => item.origin === 'spec').length;
-  const originBreakdown = style.dim(`(${specCount} from specs, ${items.length - specCount} from code)`);
+function renderSummary(summary, out, style) {
+  const originBreakdown = style.dim(`(${summary.specItems} from specs, ${summary.codeItems} from code)`);
 
   out.push(
     style.bold('Summary'),
-    `  items       ${items.length}  ${originBreakdown}`,
-    `  ok          ${style.green(String(okCount))}`,
-    `  defective   ${defective.length ? style.red(String(defective.length)) : '0'}`,
+    `  items       ${summary.items}  ${originBreakdown}`,
+    `  ok          ${style.green(String(summary.okItems))}`,
+    `  defective   ${summary.defectiveItems ? style.red(String(summary.defectiveItems)) : '0'}`,
   );
-  if (shallowCount) out.push('  ' + style.dim(`of the ok items, ${shallowCount} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (problems.length) out.push(`  problems    ${style.yellow(String(problems.length))}`);
+  if (summary.shallowCoveredItems) out.push('  ' + style.dim(`of the ok items, ${summary.shallowCoveredItems} are only shallow-covered (an item further down the tracing chain is defective)`));
+  if (summary.problems) out.push(`  problems    ${style.yellow(String(summary.problems))}`);
   out.push('');
 }
 
@@ -150,20 +143,20 @@ export function report(items, problems, cwd, opts = {}) {
   const style = makeStyler();
   const relativePath = (file) => path.relative(cwd, file) || file;
   const dimLocation = (file, line) => style.dim(`${relativePath(file)}:${line}`);
-  const defective = items.filter((item) => item.defects.length > 0);
+  const summary = summarize(items, problems);
   const out = [];
 
   if (verbose) renderVerbose(items, out, style, dimLocation);
-  else renderDefective(defective, out, style, dimLocation);
+  else renderDefective(items.filter((item) => item.defects.length > 0), out, style, dimLocation);
 
   for (const problem of problems) {
     out.push(`${style.yellow('⚠')} ${problem.message}  ${dimLocation(problem.file, problem.line)}`);
   }
   if (problems.length) out.push('');
 
-  renderSummary(items, defective, problems, out, style);
+  renderSummary(summary, out, style);
 
-  const clean = defective.length === 0 && problems.length === 0;
+  const clean = isClean(summary);
   out.push(clean ? style.green(style.bold('ok')) : style.red(style.bold('not ok')));
   console.log(out.join('\n'));
   return clean;

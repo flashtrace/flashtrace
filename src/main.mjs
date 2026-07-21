@@ -8,6 +8,7 @@
  *   src/parse-markdown.mjs Markdown item parser
  *   src/parse-code.mjs     comment-aware code tag scanner
  *   src/analyze.mjs        coverage analysis
+ *   src/defects.mjs        the defects analysis can raise, one kind per condition
  *   src/report.mjs         terminal report
  *   src/cli.mjs            argument parsing and main flow
  *
@@ -25,6 +26,8 @@ export { collectFiles } from './files.mjs';
 export { parseMarkdown } from './parse-markdown.mjs';
 export { parseCode } from './parse-code.mjs';
 export { analyze } from './analyze.mjs';
+export { DEFECT_KINDS } from './defects.mjs';
+export { buildReportDocument, reportJson } from './report-json.mjs';
 
 function runAsCli() {
   const argvPath = process.argv[1];

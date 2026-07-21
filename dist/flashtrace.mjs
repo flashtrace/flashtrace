@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // src/cli.mjs
 import { promises as fs2, readFileSync } from "node:fs";
-import path4 from "node:path";
+import path5 from "node:path";
 import process3 from "node:process";
 
 // src/errors.mjs
@@ -249,7 +249,7 @@ var makeForward = (m, base, file, line, character) => ({
 var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => id.slice(id.lastIndexOf("#") + 1);
 var pathOf = (id) => id.slice(id.indexOf(":") + 1, id.lastIndexOf("#"));
-var resolveRef = (type, path5, rev, ownerId) => `${type}:${path5 ?? pathOf(ownerId)}#${rev ?? revOf(ownerId)}`;
+var resolveRef = (type, path6, rev, ownerId) => `${type}:${path6 ?? pathOf(ownerId)}#${rev ?? revOf(ownerId)}`;
 function compareRev(a, b) {
   const partsA = a.split(".");
   const partsB = b.split(".");
@@ -762,28 +762,74 @@ function parseCode(file, text, problems, forwards = []) {
   return items;
 }
 
+// src/defects.mjs
+var DEFECT_KINDS = Object.freeze([
+  "uncovered-need",
+  "uncovered-forward",
+  "orphaned-cover",
+  "unwanted-cover",
+  "unwanted-item",
+  "duplicate-id",
+  "duplicate-forwarding"
+]);
+var uncoveredNeed = (need) => ({
+  kind: "uncovered-need",
+  ref: need,
+  message: `uncovered: needs ${need}, which does not exist`
+});
+var uncoveredForward = (target) => ({
+  kind: "uncovered-forward",
+  ref: target,
+  message: `uncovered: forwards to ${target}, which does not exist`
+});
+var orphanedCover = (coverId) => ({
+  kind: "orphaned-cover",
+  ref: coverId,
+  message: `orphaned: covers ${coverId}, which does not exist`
+});
+var unwantedCover = (coverId, itemId) => ({
+  kind: "unwanted-cover",
+  ref: coverId,
+  message: `unwanted: covers ${coverId}, but ${coverId} does not need ${itemId}`
+});
+var unwantedItem = (itemId) => ({
+  kind: "unwanted-item",
+  ref: itemId,
+  message: `unwanted: no item needs ${itemId}`
+});
+var duplicateId = (id, count) => ({
+  kind: "duplicate-id",
+  ref: id,
+  message: `duplicate: ID ${id} is defined ${count} times`
+});
+var duplicateForwarding = (from, count) => ({
+  kind: "duplicate-forwarding",
+  ref: from,
+  message: `duplicate: forwarding for ${from} is declared ${count} times`
+});
+
 // src/analyze.mjs
-function checkItemReferences(item, byId, matchesOf, isNeeded, revHint, forwardTargets) {
+function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
   const forwardTarget = forwardTargets.get(item.id);
   if (forwardTarget !== void 0) {
     if (!byId.has(forwardTarget))
-      item.defects.push(`uncovered: forwards to ${forwardTarget}, which does not exist${revHint(forwardTarget)}`);
+      item.defects.push(withRevisions(uncoveredForward(forwardTarget)));
   } else {
     for (const need of item.needs) {
       if (matchesOf(need).length === 0)
-        item.defects.push(`uncovered: needs ${need}, which does not exist${revHint(need)}`);
+        item.defects.push(withRevisions(uncoveredNeed(need)));
     }
   }
   for (const coverId of item.covers) {
     const targets = byId.get(coverId);
     if (!targets) {
-      item.defects.push(`orphaned: covers ${coverId}, which does not exist${revHint(coverId)}`);
+      item.defects.push(withRevisions(orphanedCover(coverId)));
     } else if (!targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))) {
-      item.defects.push(`unwanted: covers ${coverId}, but ${coverId} does not need ${item.id}`);
+      item.defects.push(unwantedCover(coverId, item.id));
     }
   }
   if (item.origin === "code" && !isNeeded(item.id)) {
-    item.defects.push(`unwanted: no item needs ${item.id}`);
+    item.defects.push(unwantedItem(item.id));
   }
 }
 function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
@@ -791,18 +837,20 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
   for (const start of forwardTargets.keys()) {
     if (done.has(start)) continue;
     const seen = /* @__PURE__ */ new Map();
-    const path5 = [];
+    const path6 = [];
     let current = start;
     while (forwardTargets.has(current) && !done.has(current) && !seen.has(current)) {
-      seen.set(current, path5.length);
-      path5.push(current);
+      seen.set(current, path6.length);
+      path6.push(current);
       current = forwardTargets.get(current);
     }
     if (seen.has(current)) {
-      const cycle = path5.slice(seen.get(current));
+      const cycle = path6.slice(seen.get(current));
       const chain = [...cycle, current].join(" --> ");
       for (const id of cycle) {
         const declaration = declarationBySource.get(id);
+        declaration.effective = false;
+        declaration.voidedBy = "cycle";
         problems.push({
           file: declaration.file,
           line: declaration.line,
@@ -812,7 +860,7 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
         forwardTargets.delete(id);
       }
     }
-    for (const id of path5) done.add(id);
+    for (const id of path6) done.add(id);
   }
 }
 function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
@@ -825,18 +873,25 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
   for (const [from, group] of forwardsBySource) {
     const sources = byId.get(from);
     if (!sources) {
-      for (const forward of group)
+      for (const forward of group) {
+        forward.effective = false;
+        forward.voidedBy = "missing-source";
         problems.push({
           file: forward.file,
           line: forward.line,
           character: forward.character,
           message: `forwarding from ${from}, which does not exist${revHint(from)}`
         });
+      }
       continue;
     }
     if (group.length > 1)
-      for (const item of sources)
-        item.defects.push(`duplicate: forwarding for ${from} is declared ${group.length} times`);
+      for (const item of sources) item.defects.push(duplicateForwarding(from, group.length));
+    group[0].effective = true;
+    for (let i = 1; i < group.length; i++) {
+      group[i].effective = false;
+      group[i].voidedBy = "duplicate";
+    }
     forwardTargets.set(from, group[0].to);
     declarationBySource.set(from, group[0]);
   }
@@ -873,13 +928,43 @@ function groupIdsByKey(byId) {
     (idsByKey.get(keyOf(id)) ?? idsByKey.set(keyOf(id), []).get(keyOf(id))).push(id);
   return idsByKey;
 }
+function buildWantedBy(items, byId, matchesOf) {
+  const wantedBy = /* @__PURE__ */ new Map();
+  for (const item of items)
+    for (const need of item.needs)
+      for (const id of matchesOf(need))
+        for (const provider of byId.get(id))
+          (wantedBy.get(provider) ?? wantedBy.set(provider, /* @__PURE__ */ new Set()).get(provider)).add(item);
+  return wantedBy;
+}
 function buildResolver(items) {
   const byId = /* @__PURE__ */ new Map();
   for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  return { byId, matchesOf };
+  return { byId, matchesOf, wantedBy: buildWantedBy(items, byId, matchesOf) };
 }
+function statusOf(item) {
+  if (item.defects.length > 0) return "defective";
+  return item.deepCovered ? "deep-covered" : "shallow-covered";
+}
+function summarize(items, problems) {
+  const specItems = items.filter((item) => item.origin === "spec").length;
+  const defectiveItems = items.filter((item) => item.defects.length > 0).length;
+  const shallowCoveredItems = items.filter(
+    (item) => item.defects.length === 0 && !item.deepCovered
+  ).length;
+  return {
+    items: items.length,
+    specItems,
+    codeItems: items.length - specItems,
+    okItems: items.length - defectiveItems,
+    defectiveItems,
+    shallowCoveredItems,
+    problems: problems.length
+  };
+}
+var isClean = (summary) => summary.defectiveItems === 0 && summary.problems === 0;
 function splitNeeds(items) {
   const exact = /* @__PURE__ */ new Set();
   const wildcard = [];
@@ -898,17 +983,30 @@ function analyze(items, forwards = [], problems = []) {
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
   for (const [id, group] of byId) {
-    if (group.length > 1)
-      for (const item of group) item.defects.push(`duplicate: ID ${id} is defined ${group.length} times`);
+    if (group.length > 1) for (const item of group) item.defects.push(duplicateId(id, group.length));
   }
-  const revHint = (id) => {
+  const existingRevisionsOf = (id) => {
     const revs = revsByKey.get(keyOf(id));
-    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(", ")})` : "";
+    return revs ? [...revs].sort(compareRev) : null;
+  };
+  const revHint = (id) => {
+    const revs = existingRevisionsOf(id);
+    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${revs.join(", ")})` : "";
+  };
+  const withRevisions = (defect) => {
+    const existingRevisions = existingRevisionsOf(defect.ref);
+    if (!existingRevisions) return defect;
+    return {
+      kind: defect.kind,
+      ref: defect.ref,
+      existingRevisions,
+      message: `${defect.message} (revision mismatch: existing revision(s) of ${keyOf(defect.ref)}: ${existingRevisions.join(", ")})`
+    };
   };
   const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
   for (const item of items) {
     item.forwardsTo = forwardTargets.get(item.id) ?? null;
-    checkItemReferences(item, byId, matchesOf, isNeeded, revHint, forwardTargets);
+    checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets);
   }
   markDeepCoverage(items, byId, matchesOf, forwardTargets);
 }
@@ -928,19 +1026,15 @@ function makeStyler() {
     bold: wrap("1")
   };
 }
-function statusOf(item, style) {
-  if (item.defects.length > 0) return { mark: style.red("\u2718"), tag: style.red("[defective]") };
-  if (!item.deepCovered) return { mark: style.yellow("~"), tag: style.yellow("[shallow-covered]") };
-  return { mark: style.green("\u2714"), tag: style.green("[deep-covered]") };
-}
-function buildWantedBy(items, byId, matchesOf) {
-  const wantedBy = /* @__PURE__ */ new Map();
-  for (const item of items)
-    for (const need of item.needs)
-      for (const id of matchesOf(need))
-        for (const provider of byId.get(id))
-          (wantedBy.get(provider) ?? wantedBy.set(provider, /* @__PURE__ */ new Set()).get(provider)).add(item);
-  return wantedBy;
+var STATUS_STYLES = {
+  defective: ["\u2718", "red"],
+  "shallow-covered": ["~", "yellow"],
+  "deep-covered": ["\u2714", "green"]
+};
+function styledStatus(item, style) {
+  const status = statusOf(item);
+  const [mark, color] = STATUS_STYLES[status];
+  return { mark: style[color](mark), tag: style[color](`[${status}]`) };
 }
 function byFileLine(a, b) {
   if (a.file !== b.file) return a.file < b.file ? -1 : 1;
@@ -949,7 +1043,7 @@ function byFileLine(a, b) {
 function forwardEdge(item, byId, style, dimLocation) {
   const target = byId.get(item.forwardsTo)?.[0];
   if (!target) return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${style.red("\u2718 missing")}`;
-  return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${statusOf(target, style).mark} ${dimLocation(target.file, target.line)}`;
+  return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${styledStatus(target, style).mark} ${dimLocation(target.file, target.line)}`;
 }
 function needEdges(item, byId, matchesOf, style, dimLocation) {
   const lines = [];
@@ -964,7 +1058,7 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
       const covering = byId.get(id)[0];
       const arrow = style.dim(`(\u2192 ${id})`);
       const ref = wildcard ? `${need} ${arrow}` : need;
-      lines.push(`    ${style.dim("needs")} ${ref}  ${statusOf(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
+      lines.push(`    ${style.dim("needs")} ${ref}  ${styledStatus(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
   }
   return lines;
@@ -988,20 +1082,19 @@ function edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation) {
   return lines;
 }
 function renderVerbose(items, out, style, dimLocation) {
-  const { byId, matchesOf } = buildResolver(items);
-  const wantedBy = buildWantedBy(items, byId, matchesOf);
+  const { byId, matchesOf, wantedBy } = buildResolver(items);
   const sorted = [...items].sort(byFileLine);
   let prevFile = null;
   for (const item of sorted) {
     if (prevFile !== null && item.file !== prevFile) out.push("");
     prevFile = item.file;
-    const { mark, tag } = statusOf(item, style);
+    const { mark, tag } = styledStatus(item, style);
     const title = item.title ? " " + style.dim(`"${item.title}"`) : "";
     out.push(
       `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
       ...edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation)
     );
-    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect}`);
+    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect.message}`);
   }
   if (sorted.length) out.push("");
 }
@@ -1009,25 +1102,22 @@ function renderDefective(defective, out, style, dimLocation) {
   for (const item of defective) {
     const title = item.title ? " " + style.dim(`"${item.title}"`) : "";
     out.push(
-      `${statusOf(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`
+      `${styledStatus(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`
     );
-    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect}`);
+    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect.message}`);
     out.push("");
   }
 }
-function renderSummary(items, defective, problems, out, style) {
-  const okCount = items.length - defective.length;
-  const shallowCount = items.filter((item) => item.defects.length === 0 && !item.deepCovered).length;
-  const specCount = items.filter((item) => item.origin === "spec").length;
-  const originBreakdown = style.dim(`(${specCount} from specs, ${items.length - specCount} from code)`);
+function renderSummary(summary, out, style) {
+  const originBreakdown = style.dim(`(${summary.specItems} from specs, ${summary.codeItems} from code)`);
   out.push(
     style.bold("Summary"),
-    `  items       ${items.length}  ${originBreakdown}`,
-    `  ok          ${style.green(String(okCount))}`,
-    `  defective   ${defective.length ? style.red(String(defective.length)) : "0"}`
+    `  items       ${summary.items}  ${originBreakdown}`,
+    `  ok          ${style.green(String(summary.okItems))}`,
+    `  defective   ${summary.defectiveItems ? style.red(String(summary.defectiveItems)) : "0"}`
   );
-  if (shallowCount) out.push("  " + style.dim(`of the ok items, ${shallowCount} are only shallow-covered (an item further down the tracing chain is defective)`));
-  if (problems.length) out.push(`  problems    ${style.yellow(String(problems.length))}`);
+  if (summary.shallowCoveredItems) out.push("  " + style.dim(`of the ok items, ${summary.shallowCoveredItems} are only shallow-covered (an item further down the tracing chain is defective)`));
+  if (summary.problems) out.push(`  problems    ${style.yellow(String(summary.problems))}`);
   out.push("");
 }
 function report(items, problems, cwd, opts = {}) {
@@ -1035,19 +1125,103 @@ function report(items, problems, cwd, opts = {}) {
   const style = makeStyler();
   const relativePath = (file) => path3.relative(cwd, file) || file;
   const dimLocation = (file, line) => style.dim(`${relativePath(file)}:${line}`);
-  const defective = items.filter((item) => item.defects.length > 0);
+  const summary = summarize(items, problems);
   const out = [];
   if (verbose) renderVerbose(items, out, style, dimLocation);
-  else renderDefective(defective, out, style, dimLocation);
+  else renderDefective(items.filter((item) => item.defects.length > 0), out, style, dimLocation);
   for (const problem of problems) {
     out.push(`${style.yellow("\u26A0")} ${problem.message}  ${dimLocation(problem.file, problem.line)}`);
   }
   if (problems.length) out.push("");
-  renderSummary(items, defective, problems, out, style);
-  const clean = defective.length === 0 && problems.length === 0;
+  renderSummary(summary, out, style);
+  const clean = isClean(summary);
   out.push(clean ? style.green(style.bold("ok")) : style.red(style.bold("not ok")));
   console.log(out.join("\n"));
   return clean;
+}
+
+// src/report-json.mjs
+import path4 from "node:path";
+var SCHEMA_VERSION = 0;
+function coverStatusOf(item) {
+  const status = /* @__PURE__ */ new Map();
+  for (const defect of item.defects) {
+    if (defect.kind === "orphaned-cover") status.set(defect.ref, "orphaned");
+    else if (defect.kind === "unwanted-cover") status.set(defect.ref, "unwanted");
+  }
+  return (ref) => status.get(ref) ?? "valid";
+}
+function buildForwardedFrom(items, byId) {
+  const forwardedFrom = /* @__PURE__ */ new Map();
+  for (const item of items) {
+    if (item.forwardsTo === null) continue;
+    for (const target of byId.get(item.forwardsTo) ?? [])
+      (forwardedFrom.get(target) ?? forwardedFrom.set(target, []).get(target)).push(item);
+  }
+  return forwardedFrom;
+}
+function defectDocument(defect) {
+  const out = { kind: defect.kind, ref: defect.ref };
+  if (defect.existingRevisions) out.existingRevisions = defect.existingRevisions;
+  out.message = defect.message;
+  return out;
+}
+function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
+  const { version } = opts;
+  if (typeof version !== "string")
+    throw new TypeError(`opts.version is required: it becomes the document's "flashtrace" field`);
+  const relative = (file) => (path4.relative(cwd, file) || file).replaceAll("\\", "/");
+  const location = (x) => ({ file: relative(x.file), line: x.line, character: x.character });
+  const byLocation = (a, b) => {
+    if (a.file !== b.file) return a.file < b.file ? -1 : 1;
+    if (a.line !== b.line) return a.line - b.line;
+    return a.character - b.character;
+  };
+  const { byId, matchesOf, wantedBy } = buildResolver(items);
+  const forwardedFrom = buildForwardedFrom(items, byId);
+  const resolvedTo = (ref) => matchesOf(ref).sort((a, b) => compareRev(revOf(a), revOf(b)));
+  const itemRefs = (related) => [...related].map((other) => ({ id: other.id, ...location(other) })).sort(byLocation);
+  const itemDocument = (item) => {
+    const coverStatus = coverStatusOf(item);
+    return {
+      id: item.id,
+      title: item.title,
+      origin: item.origin,
+      tags: item.tags,
+      ...location(item),
+      status: statusOf(item),
+      defective: item.defects.length > 0,
+      deepCovered: item.deepCovered,
+      needs: item.needs.map((ref) => ({ ref, resolvedTo: resolvedTo(ref) })),
+      covers: item.covers.map((ref) => ({ ref, status: coverStatus(ref) })),
+      forwardsTo: item.forwardsTo,
+      forwardedFrom: itemRefs(forwardedFrom.get(item) ?? []),
+      defects: item.defects.map(defectDocument),
+      wantedBy: itemRefs(wantedBy.get(item) ?? [])
+    };
+  };
+  const forwardDocument = (forward) => {
+    const document = { from: forward.from, to: forward.to, ...location(forward), effective: forward.effective };
+    if (!forward.effective) document.voidedBy = forward.voidedBy;
+    return document;
+  };
+  const itemDocuments = items.map(itemDocument).sort(byLocation);
+  const problemDocuments = problems.map((problem) => ({ ...location(problem), message: problem.message })).sort(byLocation);
+  const summary = summarize(items, problems);
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    flashtrace: version,
+    ok: isClean(summary),
+    items: itemDocuments,
+    forwards: forwards.map(forwardDocument).sort(byLocation),
+    problems: problemDocuments,
+    summary
+  };
+}
+function reportJson(items, forwards, problems, cwd, opts = {}) {
+  const document = buildReportDocument(items, forwards, problems, cwd, opts);
+  console.log(JSON.stringify(document, null, 2));
+  return document.ok;
 }
 
 // src/cli.mjs
@@ -1060,8 +1234,11 @@ by git are excluded.
 Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
+  -f, --format <format>    report format: "text" (default) or "json"; --json
+                           is shorthand for --format json. The format may be
+                           selected only once
   -v, --verbose            list every item with its coverage status and trace
-                           edges, not only the defective ones
+                           edges, not only the defective ones; text format only
   -V, --version            print the version number
   -h, --help               show this help
 
@@ -1074,36 +1251,81 @@ function packageVersion() {
 }
 function splitLongOption(token) {
   const eqIndex = token.startsWith("--") ? token.indexOf("=") : -1;
-  return eqIndex === -1 ? [token, null] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
+  return eqIndex === -1 ? [token, void 0] : [token.slice(0, eqIndex), token.slice(eqIndex + 1)];
 }
 function rejectValue(name, inline) {
-  if (inline !== null) throw new UsageError(`option ${name} does not take a value`);
+  if (inline !== void 0) throw new UsageError(`option ${name} does not take a value`);
 }
+function selectFormat(opts, raw, format) {
+  if (opts.formatSelectedBy !== null)
+    throw new UsageError(`the report format is already selected by ${opts.formatSelectedBy}`);
+  opts.format = format;
+  opts.formatSelectedBy = raw;
+}
+function reportFormat(raw, value) {
+  if (value !== "text" && value !== "json")
+    throw new UsageError(`invalid value for ${raw}: "${value}" (expected "text" or "json")`);
+  return value;
+}
+var LONG_ALIAS = {
+  "-h": "--help",
+  "-v": "--verbose",
+  "-V": "--version",
+  "-t": "--tags",
+  "-f": "--format"
+};
+function printHelp() {
+  console.log(HELP);
+  process3.exit(0);
+}
+function printVersion() {
+  console.log(packageVersion());
+  process3.exit(0);
+}
+function enableVerbose(opts) {
+  opts.verbose = true;
+}
+function selectJsonFormat(opts, raw) {
+  selectFormat(opts, raw, "json");
+}
+var VALUELESS_OPTIONS = /* @__PURE__ */ new Map([
+  ["--help", printHelp],
+  ["--version", printVersion],
+  ["--verbose", enableVerbose],
+  ["--json", selectJsonFormat]
+]);
+function setFormat(opts, raw, value) {
+  selectFormat(opts, raw, reportFormat(raw, value));
+}
+function setTags(opts, raw, value) {
+  opts.tags = value.split(",").map((tag) => tag.trim()).filter(Boolean);
+}
+var VALUED_OPTIONS = /* @__PURE__ */ new Map([
+  ["--format", setFormat],
+  ["--tags", setTags]
+]);
 function parseArgs(argv) {
-  const opts = { dirs: [], tags: null, verbose: false };
+  const opts = { dirs: [], tags: null, verbose: false, format: "text", formatSelectedBy: null };
   for (let i = 0; i < argv.length; i++) {
-    const [name, inline] = splitLongOption(argv[i]);
-    if (name === "-h" || name === "--help") {
-      rejectValue(name, inline);
-      console.log(HELP);
-      process3.exit(0);
-    } else if (name === "-v" || name === "--verbose") {
-      rejectValue(name, inline);
-      opts.verbose = true;
-    } else if (name === "-V" || name === "--version") {
-      rejectValue(name, inline);
-      console.log(packageVersion());
-      process3.exit(0);
-    } else if (name === "-t" || name === "--tags") {
+    const [raw, inline] = splitLongOption(argv[i]);
+    const name = LONG_ALIAS[raw] ?? raw;
+    const applyValuelessOption = VALUELESS_OPTIONS.get(name);
+    const applyValuedOption = VALUED_OPTIONS.get(name);
+    if (applyValuelessOption) {
+      rejectValue(raw, inline);
+      applyValuelessOption(opts, raw);
+    } else if (applyValuedOption) {
       const value = inline ?? argv[++i];
-      if (!value) throw new UsageError(`missing value for ${name}`);
-      opts.tags = value.split(",").map((s) => s.trim()).filter(Boolean);
-    } else if (name.startsWith("-")) {
-      throw new UsageError(`unknown option: ${name}`);
+      if (!value) throw new UsageError(`missing value for ${raw}`);
+      applyValuedOption(opts, raw, value);
+    } else if (raw.startsWith("-")) {
+      throw new UsageError(`unknown option: ${raw}`);
     } else {
-      opts.dirs.push(name);
+      opts.dirs.push(raw);
     }
   }
+  if (opts.format === "json" && opts.verbose)
+    throw new UsageError("-v/--verbose applies to the text format only");
   if (opts.dirs.length === 0) opts.dirs.push(".");
   return opts;
 }
@@ -1115,7 +1337,7 @@ async function main() {
   let items = [];
   for (const file of files) {
     const text = await fs2.readFile(file, "utf8");
-    const ext = path4.extname(file).toLowerCase();
+    const ext = path5.extname(file).toLowerCase();
     items.push(
       ...SPEC_EXT.has(ext) ? parseMarkdown(file, text, problems, forwards) : parseCode(file, text, problems, forwards)
     );
@@ -1127,7 +1349,7 @@ async function main() {
     );
   }
   analyze(items, forwards, problems);
-  const clean = report(items, problems, process3.cwd(), { verbose: opts.verbose });
+  const clean = opts.format === "json" ? reportJson(items, forwards, problems, process3.cwd(), { version: packageVersion() }) : report(items, problems, process3.cwd(), { verbose: opts.verbose });
   process3.exit(clean ? 0 : 1);
 }
 function runCli() {
@@ -1155,9 +1377,12 @@ function runAsCli() {
 }
 if (runAsCli()) runCli();
 export {
+  DEFECT_KINDS,
   UsageError,
   analyze,
+  buildReportDocument,
   collectFiles,
   parseCode,
-  parseMarkdown
+  parseMarkdown,
+  reportJson
 };

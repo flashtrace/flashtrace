@@ -16,6 +16,7 @@ Ask refining questions before you start writing.
 | src/ | Source code |
 | test/ | Test code |
 | docs/ | Exact Documentation ("spec-driven") - written in Markdown |
+| schemas/ | Published JSON Schemas for machine-readable output formats; one file per format version, mirroring the URL it is served at |
 | examples/ | Self-contained example projects; fixtures for the end-to-end tests |
 | dist/ | Generated build output |
 | .github/ | Continuous integration workflows |

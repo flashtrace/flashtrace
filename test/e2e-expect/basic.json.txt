@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 0,
+  "flashtrace": "<version>",
+  "ok": true,
+  "items": [
+    {
+      "id": "impl:auth/login#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "login.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:auth/login#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:auth/login#1",
+      "title": "Login requires a valid session token",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 3,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:auth/login#1",
+          "resolvedTo": [
+            "impl:auth/login#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    }
+  ],
+  "forwards": [],
+  "problems": [],
+  "summary": {
+    "items": 2,
+    "specItems": 1,
+    "codeItems": 1,
+    "okItems": 2,
+    "defectiveItems": 0,
+    "shallowCoveredItems": 0,
+    "problems": 0
+  }
+}

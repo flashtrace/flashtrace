@@ -1,35 +1,45 @@
+import {
+  duplicateForwarding,
+  duplicateId,
+  orphanedCover,
+  uncoveredForward,
+  uncoveredNeed,
+  unwantedCover,
+  unwantedItem,
+} from './defects.mjs';
 import { compareRev, idMatches, isWildcardRev, keyOf, revOf } from './ids.mjs';
 
 // a forwarded item (source of an [A --> B] tag) has its own needs excused; its
 // coverage obligation is redirected to the target, checked here instead.
 // matchesOf(ref) returns the defined items satisfying a (possibly wildcard)
-// need; isNeeded(id) tells whether any need - exact or wildcard - wants that id
-function checkItemReferences(item, byId, matchesOf, isNeeded, revHint, forwardTargets) {
+// need; isNeeded(id) tells whether any need - exact or wildcard - wants that id.
+// withRevisions adds the revision-mismatch hint to a defect where it applies.
+function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
   const forwardTarget = forwardTargets.get(item.id);
   if (forwardTarget !== undefined) {
     if (!byId.has(forwardTarget))
-      item.defects.push(`uncovered: forwards to ${forwardTarget}, which does not exist${revHint(forwardTarget)}`);
+      item.defects.push(withRevisions(uncoveredForward(forwardTarget)));
   } else {
     for (const need of item.needs) {
       if (matchesOf(need).length === 0)
-        item.defects.push(`uncovered: needs ${need}, which does not exist${revHint(need)}`);
+        item.defects.push(withRevisions(uncoveredNeed(need)));
     }
   }
   for (const coverId of item.covers) {
     const targets = byId.get(coverId);
     if (!targets) {
-      item.defects.push(`orphaned: covers ${coverId}, which does not exist${revHint(coverId)}`);
+      item.defects.push(withRevisions(orphanedCover(coverId)));
     } else if (!targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))) {
-      item.defects.push(`unwanted: covers ${coverId}, but ${coverId} does not need ${item.id}`);
+      item.defects.push(unwantedCover(coverId, item.id));
     }
   }
   if (item.origin === 'code' && !isNeeded(item.id)) {
-    item.defects.push(`unwanted: no item needs ${item.id}`);
+    item.defects.push(unwantedItem(item.id));
   }
 }
 
 // forwarding chains must be acyclic (self-forwarding included); every
-// forwarding on a cycle is reported as a problem and has no effect
+// forwarding on a cycle is reported as a problem, voided, and has no effect
 function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
   const done = new Set(); // ids verified to not sit on a cycle
   for (const start of forwardTargets.keys()) {
@@ -47,6 +57,8 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
       const chain = [...cycle, current].join(' --> ');
       for (const id of cycle) {
         const declaration = declarationBySource.get(id);
+        declaration.effective = false;
+        declaration.voidedBy = 'cycle';
         problems.push({
           file: declaration.file,
           line: declaration.line,
@@ -63,7 +75,9 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
 // forwarding [A --> B]: A's coverage obligation is redirected to B - A's own
 // needs are excused; A is covered iff B exists, deep-covered iff B is. Builds
 // the source -> target map, reporting missing sources and duplicate/cyclic
-// declarations, and marks each surviving target as wanted coverage.
+// declarations, and marks each surviving target as wanted coverage. Every
+// forward is annotated with `effective` and, when voided, `voidedBy` (the
+// item forwardsTo fields mirror exactly the effective declarations).
 function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
   const forwardTargets = new Map();
   const declarationBySource = new Map(); // effective (first) declaration per source
@@ -74,18 +88,27 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
   for (const [from, group] of forwardsBySource) {
     const sources = byId.get(from);
     if (!sources) {
-      for (const forward of group)
+      for (const forward of group) {
+        forward.effective = false;
+        forward.voidedBy = 'missing-source';
         problems.push({
           file: forward.file,
           line: forward.line,
           character: forward.character,
           message: `forwarding from ${from}, which does not exist${revHint(from)}`,
         });
+      }
       continue;
     }
+    // only the first declaration takes effect; later ones for the same source
+    // are voided as duplicates (and flagged as a defect on the source item)
     if (group.length > 1)
-      for (const item of sources)
-        item.defects.push(`duplicate: forwarding for ${from} is declared ${group.length} times`);
+      for (const item of sources) item.defects.push(duplicateForwarding(from, group.length));
+    group[0].effective = true;
+    for (let i = 1; i < group.length; i++) {
+      group[i].effective = false;
+      group[i].voidedBy = 'duplicate';
+    }
     forwardTargets.set(from, group[0].to);
     declarationBySource.set(from, group[0]);
   }
@@ -130,16 +153,62 @@ function groupIdsByKey(byId) {
   return idsByKey;
 }
 
+// item -> the items whose needs resolve to it, wildcard needs included: the
+// inverse of need resolution. Note this counts declared needs only - an item
+// wanted solely as a forwarding target has no entry here (see isNeeded, which
+// does count forwarding demand).
+function buildWantedBy(items, byId, matchesOf) {
+  const wantedBy = new Map();
+  for (const item of items)
+    for (const need of item.needs)
+      for (const id of matchesOf(need))
+        for (const provider of byId.get(id))
+          (wantedBy.get(provider) ?? wantedBy.set(provider, new Set()).get(provider)).add(item);
+  return wantedBy;
+}
+
 // items grouped by ID plus need resolution over them: matchesOf(ref) returns
-// the defined IDs satisfying a (possibly wildcard) reference. Shared with the
-// verbose report so rendered edges cannot drift from what analyze checked.
+// the defined IDs satisfying a (possibly wildcard) reference, wantedBy the
+// inverse edge. Shared with both reports so what they render cannot drift from
+// what analyze checked.
 export function buildResolver(items) {
   const byId = new Map();
   for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
-  return { byId, matchesOf };
+  return { byId, matchesOf, wantedBy: buildWantedBy(items, byId, matchesOf) };
 }
+
+// the single status label both reports render, decided here alone so they
+// cannot disagree on it. "defective" wins over the coverage axis and so hides
+// whether the item is deep-covered; the JSON document carries `defective` and
+// `deepCovered` beside the label for the two independently.
+export function statusOf(item) {
+  if (item.defects.length > 0) return 'defective';
+  return item.deepCovered ? 'deep-covered' : 'shallow-covered';
+}
+
+// the counts both reports show, in the key order the JSON document uses.
+// Derived here alone so the two reports cannot disagree on them.
+export function summarize(items, problems) {
+  const specItems = items.filter((item) => item.origin === 'spec').length;
+  const defectiveItems = items.filter((item) => item.defects.length > 0).length;
+  const shallowCoveredItems = items.filter(
+    (item) => item.defects.length === 0 && !item.deepCovered,
+  ).length;
+  return {
+    items: items.length,
+    specItems,
+    codeItems: items.length - specItems,
+    okItems: items.length - defectiveItems,
+    defectiveItems,
+    shallowCoveredItems,
+    problems: problems.length,
+  };
+}
+
+// the run verdict both reports end on, and the exit code behind it
+export const isClean = (summary) => summary.defectiveItems === 0 && summary.problems === 0;
 
 // split all need references into exact IDs (fast membership) and wildcard
 // patterns (matched individually)
@@ -166,20 +235,37 @@ export function analyze(items, forwards = [], problems = []) {
   const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
 
   for (const [id, group] of byId) {
-    if (group.length > 1)
-      for (const item of group) item.defects.push(`duplicate: ID ${id} is defined ${group.length} times`);
+    if (group.length > 1) for (const item of group) item.defects.push(duplicateId(id, group.length));
   }
 
-  const revHint = (id) => {
+  // sibling revisions of a key, ascending - the revision-mismatch hint's data
+  const existingRevisionsOf = (id) => {
     const revs = revsByKey.get(keyOf(id));
-    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${[...revs].sort(compareRev).join(', ')})` : '';
+    return revs ? [...revs].sort(compareRev) : null;
+  };
+  // string hint for a problem message (missing forwarding source)
+  const revHint = (id) => {
+    const revs = existingRevisionsOf(id);
+    return revs ? ` (revision mismatch: existing revision(s) of ${keyOf(id)}: ${revs.join(', ')})` : '';
+  };
+  // a defect about a missing ID gains existingRevisions, and the same hint in
+  // its message, exactly when a sibling revision of its ref's key exists
+  const withRevisions = (defect) => {
+    const existingRevisions = existingRevisionsOf(defect.ref);
+    if (!existingRevisions) return defect;
+    return {
+      kind: defect.kind,
+      ref: defect.ref,
+      existingRevisions,
+      message: `${defect.message} (revision mismatch: existing revision(s) of ${keyOf(defect.ref)}: ${existingRevisions.join(', ')})`,
+    };
   };
 
   const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
 
   for (const item of items) {
     item.forwardsTo = forwardTargets.get(item.id) ?? null; // effective forwarding target, for renderers
-    checkItemReferences(item, byId, matchesOf, isNeeded, revHint, forwardTargets);
+    checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets);
   }
 
   markDeepCoverage(items, byId, matchesOf, forwardTargets);

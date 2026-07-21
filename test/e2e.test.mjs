@@ -29,15 +29,20 @@ const UPDATE = process.env.FLASHTRACE_UPDATE_SNAPSHOTS === '1';
 const CASES = [
   { example: 'basic', variant: 'default', args: [], status: 0 },
   { example: 'basic', variant: 'verbose', args: ['-v'], status: 0 },
+  { example: 'basic', variant: 'json', args: ['--json'], status: 0 },
   { example: 'shortforms', variant: 'default', args: [], status: 0 },
   { example: 'shortforms', variant: 'verbose', args: ['-v'], status: 0 },
+  { example: 'shortforms', variant: 'json', args: ['--json'], status: 0 },
   { example: 'revisions-and-forwarding', variant: 'default', args: [], status: 0 },
   { example: 'revisions-and-forwarding', variant: 'verbose', args: ['-v'], status: 0 },
+  { example: 'revisions-and-forwarding', variant: 'json', args: ['--json'], status: 0 },
   { example: 'polyglot-web', variant: 'default', args: [], status: 0 },
   { example: 'polyglot-web', variant: 'verbose', args: ['-v'], status: 0 },
   { example: 'polyglot-web', variant: 'tags', args: ['--tags', 'web,data'], status: 0 },
+  { example: 'polyglot-web', variant: 'json', args: ['--json'], status: 0 },
   { example: 'diagnostics', variant: 'default', args: [], status: 1 },
   { example: 'diagnostics', variant: 'verbose', args: ['-v'], status: 1 },
+  { example: 'diagnostics', variant: 'json', args: ['--json'], status: 1 },
 ];
 
 async function runInTempCopy(example, args) {
@@ -51,8 +56,14 @@ async function runInTempCopy(example, args) {
 }
 
 // Windows runs print backslash paths (e.g. tests\store.test.ts); normalize so
-// both platforms assert against the same snapshot files.
-const normalize = (s) => s.replaceAll('\\', '/');
+// both platforms assert against the same snapshot files. The JSON report's
+// `flashtrace` version is provenance only and bumps every release, so pin it to
+// a placeholder rather than re-snapshot on each bump. Anchored to the line
+// start at top-level indentation: only the document's own field sits there -
+// nested fields sit deeper, and text inside a JSON string cannot open a line
+// with an unescaped quote - so snapshot content can never be rewritten.
+const normalize = (s) =>
+  s.replaceAll('\\', '/').replace(/^(  "flashtrace": ")[^"]*"/m, '$1<version>"');
 
 function firstDifference(expected, actual) {
   const e = expected.split('\n');

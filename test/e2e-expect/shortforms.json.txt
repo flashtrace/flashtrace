@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 0,
+  "flashtrace": "<version>",
+  "ok": true,
+  "items": [
+    {
+      "id": "utest:auth/login#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "login.spec.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:auth/login#1",
+          "file": "spec.md",
+          "line": 11,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:auth/login#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "login.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:auth/session#1",
+          "resolvedTo": [
+            "impl:auth/session#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:auth/login#1",
+          "file": "spec.md",
+          "line": 11,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:auth/session#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "session.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "impl:auth/login#1",
+          "file": "login.ts",
+          "line": 1,
+          "character": 4
+        }
+      ]
+    },
+    {
+      "id": "feat:auth/login#1",
+      "title": "Authentication feature",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 3,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "req:auth/login#1",
+          "resolvedTo": [
+            "req:auth/login#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "req:auth/login#1",
+      "title": "Login requires a valid session token",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 11,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:auth/login#1",
+          "resolvedTo": [
+            "impl:auth/login#1"
+          ]
+        },
+        {
+          "ref": "utest:auth/login#1",
+          "resolvedTo": [
+            "utest:auth/login#1"
+          ]
+        }
+      ],
+      "covers": [
+        {
+          "ref": "feat:auth/login#1",
+          "status": "valid"
+        }
+      ],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:auth/login#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    }
+  ],
+  "forwards": [],
+  "problems": [],
+  "summary": {
+    "items": 5,
+    "specItems": 2,
+    "codeItems": 3,
+    "okItems": 5,
+    "defectiveItems": 0,
+    "shallowCoveredItems": 0,
+    "problems": 0
+  }
+}
