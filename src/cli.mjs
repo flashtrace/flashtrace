@@ -84,6 +84,10 @@ const LONG_ALIAS = {
   '-f': '--format',
 };
 
+// Both of these end the run mid-parse, which is what stops the parser from
+// reading the rest of the arguments. process.exit() is safe here where it is
+// not at the end of main(): each prints a fixed string far below the buffer of
+// any pipe, so there is nothing left buffered to lose.
 function printHelp() {
   console.log(HELP);
   process.exit(0);
@@ -195,6 +199,10 @@ async function main() {
 
 export function runCli() {
   main().catch((err) => {
+    // A usage error carries the help text and a crash carries a stack trace,
+    // both small enough that process.exit() leaves nothing buffered behind.
+    // An error path that grows past a pipe buffer would need the exit code
+    // main() sets instead.
     if (err instanceof UsageError) {
       console.error(`error: ${err.message}\n\n${HELP}`);
       process.exit(2);
