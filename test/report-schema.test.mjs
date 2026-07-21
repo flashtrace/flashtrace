@@ -304,7 +304,7 @@ test('the reference document actually reaches every defect kind and void reason'
 const SNAPSHOT_DIR = new URL('./e2e-expect/', import.meta.url);
 const snapshots = readdirSync(SNAPSHOT_DIR).filter((name) => name.endsWith('.json.txt'));
 
-test('every committed JSON snapshot is a snapshot', () => {
+test('at least one JSON snapshot is committed', () => {
   assert.ok(snapshots.length > 0, 'no JSON snapshots found to check');
 });
 
