@@ -1110,13 +1110,15 @@ function renderDefective(defective, out, style, dimLocation) {
 }
 function renderSummary(summary, out, style) {
   const originBreakdown = style.dim(`(${summary.specItems} from specs, ${summary.codeItems} from code)`);
+  const coverageBreakdown = summary.shallowCoveredItems ? "  " + style.dim(
+    `(${summary.okItems - summary.shallowCoveredItems} deep-covered, ${summary.shallowCoveredItems} only shallow-covered)`
+  ) : "";
   out.push(
     style.bold("Summary"),
     `  items       ${summary.items}  ${originBreakdown}`,
-    `  ok          ${style.green(String(summary.okItems))}`,
+    `  ok          ${style.green(String(summary.okItems))}${coverageBreakdown}`,
     `  defective   ${summary.defectiveItems ? style.red(String(summary.defectiveItems)) : "0"}`
   );
-  if (summary.shallowCoveredItems) out.push("  " + style.dim(`of the ok items, ${summary.shallowCoveredItems} are only shallow-covered (an item further down the tracing chain is defective)`));
   if (summary.problems) out.push(`  problems    ${style.yellow(String(summary.problems))}`);
   out.push("");
 }
