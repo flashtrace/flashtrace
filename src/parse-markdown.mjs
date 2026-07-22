@@ -35,10 +35,10 @@ const SETEXT_UNDERLINE_RE = /^ {0,3}(?:=+|-+)[ \t]*$/;
 // setext underline, and it only matters inside a table - under a paragraph the
 // setext underline still wins (CommonMark).
 const THEMATIC_BREAK_RE = /^ {0,3}-{3,}[ \t]*$/;
-// The vocabulary is owned by src/spec-items.mjs, so a keyword reaches this
-// regex as data: escape each one rather than trust it to be metacharacter-free.
-const escapeRegExp = (text) => text.replace(/[\\^$.*+?()[\]{}|]/g, String.raw`\$&`);
-const KEYWORD_RE = new RegExp(String.raw`^(${KEYWORDS.map(escapeRegExp).join('|')}):\s*((?:\S.*)?)$`);
+// The vocabulary is owned by src/spec-items.mjs and interpolated here as an
+// alternation; keywords stay bare words (spec-items.mjs guards that), so they
+// need no regex escaping.
+const KEYWORD_RE = new RegExp(String.raw`^(${KEYWORDS.join('|')}):\s*((?:\S.*)?)$`);
 const BULLET_RE = /^\s*[-*+]\s+(\S(?:.*\S)?)\s*$/;
 const DELIMITER_CELL_RE = /^:?-+:?$/;
 // group 1 is the optional backtick; the \1 backreference keeps it balanced,

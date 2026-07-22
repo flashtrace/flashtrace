@@ -9,6 +9,8 @@
 
 import { parseCoverEntry, parseNeedEntry } from './ids.mjs';
 
+// Bare words only: src/parse-markdown.mjs interpolates these into a regex
+// alternation unescaped, so a keyword must carry no regex metacharacters.
 export const KEYWORDS = ['Needs', 'Covers', 'Tags'];
 
 // is a piece of text one of the keywords, exactly?
