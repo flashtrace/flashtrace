@@ -27,6 +27,7 @@ var hash = { line: ["#"], block: [] };
 var coffee = { line: ["#", "####"], block: [["###", "###"]] };
 var julia = { line: ["#"], block: [["#=", "=#", true]] };
 var nim = { line: ["#"], block: [["#[", "]#", true], ["##[", "]##", true]] };
+var cmake = { line: ["#"], block: [["#[[", "]]"]] };
 var powershell = { line: ["#"], block: [["<#", "#>"]] };
 var sql = { line: ["--"], block: [["/*", "*/"]] };
 var lua = { line: ["--"], block: [["--[[", "]]"]] };
@@ -117,13 +118,13 @@ var BY_EXT = {
   ".cr": hash,
   ".gd": hash,
   ".awk": hash,
-  ".cmake": hash,
   ".graphql": hash,
   ".gql": hash,
   // hash line comments plus a block pair of their own
   ".jl": julia,
   ".nim": nim,
   ".coffee": coffee,
+  ".cmake": cmake,
   ".ps1": powershell,
   ".psm1": powershell,
   ".tf": hcl,

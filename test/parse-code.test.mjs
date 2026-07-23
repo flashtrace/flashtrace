@@ -309,8 +309,8 @@ test('PHP accepts // and # line comments and /* */', () => {
   assert.deepEqual(items.map((i) => i.id), ['impl:php/a#1', 'impl:php/b#1', 'impl:php/c#1']);
 });
 
-test('hash-comment extras (Crystal, GDScript, awk, CMake) recognise # tags', () => {
-  for (const file of ['app.cr', 'player.gd', 'report.awk', 'build.cmake']) {
+test('hash-comment extras (Crystal, GDScript, awk) recognise # tags', () => {
+  for (const file of ['app.cr', 'player.gd', 'report.awk']) {
     const { items, problems } = parse(file, [
       '# [impl:app/main#1]',
       'x = "// [impl:not-a-tag#1]"',
@@ -318,6 +318,30 @@ test('hash-comment extras (Crystal, GDScript, awk, CMake) recognise # tags', () 
     assert.equal(problems.length, 0, file);
     assert.deepEqual(items.map((i) => i.id), ['impl:app/main#1'], file);
   }
+});
+
+test('CMake uses # line and #[[ ]] block comments', () => {
+  const { items } = parse('build.cmake', [
+    '# [impl:cmake/mod#1]',
+    '#[[ [>>utest:cmake/mod#1] ]]',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:cmake/mod#1']);
+});
+
+test('CMake #[[ ]] block comment opens and spans multiple lines', () => {
+  // #[[ shares its prefix with the # line marker; the block opener must win the
+  // tie, otherwise the block never opens and the inner tags are missed.
+  const { items } = parse('build.cmake', [
+    '#[[',
+    '  [impl:cmake/block#1]',
+    '  [>>utest:cmake/block#1]',
+    ']]',
+    'add_executable(app main.c)',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:cmake/block#1');
+  assert.deepEqual(items[0].needs, ['utest:cmake/block#1']);
 });
 
 test('Lua uses -- line and --[[ ]] block comments', () => {

@@ -9,10 +9,11 @@ Tags are written inside comments. The comment style is chosen per file extension
 | C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cxx` `.hxx` `.ino` `.inl` `.tpp` `.cs` `.java` `.go` `.groovy` `.gradle` `.sol` `.dart` `.proto` `.scss` `.less` |
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
 | PHP | `//` `#` | `/* … */` | `.php` |
-| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.cmake` `.graphql` `.gql` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.graphql` `.gql` |
 | CoffeeScript | `#` | `### … ###` (opener not followed by `#`) | `.coffee` |
 | Julia | `#` | `#= … =#` (nestable) | `.jl` |
 | Nim | `#` | `#[ … ]#` `##[ … ]##` (nestable) | `.nim` |
+| CMake | `#` | `#[[ … ]]` | `.cmake` |
 | PowerShell | `#` | `<# … #>` | `.ps1` `.psm1` |
 | HCL | `#` `//` | `/* … */` | `.tf` `.tfvars` `.hcl` |
 | Semicolon | `;` | – | `.clj` `.cljs` `.cljc` `.edn` `.el` `.lisp` |
