@@ -2,3 +2,9 @@
 # output; force LF so autocrlf checkouts cannot corrupt them.
 examples/** text eol=lf
 test/e2e-expect/** text eol=lf
+
+# Build output is written by esbuild with LF; pin text so autocrlf checkouts
+# cannot rewrite the working tree to CRLF and show a phantom empty change.
+# text=auto lets git auto-detect binaries (e.g. SEA executables) and leave
+# them untouched, while forcing LF on anything it recognises as text.
+dist/** text=auto eol=lf
