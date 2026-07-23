@@ -541,7 +541,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
 // src/parse-typst.mjs
 var DEFINITION_RE2 = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 var HEADING_RE2 = /^\s*=+\s+(\S(?:.*\S)?)\s*$/;
-var LABEL_RE = /\s*<[A-Za-z_][A-Za-z0-9_.:-]*>$/;
+var LABEL_RE = /<[A-Za-z_][A-Za-z0-9_.:-]*>$/;
 var KEYWORD_RE2 = new RegExp(String.raw`^(?:\/\s+)?(${KEYWORDS.join("|")}):\s*((?:\S.*)?)$`);
 var BULLET_RE2 = /^\s*[-+]\s+(\S(?:.*\S)?)\s*$/;
 var FORWARD_LINE_RE2 = new RegExp(String.raw`^\s*\`${FORWARD_SRC}\`\s*$`);
@@ -550,81 +550,94 @@ var TABLE_LINE_RE = /^\s*#table\(/;
 var IDENTIFIER_RE = /[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*/y;
 var DIGITS_RE = /\d+/y;
 var firstNonBlankColumn2 = (line) => line.search(/\S/) + 1;
-function maskCommentsAndRawBlocks(text) {
-  const out = text.split("");
-  const blank = (index) => {
-    if (out[index] !== "\n" && out[index] !== "\r") out[index] = " ";
-  };
-  let blockCommentDepth = 0;
-  let rawFence = 0;
-  let inRawSpan = false;
-  let i = 0;
-  while (i < text.length) {
-    const character = text[i];
-    if (character === "\n") {
-      inRawSpan = false;
-      i++;
-      continue;
-    }
-    if (blockCommentDepth > 0) {
-      if (character === "/" && text[i + 1] === "*") blockCommentDepth++;
-      else if (character === "*" && text[i + 1] === "/") blockCommentDepth--;
-      else {
-        blank(i);
-        i++;
-        continue;
-      }
-      blank(i);
-      blank(i + 1);
-      i += 2;
-      continue;
-    }
-    if (rawFence > 0 || character === "`" && !inRawSpan) {
-      let run = 0;
-      while (text[i + run] === "`") run++;
-      if (rawFence > 0) {
-        if (run === 0) {
-          blank(i);
-          i++;
-          continue;
-        }
-        for (let k = 0; k < run; k++) blank(i + k);
-        if (run >= rawFence) rawFence = 0;
-      } else if (run >= 3) {
-        for (let k = 0; k < run; k++) blank(i + k);
-        rawFence = run;
-      } else if (run === 1) {
-        inRawSpan = true;
-      }
-      i += Math.max(run, 1);
-      continue;
-    }
-    if (character === "`") {
-      inRawSpan = false;
-      i++;
-      continue;
-    }
-    if (!inRawSpan && character === "/" && text[i + 1] === "/") {
-      if (text[i - 1] === ":" && /[A-Za-z0-9]/.test(text[i - 2] ?? "")) {
-        i += 2;
-        continue;
-      }
-      while (i < text.length && text[i] !== "\n" && text[i] !== "\r") {
-        blank(i);
-        i++;
-      }
-      continue;
-    }
-    if (!inRawSpan && character === "/" && text[i + 1] === "*") {
-      blockCommentDepth = 1;
-      blank(i);
-      blank(i + 1);
-      i += 2;
-      continue;
-    }
-    i++;
+var blankAt = (out, index) => {
+  if (out[index] !== "\n" && out[index] !== "\r") out[index] = " ";
+};
+var blankRange = (out, from, to) => {
+  for (let k = from; k < to; k++) blankAt(out, k);
+};
+var backtickRunLength = (text, index) => {
+  let run = 0;
+  while (text[index + run] === "`") run++;
+  return run;
+};
+function stepBlockComment(text, masking, i) {
+  if (text[i] === "/" && text[i + 1] === "*") masking.blockCommentDepth++;
+  else if (text[i] === "*" && text[i + 1] === "/") masking.blockCommentDepth--;
+  else {
+    blankAt(masking.out, i);
+    return i + 1;
   }
-  return out.join("");
+  blankAt(masking.out, i);
+  blankAt(masking.out, i + 1);
+  return i + 2;
+}
+function stepRawBlock(text, masking, i) {
+  const run = backtickRunLength(text, i);
+  if (run === 0) {
+    blankAt(masking.out, i);
+    return i + 1;
+  }
+  blankRange(masking.out, i, i + run);
+  if (run >= masking.rawFence) masking.rawFence = 0;
+  return i + run;
+}
+function stepBacktickRun(text, masking, i) {
+  if (masking.inRawSpan) {
+    masking.inRawSpan = false;
+    return i + 1;
+  }
+  const run = backtickRunLength(text, i);
+  if (run >= 3) {
+    blankRange(masking.out, i, i + run);
+    masking.rawFence = run;
+  } else if (run === 1) {
+    masking.inRawSpan = true;
+  }
+  return i + run;
+}
+function stepSlash(text, masking, i) {
+  if (text[i + 1] === "/") {
+    if (text[i - 1] === ":" && /[A-Za-z0-9]/.test(text[i - 2] ?? "")) return i + 2;
+    let j = i;
+    while (j < text.length && text[j] !== "\n" && text[j] !== "\r") {
+      blankAt(masking.out, j);
+      j++;
+    }
+    return j;
+  }
+  if (text[i + 1] === "*") {
+    masking.blockCommentDepth = 1;
+    blankAt(masking.out, i);
+    blankAt(masking.out, i + 1);
+    return i + 2;
+  }
+  return i + 1;
+}
+function maskStep(text, masking, i) {
+  const character = text[i];
+  if (character === "\n") {
+    masking.inRawSpan = false;
+    return i + 1;
+  }
+  if (masking.blockCommentDepth > 0) return stepBlockComment(text, masking, i);
+  if (masking.rawFence > 0) return stepRawBlock(text, masking, i);
+  if (character === "`") return stepBacktickRun(text, masking, i);
+  if (character === "/" && !masking.inRawSpan) return stepSlash(text, masking, i);
+  return i + 1;
+}
+function maskCommentsAndRawBlocks(text) {
+  const masking = {
+    out: text.split(""),
+    blockCommentDepth: 0,
+    rawFence: 0,
+    // length of the backtick run that opened a raw block
+    inRawSpan: false
+    // inside a single-backtick raw span, one line only
+  };
+  let i = 0;
+  while (i < text.length) i = maskStep(text, masking, i);
+  return masking.out.join("");
 }
 function takeForward2(line, file, lineIndex, problems, forwards) {
   const forward = line.match(FORWARD_LINE_RE2);
@@ -804,52 +817,43 @@ function collectCells(text, open) {
   return { cells, after: i + 1 };
 }
 var CELL_FREE_CALLS = /* @__PURE__ */ new Set(["table.hline", "table.vline"]);
-function scanTableCall(text, open) {
-  const cells = [];
-  let header = null;
-  let columnsCount = null;
-  let degraded = false;
-  let i = open + 1;
-  while (i < text.length && text[i] !== ")") {
-    const taken = takeCellToken(text, i, cells);
-    if (taken !== null) {
-      i = taken;
-      continue;
-    }
-    IDENTIFIER_RE.lastIndex = i;
-    const identifier = IDENTIFIER_RE.exec(text)?.[0];
-    if (!identifier) {
-      i++;
-      continue;
-    }
-    let after = i + identifier.length;
-    while (text[after] === " " || text[after] === "	") after++;
-    if (text[after] === ":" && !identifier.includes(".")) {
-      if (identifier === "columns") {
-        const parsed = parseColumnsArgument(text, after + 1);
-        columnsCount = parsed.count;
-        i = parsed.after;
-      } else {
-        i = skipToArgumentEnd(text, after + 1);
-      }
-      continue;
-    }
-    if (text[after] === "(") {
-      if (identifier === "table.header") {
-        const collected = collectCells(text, after);
-        header = collected.cells;
-        i = collected.after;
-        continue;
-      }
-      if (identifier !== "table.footer" && !CELL_FREE_CALLS.has(identifier)) degraded = true;
-      i = skipBalanced(text, after);
-      while (text[i] === " " || text[i] === "	") i++;
-      if (text[i] === "[") i = readContentBlock(text, i).after;
-      continue;
-    }
-    i = after;
+function scanNamedArgument(text, scan, identifier, from) {
+  if (identifier !== "columns") return skipToArgumentEnd(text, from);
+  const parsed = parseColumnsArgument(text, from);
+  scan.columnsCount = parsed.count;
+  return parsed.after;
+}
+function scanNestedCall(text, scan, identifier, open) {
+  if (identifier === "table.header") {
+    const collected = collectCells(text, open);
+    scan.header = collected.cells;
+    return collected.after;
   }
-  return { end: Math.min(i, text.length - 1), cells, header, columnsCount, degraded };
+  if (identifier !== "table.footer" && !CELL_FREE_CALLS.has(identifier)) scan.degraded = true;
+  let i = skipBalanced(text, open);
+  while (text[i] === " " || text[i] === "	") i++;
+  if (text[i] === "[") i = readContentBlock(text, i).after;
+  return i;
+}
+function scanTableToken(text, scan, i) {
+  const taken = takeCellToken(text, i, scan.cells);
+  if (taken !== null) return taken;
+  IDENTIFIER_RE.lastIndex = i;
+  const identifier = IDENTIFIER_RE.exec(text)?.[0];
+  if (!identifier) return i + 1;
+  let after = i + identifier.length;
+  while (text[after] === " " || text[after] === "	") after++;
+  if (text[after] === ":" && !identifier.includes(".")) {
+    return scanNamedArgument(text, scan, identifier, after + 1);
+  }
+  if (text[after] === "(") return scanNestedCall(text, scan, identifier, after);
+  return after;
+}
+function scanTableCall(text, open) {
+  const scan = { cells: [], header: null, columnsCount: null, degraded: false };
+  let i = open + 1;
+  while (i < text.length && text[i] !== ")") i = scanTableToken(text, scan, i);
+  return { end: Math.min(i, text.length - 1), ...scan };
 }
 function makeCell(text, block, locate) {
   const content = text.slice(block.contentStart, block.contentEnd);
@@ -862,7 +866,9 @@ function tableRecord(call, start, end, text, locate, file, problems) {
   const count = call.columnsCount ?? (call.header ? call.header.length : null);
   const usable = !call.degraded && Number.isInteger(count) && count > 0;
   const allCells = call.cells.map((block) => makeCell(text, block, locate));
-  const headerCells = call.header ? call.header.map((block) => makeCell(text, block, locate)) : usable ? allCells.slice(0, count) : [];
+  let headerCells = [];
+  if (call.header) headerCells = call.header.map((block) => makeCell(text, block, locate));
+  else if (usable) headerCells = allCells.slice(0, count);
   if (!usable) {
     const keywords = [
       ...new Set([...headerCells, ...allCells].filter((cell) => isKeyword(cell.value)).map((cell) => cell.value))
@@ -908,15 +914,19 @@ function tableRecord(call, start, end, text, locate, file, problems) {
 function scanTables2(lines, text, lineStarts, locate, file, problems) {
   const inTable = new Array(lines.length).fill(false);
   const tables = /* @__PURE__ */ new Map();
-  for (let j = 0; j < lines.length; j++) {
+  let j = 0;
+  while (j < lines.length) {
     const start = lines[j].match(TABLE_LINE_RE);
-    if (!start) continue;
+    if (!start) {
+      j++;
+      continue;
+    }
     const call = scanTableCall(text, lineStarts[j] + start[0].length - 1);
     const endLine = locate(call.end).line - 1;
     for (let k = j; k <= endLine; k++) inTable[k] = true;
     const startPosition = { line: j + 1, character: firstNonBlankColumn2(lines[j]) };
     tables.set(j, tableRecord(call, startPosition, endLine, text, locate, file, problems));
-    j = endLine;
+    j = endLine + 1;
   }
   return { inTable, tables };
 }
@@ -932,17 +942,26 @@ function makeLocator(lineStarts) {
     return { line: low + 1, character: index - lineStarts[low] + 1 };
   };
 }
-function parseItemBody2(lines, tables, inTable, start, item, file, problems, forwards) {
+function applyKeywordTable(table, item, context) {
+  for (const cell of table.keywordCells) {
+    applyTypstKeyword(item, cell.keyword, [cell], context.file, context.problems, `the ${cell.keyword} column of ${item.id}`);
+  }
+  return table.hasKeywordColumns;
+}
+function takeDescriptionLine(line, item, descriptionDone) {
+  if (line.trim() === "") return descriptionDone || item.description.length > 0;
+  if (!descriptionDone) item.description.push(line.trim());
+  return descriptionDone;
+}
+function parseItemBody2(context, start, item) {
+  const { lines, tables, inTable, file, problems, forwards } = context;
   let j = start;
   let descriptionDone = false;
   while (j < lines.length && !isBoundary2(lines, inTable, j)) {
     const line = lines[j];
     const table = tables.get(j);
     if (table) {
-      if (table.hasKeywordColumns) descriptionDone = true;
-      for (const cell of table.keywordCells) {
-        applyTypstKeyword(item, cell.keyword, [cell], file, problems, `the ${cell.keyword} column of ${item.id}`);
-      }
+      if (applyKeywordTable(table, item, context)) descriptionDone = true;
       j = table.end + 1;
       continue;
     }
@@ -963,10 +982,8 @@ function parseItemBody2(lines, tables, inTable, start, item, file, problems, for
         `${keywordMatch[1]}: list of ${item.id}`
       );
       j = collected.j;
-    } else if (line.trim() === "") {
-      if (item.description.length > 0) descriptionDone = true;
-    } else if (!descriptionDone) {
-      item.description.push(line.trim());
+    } else {
+      descriptionDone = takeDescriptionLine(line, item, descriptionDone);
     }
     j++;
   }
@@ -981,6 +998,7 @@ function parseTypst(file, text, problems, forwards = []) {
   }
   const locate = makeLocator(lineStarts);
   const { inTable, tables } = scanTables2(lines, masked, lineStarts, locate, file, problems);
+  const context = { lines, tables, inTable, file, problems, forwards };
   const items = [];
   let i = 0;
   while (i < lines.length) {
@@ -1006,7 +1024,7 @@ function parseTypst(file, text, problems, forwards = []) {
       firstNonBlankColumn2(lines[i])
     );
     item.title = titleAbove2(lines, inTable, i);
-    i = parseItemBody2(lines, tables, inTable, i + 1, item, file, problems, forwards);
+    i = parseItemBody2(context, i + 1, item);
     items.push(item);
   }
   return items;
