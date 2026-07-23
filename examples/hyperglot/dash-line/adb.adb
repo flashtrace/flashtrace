@@ -1,0 +1,2 @@
+-- hyperglot fixture: .adb has line comments only.
+-- [impl:dash-line/adb#1]

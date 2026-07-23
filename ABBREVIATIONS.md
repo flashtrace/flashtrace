@@ -30,7 +30,7 @@ These carry no project-specific meaning and are used as everywhere else:
 
 `i`, `j`, `k` (loop indices), `idx`, `pos`, `len`, `min`, `max`,
 `a`, `b` (comparator operands), `argv`, `opts`, `err`, `res`, `prev`,
-`cwd`, `abs` (absolute path), `pkg` (package), `attr` (attribute),
+`cwd`, `dir` (directory), `abs` (absolute path), `pkg` (package), `attr` (attribute),
 `memo`, `out` (accumulated output).
 
 ## Single-letter parameters

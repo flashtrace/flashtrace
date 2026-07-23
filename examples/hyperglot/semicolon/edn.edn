@@ -1,0 +1,2 @@
+; hyperglot fixture: .edn has line comments only.
+; [impl:semicolon/edn#1]

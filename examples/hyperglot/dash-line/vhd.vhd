@@ -1,0 +1,2 @@
+-- hyperglot fixture: .vhd has line comments only.
+-- [impl:dash-line/vhd#1]
