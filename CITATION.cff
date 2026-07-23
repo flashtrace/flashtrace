@@ -21,5 +21,5 @@ url: "https://flashtrace.github.io"
 doi: "10.5281/zenodo.21474712"
 
 # 'version' and 'date-released' are managed by release.yml and must not be hand-edited
-version: "0.12.0"
+version: "0.12.1"
 date-released: "2026-07-23"
