@@ -271,6 +271,30 @@ var KEYWORD_HANDLERS = {
   Covers: { target: "covers", parse: parseCoverEntry },
   Tags: { target: "tags", parse: parseVerbatimKeyword }
 };
+function keywordEntries(lines, j, inline, listMarkerRe) {
+  if (inline.trim() !== "") {
+    const inlineStart = lines[j].length - inline.length;
+    const entries2 = [];
+    let pos = 0;
+    for (const part of inline.split(",")) {
+      const value = part.trim();
+      if (value) {
+        const leading = part.length - part.trimStart().length;
+        entries2.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
+      }
+      pos += part.length + 1;
+    }
+    return { entries: entries2, j };
+  }
+  const entries = [];
+  while (j + 1 < lines.length) {
+    const marker = lines[j + 1].match(listMarkerRe);
+    if (!marker) break;
+    entries.push({ value: marker[1].trim(), line: j + 2, character: lines[j + 1].indexOf(marker[1]) + 1 });
+    j++;
+  }
+  return { entries, j };
+}
 function applyKeyword(item, keyword, entries, file, problems, source) {
   const handler = KEYWORD_HANDLERS[keyword];
   if (!handler) throw new Error(`applyKeyword: no handling for keyword "${keyword}"`);
@@ -346,30 +370,6 @@ function titleAbove(lines, inTable, definitionIndex) {
     return null;
   }
   return null;
-}
-function keywordEntries(lines, j, inline) {
-  if (inline.trim() !== "") {
-    const inlineStart = lines[j].length - inline.length;
-    const entries2 = [];
-    let pos = 0;
-    for (const part of inline.split(",")) {
-      const value = part.trim();
-      if (value) {
-        const leading = part.length - part.trimStart().length;
-        entries2.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
-      }
-      pos += part.length + 1;
-    }
-    return { entries: entries2, j };
-  }
-  const entries = [];
-  while (j + 1 < lines.length) {
-    const bullet = lines[j + 1].match(BULLET_RE);
-    if (!bullet) break;
-    entries.push({ value: bullet[1].trim(), line: j + 2, character: lines[j + 1].indexOf(bullet[1]) + 1 });
-    j++;
-  }
-  return { entries, j };
 }
 function rowCells(line) {
   let row = line.trim();
@@ -480,7 +480,7 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
     const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
     if (keywordMatch) {
       descriptionDone = true;
-      const collected = keywordEntries(lines, j, keywordMatch[2]);
+      const collected = keywordEntries(lines, j, keywordMatch[2], BULLET_RE);
       applyKeyword(
         item,
         keywordMatch[1],
@@ -663,30 +663,6 @@ function applyTypstKeyword(item, keyword, entries, file, problems, source) {
   }
   applyKeyword(item, keyword, accepted, file, problems, source);
 }
-function keywordEntries2(lines, j, inline) {
-  if (inline.trim() !== "") {
-    const inlineStart = lines[j].length - inline.length;
-    const entries2 = [];
-    let pos = 0;
-    for (const part of inline.split(",")) {
-      const value = part.trim();
-      if (value) {
-        const leading = part.length - part.trimStart().length;
-        entries2.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
-      }
-      pos += part.length + 1;
-    }
-    return { entries: entries2, j };
-  }
-  const entries = [];
-  while (j + 1 < lines.length) {
-    const bullet = lines[j + 1].match(BULLET_RE2);
-    if (!bullet) break;
-    entries.push({ value: bullet[1].trim(), line: j + 2, character: lines[j + 1].indexOf(bullet[1]) + 1 });
-    j++;
-  }
-  return { entries, j };
-}
 function titleAbove2(lines, inTable, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
     const line = lines[k];
@@ -807,26 +783,23 @@ function parseColumnsArgument(text, from) {
   }
   return { count: null, after: skipToArgumentEnd(text, i) };
 }
+function takeCellToken(text, i, cells) {
+  const character = text[i];
+  if (character === "[") {
+    const block = readContentBlock(text, i);
+    cells.push(block);
+    return block.after;
+  }
+  if (character === '"') return skipString(text, i);
+  if (character === "(") return skipBalanced(text, i);
+  return null;
+}
 function collectCells(text, open) {
   const cells = [];
   let i = open + 1;
   while (i < text.length && text[i] !== ")") {
-    const character = text[i];
-    if (character === "[") {
-      const block = readContentBlock(text, i);
-      cells.push(block);
-      i = block.after;
-      continue;
-    }
-    if (character === '"') {
-      i = skipString(text, i);
-      continue;
-    }
-    if (character === "(") {
-      i = skipBalanced(text, i);
-      continue;
-    }
-    i++;
+    const taken = takeCellToken(text, i, cells);
+    i = taken ?? i + 1;
   }
   return { cells, after: i + 1 };
 }
@@ -838,19 +811,9 @@ function scanTableCall(text, open) {
   let degraded = false;
   let i = open + 1;
   while (i < text.length && text[i] !== ")") {
-    const character = text[i];
-    if (character === "[") {
-      const block = readContentBlock(text, i);
-      cells.push(block);
-      i = block.after;
-      continue;
-    }
-    if (character === '"') {
-      i = skipString(text, i);
-      continue;
-    }
-    if (character === "(") {
-      i = skipBalanced(text, i);
+    const taken = takeCellToken(text, i, cells);
+    if (taken !== null) {
+      i = taken;
       continue;
     }
     IDENTIFIER_RE.lastIndex = i;
@@ -990,7 +953,7 @@ function parseItemBody2(lines, tables, inTable, start, item, file, problems, for
     const keywordMatch = line.match(KEYWORD_RE2);
     if (keywordMatch) {
       descriptionDone = true;
-      const collected = keywordEntries2(lines, j, keywordMatch[2]);
+      const collected = keywordEntries(lines, j, keywordMatch[2], BULLET_RE2);
       applyTypstKeyword(
         item,
         keywordMatch[1],

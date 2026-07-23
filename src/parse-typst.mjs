@@ -32,7 +32,7 @@
  */
 
 import { FORWARD_SRC, ID_SRC, makeForward, makeId, newItem } from './ids.mjs';
-import { KEYWORDS, applyKeyword, isKeyword } from './spec-items.mjs';
+import { KEYWORDS, applyKeyword, isKeyword, keywordEntries } from './spec-items.mjs';
 
 const DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 // A Typst heading: a `=` run, whitespace, then text. Any depth - Typst does
@@ -200,37 +200,6 @@ function applyTypstKeyword(item, keyword, entries, file, problems, source) {
   applyKeyword(item, keyword, accepted, file, problems, source);
 }
 
-// entries of a keyword line: inline comma-separated, or a list on the
-// following lines. Each entry carries its own source location (the column of
-// its first character, and - for a list - the line it sits on rather than the
-// keyword line), so an invalid-ID problem points at the entry itself.
-// Returns the entries and the index of the last consumed line.
-function keywordEntries(lines, j, inline) {
-  if (inline.trim() !== '') {
-    // inline is the `$`-anchored tail of lines[j], so it begins at this offset
-    const inlineStart = lines[j].length - inline.length;
-    const entries = [];
-    let pos = 0;
-    for (const part of inline.split(',')) {
-      const value = part.trim();
-      if (value) {
-        const leading = part.length - part.trimStart().length;
-        entries.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
-      }
-      pos += part.length + 1; // + 1 for the consumed comma
-    }
-    return { entries, j };
-  }
-  const entries = [];
-  while (j + 1 < lines.length) {
-    const bullet = lines[j + 1].match(BULLET_RE);
-    if (!bullet) break;
-    entries.push({ value: bullet[1].trim(), line: j + 2, character: lines[j + 1].indexOf(bullet[1]) + 1 });
-    j++;
-  }
-  return { entries, j };
-}
-
 function titleAbove(lines, inTable, definitionIndex) {
   for (let k = definitionIndex - 1; k >= 0; k--) {
     const line = lines[k];
@@ -375,27 +344,29 @@ function parseColumnsArgument(text, from) {
   return { count: null, after: skipToArgumentEnd(text, i) };
 }
 
+// One step over the tokens every cell scanner shares: a content block is
+// collected into `cells`, a string literal or parenthesized group is skipped
+// whole. Returns the index after the token, or null when the character at `i`
+// opens none of them.
+function takeCellToken(text, i, cells) {
+  const character = text[i];
+  if (character === '[') {
+    const block = readContentBlock(text, i);
+    cells.push(block);
+    return block.after;
+  }
+  if (character === '"') return skipString(text, i);
+  if (character === '(') return skipBalanced(text, i);
+  return null;
+}
+
 // the top-level content-block cells of a call, e.g. of `table.header(...)`
 function collectCells(text, open) {
   const cells = [];
   let i = open + 1;
   while (i < text.length && text[i] !== ')') {
-    const character = text[i];
-    if (character === '[') {
-      const block = readContentBlock(text, i);
-      cells.push(block);
-      i = block.after;
-      continue;
-    }
-    if (character === '"') {
-      i = skipString(text, i);
-      continue;
-    }
-    if (character === '(') {
-      i = skipBalanced(text, i);
-      continue;
-    }
-    i++;
+    const taken = takeCellToken(text, i, cells);
+    i = taken ?? i + 1;
   }
   return { cells, after: i + 1 };
 }
@@ -419,19 +390,9 @@ function scanTableCall(text, open) {
   let degraded = false;
   let i = open + 1;
   while (i < text.length && text[i] !== ')') {
-    const character = text[i];
-    if (character === '[') {
-      const block = readContentBlock(text, i);
-      cells.push(block);
-      i = block.after;
-      continue;
-    }
-    if (character === '"') {
-      i = skipString(text, i);
-      continue;
-    }
-    if (character === '(') {
-      i = skipBalanced(text, i);
+    const taken = takeCellToken(text, i, cells);
+    if (taken !== null) {
+      i = taken;
       continue;
     }
     IDENTIFIER_RE.lastIndex = i;
@@ -606,7 +567,7 @@ function parseItemBody(lines, tables, inTable, start, item, file, problems, forw
     const keywordMatch = line.match(KEYWORD_RE);
     if (keywordMatch) {
       descriptionDone = true;
-      const collected = keywordEntries(lines, j, keywordMatch[2]);
+      const collected = keywordEntries(lines, j, keywordMatch[2], BULLET_RE);
       applyTypstKeyword(
         item,
         keywordMatch[1],
