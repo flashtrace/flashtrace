@@ -83,6 +83,11 @@ not repeated here - only what its grammar offers.
 - **A comment-less region stays data.** The `type="application/json"` script in
   the plain documents carries tag-shaped text that must *not* be picked up.
   Nothing renders its absence - the item count is what proves it.
+- **A degraded opener opens nothing.** Between two `####` runs the coffee
+  fixture carries tag-shaped text that must stay code: a scanner still treating
+  the run as a `###` opener would read it as comment and define a `ghost` item
+  the spec never needs. As with the JSON script, the item count is what proves
+  its absence.
 
 ## What the spec asserts
 
