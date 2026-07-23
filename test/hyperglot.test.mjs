@@ -40,7 +40,7 @@ import { parseCode } from '../src/parse-code.mjs';
 
 const ROOT = fileURLToPath(new URL('../examples/hyperglot', import.meta.url));
 const MARKDOWN = new Set(['.md', '.markdown']);
-const byName = (a, b) => (a < b ? -1 : 1);
+const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 // Every code fixture under examples/hyperglot: its extension, the folder it
 // sits in and its text. Markdown is skipped - the specs and the README are
