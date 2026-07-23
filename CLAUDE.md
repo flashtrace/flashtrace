@@ -19,7 +19,7 @@ Ask refining questions before you start writing.
 | schemas/ | Published JSON Schemas for machine-readable output formats; one file per format version, mirroring the URL it is served at |
 | examples/ | Self-contained example projects; fixtures for the end-to-end tests |
 | dist/ | Generated build output |
-| .github/ | Continuous integration workflows |
+| .github/ | Continuous integration workflows and the helper scripts they run |
 
 Keep dev dependencies to a minimum.
 Keep (runtime) dependencies to zero.
@@ -30,6 +30,9 @@ Keep (runtime) dependencies to zero.
 |---|---|
 | `pnpm build` | Run esbuild, bundling from 'src/' to 'dist/'. |
 | `pnpm test` | Run all tests under 'test/'. |
+| `pnpm run test:coverage` | Run the same tests, writing an lcov and a JUnit report to 'coverage/'. Needs Node 22.5 or newer. |
+
+The coverage run measures `src/` alone and fails when a file in it is unreachable from the test suite, because an unmeasured file would leave the ratio instead of lowering it.
 
 ## Naming
 

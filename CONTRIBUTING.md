@@ -27,6 +27,9 @@ This is intended to give you a quick but complete overview.
 |---------------|-------------------------------------------------|
 | `pnpm build`  | Run esbuild, bundling from 'src/' to 'dist/'.   |
 | `pnpm test`   | Run all tests under 'test/'.                    |
+| `pnpm run test:coverage` | Run the same tests, writing an lcov and a JUnit report to 'coverage/'. Needs Node 22.5 or newer; `pnpm test` does not. |
+
+The coverage run measures 'src/' alone, and every file in it has to be reachable from the test suite - an unreachable one is never loaded, so it would silently leave the measurement rather than lower it. The run fails when that happens.
 
 ## Our Workflow
 
