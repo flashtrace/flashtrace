@@ -1086,7 +1086,7 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
     for (const id of ids) {
       const covering = byId.get(id)[0];
       const arrow = style.dim(`(\u2192 ${covering.id})`);
-      const ref = wildcard ? `${need} ${arrow}` : need;
+      const ref = wildcard || covering.id !== need ? `${need} ${arrow}` : need;
       lines.push(`    ${style.dim("needs")} ${ref}  ${styledStatus(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
   }

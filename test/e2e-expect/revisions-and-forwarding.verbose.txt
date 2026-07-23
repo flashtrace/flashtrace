@@ -1,7 +1,7 @@
 ✔ impl:session/api#1.3  api.ts:1  [deep-covered]
 
 ✔ feat:session#1 "Session handling"  spec.md:3  [deep-covered]
-    needs req:session/store#2.4  ✔ spec.md:11
+    needs req:session/store#2.4 (→ req:session/store#2.4.0)  ✔ spec.md:11
     needs req:session/api#1  ✔ spec.md:20
 ✔ req:session/store#2.4.0 "Session store requirement"  spec.md:11  [deep-covered]
     needs impl:session/store#2.x (→ impl:session/store#2.4.1)  ✔ store.ts:1

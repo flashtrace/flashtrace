@@ -46,7 +46,8 @@ function forwardEdge(item, byId, style, dimLocation) {
 }
 
 // one line per need: the covering item's own status mark and location, or
-// missing; a wildcard reference shows each resolved revision
+// missing; the resolved item's ID is shown as (→ id) for a wildcard reference
+// and whenever its spelling differs from the need's
 function needEdges(item, byId, matchesOf, style, dimLocation) {
   const lines = [];
   for (const need of item.needs) {
@@ -60,7 +61,7 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
       const covering = byId.get(id)[0];
       // matchesOf yields canonical IDs; show the resolved item as it is written
       const arrow = style.dim(`(→ ${covering.id})`);
-      const ref = wildcard ? `${need} ${arrow}` : need;
+      const ref = wildcard || covering.id !== need ? `${need} ${arrow}` : need;
       lines.push(`    ${style.dim('needs')} ${ref}  ${styledStatus(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
   }
