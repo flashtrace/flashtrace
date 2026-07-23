@@ -71,6 +71,9 @@ test('parseNeedEntry accepts the wildcard shapes, parseCoverEntry none', () => {
   }
 });
 
+// regression test: 2.x.y, x.y and x.y.z were valid wildcard revisions before
+// the wildcard rework in PR #63 dropped them for the single trailing wildcard
+// layer - they must stay rejected, not quietly become revisions again
 test('the dropped multi-wildcard shapes are no revisions', () => {
   for (const rev of ['2.x.y', 'x.y', 'x.y.z', '2.x.x', 'x.2']) {
     assert.equal(parseNeedEntry(`impl:a#${rev}`, 'req:owner#1'), null, rev);
