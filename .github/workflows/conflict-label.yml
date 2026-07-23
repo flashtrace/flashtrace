@@ -25,7 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write # add/remove the label on the PR
-      issues: write # create the repo-wide label on first use
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
@@ -55,13 +54,6 @@ jobs:
           echo "Mergeable: $mergeable, label present: $has_label"
 
           if [ "$mergeable" = 'false' ] && [ "$has_label" = 'false' ]; then
-            # Adding an unknown label through the issues API would create it
-            # with a random color; create it explicitly instead to control
-            # color and description. Not --force, so later manual edits to
-            # either survive.
-            if ! gh label list --repo "$REPO" --json name --jq '.[].name' | grep -qxF 'conflict'; then
-              gh label create conflict --repo "$REPO" --color d93f0b --description 'Has merge conflicts with the base branch'
-            fi
             gh api --silent --method POST "repos/$REPO/issues/$PR/labels" -f 'labels[]=conflict'
           elif [ "$mergeable" = 'true' ] && [ "$has_label" = 'true' ]; then
             gh api --silent --method DELETE "repos/$REPO/issues/$PR/labels/conflict"
