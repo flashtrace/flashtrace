@@ -6,6 +6,7 @@
 
 import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const SCHEMA_VERSION = 1;
 
@@ -20,21 +21,21 @@ const COVERAGE_COLORS = [
   { atLeast: 50, color: 'orange' },
 ];
 
-function coverageColorFor(percent) {
+export function coverageColorFor(percent) {
   return COVERAGE_COLORS.find((band) => percent >= band.atLeast)?.color ?? 'red';
 }
 
 // lcov spells paths the way Node saw them - relative to the working directory,
 // on Windows with backslashes. Comparing them to a directory listing needs one
 // spelling.
-function toPosixPath(value) {
+export function toPosixPath(value) {
   return value.replaceAll('\\', '/');
 }
 
 // The path a record carries, restated relative to the source directory, or
 // null for a record from outside it. lcov writes paths relative to the working
 // directory the test run started in, so a src/ record begins with `src/`.
-function relativeToSourceDir(path, sourceDir) {
+export function relativeToSourceDir(path, sourceDir) {
   const prefix = `${toPosixPath(sourceDir)}/`;
   return path.startsWith(prefix) ? path.slice(prefix.length) : null;
 }
@@ -42,7 +43,7 @@ function relativeToSourceDir(path, sourceDir) {
 // lcov records one `LF:` (lines found) and one `LH:` (lines hit) per source
 // file. Line coverage for the project is the ratio of the summed pair, which
 // weights each file by its size instead of averaging percentages.
-function readLineCoverage(lcovPath) {
+export function readLineCoverage(lcovPath) {
   const lcov = readFileSync(lcovPath, 'utf8');
   let linesFound = 0;
   let linesHit = 0;
@@ -64,7 +65,7 @@ function readLineCoverage(lcovPath) {
 // at all: it drops out of the ratio entirely and raises the percentage instead
 // of lowering it. Holding the report against the directory listing turns that
 // blind spot into a failed run.
-function assertEverySourceFileMeasured(lcovPath, sourceDir) {
+export function assertEverySourceFileMeasured(lcovPath, sourceDir) {
   const measured = new Set();
 
   for (const line of readFileSync(lcovPath, 'utf8').split(/\r?\n/)) {
@@ -88,7 +89,7 @@ function assertEverySourceFileMeasured(lcovPath, sourceDir) {
 }
 
 // The JUnit reporter emits one <testcase> element per test, subtests included.
-function countTestCases(junitPath) {
+export function countTestCases(junitPath) {
   const junit = readFileSync(junitPath, 'utf8');
   const count = junit.match(/<testcase\b/g)?.length ?? 0;
 
@@ -98,37 +99,45 @@ function countTestCases(junitPath) {
   return count;
 }
 
-function writeBadge(outputDir, name, badge) {
+export function writeBadge(outputDir, name, badge) {
   const file = join(outputDir, `${name}.json`);
   writeFileSync(file, `${JSON.stringify({ schemaVersion: SCHEMA_VERSION, ...badge }, null, 2)}\n`);
   return file;
 }
 
-const [lcovPath, junitPath, sourceDir, outputDir] = process.argv.slice(2);
-if (!lcovPath || !junitPath || !sourceDir || !outputDir) {
-  console.error(
-    'Usage: node .github/scripts/quality-badges.mjs <lcov-file> <junit-file> <source-dir> <output-dir>',
-  );
-  process.exit(2);
+function main(argv) {
+  const [lcovPath, junitPath, sourceDir, outputDir] = argv;
+  if (!lcovPath || !junitPath || !sourceDir || !outputDir) {
+    console.error(
+      'Usage: node .github/scripts/quality-badges.mjs <lcov-file> <junit-file> <source-dir> <output-dir>',
+    );
+    process.exit(2);
+  }
+
+  assertEverySourceFileMeasured(lcovPath, sourceDir);
+
+  const coverage = readLineCoverage(lcovPath);
+  const testCount = countTestCases(junitPath);
+
+  mkdirSync(outputDir, { recursive: true });
+
+  writeBadge(outputDir, 'coverage', {
+    label: 'coverage',
+    message: `${coverage.toFixed(1)}%`,
+    color: coverageColorFor(coverage),
+  });
+
+  writeBadge(outputDir, 'tests', {
+    label: 'tests',
+    message: String(testCount),
+    color: 'blue',
+  });
+
+  console.log(`coverage ${coverage.toFixed(1)}%, ${testCount} tests -> ${outputDir}`);
 }
 
-assertEverySourceFileMeasured(lcovPath, sourceDir);
-
-const coverage = readLineCoverage(lcovPath);
-const testCount = countTestCases(junitPath);
-
-mkdirSync(outputDir, { recursive: true });
-
-writeBadge(outputDir, 'coverage', {
-  label: 'coverage',
-  message: `${coverage.toFixed(1)}%`,
-  color: coverageColorFor(coverage),
-});
-
-writeBadge(outputDir, 'tests', {
-  label: 'tests',
-  message: String(testCount),
-  color: 'blue',
-});
-
-console.log(`coverage ${coverage.toFixed(1)}%, ${testCount} tests -> ${outputDir}`);
+// Run the CLI only when invoked directly, so a test can import the functions
+// above without the argument parsing firing.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main(process.argv.slice(2));
+}
