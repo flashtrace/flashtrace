@@ -1,4 +1,5 @@
 import {
+  cyclicForwarding,
   duplicateForwarding,
   duplicateId,
   orphanedCover,
@@ -45,9 +46,22 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
 const displayedDuplicateId = (writtenIds, canonical) =>
   writtenIds.every((id) => id === writtenIds[0]) ? writtenIds[0] : canonical;
 
+// void every forwarding on one detected cycle: flag the defect on each source
+// item, mark its declaration voided by the cycle, and drop it from the live map
+function voidForwardingCycle(cycle, chain, forwardTargets, declarationBySource, byId) {
+  for (const id of cycle) {
+    const declaration = declarationBySource.get(id);
+    declaration.effective = false;
+    declaration.voidedBy = 'cycle';
+    for (const item of byId.get(id)) item.defects.push(cyclicForwarding(declaration.to, chain, declaration));
+    forwardTargets.delete(id);
+  }
+}
+
 // forwarding chains must be acyclic (self-forwarding included); every
-// forwarding on a cycle is reported as a problem, voided, and has no effect
-function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
+// forwarding on a cycle is flagged as a defect on its source item, voided,
+// and has no effect - the source falls back to its own needs
+function dropCyclicForwards(forwardTargets, declarationBySource, byId) {
   const done = new Set(); // ids verified to not sit on a cycle
   for (const start of forwardTargets.keys()) {
     if (done.has(start)) continue;
@@ -63,18 +77,7 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
       const cycle = path.slice(seen.get(current));
       // the walk runs on canonical IDs; show each source as its declaration wrote it
       const chain = [...cycle, current].map((id) => declarationBySource.get(id).from).join(' --> ');
-      for (const id of cycle) {
-        const declaration = declarationBySource.get(id);
-        declaration.effective = false;
-        declaration.voidedBy = 'cycle';
-        problems.push({
-          file: declaration.file,
-          line: declaration.line,
-          character: declaration.character,
-          message: `cyclic forwarding: ${chain}`,
-        });
-        forwardTargets.delete(id);
-      }
+      voidForwardingCycle(cycle, chain, forwardTargets, declarationBySource, byId);
     }
     for (const id of path) done.add(id);
   }
@@ -82,8 +85,9 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
 
 // forwarding [A --> B]: A's coverage obligation is redirected to B - A's own
 // needs are excused; A is covered iff B exists, deep-covered iff B is. Builds
-// the source -> target map, reporting missing sources and duplicate/cyclic
-// declarations, and marks each surviving target as wanted coverage. Every
+// the source -> target map, reporting a missing source as a problem and
+// duplicate/cyclic declarations as defects on the source item, and marks each
+// surviving target as wanted coverage. Every
 // forward is annotated with `effective` and, when voided, `voidedBy` (the
 // item forwardsTo fields mirror exactly the effective declarations).
 function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
@@ -113,7 +117,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     // are voided as duplicates (and flagged as a defect on the source item)
     if (group.length > 1) {
       const shown = displayedDuplicateId(group.map((forward) => forward.from), from);
-      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length));
+      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length, group[0]));
     }
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {
@@ -123,7 +127,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     forwardTargets.set(from, group[0].to);
     declarationBySource.set(from, group[0]);
   }
-  dropCyclicForwards(forwardTargets, declarationBySource, problems);
+  dropCyclicForwards(forwardTargets, declarationBySource, byId);
   for (const to of forwardTargets.values()) neededIds.add(canonicalId(to)); // a forwarding target is wanted coverage
   return forwardTargets;
 }

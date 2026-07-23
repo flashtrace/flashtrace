@@ -44,7 +44,7 @@ A table column headed by a bare keyword name (`Needs`, `Covers`, or `Tags` - no 
 - A cell holds at most one entry; empty (or missing) cells are skipped. Multiple entries simply mean multiple rows.
 - A table whose header contains no keyword cell is ordinary informative text.
 - A table extends to the first blank line, ATX heading, or thematic break (a `---` run of three or more dashes). As in GFM, the break ends the table as plain text: it is no row and it underlines no heading. A `===` run, a dash run too short for a break (`-`, `--`), or an item-definition line directly under a table row is instead swallowed as a single-cell row, exactly as GFM renders it: its text fills the row's first column, so it neither ends the table nor underlines a heading - nor defines an item. Put a blank line between a table and the next item's ID line to keep it a definition.
-- A table cannot define an item: a cell that holds nothing but a backticked ID is not an item definition and is reported as a problem - this includes an ID line swallowed as a row. Cells in keyword columns are entries (optionally backticked) and are exempt; an invalid entry there is reported against its keyword column.
+- A table cannot define an item: a cell that holds nothing but a backticked ID is not an item definition and is reported as a problem - this includes an ID line swallowed as a row. Cells in keyword columns are entries (optionally backticked) and are exempt; an invalid entry there flags the item as defective, located at the offending cell.
 
 Like a keyword line, a keyword table may appear anywhere in the item's definition and terminates the description.
 

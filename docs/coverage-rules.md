@@ -9,8 +9,10 @@
 
 | Defect     | Meaning                                                                                     |
 |------------|---------------------------------------------------------------------------------------------|
+| invalid    | A `Needs`/`Covers` entry is not a valid reference; the entry is ignored.                     |
 | uncovered  | A needed ID - or a forwarding target - does not exist. If the same `type:group/name` exists at another revision, the report flags the revision mismatch (outdated/predated reference). |
 | orphaned   | A `Covers` entry points to a non-existent ID (with the same revision-mismatch hint).         |
 | unwanted   | Coverage nobody asked for: a `Covers` entry whose target does not need the coverer's ID, or a code item whose ID is neither needed by any item nor a forwarding target. |
 | duplicate  | The same ID - revisions compared SemVer-equal, so `#2.4` and `#2.4.0` collide - is defined more than once, or more than one forwarding is declared for the same source ID. |
-| problem    | Parse-level error, e.g. a `[>>…]` tag with no preceding item tag, a malformed ID in a `Needs`/`Covers` list, a forwarding from a non-existent item, or a cyclic forwarding chain. |
+| cyclic     | The item's forwarding sits on a cycle; it is voided and the item falls back to its own `Needs`. |
+| problem    | A condition with no item to attach it to, e.g. a `[>>…]` tag with no preceding item tag or a forwarding from a non-existent item. |

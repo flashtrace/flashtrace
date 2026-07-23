@@ -262,6 +262,73 @@ function newItem(id, origin, file, line, character) {
   };
 }
 
+// src/defects.mjs
+var DEFECT_KINDS = Object.freeze([
+  "invalid-reference",
+  "uncovered-need",
+  "uncovered-forward",
+  "orphaned-cover",
+  "unwanted-cover",
+  "unwanted-item",
+  "duplicate-id",
+  "duplicate-forwarding",
+  "cyclic-forwarding"
+]);
+var invalidReference = (value, source, { file, line, character }) => ({
+  kind: "invalid-reference",
+  ref: value,
+  file,
+  line,
+  character,
+  message: `invalid: "${value}" in ${source} is not a valid ID and is ignored`
+});
+var uncoveredNeed = (need) => ({
+  kind: "uncovered-need",
+  ref: need,
+  message: `uncovered: needs ${need}, which does not exist`
+});
+var uncoveredForward = (target) => ({
+  kind: "uncovered-forward",
+  ref: target,
+  message: `uncovered: forwards to ${target}, which does not exist`
+});
+var orphanedCover = (coverId) => ({
+  kind: "orphaned-cover",
+  ref: coverId,
+  message: `orphaned: covers ${coverId}, which does not exist`
+});
+var unwantedCover = (coverId, itemId) => ({
+  kind: "unwanted-cover",
+  ref: coverId,
+  message: `unwanted: covers ${coverId}, but ${coverId} does not need ${itemId}`
+});
+var unwantedItem = (itemId) => ({
+  kind: "unwanted-item",
+  ref: itemId,
+  message: `unwanted: no item needs ${itemId}`
+});
+var duplicateId = (id, count) => ({
+  kind: "duplicate-id",
+  ref: id,
+  message: `duplicate: ID ${id} is defined ${count} times`
+});
+var duplicateForwarding = (from, count, { file, line, character }) => ({
+  kind: "duplicate-forwarding",
+  ref: from,
+  file,
+  line,
+  character,
+  message: `duplicate: forwarding for ${from} is declared ${count} times`
+});
+var cyclicForwarding = (target, chain, { file, line, character }) => ({
+  kind: "cyclic-forwarding",
+  ref: target,
+  file,
+  line,
+  character,
+  message: `cyclic: forwards to ${target}, closing the cycle ${chain}, so the forwarding has no effect`
+});
+
 // src/spec-items.mjs
 var KEYWORDS = ["Needs", "Covers", "Tags"];
 var isKeyword = (text) => KEYWORDS.includes(text);
@@ -271,7 +338,7 @@ var KEYWORD_HANDLERS = {
   Covers: { target: "covers", parse: parseCoverEntry },
   Tags: { target: "tags", parse: parseVerbatimKeyword }
 };
-function applyKeyword(item, keyword, entries, file, problems, source) {
+function applyKeyword(item, keyword, entries, file, source) {
   const handler = KEYWORD_HANDLERS[keyword];
   if (!handler) throw new Error(`applyKeyword: no handling for keyword "${keyword}"`);
   const { target, parse } = handler;
@@ -279,12 +346,9 @@ function applyKeyword(item, keyword, entries, file, problems, source) {
     const value = parse(entry.value, item.id);
     if (value) item[target].push(value);
     else
-      problems.push({
-        file,
-        line: entry.line,
-        character: entry.character,
-        message: `invalid ID "${entry.value}" in ${source}`
-      });
+      item.defects.push(
+        invalidReference(entry.value, source, { file, line: entry.line, character: entry.character })
+      );
   }
 }
 
@@ -440,7 +504,7 @@ function scanTables(lines, file, problems) {
   }
   return inTable;
 }
-function takeKeywordTable(lines, inTable, j, item, file, problems) {
+function takeKeywordTable(lines, inTable, j, item, file) {
   if (!inTable[j] || j > 0 && inTable[j - 1]) return null;
   const columns = [];
   rowCells(lines[j]).forEach((cell, col) => {
@@ -459,14 +523,13 @@ function takeKeywordTable(lines, inTable, j, item, file, problems) {
           keyword,
           [{ value: cells[col], line: j + 1, character: cellColumns[col] }],
           file,
-          problems,
           `the ${keyword} column of ${item.id}`
         );
     }
   }
   return j;
 }
-function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
+function parseItemBody(lines, boundary, start, item, file, forwards) {
   const { inTable, opensHeading } = boundary;
   let j = start;
   let descriptionDone = false;
@@ -477,7 +540,7 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
       continue;
     }
     const keywordMatch = line.match(KEYWORD_RE);
-    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
+    const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file);
     if (keywordMatch) {
       descriptionDone = true;
       const collected = keywordEntries(lines, j, keywordMatch[2]);
@@ -486,8 +549,7 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
         keywordMatch[1],
         collected.entries,
         file,
-        problems,
-        `${keywordMatch[1]}: list of ${item.id}`
+        `the ${keywordMatch[1]} list of ${item.id}`
       );
       j = collected.j;
     } else if (tableEnd !== null) {
@@ -532,7 +594,7 @@ function parseMarkdown(file, text, problems, forwards = []) {
     }
     const item = newItem(makeId(definition[1], definition[2], definition[3], definition[4]), "spec", file, i + 1, firstNonBlankColumn(lines[i]));
     item.title = titleAbove(lines, inTable, i);
-    i = parseItemBody(lines, boundary, i + 1, item, file, problems, forwards);
+    i = parseItemBody(lines, boundary, i + 1, item, file, forwards);
     items.push(item);
   }
   return items;
@@ -796,52 +858,6 @@ function parseCode(file, text, problems, forwards = []) {
   return items;
 }
 
-// src/defects.mjs
-var DEFECT_KINDS = Object.freeze([
-  "uncovered-need",
-  "uncovered-forward",
-  "orphaned-cover",
-  "unwanted-cover",
-  "unwanted-item",
-  "duplicate-id",
-  "duplicate-forwarding"
-]);
-var uncoveredNeed = (need) => ({
-  kind: "uncovered-need",
-  ref: need,
-  message: `uncovered: needs ${need}, which does not exist`
-});
-var uncoveredForward = (target) => ({
-  kind: "uncovered-forward",
-  ref: target,
-  message: `uncovered: forwards to ${target}, which does not exist`
-});
-var orphanedCover = (coverId) => ({
-  kind: "orphaned-cover",
-  ref: coverId,
-  message: `orphaned: covers ${coverId}, which does not exist`
-});
-var unwantedCover = (coverId, itemId) => ({
-  kind: "unwanted-cover",
-  ref: coverId,
-  message: `unwanted: covers ${coverId}, but ${coverId} does not need ${itemId}`
-});
-var unwantedItem = (itemId) => ({
-  kind: "unwanted-item",
-  ref: itemId,
-  message: `unwanted: no item needs ${itemId}`
-});
-var duplicateId = (id, count) => ({
-  kind: "duplicate-id",
-  ref: id,
-  message: `duplicate: ID ${id} is defined ${count} times`
-});
-var duplicateForwarding = (from, count) => ({
-  kind: "duplicate-forwarding",
-  ref: from,
-  message: `duplicate: forwarding for ${from} is declared ${count} times`
-});
-
 // src/analyze.mjs
 function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
   const forwardTarget = forwardTargets.get(item.canonicalId);
@@ -867,7 +883,16 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
   }
 }
 var displayedDuplicateId = (writtenIds, canonical) => writtenIds.every((id) => id === writtenIds[0]) ? writtenIds[0] : canonical;
-function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
+function voidForwardingCycle(cycle, chain, forwardTargets, declarationBySource, byId) {
+  for (const id of cycle) {
+    const declaration = declarationBySource.get(id);
+    declaration.effective = false;
+    declaration.voidedBy = "cycle";
+    for (const item of byId.get(id)) item.defects.push(cyclicForwarding(declaration.to, chain, declaration));
+    forwardTargets.delete(id);
+  }
+}
+function dropCyclicForwards(forwardTargets, declarationBySource, byId) {
   const done = /* @__PURE__ */ new Set();
   for (const start of forwardTargets.keys()) {
     if (done.has(start)) continue;
@@ -882,18 +907,7 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
     if (seen.has(current)) {
       const cycle = path6.slice(seen.get(current));
       const chain = [...cycle, current].map((id) => declarationBySource.get(id).from).join(" --> ");
-      for (const id of cycle) {
-        const declaration = declarationBySource.get(id);
-        declaration.effective = false;
-        declaration.voidedBy = "cycle";
-        problems.push({
-          file: declaration.file,
-          line: declaration.line,
-          character: declaration.character,
-          message: `cyclic forwarding: ${chain}`
-        });
-        forwardTargets.delete(id);
-      }
+      voidForwardingCycle(cycle, chain, forwardTargets, declarationBySource, byId);
     }
     for (const id of path6) done.add(id);
   }
@@ -923,7 +937,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     }
     if (group.length > 1) {
       const shown = displayedDuplicateId(group.map((forward) => forward.from), from);
-      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length));
+      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length, group[0]));
     }
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {
@@ -933,7 +947,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     forwardTargets.set(from, group[0].to);
     declarationBySource.set(from, group[0]);
   }
-  dropCyclicForwards(forwardTargets, declarationBySource, problems);
+  dropCyclicForwards(forwardTargets, declarationBySource, byId);
   for (const to of forwardTargets.values()) neededIds.add(canonicalId(to));
   return forwardTargets;
 }
@@ -1115,6 +1129,12 @@ function coverEdges(item, byId, style, dimLocation) {
   }
   return lines;
 }
+function defectLines(item, style, dimLocation) {
+  return item.defects.map((defect) => {
+    const location = defect.file ? `  ${dimLocation(defect.file, defect.line)}` : "";
+    return `    ${style.red("\u2022")} ${defect.message}${location}`;
+  });
+}
 function edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation) {
   const lines = [];
   if (item.forwardsTo !== null) lines.push(forwardEdge(item, byId, style, dimLocation));
@@ -1135,9 +1155,9 @@ function renderVerbose(items, out, style, dimLocation) {
     const title = item.title ? " " + style.dim(`"${item.title}"`) : "";
     out.push(
       `${mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}  ${tag}`,
-      ...edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation)
+      ...edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation),
+      ...defectLines(item, style, dimLocation)
     );
-    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect.message}`);
   }
   if (sorted.length) out.push("");
 }
@@ -1145,10 +1165,10 @@ function renderDefective(defective, out, style, dimLocation) {
   for (const item of defective) {
     const title = item.title ? " " + style.dim(`"${item.title}"`) : "";
     out.push(
-      `${styledStatus(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`
+      `${styledStatus(item, style).mark} ${style.bold(item.id)}${title}  ${dimLocation(item.file, item.line)}`,
+      ...defectLines(item, style, dimLocation),
+      ""
     );
-    for (const defect of item.defects) out.push(`    ${style.red("\u2022")} ${defect.message}`);
-    out.push("");
   }
 }
 function renderSummary(summary, out, style) {
@@ -1205,12 +1225,6 @@ function buildForwardedFrom(items, byId) {
   }
   return forwardedFrom;
 }
-function defectDocument(defect) {
-  const out = { kind: defect.kind, ref: defect.ref };
-  if (defect.existingRevisions) out.existingRevisions = defect.existingRevisions;
-  out.message = defect.message;
-  return out;
-}
 function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   const { version } = opts;
   if (typeof version !== "string")
@@ -1230,6 +1244,13 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
     )
   ];
   const itemRefs = (related) => [...related].map((other) => ({ id: other.id, ...location(other) })).sort(byLocation);
+  const defectDocument = (defect) => {
+    const out = { kind: defect.kind, ref: defect.ref };
+    if (defect.file) Object.assign(out, location(defect));
+    if (defect.existingRevisions) out.existingRevisions = defect.existingRevisions;
+    out.message = defect.message;
+    return out;
+  };
   const itemDocument = (item) => {
     const coverStatus = coverStatusOf(item);
     return {

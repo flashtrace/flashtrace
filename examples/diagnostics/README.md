@@ -19,8 +19,8 @@ From [spec.md](spec.md):
 - duplicate forwarding - two forwardings are declared for req:zeta#1; the
   first (to dsn:zeta#1) stays in effect, and the duplicate is flagged.
 - cyclic forwarding - req:eta#1 forwards to req:theta#1 and vice versa; both
-  forwardings are reported as problems and voided, so the two items fall back
-  to their own (empty) needs.
+  forwardings are voided and flagged as cyclic defects on their source items,
+  which fall back to their own (empty) needs.
 - forwarding from a nonexistent item - a forwarding names req:ghost#1 as its
   source, which is defined nowhere.
 

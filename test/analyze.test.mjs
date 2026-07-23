@@ -356,7 +356,7 @@ test('a code item referenced only as forwarding target is not unwanted', () => {
   assert.deepEqual(byId(items, 'impl:b#1').defects, []);
 });
 
-test('cyclic forwarding is a problem and the forwardings have no effect', () => {
+test('cyclic forwarding is a defect on every cycle member and the forwardings have no effect', () => {
   const { items, problems } = runAll({
     md: [
       '`req:a#1`',
@@ -369,20 +369,28 @@ test('cyclic forwarding is a problem and the forwardings have no effect', () => 
       '[req:b#1 --> req:a#1]',
     ],
   });
-  assert.equal(problems.length, 2);
-  for (const problem of problems)
-    assert.match(problem.message, /^cyclic forwarding: req:a#1 --> req:b#1 --> req:a#1$/);
+  assert.equal(problems.length, 0);
+  const cyclicA = byId(items, 'req:a#1').defects.find((defect) => defect.kind === 'cyclic-forwarding');
+  assert.equal(cyclicA.ref, 'req:b#1');
+  assert.match(
+    cyclicA.message,
+    /^cyclic: forwards to req:b#1, closing the cycle req:a#1 --> req:b#1 --> req:a#1, so the forwarding has no effect$/,
+  );
+  const cyclicB = byId(items, 'req:b#1').defects.find((defect) => defect.kind === 'cyclic-forwarding');
+  assert.equal(cyclicB.ref, 'req:a#1');
   // the forwardings are inert: req:a#1 falls back to its own needs
-  assert.match(byId(items, 'req:a#1').defects[0].message, /^uncovered: needs impl:missing#1/);
-  assert.deepEqual(byId(items, 'req:b#1').defects, []);
+  const uncovered = byId(items, 'req:a#1').defects.find((defect) => defect.kind === 'uncovered-need');
+  assert.match(uncovered.message, /^uncovered: needs impl:missing#1/);
 });
 
-test('a self-forwarding is a cyclic-forwarding problem', () => {
-  const { problems } = runAll({
+test('a self-forwarding is a cyclic-forwarding defect', () => {
+  const { items, problems } = runAll({
     md: ['`req:a#1`', '', '[req:a#1 --> req:a#1]'],
   });
-  assert.equal(problems.length, 1);
-  assert.match(problems[0].message, /^cyclic forwarding: req:a#1 --> req:a#1$/);
+  assert.equal(problems.length, 0);
+  const [defect] = byId(items, 'req:a#1').defects;
+  assert.equal(defect.kind, 'cyclic-forwarding');
+  assert.match(defect.message, /closing the cycle req:a#1 --> req:a#1/);
 });
 
 test('a cycle across SemVer-equal spellings is found and shown as written', () => {
@@ -398,13 +406,22 @@ test('a cycle across SemVer-equal spellings is found and shown as written', () =
       '[req:b#1.0 --> req:a#1.0.0]',
     ],
   });
-  assert.equal(problems.length, 2);
-  // the chain names each source as its declaration wrote it
-  for (const problem of problems)
-    assert.match(problem.message, /^cyclic forwarding: req:a#1 --> req:b#1\.0 --> req:a#1$/);
+  assert.equal(problems.length, 0);
+  // both cycle members carry a cyclic-forwarding defect; the chain names each
+  // source as its declaration wrote it (SemVer-equal spellings shown verbatim)
+  const cyclicA = byId(items, 'req:a#1').defects.find((defect) => defect.kind === 'cyclic-forwarding');
+  assert.equal(cyclicA.ref, 'req:b#1');
+  assert.match(
+    cyclicA.message,
+    /^cyclic: forwards to req:b#1, closing the cycle req:a#1 --> req:b#1\.0 --> req:a#1, so the forwarding has no effect$/,
+  );
+  const cyclicB = byId(items, 'req:b#1').defects.find((defect) => defect.kind === 'cyclic-forwarding');
+  assert.equal(cyclicB.ref, 'req:a#1.0.0');
   // the forwardings are inert: req:a#1 falls back to its own needs
-  assert.match(byId(items, 'req:a#1').defects[0].message, /^uncovered: needs impl:missing#1/);
-  assert.deepEqual(byId(items, 'req:b#1').defects, []);
+  assert.match(
+    byId(items, 'req:a#1').defects.find((defect) => defect.kind !== 'cyclic-forwarding').message,
+    /^uncovered: needs impl:missing#1/,
+  );
 });
 
 test('an acyclic forwarding chain is allowed', () => {
@@ -437,8 +454,9 @@ test('cyclic needs do not hang and count as deep-covered', () => {
   }
 });
 
-// Source columns: the problems analyze raises over forwarding declarations
-// carry the column of the declaration they point at.
+// Source columns: what analyze raises over forwarding declarations - the
+// missing-source problem, the cyclic-forwarding defect - carries the location
+// of the declaration it points at.
 
 test('a forwarding-from-missing-source problem carries the declaration column', () => {
   const { problems } = runAll({
@@ -450,8 +468,27 @@ test('a forwarding-from-missing-source problem carries the declaration column', 
   assert.equal(problem.character, 3); // the backtick, past two spaces
 });
 
-test('a cyclic-forwarding problem carries the declaration column', () => {
-  const { problems } = runAll({
+test('a duplicate-forwarding defect carries the first declaration location', () => {
+  const items = run({
+    md: [
+      '`req:a#1`',
+      '',
+      '`dsn:b#1`',
+      '',
+      '`dsn:c#1`',
+      '',
+      '  `[req:a#1 --> dsn:b#1]`',
+      '`[req:a#1 --> dsn:c#1]`',
+    ],
+  });
+  const duplicate = byId(items, 'req:a#1').defects.find((defect) => defect.kind === 'duplicate-forwarding');
+  assert.equal(duplicate.file, 'spec.md');
+  assert.equal(duplicate.line, 7); // the first (effective) declaration
+  assert.equal(duplicate.character, 3); // the backtick, past two spaces
+});
+
+test('a cyclic-forwarding defect carries the declaration location, not the item location', () => {
+  const { items } = runAll({
     md: [
       '`req:a#1`',
       '',
@@ -462,8 +499,12 @@ test('a cyclic-forwarding problem carries the declaration column', () => {
       '`[req:b#1 --> req:a#1]`',
     ],
   });
-  const cyclic = problems.filter((p) => /cyclic forwarding/.test(p.message));
-  assert.equal(cyclic.length, 2);
-  assert.equal(cyclic.find((p) => p.line === 3).character, 3);
-  assert.equal(cyclic.find((p) => p.line === 7).character, 1);
+  const cyclicA = byId(items, 'req:a#1').defects.find((defect) => defect.kind === 'cyclic-forwarding');
+  assert.equal(cyclicA.file, 'spec.md');
+  assert.equal(cyclicA.line, 3);
+  assert.equal(cyclicA.character, 3); // the backtick, past two spaces
+  const cyclicB = byId(items, 'req:b#1').defects.find((defect) => defect.kind === 'cyclic-forwarding');
+  assert.equal(cyclicB.file, 'spec.md');
+  assert.equal(cyclicB.line, 7);
+  assert.equal(cyclicB.character, 1);
 });

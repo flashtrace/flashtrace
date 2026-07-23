@@ -45,15 +45,6 @@ function buildForwardedFrom(items, byId) {
   return forwardedFrom;
 }
 
-// defect record in documented key order: existingRevisions, when present, sits
-// before the message
-function defectDocument(defect) {
-  const out = { kind: defect.kind, ref: defect.ref };
-  if (defect.existingRevisions) out.existingRevisions = defect.existingRevisions;
-  out.message = defect.message;
-  return out;
-}
-
 export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   const { version } = opts;
   // the schema requires the `flashtrace` field, and JSON.stringify would
@@ -85,6 +76,17 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   // both inverse edges serialize as located item references, sorted alike
   const itemRefs = (related) =>
     [...related].map((other) => ({ id: other.id, ...location(other) })).sort(byLocation);
+
+  // defect record in documented key order: the location group, present exactly
+  // when the defect carries a source location of its own, sits after ref;
+  // existingRevisions, when present, before the message
+  const defectDocument = (defect) => {
+    const out = { kind: defect.kind, ref: defect.ref };
+    if (defect.file) Object.assign(out, location(defect));
+    if (defect.existingRevisions) out.existingRevisions = defect.existingRevisions;
+    out.message = defect.message;
+    return out;
+  };
 
   const itemDocument = (item) => {
     const coverStatus = coverStatusOf(item);

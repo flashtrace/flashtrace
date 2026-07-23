@@ -148,20 +148,34 @@
       "required": ["kind", "ref", "message"],
       "properties": {
         "kind": {
-          "description": "What is wrong, one kind per condition, so kind alone tells every defect apart. uncovered-need: a declared need matches no defined item. uncovered-forward: the forwarding target does not exist. orphaned-cover: a covers entry points at an item that does not exist. unwanted-cover: a covers entry points at an existing item that does not need this one. unwanted-item: no item needs this code item. duplicate-id: this full ID is defined more than once. duplicate-forwarding: more than one forwarding is declared for this item.",
+          "description": "What is wrong, one kind per condition, so kind alone tells every defect apart. invalid-reference: a Needs/Covers entry of this item is not a valid reference and is ignored. uncovered-need: a declared need matches no defined item. uncovered-forward: the forwarding target does not exist. orphaned-cover: a covers entry points at an item that does not exist. unwanted-cover: a covers entry points at an existing item that does not need this one. unwanted-item: no item needs this code item. duplicate-id: this full ID is defined more than once. duplicate-forwarding: more than one forwarding is declared for this item. cyclic-forwarding: this item's forwarding sits on a cycle, is voided, and has no effect.",
           "enum": [
+            "invalid-reference",
             "uncovered-need",
             "uncovered-forward",
             "orphaned-cover",
             "unwanted-cover",
             "unwanted-item",
             "duplicate-id",
-            "duplicate-forwarding"
+            "duplicate-forwarding",
+            "cyclic-forwarding"
           ]
         },
         "ref": {
-          "description": "The ID the defect is about: the needed, covered or forwarded-to ID; for unwanted-item, duplicate-id and duplicate-forwarding, the item's own ID.",
+          "description": "The ID the defect is about: the needed, covered or forwarded-to ID; for unwanted-item, duplicate-id and duplicate-forwarding, the item's own ID. For invalid-reference it is the offending entry exactly as written, which by definition is not a valid ID.",
           "type": "string"
+        },
+        "file": {
+          "description": "Present together with line and character, exactly when the defect has a source location of its own, distinct from the item's: the invalid entry or the cyclic forwarding declaration. A defect without the location group is anchored at the item's own location.",
+          "$ref": "#/$defs/file"
+        },
+        "line": {
+          "description": "Present together with file and character, exactly when the defect has a source location of its own (see file).",
+          "$ref": "#/$defs/line"
+        },
+        "character": {
+          "description": "Present together with file and line, exactly when the defect has a source location of its own (see file).",
+          "$ref": "#/$defs/character"
         },
         "message": {
           "description": "The defect worded exactly as the plain-text report words it. Offered so a consumer can present the same text; kind and ref carry the same information as data, so the message is never worth parsing and may be reworded without kind changing.",
