@@ -32,13 +32,11 @@ function toPosixPath(value) {
 }
 
 // The path a record carries, restated relative to the source directory, or
-// null for a record from outside it.
+// null for a record from outside it. lcov writes paths relative to the working
+// directory the test run started in, so a src/ record begins with `src/`.
 function relativeToSourceDir(path, sourceDir) {
   const prefix = `${toPosixPath(sourceDir)}/`;
-  if (path.startsWith(prefix)) return path.slice(prefix.length);
-
-  const nested = path.lastIndexOf(`/${prefix}`);
-  return nested === -1 ? null : path.slice(nested + prefix.length + 1);
+  return path.startsWith(prefix) ? path.slice(prefix.length) : null;
 }
 
 // lcov records one `LF:` (lines found) and one `LH:` (lines hit) per source
