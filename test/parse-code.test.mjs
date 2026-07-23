@@ -86,9 +86,20 @@ test('a need tag may reference a wildcard revision', () => {
     '// [impl:a#1]',
     '// [>>utest:a#2.x]',
     '// [impl:a#1 >> utest:b#2.3.x]',
+    '// [>>utest:c#*]',
+    '// [impl:a#1 >> utest:d#x]',
   ]);
   assert.equal(problems.length, 0);
-  assert.deepEqual(items[0].needs, ['utest:a#2.x', 'utest:b#2.3.x']);
+  assert.deepEqual(items[0].needs, ['utest:a#2.x', 'utest:b#2.3.x', 'utest:c#*', 'utest:d#x']);
+});
+
+test('an explicit need tag may spell its anchor with a SemVer-equal revision', () => {
+  const { items, problems } = parse('src.ts', [
+    '// [impl:a#1]',
+    '// [impl:a#1.0.0 >> utest:a#2]',
+  ]);
+  assert.equal(problems.length, 0);
+  assert.deepEqual(items[0].needs, ['utest:a#2']);
 });
 
 test('a wildcard revision is not accepted in an item tag', () => {

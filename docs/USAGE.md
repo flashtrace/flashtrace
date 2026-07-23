@@ -42,9 +42,10 @@ Exit codes: `0` clean, `1` defects or problems found, `2` usage error.
 
 Examples: `req:auth/login#1`, `impl:session-store#2.4`. The type is free-form
 (e.g. `req`, `impl`, `test`); the revision is a semver-style version with one to
-three layers (`X`, `X.Y` or `X.Y.Z`). Matching is exact, so `2.4` never equals
-`2.4.0`; a `Needs` reference may opt into a range with a wildcard revision
-(`2.x`, `2.3.x`, `2.x.y`). See the [Revisions](revisions.md) spec.
+three layers (`X`, `X.Y` or `X.Y.Z`). Omitted layers are zero as in SemVer, so
+`2.4` equals `2.4.0`; a `Needs` reference may opt into a range with a wildcard
+revision (`x`, `2.x`, `2.3.x` - `*` is an alias for `x`). See the
+[Revisions](revisions.md) spec.
 
 ## Defining items in Markdown
 
@@ -80,7 +81,7 @@ Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
 //                               item tag in the same file
 // [impl:auth/login#1 >> impl:auth/session#1]
 //                               attaches a need to the preceding item tag
-//                               with exactly that ID (robust against item
+//                               with that ID (robust against item
 //                               tags inserted in between)
 ```
 
@@ -95,7 +96,7 @@ chains must be acyclic.
 
 ## Coverage rules
 
-An ID is **covered** when an item with exactly that ID (including revision)
+An ID is **covered** when an item with that ID (revisions compared SemVer-equal)
 exists. Reported defects:
 
 - **duplicate** - the same ID is defined more than once.

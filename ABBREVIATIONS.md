@@ -9,7 +9,7 @@ long form would hurt readability. Use them consistently - and use no others.
 
 | Abbreviation | Meaning | Notes |
 |---|---|---|
-| `rev` | revision | Part of the item-ID grammar (`<name>#<revision>`, see [docs/revisions.md](docs/revisions.md)); used in names like `revOf`, `compareRev`, `revMatches`, `isWildcardRev`. |
+| `rev` | revision | Part of the item-ID grammar (`<name>#<revision>`, see [docs/revisions.md](docs/revisions.md)); used in names like `revOf`, `compareRev`, `revMatches`, `isWildcardRev`, `canonicalRev`. |
 | `id` | identifier | An item ID such as `req:auth/login#1`. |
 | `ext` | file extension | Always lowercased, with the leading dot (`.mjs`). |
 | `md` | Markdown | The `.md` file extension; used in names like the `md` fixture parameter carrying Markdown input in `test/analyze.test.mjs`. |

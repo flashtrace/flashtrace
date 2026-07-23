@@ -244,7 +244,7 @@ async function collectFiles(dirs) {
 // src/ids.mjs
 var SEGMENT_SRC = "[A-Za-z][A-Za-z0-9_.-]*";
 var REV_SRC = String.raw`\d+(?:\.\d+){0,2}`;
-var WILDCARD_SRC = String.raw`(?:\d+\.\d+\.x|\d+\.x\.y|x\.y\.z|\d+\.x|x\.y|x)`;
+var WILDCARD_SRC = String.raw`(?:\d+\.){0,2}[x*]`;
 var REV_REF_SRC = `(?:${WILDCARD_SRC}|${REV_SRC})`;
 var ID_SRC = String.raw`([A-Za-z]+):(?:((?:${SEGMENT_SRC}\/)*${SEGMENT_SRC})\/)?(${SEGMENT_SRC})#(${REV_SRC})`;
 var ID_RE = new RegExp(`^${ID_SRC}$`);
@@ -265,25 +265,29 @@ var keyOf = (id) => id.slice(0, id.lastIndexOf("#"));
 var revOf = (id) => id.slice(id.lastIndexOf("#") + 1);
 var pathOf = (id) => id.slice(id.indexOf(":") + 1, id.lastIndexOf("#"));
 var resolveRef = (type, path6, rev, ownerId) => `${type}:${path6 ?? pathOf(ownerId)}#${rev ?? revOf(ownerId)}`;
+function canonicalRev(rev) {
+  const layers = rev.split(".").map((layer) => String(Number(layer)));
+  while (layers.length < 3) layers.push("0");
+  return layers.join(".");
+}
+var canonicalId = (id) => `${keyOf(id)}#${canonicalRev(revOf(id))}`;
 function compareRev(a, b) {
-  const partsA = a.split(".");
-  const partsB = b.split(".");
-  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-    if (i >= partsA.length) return -1;
-    if (i >= partsB.length) return 1;
-    if (partsA[i] !== partsB[i]) return Number(partsA[i]) - Number(partsB[i]);
+  const layersA = canonicalRev(a).split(".");
+  const layersB = canonicalRev(b).split(".");
+  for (let i = 0; i < 3; i++) {
+    if (layersA[i] !== layersB[i]) return Number(layersA[i]) - Number(layersB[i]);
   }
   return 0;
 }
-var WILDCARD_LAYERS = /* @__PURE__ */ new Set(["x", "y", "z"]);
-var isWildcardRev = (rev) => /[xyz]/.test(rev);
+var isWildcardLayer = (layer) => layer === "x" || layer === "*";
+var isWildcardRev = (rev) => /[x*]/.test(rev);
 function revMatches(pattern, concrete) {
-  const patternParts = pattern.split(".");
-  const concreteParts = concrete.split(".");
-  if (patternParts.length !== concreteParts.length) return false;
-  for (let i = 0; i < patternParts.length; i++) {
-    if (WILDCARD_LAYERS.has(patternParts[i])) continue;
-    if (patternParts[i] !== concreteParts[i]) return false;
+  const patternLayers = pattern.split(".");
+  while (patternLayers.length < 3) patternLayers.push(isWildcardLayer(patternLayers.at(-1)) ? "x" : "0");
+  const concreteLayers = canonicalRev(concrete).split(".");
+  for (let i = 0; i < 3; i++) {
+    if (isWildcardLayer(patternLayers[i])) continue;
+    if (Number(patternLayers[i]) !== Number(concreteLayers[i])) return false;
   }
   return true;
 }
@@ -303,6 +307,8 @@ function newItem(id, origin, file, line, character) {
     id,
     key: keyOf(id),
     revision: revOf(id),
+    canonicalId: canonicalId(id),
+    // the SemVer-equal identity every exact-ID lookup keys on
     origin,
     // 'spec' | 'code'
     file,
@@ -735,7 +741,7 @@ function commentText(line, state, grammar) {
 }
 function attachNeed(m, file, line, character, state, problems) {
   const source = m[1] ? makeId(m[1], m[2], m[3], m[4]) : null;
-  const anchor = source ? state.byId.get(source) : state.lastItem;
+  const anchor = source ? state.byId.get(canonicalId(source)) : state.lastItem;
   if (!anchor) {
     const written = m[5] + (m[6] ? `:${m[6]}` : "") + (m[7] ? `#${m[7]}` : "");
     problems.push({
@@ -754,7 +760,7 @@ function collectTags(comment, file, line, state, items, problems) {
     if (m[8]) {
       const item = newItem(makeId(m[8], m[9], m[10], m[11]), "code", file, line, character);
       state.lastItem = item;
-      state.byId.set(item.id, item);
+      state.byId.set(item.canonicalId, item);
       items.push(item);
     } else {
       attachNeed(m, file, line, character, state, problems);
@@ -825,9 +831,9 @@ var duplicateForwarding = (from, count) => ({
 
 // src/analyze.mjs
 function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
-  const forwardTarget = forwardTargets.get(item.id);
+  const forwardTarget = forwardTargets.get(item.canonicalId);
   if (forwardTarget !== void 0) {
-    if (!byId.has(forwardTarget))
+    if (!byId.has(canonicalId(forwardTarget)))
       item.defects.push(withRevisions(uncoveredForward(forwardTarget)));
   } else {
     for (const need of item.needs) {
@@ -836,17 +842,18 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
     }
   }
   for (const coverId of item.covers) {
-    const targets = byId.get(coverId);
+    const targets = byId.get(canonicalId(coverId));
     if (!targets) {
       item.defects.push(withRevisions(orphanedCover(coverId)));
     } else if (!targets.some((target) => target.needs.some((need) => idMatches(need, item.id)))) {
       item.defects.push(unwantedCover(coverId, item.id));
     }
   }
-  if (item.origin === "code" && !isNeeded(item.id)) {
+  if (item.origin === "code" && !isNeeded(item.canonicalId)) {
     item.defects.push(unwantedItem(item.id));
   }
 }
+var displayedDuplicateId = (writtenIds, canonical) => writtenIds.every((id) => id === writtenIds[0]) ? writtenIds[0] : canonical;
 function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
   const done = /* @__PURE__ */ new Set();
   for (const start of forwardTargets.keys()) {
@@ -857,11 +864,11 @@ function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
     while (forwardTargets.has(current) && !done.has(current) && !seen.has(current)) {
       seen.set(current, path6.length);
       path6.push(current);
-      current = forwardTargets.get(current);
+      current = canonicalId(forwardTargets.get(current));
     }
     if (seen.has(current)) {
       const cycle = path6.slice(seen.get(current));
-      const chain = [...cycle, current].join(" --> ");
+      const chain = [...cycle, current].map((id) => declarationBySource.get(id).from).join(" --> ");
       for (const id of cycle) {
         const declaration = declarationBySource.get(id);
         declaration.effective = false;
@@ -883,7 +890,8 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
   const declarationBySource = /* @__PURE__ */ new Map();
   const forwardsBySource = /* @__PURE__ */ new Map();
   for (const forward of forwards) {
-    (forwardsBySource.get(forward.from) ?? forwardsBySource.set(forward.from, []).get(forward.from)).push(forward);
+    const from = canonicalId(forward.from);
+    (forwardsBySource.get(from) ?? forwardsBySource.set(from, []).get(from)).push(forward);
   }
   for (const [from, group] of forwardsBySource) {
     const sources = byId.get(from);
@@ -895,13 +903,15 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
           file: forward.file,
           line: forward.line,
           character: forward.character,
-          message: `forwarding from ${from}, which does not exist${revHint(from)}`
+          message: `forwarding from ${forward.from}, which does not exist${revHint(forward.from)}`
         });
       }
       continue;
     }
-    if (group.length > 1)
-      for (const item of sources) item.defects.push(duplicateForwarding(from, group.length));
+    if (group.length > 1) {
+      const shown = displayedDuplicateId(group.map((forward) => forward.from), from);
+      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length));
+    }
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {
       group[i].effective = false;
@@ -911,7 +921,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     declarationBySource.set(from, group[0]);
   }
   dropCyclicForwards(forwardTargets, declarationBySource, problems);
-  for (const to of forwardTargets.values()) neededIds.add(to);
+  for (const to of forwardTargets.values()) neededIds.add(canonicalId(to));
   return forwardTargets;
 }
 function markDeepCoverage(items, byId, matchesOf, forwardTargets) {
@@ -927,7 +937,7 @@ function markDeepCoverage(items, byId, matchesOf, forwardTargets) {
     const forwardTarget = forwardTargets.get(id);
     let ok = true;
     if (forwardTarget !== void 0) {
-      ok = deep(forwardTarget);
+      ok = deep(canonicalId(forwardTarget));
     } else {
       for (const item of group) for (const need of item.needs) if (!needDeep(need)) ok = false;
     }
@@ -935,7 +945,7 @@ function markDeepCoverage(items, byId, matchesOf, forwardTargets) {
     return ok;
   };
   const needDeep = (need) => matchesOf(need).some((id) => deep(id));
-  for (const item of items) item.deepCovered = deep(item.id);
+  for (const item of items) item.deepCovered = deep(item.canonicalId);
 }
 function groupIdsByKey(byId) {
   const idsByKey = /* @__PURE__ */ new Map();
@@ -954,7 +964,9 @@ function buildWantedBy(items, byId, matchesOf) {
 }
 function buildResolver(items) {
   const byId = /* @__PURE__ */ new Map();
-  for (const item of items) (byId.get(item.id) ?? byId.set(item.id, []).get(item.id)).push(item);
+  for (const item of items) {
+    (byId.get(item.canonicalId) ?? byId.set(item.canonicalId, []).get(item.canonicalId)).push(item);
+  }
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
   return { byId, matchesOf, wantedBy: buildWantedBy(items, byId, matchesOf) };
@@ -986,7 +998,7 @@ function splitNeeds(items) {
   for (const item of items)
     for (const need of item.needs) {
       if (isWildcardRev(revOf(need))) wildcard.push(need);
-      else exact.add(need);
+      else exact.add(canonicalId(need));
     }
   return { exact, wildcard };
 }
@@ -996,9 +1008,12 @@ function analyze(items, forwards = [], problems = []) {
   for (const item of items)
     (revsByKey.get(item.key) ?? revsByKey.set(item.key, /* @__PURE__ */ new Set()).get(item.key)).add(item.revision);
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
-  const isNeeded = (id) => exactNeeds.has(id) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
+  const isNeeded = (canonical) => exactNeeds.has(canonical) || wildcardNeeds.some((wildcard) => idMatches(wildcard, canonical));
   for (const [id, group] of byId) {
-    if (group.length > 1) for (const item of group) item.defects.push(duplicateId(id, group.length));
+    if (group.length > 1) {
+      const shown = displayedDuplicateId(group.map((item) => item.id), id);
+      for (const item of group) item.defects.push(duplicateId(shown, group.length));
+    }
   }
   const existingRevisionsOf = (id) => {
     const revs = revsByKey.get(keyOf(id));
@@ -1020,7 +1035,7 @@ function analyze(items, forwards = [], problems = []) {
   };
   const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
   for (const item of items) {
-    item.forwardsTo = forwardTargets.get(item.id) ?? null;
+    item.forwardsTo = forwardTargets.get(item.canonicalId) ?? null;
     checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets);
   }
   markDeepCoverage(items, byId, matchesOf, forwardTargets);
@@ -1056,7 +1071,7 @@ function byFileLine(a, b) {
   return a.line - b.line;
 }
 function forwardEdge(item, byId, style, dimLocation) {
-  const target = byId.get(item.forwardsTo)?.[0];
+  const target = byId.get(canonicalId(item.forwardsTo))?.[0];
   if (!target) return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${style.red("\u2718 missing")}`;
   return `    ${style.cyan("\u2192")} ${item.forwardsTo}  ${styledStatus(target, style).mark} ${dimLocation(target.file, target.line)}`;
 }
@@ -1071,8 +1086,8 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
     const wildcard = isWildcardRev(revOf(need));
     for (const id of ids) {
       const covering = byId.get(id)[0];
-      const arrow = style.dim(`(\u2192 ${id})`);
-      const ref = wildcard ? `${need} ${arrow}` : need;
+      const arrow = style.dim(`(\u2192 ${covering.id})`);
+      const ref = wildcard || covering.id !== need ? `${need} ${arrow}` : need;
       lines.push(`    ${style.dim("needs")} ${ref}  ${styledStatus(covering, style).mark} ${dimLocation(covering.file, covering.line)}`);
     }
   }
@@ -1081,7 +1096,7 @@ function needEdges(item, byId, matchesOf, style, dimLocation) {
 function coverEdges(item, byId, style, dimLocation) {
   const lines = [];
   for (const coverId of item.covers) {
-    const target = byId.get(coverId)?.[0];
+    const target = byId.get(canonicalId(coverId))?.[0];
     if (!target) lines.push(`    ${style.dim("covers")} ${coverId}  ${style.red("\u2718 missing")}`);
     else lines.push(`    ${style.dim("covers")} ${coverId}  ${style.green("\u2714")} ${dimLocation(target.file, target.line)}`);
   }
@@ -1172,7 +1187,7 @@ function buildForwardedFrom(items, byId) {
   const forwardedFrom = /* @__PURE__ */ new Map();
   for (const item of items) {
     if (item.forwardsTo === null) continue;
-    for (const target of byId.get(item.forwardsTo) ?? [])
+    for (const target of byId.get(canonicalId(item.forwardsTo)) ?? [])
       (forwardedFrom.get(target) ?? forwardedFrom.set(target, []).get(target)).push(item);
   }
   return forwardedFrom;
@@ -1196,7 +1211,11 @@ function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   };
   const { byId, matchesOf, wantedBy } = buildResolver(items);
   const forwardedFrom = buildForwardedFrom(items, byId);
-  const resolvedTo = (ref) => matchesOf(ref).sort((a, b) => compareRev(revOf(a), revOf(b)));
+  const resolvedTo = (ref) => [
+    ...new Set(
+      matchesOf(ref).sort((a, b) => compareRev(revOf(a), revOf(b))).flatMap((id) => byId.get(id).map((item) => item.id))
+    )
+  ];
   const itemRefs = (related) => [...related].map((other) => ({ id: other.id, ...location(other) })).sort(byLocation);
   const itemDocument = (item) => {
     const coverStatus = coverStatusOf(item);

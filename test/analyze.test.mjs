@@ -41,16 +41,49 @@ test('a missing need is uncovered, with a revision-mismatch hint', () => {
   assert.match(defect, /1/);
 });
 
-test('matching stays exact per layer: 2.4 does not satisfy a need for 2.4.0', () => {
+test('SemVer equality: an item at 2.4 satisfies a need for 2.4.0', () => {
   const items = run({
     md: ['`req:a#1`', '', 'Needs: impl:a#2.4.0'],
     code: ['// [impl:a#2.4]'],
   });
-  const [{ message: defect }] = byId(items, 'req:a#1').defects;
-  assert.match(defect, /^uncovered: needs impl:a#2\.4\.0/);
-  // the near-miss revision is offered as a hint
-  assert.match(defect, /revision mismatch/);
-  assert.match(defect, /2\.4(?!\.)/);
+  for (const item of items) assert.deepEqual(item.defects, []);
+  assert.equal(byId(items, 'req:a#1').deepCovered, true);
+});
+
+test('SemVer equality: an item at 1.0.0 satisfies a need for 1', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#1'],
+    code: ['// [impl:a#1.0.0]'],
+  });
+  for (const item of items) assert.deepEqual(item.defects, []);
+  assert.equal(byId(items, 'req:a#1').deepCovered, true);
+});
+
+test('SemVer equality applies to covers and forwarding targets', () => {
+  const items = run({
+    md: [
+      '`feat:auth#1`',
+      '',
+      'Needs: req:a#1',
+      '',
+      '`req:a#1.0`',
+      '',
+      'Covers: feat:auth#1.0.0',
+      '',
+      '`dsn:a#1`',
+      '',
+      '`req:b#1`',
+      '',
+      '[req:b#1.0 --> dsn:a#1.0.0]',
+    ],
+  });
+  for (const item of items) assert.deepEqual(item.defects, []);
+});
+
+test('SemVer-equal spellings of one ID are duplicates, named canonically', () => {
+  const items = run({ md: ['`req:a#2.4`', '', '`req:a#2.4.0`'] });
+  assert.equal(items.length, 2);
+  for (const item of items) assert.match(item.defects[0].message, /^duplicate: ID req:a#2\.4\.0 is defined 2 times/);
 });
 
 test('an exact multi-layer revision need is covered', () => {
@@ -73,11 +106,11 @@ test('revision-mismatch hints are ordered semver-aware', () => {
       '',
       '`impl:a#2.9`',
       '',
-      '`impl:a#2.9.0`',
+      '`impl:a#2.9.1`',
     ],
   });
   const [{ message: defect }] = byId(items, 'req:a#1').defects;
-  assert.match(defect, /existing revision\(s\) of impl:a: 2\.9, 2\.9\.0, 2\.10/);
+  assert.match(defect, /existing revision\(s\) of impl:a: 2\.9, 2\.9\.1, 2\.10/);
 });
 
 test('covering a non-existent item is orphaned', () => {
@@ -122,20 +155,38 @@ test('a wildcard need is satisfied by any matching concrete item', () => {
   assert.equal(byId(items, 'req:a#1').deepCovered, true);
 });
 
-test('a wildcard matches only within the same layer count', () => {
+test('a wildcard extends over the deeper layers: 2.x matches 2.5.0 and 2', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#2.x, impl:b#2.x'],
+    code: ['// [impl:a#2.5.0]', '// [impl:b#2]'],
+  });
+  for (const item of items) assert.deepEqual(item.defects, []);
+  assert.equal(byId(items, 'req:a#1').deepCovered, true);
+});
+
+test('a wildcard still pins its numeric layers: 2.x does not match 3.1', () => {
   const items = run({
     md: ['`req:a#1`', '', 'Needs: impl:a#2.x'],
-    code: ['// [impl:a#2.5.0]'],
+    code: ['// [impl:a#3.1]'],
   });
   assert.match(byId(items, 'req:a#1').defects[0].message, /^uncovered: needs impl:a#2\.x/);
   // the near-miss item is not what the wildcard asked for, so it stays unwanted
-  assert.match(byId(items, 'impl:a#2.5.0').defects[0].message, /^unwanted: no item needs/);
+  assert.match(byId(items, 'impl:a#3.1').defects[0].message, /^unwanted: no item needs/);
 });
 
-test('three-layer wildcards match any tail of the same shape', () => {
+test('a three-layer wildcard pins two layers: 2.3.x matches 2.3.7 but not 2.4.0', () => {
   const items = run({
-    md: ['`req:a#1`', '', 'Needs: impl:a#2.3.x, impl:b#2.x.y'],
-    code: ['// [impl:a#2.3.7]', '// [impl:b#2.9.4]'],
+    md: ['`req:a#1`', '', 'Needs: impl:a#2.3.x'],
+    code: ['// [impl:a#2.3.7]', '// [impl:a#2.4.0]'],
+  });
+  assert.deepEqual(byId(items, 'req:a#1').defects, []);
+  assert.match(byId(items, 'impl:a#2.4.0').defects[0].message, /^unwanted: no item needs/);
+});
+
+test('a bare x matches any revision, * is an alias for x', () => {
+  const items = run({
+    md: ['`req:a#1`', '', 'Needs: impl:a#x, impl:b#*, impl:c#2.*'],
+    code: ['// [impl:a#4.1]', '// [impl:b#3.0.9]', '// [impl:c#2.7]'],
   });
   for (const item of items) assert.deepEqual(item.defects, []);
   assert.equal(byId(items, 'req:a#1').deepCovered, true);
@@ -261,6 +312,25 @@ test('a second forwarding for the same item is a duplicate defect', () => {
   );
 });
 
+test('SemVer-equal source spellings group into one duplicate forwarding', () => {
+  const items = run({
+    md: [
+      '`req:a#1`',
+      '',
+      '`dsn:b#1`',
+      '',
+      '`dsn:c#1`',
+      '',
+      '[req:a#1 --> dsn:b#1]',
+      '[req:a#1.0 --> dsn:c#1]',
+    ],
+  });
+  const reqA = byId(items, 'req:a#1');
+  // differing SemVer-equal spellings name the duplicate canonically, like a duplicate ID
+  assert.match(reqA.defects[0].message, /^duplicate: forwarding for req:a#1\.0\.0 is declared 2 times/);
+  assert.equal(reqA.forwardsTo, 'dsn:b#1'); // the first declaration stays effective
+});
+
 test('deep coverage of a forwarded item tracks the target’s chain', () => {
   const items = run({
     md: [
@@ -313,6 +383,28 @@ test('a self-forwarding is a cyclic-forwarding problem', () => {
   });
   assert.equal(problems.length, 1);
   assert.match(problems[0].message, /^cyclic forwarding: req:a#1 --> req:a#1$/);
+});
+
+test('a cycle across SemVer-equal spellings is found and shown as written', () => {
+  const { items, problems } = runAll({
+    md: [
+      '`req:a#1`',
+      '',
+      'Needs: impl:missing#1',
+      '',
+      '`req:b#1`',
+      '',
+      '[req:a#1 --> req:b#1]',
+      '[req:b#1.0 --> req:a#1.0.0]',
+    ],
+  });
+  assert.equal(problems.length, 2);
+  // the chain names each source as its declaration wrote it
+  for (const problem of problems)
+    assert.match(problem.message, /^cyclic forwarding: req:a#1 --> req:b#1\.0 --> req:a#1$/);
+  // the forwardings are inert: req:a#1 falls back to its own needs
+  assert.match(byId(items, 'req:a#1').defects[0].message, /^uncovered: needs impl:missing#1/);
+  assert.deepEqual(byId(items, 'req:b#1').defects, []);
 });
 
 test('an acyclic forwarding chain is allowed', () => {

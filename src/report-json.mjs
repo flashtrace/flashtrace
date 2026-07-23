@@ -14,7 +14,7 @@
 import path from 'node:path';
 
 import { buildResolver, isClean, statusOf, summarize } from './analyze.mjs';
-import { compareRev, revOf } from './ids.mjs';
+import { canonicalId, compareRev, revOf } from './ids.mjs';
 
 // 0 marks the format unstable; it becomes 1 with flashtrace 1.0.0
 const SCHEMA_VERSION = 0;
@@ -39,7 +39,7 @@ function buildForwardedFrom(items, byId) {
   const forwardedFrom = new Map();
   for (const item of items) {
     if (item.forwardsTo === null) continue;
-    for (const target of byId.get(item.forwardsTo) ?? [])
+    for (const target of byId.get(canonicalId(item.forwardsTo)) ?? [])
       (forwardedFrom.get(target) ?? forwardedFrom.set(target, []).get(target)).push(item);
   }
   return forwardedFrom;
@@ -71,9 +71,16 @@ export function buildReportDocument(items, forwards, problems, cwd, opts = {}) {
   const { byId, matchesOf, wantedBy } = buildResolver(items);
   const forwardedFrom = buildForwardedFrom(items, byId);
 
-  // a need's resolution: the defined IDs matching it, ascending by revision.
-  // matchesOf filters, so it already hands back an array of its own to sort.
-  const resolvedTo = (ref) => matchesOf(ref).sort((a, b) => compareRev(revOf(a), revOf(b)));
+  // a need's resolution: the matching items' IDs as written, ascending by
+  // revision. matchesOf filters, so it already hands back an array of its own
+  // to sort; each canonical match maps back to the defined spellings behind it.
+  const resolvedTo = (ref) => [
+    ...new Set(
+      matchesOf(ref)
+        .sort((a, b) => compareRev(revOf(a), revOf(b)))
+        .flatMap((id) => byId.get(id).map((item) => item.id)),
+    ),
+  ];
 
   // both inverse edges serialize as located item references, sorted alike
   const itemRefs = (related) =>
