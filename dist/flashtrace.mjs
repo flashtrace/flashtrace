@@ -312,9 +312,12 @@ var duplicateId = (id, count) => ({
   ref: id,
   message: `duplicate: ID ${id} is defined ${count} times`
 });
-var duplicateForwarding = (from, count) => ({
+var duplicateForwarding = (from, count, { file, line, character }) => ({
   kind: "duplicate-forwarding",
   ref: from,
+  file,
+  line,
+  character,
   message: `duplicate: forwarding for ${from} is declared ${count} times`
 });
 var cyclicForwarding = (target, chain, { file, line, character }) => ({
@@ -934,7 +937,7 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     }
     if (group.length > 1) {
       const shown = displayedDuplicateId(group.map((forward) => forward.from), from);
-      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length));
+      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length, group[0]));
     }
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {

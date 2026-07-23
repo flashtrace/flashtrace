@@ -87,10 +87,13 @@ export const duplicateId = (id, count) => ({
 });
 
 // more than one forwarding declared for the same source; only the first is
-// effective
-export const duplicateForwarding = (from, count) => ({
+// effective, and the defect carries that first declaration's location
+export const duplicateForwarding = (from, count, { file, line, character }) => ({
   kind: 'duplicate-forwarding',
   ref: from,
+  file,
+  line,
+  character,
   message: `duplicate: forwarding for ${from} is declared ${count} times`,
 });
 

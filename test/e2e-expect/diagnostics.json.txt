@@ -239,6 +239,9 @@
         {
           "kind": "duplicate-forwarding",
           "ref": "req:zeta#1",
+          "file": "spec.md",
+          "line": 69,
+          "character": 1,
           "message": "duplicate: forwarding for req:zeta#1 is declared 2 times"
         }
       ],

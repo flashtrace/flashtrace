@@ -468,6 +468,25 @@ test('a forwarding-from-missing-source problem carries the declaration column', 
   assert.equal(problem.character, 3); // the backtick, past two spaces
 });
 
+test('a duplicate-forwarding defect carries the first declaration location', () => {
+  const items = run({
+    md: [
+      '`req:a#1`',
+      '',
+      '`dsn:b#1`',
+      '',
+      '`dsn:c#1`',
+      '',
+      '  `[req:a#1 --> dsn:b#1]`',
+      '`[req:a#1 --> dsn:c#1]`',
+    ],
+  });
+  const duplicate = byId(items, 'req:a#1').defects.find((defect) => defect.kind === 'duplicate-forwarding');
+  assert.equal(duplicate.file, 'spec.md');
+  assert.equal(duplicate.line, 7); // the first (effective) declaration
+  assert.equal(duplicate.character, 3); // the backtick, past two spaces
+});
+
 test('a cyclic-forwarding defect carries the declaration location, not the item location', () => {
   const { items } = runAll({
     md: [

@@ -20,7 +20,7 @@
     • duplicate: ID req:epsilon#1 is defined 2 times
 ✘ req:zeta#1 "Zeta requirement"  spec.md:64  [defective]
     → dsn:zeta#1  ✔ spec.md:74
-    • duplicate: forwarding for req:zeta#1 is declared 2 times
+    • duplicate: forwarding for req:zeta#1 is declared 2 times  spec.md:69
 ✔ dsn:zeta#1 "Zeta design"  spec.md:74  [deep-covered]
 ✘ req:eta#1 "Eta requirement"  spec.md:80  [defective]
     • cyclic: forwards to req:theta#1, closing the cycle req:eta#1 --> req:theta#1 --> req:eta#1, so the forwarding has no effect  spec.md:85
