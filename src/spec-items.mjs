@@ -16,23 +16,34 @@ export const KEYWORDS = ['Needs', 'Covers', 'Tags'];
 // is a piece of text one of the keywords, exactly?
 export const isKeyword = (text) => KEYWORDS.includes(text);
 
+// Shaped as a parse function so Tags dispatches through the same table as the
+// rest; entry text is never empty, so it never returns the falsy "invalid" value.
+const parseVerbatimKeyword = (raw) => raw;
+
+// The complete vocabulary-to-behaviour map: which item field a keyword's entries
+// fold into, and how each entry's text becomes the stored value. Needs and
+// Covers parse a reference against the item stating them and yield null on an
+// invalid one, which applyKeyword reports. A keyword in KEYWORDS must appear
+// here - never handled by a default.
+const KEYWORD_HANDLERS = {
+  Needs: { target: 'needs', parse: parseNeedEntry },
+  Covers: { target: 'covers', parse: parseCoverEntry },
+  Tags: { target: 'tags', parse: parseVerbatimKeyword },
+};
+
 // `source` names where the entries were read from - the keyword line's list
 // or the table column the cell sits in - so a problem report points at the
 // right spot. Each entry is a { value, line, character } record locating it in
 // the source, so an invalid one is reported at its own position.
 export function applyKeyword(item, keyword, entries, file, problems, source) {
-  if (keyword === 'Tags') {
-    for (const entry of entries) item.tags.push(entry.value);
-    return;
-  }
-  const target = keyword === 'Needs' ? 'needs' : 'covers';
-  // Needs and Covers both accept the short form (impl, impl:name, impl#2),
-  // completed from the item's own [group/]name and revision; Needs may demand
-  // a wildcard revision, Covers stay concrete.
-  const parse = keyword === 'Needs' ? parseNeedEntry : parseCoverEntry;
+  const handler = KEYWORD_HANDLERS[keyword];
+  // only reachable when KEYWORDS grew without a matching handler; fail loudly
+  // rather than silently filing the entries under whichever field a default picks
+  if (!handler) throw new Error(`applyKeyword: no handling for keyword "${keyword}"`);
+  const { target, parse } = handler;
   for (const entry of entries) {
-    const id = parse(entry.value, item.id);
-    if (id) item[target].push(id);
+    const value = parse(entry.value, item.id);
+    if (value) item[target].push(value);
     else
       problems.push({
         file,
