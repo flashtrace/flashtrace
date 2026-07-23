@@ -556,7 +556,7 @@
     needs impl:hash/awk#1  ✔ hash/awk.awk:2
     wanted by req:hash/grammar#1  hash/spec.md:5
 ✔ req:hash/bash#1 ".bash"  hash/spec.md:41  [deep-covered]
-    needs impl:hash/bash#x.y (→ impl:hash/bash#2.5)  ✔ hash/bash.bash:2
+    needs impl:hash/bash#2.x (→ impl:hash/bash#2.5)  ✔ hash/bash.bash:2
     wanted by req:hash/grammar#1  hash/spec.md:5
 ✔ req:hash/cr#1 ".cr"  hash/spec.md:47  [deep-covered]
     needs impl:hash/cr#1  ✔ hash/cr.cr:2
@@ -604,7 +604,7 @@
     needs impl:hash/yml#1  ✔ hash/yml.yml:2
     wanted by req:hash/grammar#1  hash/spec.md:5
 ✔ req:hash/zsh#1 ".zsh"  hash/spec.md:137  [deep-covered]
-    needs impl:hash/zsh#x.y.z (→ impl:hash/zsh#3.1.4)  ✔ hash/zsh.zsh:2
+    needs impl:hash/zsh#3.* (→ impl:hash/zsh#3.1.4)  ✔ hash/zsh.zsh:2
     wanted by req:hash/grammar#1  hash/spec.md:5
 
 ✔ impl:hash/tcl#1  hash/tcl.tcl:2  [deep-covered]

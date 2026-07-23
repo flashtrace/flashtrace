@@ -40,7 +40,7 @@ Needs: impl:hash/awk#1
 
 `req:hash/bash#1`
 
-Needs: impl#x.y
+Needs: impl#2.x
 
 ## .cr
 
@@ -136,4 +136,4 @@ Needs: impl
 
 `req:hash/zsh#1`
 
-Needs: impl#x.y.z
+Needs: impl#3.*

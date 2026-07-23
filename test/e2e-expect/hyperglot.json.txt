@@ -5167,7 +5167,7 @@
       "deepCovered": true,
       "needs": [
         {
-          "ref": "impl:hash/bash#x.y",
+          "ref": "impl:hash/bash#2.x",
           "resolvedTo": [
             "impl:hash/bash#2.5"
           ]
@@ -5679,7 +5679,7 @@
       "deepCovered": true,
       "needs": [
         {
-          "ref": "impl:hash/zsh#x.y.z",
+          "ref": "impl:hash/zsh#3.*",
           "resolvedTo": [
             "impl:hash/zsh#3.1.4"
           ]

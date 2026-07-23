@@ -108,8 +108,8 @@ into one file:
   (`impl:c-like-nested/rs-nested/deep#1`); every other ID here nests its group
   path one level only.
 - **Revisions and wildcards** - the [hash/](hash/) items carry one-, two- and
-  three-layer revisions, needed through `#x`, `#x.y`, `#x.y.z`, `#1.x` and
-  `#1.2.x`.
+  three-layer revisions, needed through `#x`, `#2.x`, `#3.*` (`*` is an alias
+  for `x`), `#1.x` and `#1.2.x`.
 - **Forwarding** - `.htm` delegates its coverage obligation to `.html` and
   `.svg` to `.xml`, once as a plain line and once backticked. Both alias
   extensions keep their own needs, so their tags stay wanted.
