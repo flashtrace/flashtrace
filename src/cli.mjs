@@ -3,8 +3,8 @@ import path from 'node:path';
 import process from 'node:process';
 
 import { UsageError } from './errors.mjs';
-import { SPEC_EXT, collectFiles } from './files.mjs';
-import { parseMarkdown } from './parse-markdown.mjs';
+import { collectFiles } from './files.mjs';
+import { specParserFor } from './parse-spec.mjs';
 import { parseCode } from './parse-code.mjs';
 import { analyze } from './analyze.mjs';
 import { report } from './report.mjs';
@@ -169,11 +169,10 @@ async function main() {
   for (const file of files) {
     const text = await fs.readFile(file, 'utf8');
     const ext = path.extname(file).toLowerCase();
-    items.push(
-      ...(SPEC_EXT.has(ext)
-        ? parseMarkdown(file, text, problems, forwards)
-        : parseCode(file, text, problems, forwards)),
-    );
+    // a file has one role: its spec parser when the format has one, the code
+    // tag scanner otherwise
+    const parse = specParserFor(ext) ?? parseCode;
+    items.push(...parse(file, text, problems, forwards));
   }
 
   if (opts.tags) {

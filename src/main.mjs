@@ -4,8 +4,11 @@
  *
  * Entry point for the bundled dist/flashtrace.mjs; the implementation lives in:
  *   src/ids.mjs            item ID format, parsing and item construction
+ *   src/spec-items.mjs     item semantics shared by all specification formats
  *   src/files.mjs          gitignore-aware file collection
+ *   src/parse-spec.mjs     spec parser per file extension
  *   src/parse-markdown.mjs Markdown item parser
+ *   src/languages.mjs      comment grammar per file extension
  *   src/parse-code.mjs     comment-aware code tag scanner
  *   src/analyze.mjs        coverage analysis
  *   src/defects.mjs        the defects analysis can raise, one kind per condition
