@@ -46,6 +46,18 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
 const displayedDuplicateId = (writtenIds, canonical) =>
   writtenIds.every((id) => id === writtenIds[0]) ? writtenIds[0] : canonical;
 
+// void every forwarding on one detected cycle: flag the defect on each source
+// item, mark its declaration voided by the cycle, and drop it from the live map
+function voidForwardingCycle(cycle, chain, forwardTargets, declarationBySource, byId) {
+  for (const id of cycle) {
+    const declaration = declarationBySource.get(id);
+    declaration.effective = false;
+    declaration.voidedBy = 'cycle';
+    for (const item of byId.get(id)) item.defects.push(cyclicForwarding(declaration.to, chain, declaration));
+    forwardTargets.delete(id);
+  }
+}
+
 // forwarding chains must be acyclic (self-forwarding included); every
 // forwarding on a cycle is flagged as a defect on its source item, voided,
 // and has no effect - the source falls back to its own needs
@@ -65,13 +77,7 @@ function dropCyclicForwards(forwardTargets, declarationBySource, byId) {
       const cycle = path.slice(seen.get(current));
       // the walk runs on canonical IDs; show each source as its declaration wrote it
       const chain = [...cycle, current].map((id) => declarationBySource.get(id).from).join(' --> ');
-      for (const id of cycle) {
-        const declaration = declarationBySource.get(id);
-        declaration.effective = false;
-        declaration.voidedBy = 'cycle';
-        for (const item of byId.get(id)) item.defects.push(cyclicForwarding(declaration.to, chain, declaration));
-        forwardTargets.delete(id);
-      }
+      voidForwardingCycle(cycle, chain, forwardTargets, declarationBySource, byId);
     }
     for (const id of path) done.add(id);
   }

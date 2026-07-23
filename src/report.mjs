@@ -83,10 +83,10 @@ function coverEdges(item, byId, style, dimLocation) {
 // one bullet per defect; a defect carrying its own source location (an
 // invalid entry, a cyclic forwarding declaration) shows it after the message
 function defectLines(item, style, dimLocation) {
-  return item.defects.map(
-    (defect) =>
-      `    ${style.red('•')} ${defect.message}${defect.file ? `  ${dimLocation(defect.file, defect.line)}` : ''}`,
-  );
+  return item.defects.map((defect) => {
+    const location = defect.file ? `  ${dimLocation(defect.file, defect.line)}` : '';
+    return `    ${style.red('•')} ${defect.message}${location}`;
+  });
 }
 
 // role-appropriate edges: a spec item its needs, a forwarding source its

@@ -880,6 +880,15 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
   }
 }
 var displayedDuplicateId = (writtenIds, canonical) => writtenIds.every((id) => id === writtenIds[0]) ? writtenIds[0] : canonical;
+function voidForwardingCycle(cycle, chain, forwardTargets, declarationBySource, byId) {
+  for (const id of cycle) {
+    const declaration = declarationBySource.get(id);
+    declaration.effective = false;
+    declaration.voidedBy = "cycle";
+    for (const item of byId.get(id)) item.defects.push(cyclicForwarding(declaration.to, chain, declaration));
+    forwardTargets.delete(id);
+  }
+}
 function dropCyclicForwards(forwardTargets, declarationBySource, byId) {
   const done = /* @__PURE__ */ new Set();
   for (const start of forwardTargets.keys()) {
@@ -895,13 +904,7 @@ function dropCyclicForwards(forwardTargets, declarationBySource, byId) {
     if (seen.has(current)) {
       const cycle = path6.slice(seen.get(current));
       const chain = [...cycle, current].map((id) => declarationBySource.get(id).from).join(" --> ");
-      for (const id of cycle) {
-        const declaration = declarationBySource.get(id);
-        declaration.effective = false;
-        declaration.voidedBy = "cycle";
-        for (const item of byId.get(id)) item.defects.push(cyclicForwarding(declaration.to, chain, declaration));
-        forwardTargets.delete(id);
-      }
+      voidForwardingCycle(cycle, chain, forwardTargets, declarationBySource, byId);
     }
     for (const id of path6) done.add(id);
   }
@@ -1124,9 +1127,10 @@ function coverEdges(item, byId, style, dimLocation) {
   return lines;
 }
 function defectLines(item, style, dimLocation) {
-  return item.defects.map(
-    (defect) => `    ${style.red("\u2022")} ${defect.message}${defect.file ? `  ${dimLocation(defect.file, defect.line)}` : ""}`
-  );
+  return item.defects.map((defect) => {
+    const location = defect.file ? `  ${dimLocation(defect.file, defect.line)}` : "";
+    return `    ${style.red("\u2022")} ${defect.message}${location}`;
+  });
 }
 function edgeLines(item, byId, matchesOf, wantedBy, style, dimLocation) {
   const lines = [];
