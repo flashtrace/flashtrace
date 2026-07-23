@@ -1,0 +1,62 @@
+name: Conflict label
+
+on:
+  # pull_request_target instead of pull_request so runs for PRs opened from
+  # forks receive a write-capable GITHUB_TOKEN, letting the label apply there
+  # too. This is safe only while the workflow never checks out or executes PR
+  # code - it must keep operating purely on metadata via the API. Do not add a
+  # checkout of the PR head here.
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - main
+
+# Only the latest state matters; drop superseded runs for the same PR.
+concurrency:
+  group: conflict-label-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync conflict label
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # add/remove the label on the PR
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Add or remove the conflict label
+        run: |
+          set -euo pipefail
+
+          # GitHub computes mergeability lazily: right after a push the API
+          # reports "mergeable": null while a background test merge runs.
+          # Poll until it settles.
+          # Back off exponentially: check 0, 5, 15, 30, 60 and 120 seconds
+          # after the run started, then give up.
+          mergeable=null
+          for delay in 0 5 10 15 30 60; do
+            sleep "$delay"
+            mergeable=$(gh api "repos/$REPO/pulls/$PR" --jq '.mergeable')
+            if [ "$mergeable" != 'null' ]; then
+              break
+            fi
+          done
+          if [ "$mergeable" = 'null' ]; then
+            echo '::error::GitHub did not finish computing mergeability in time; re-run this workflow.'
+            exit 1
+          fi
+
+          has_label=$(gh api "repos/$REPO/issues/$PR/labels" --jq 'any(.[]; .name == "conflict")')
+          echo "Mergeable: $mergeable, label present: $has_label"
+
+          if [ "$mergeable" = 'false' ] && [ "$has_label" = 'false' ]; then
+            gh api --silent --method POST "repos/$REPO/issues/$PR/labels" -f 'labels[]=conflict'
+          elif [ "$mergeable" = 'true' ] && [ "$has_label" = 'true' ]; then
+            gh api --silent --method DELETE "repos/$REPO/issues/$PR/labels/conflict"
+          fi
