@@ -1,6 +1,6 @@
 Summary
-  items       316  (127 from specs, 189 from code)
-  ok          316
+  items       317  (127 from specs, 190 from code)
+  ok          317
   defective   0
 
 ok

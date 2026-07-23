@@ -286,18 +286,21 @@
 ✔ impl:c-like/tsx-block#1  c-like/tsx.tsx:5  [deep-covered]
     wanted by req:c-like/tsx#1  c-like/spec.md:149
 
-✔ impl:coffee/coffee-line#1  coffee/coffee.coffee:2  [deep-covered]
-    wanted by req:coffee/coffee#1  coffee/spec.md:17
-✔ impl:coffee/coffee-block#1  coffee/coffee.coffee:5  [deep-covered]
-    wanted by req:coffee/coffee#1  coffee/spec.md:17
+✔ impl:coffee/coffee-line-hash#1  coffee/coffee.coffee:3  [deep-covered]
+    wanted by req:coffee/coffee#1  coffee/spec.md:18
+✔ impl:coffee/coffee-block#1  coffee/coffee.coffee:6  [deep-covered]
+    wanted by req:coffee/coffee#1  coffee/spec.md:18
+✔ impl:coffee/coffee-line-hash-run#1  coffee/coffee.coffee:9  [deep-covered]
+    wanted by req:coffee/coffee#1  coffee/spec.md:18
 
 ✔ req:coffee/grammar#1 "CoffeeScript comment grammar"  coffee/spec.md:4  [deep-covered]
-    needs req:coffee/coffee#1  ✔ coffee/spec.md:17
+    needs req:coffee/coffee#1  ✔ coffee/spec.md:18
     covers feat:support-grammar/coffee#1  ✔ spec.md:26
     wanted by feat:support-grammar/coffee#1  spec.md:26
-✔ req:coffee/coffee#1 ".coffee"  coffee/spec.md:17  [deep-covered]
-    needs impl:coffee/coffee-line#1  ✔ coffee/coffee.coffee:2
-    needs impl:coffee/coffee-block#1  ✔ coffee/coffee.coffee:5
+✔ req:coffee/coffee#1 ".coffee"  coffee/spec.md:18  [deep-covered]
+    needs impl:coffee/coffee-line-hash#1  ✔ coffee/coffee.coffee:3
+    needs impl:coffee/coffee-line-hash-run#1  ✔ coffee/coffee.coffee:9
+    needs impl:coffee/coffee-block#1  ✔ coffee/coffee.coffee:6
     wanted by req:coffee/grammar#1  coffee/spec.md:4
 
 ✔ impl:css/css#1  css/css.css:3  [deep-covered]
@@ -1027,8 +1030,8 @@
     wanted by req:xml/xml#1  xml/spec.md:24
 
 Summary
-  items       316  (127 from specs, 189 from code)
-  ok          316
+  items       317  (127 from specs, 190 from code)
+  ok          317
   defective   0
 
 ok

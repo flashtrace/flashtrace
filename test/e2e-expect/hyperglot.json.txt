@@ -2732,12 +2732,12 @@
       ]
     },
     {
-      "id": "impl:coffee/coffee-line#1",
+      "id": "impl:coffee/coffee-line-hash#1",
       "title": null,
       "origin": "code",
       "tags": [],
       "file": "coffee/coffee.coffee",
-      "line": 2,
+      "line": 3,
       "character": 3,
       "status": "deep-covered",
       "defective": false,
@@ -2751,7 +2751,7 @@
         {
           "id": "req:coffee/coffee#1",
           "file": "coffee/spec.md",
-          "line": 17,
+          "line": 18,
           "character": 1
         }
       ]
@@ -2762,7 +2762,7 @@
       "origin": "code",
       "tags": [],
       "file": "coffee/coffee.coffee",
-      "line": 5,
+      "line": 6,
       "character": 3,
       "status": "deep-covered",
       "defective": false,
@@ -2776,7 +2776,32 @@
         {
           "id": "req:coffee/coffee#1",
           "file": "coffee/spec.md",
-          "line": 17,
+          "line": 18,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:coffee/coffee-line-hash-run#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "coffee/coffee.coffee",
+      "line": 9,
+      "character": 6,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:coffee/coffee#1",
+          "file": "coffee/spec.md",
+          "line": 18,
           "character": 1
         }
       ]
@@ -2827,16 +2852,22 @@
       "origin": "spec",
       "tags": [],
       "file": "coffee/spec.md",
-      "line": 17,
+      "line": 18,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
       "needs": [
         {
-          "ref": "impl:coffee/coffee-line#1",
+          "ref": "impl:coffee/coffee-line-hash#1",
           "resolvedTo": [
-            "impl:coffee/coffee-line#1"
+            "impl:coffee/coffee-line-hash#1"
+          ]
+        },
+        {
+          "ref": "impl:coffee/coffee-line-hash-run#1",
+          "resolvedTo": [
+            "impl:coffee/coffee-line-hash-run#1"
           ]
         },
         {
@@ -9851,10 +9882,10 @@
   ],
   "problems": [],
   "summary": {
-    "items": 316,
+    "items": 317,
     "specItems": 127,
-    "codeItems": 189,
-    "okItems": 316,
+    "codeItems": 190,
+    "okItems": 317,
     "defectiveItems": 0,
     "shallowCoveredItems": 0,
     "problems": 0

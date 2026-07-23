@@ -35,7 +35,7 @@ not repeated here - only what its grammar offers.
 | [hash/](hash/) | line |
 | [julia/](julia/) | line, block, nesting block |
 | [nim/](nim/) | line, block and doc block, both nesting |
-| [coffee/](coffee/) | line, block with identical open and close |
+| [coffee/](coffee/) | two line markers, block with identical open and close |
 | [powershell/](powershell/) | line, block |
 | [hcl/](hcl/) | two line markers, block |
 | [semicolon/](semicolon/) | line |
@@ -67,8 +67,10 @@ not repeated here - only what its grammar offers.
   [c-like-nested/rs.rs](c-like-nested/rs.rs) with the non-nesting C-like grammar
   yields 3 items instead of 4, and the missing one is `/after-close`.
 - **The longest opener wins.** Lua's block opener is a longer form of its line
-  marker, CoffeeScript opens and closes with the same marker, and Nim's doc
-  opener shares a prefix with both its line marker and its plain block opener.
+  marker, CoffeeScript opens and closes with the same marker and turns a run of
+  four or more `#` into a line comment because its `####` line marker outranks
+  the `###` opener, and Nim's doc opener shares a prefix with both its line
+  marker and its plain block opener.
 - **Regions switch grammar.** All four HTML-family files tag a markup comment,
   a line and a block comment in a plain script, and a block comment in a plain
   style. Past that they split by convention: the single-file components
