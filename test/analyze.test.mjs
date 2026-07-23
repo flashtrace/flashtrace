@@ -312,6 +312,24 @@ test('a second forwarding for the same item is a duplicate defect', () => {
   );
 });
 
+test('SemVer-equal source spellings group into one duplicate forwarding', () => {
+  const items = run({
+    md: [
+      '`req:a#1`',
+      '',
+      '`dsn:b#1`',
+      '',
+      '`dsn:c#1`',
+      '',
+      '[req:a#1 --> dsn:b#1]',
+      '[req:a#1.0 --> dsn:c#1]',
+    ],
+  });
+  const reqA = byId(items, 'req:a#1');
+  assert.match(reqA.defects[0].message, /^duplicate: forwarding for req:a#\S+ is declared 2 times/);
+  assert.equal(reqA.forwardsTo, 'dsn:b#1'); // the first declaration stays effective
+});
+
 test('deep coverage of a forwarded item tracks the target’s chain', () => {
   const items = run({
     md: [
@@ -364,6 +382,28 @@ test('a self-forwarding is a cyclic-forwarding problem', () => {
   });
   assert.equal(problems.length, 1);
   assert.match(problems[0].message, /^cyclic forwarding: req:a#1 --> req:a#1$/);
+});
+
+test('a cycle across SemVer-equal spellings is found and shown as written', () => {
+  const { items, problems } = runAll({
+    md: [
+      '`req:a#1`',
+      '',
+      'Needs: impl:missing#1',
+      '',
+      '`req:b#1`',
+      '',
+      '[req:a#1 --> req:b#1]',
+      '[req:b#1.0 --> req:a#1.0.0]',
+    ],
+  });
+  assert.equal(problems.length, 2);
+  // the chain names each source as its declaration wrote it
+  for (const problem of problems)
+    assert.match(problem.message, /^cyclic forwarding: req:a#1 --> req:b#1\.0 --> req:a#1$/);
+  // the forwardings are inert: req:a#1 falls back to its own needs
+  assert.match(byId(items, 'req:a#1').defects[0].message, /^uncovered: needs impl:missing#1/);
+  assert.deepEqual(byId(items, 'req:b#1').defects, []);
 });
 
 test('an acyclic forwarding chain is allowed', () => {
