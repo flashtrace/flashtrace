@@ -5,13 +5,11 @@ import { KEYWORDS, applyKeyword } from '../src/spec-items.mjs';
 
 const newItem = () => ({ id: 'spec/x', needs: [], covers: [], tags: [] });
 
-// The seam guarded here: KEYWORDS is the vocabulary, but applyKeyword still
-// spells out each keyword's behaviour. These must not drift - every keyword the
-// vocabulary admits has to route somewhere, or a future addition would be
-// filed silently under the wrong field.
+// KEYWORDS is the vocabulary, but applyKeyword still spells out each keyword's
+// behaviour; a keyword the vocabulary admits but no handler routes must not slip in.
 test('applyKeyword handles every keyword in the vocabulary', () => {
-  // empty entries exercise the dispatch without needing valid IDs: the branch
-  // is chosen before any entry is read, so an unhandled keyword still throws.
+  // dispatch happens before any entry is read, so empty entries suffice: an
+  // unhandled keyword throws without needing valid IDs.
   for (const keyword of KEYWORDS) {
     assert.doesNotThrow(
       () => applyKeyword(newItem(), keyword, [], 'f.md', [], 'test'),

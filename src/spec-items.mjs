@@ -16,22 +16,15 @@ export const KEYWORDS = ['Needs', 'Covers', 'Tags'];
 // is a piece of text one of the keywords, exactly?
 export const isKeyword = (text) => KEYWORDS.includes(text);
 
-// A verbatim keyword parses each entry as its own text: there is no reference to
-// resolve and no way to be invalid, so the value is stored as written. Tags are
-// the one such keyword. Kept as a parse function - not a separate branch - so
-// every keyword dispatches through the same table below. Entries always carry
-// non-empty text (the format parsers drop blanks), so this never returns the
-// falsy value that would flag an entry as invalid.
+// Shaped as a parse function so Tags dispatches through the same table as the
+// rest; entry text is never empty, so it never returns the falsy "invalid" value.
 const parseVerbatimKeyword = (raw) => raw;
 
-// Every keyword's behaviour: which field of the item its entries fold into, and
-// how each entry's text becomes the value stored there. Needs and Covers parse
-// a reference against the item stating them - each accepts the short form
-// (impl, impl:name, impl#2), completed from the item's own [group/]name and
-// revision, with Needs allowing a wildcard revision and Covers staying concrete
-// - and yield null on an invalid one, which applyKeyword reports. Tags are
-// verbatim. This table is the complete vocabulary-to-behaviour map: a keyword in
-// KEYWORDS that reaches applyKeyword must appear here, never handled by default.
+// The complete vocabulary-to-behaviour map: which item field a keyword's entries
+// fold into, and how each entry's text becomes the stored value. Needs and
+// Covers parse a reference against the item stating them and yield null on an
+// invalid one, which applyKeyword reports. A keyword in KEYWORDS must appear
+// here - never handled by a default.
 const KEYWORD_HANDLERS = {
   Needs: { target: 'needs', parse: parseNeedEntry },
   Covers: { target: 'covers', parse: parseCoverEntry },
@@ -44,10 +37,8 @@ const KEYWORD_HANDLERS = {
 // the source, so an invalid one is reported at its own position.
 export function applyKeyword(item, keyword, entries, file, problems, source) {
   const handler = KEYWORD_HANDLERS[keyword];
-  // isKeyword and KEYWORD_RE only ever admit KEYWORDS, so reaching here with a
-  // keyword this table has no handler for means the vocabulary grew without a
-  // matching handler. Fail loudly rather than silently filing the entries under
-  // whichever field a default would pick.
+  // only reachable when KEYWORDS grew without a matching handler; fail loudly
+  // rather than silently filing the entries under whichever field a default picks
   if (!handler) throw new Error(`applyKeyword: no handling for keyword "${keyword}"`);
   const { target, parse } = handler;
   for (const entry of entries) {
