@@ -288,6 +288,18 @@ test('C-like extras (Go) use // and /* */', () => {
   assert.deepEqual(items[0].needs, ['utest:svc/run#1']);
 });
 
+test('C-like extras (Groovy, Solidity, .cxx) use // and /* */', () => {
+  for (const file of ['build.gradle', 'app.groovy', 'Token.sol', 'engine.cxx']) {
+    const { items, problems } = parse(file, [
+      '// [impl:x/run#1]',
+      '/* [>>utest:x/run#1] */',
+    ]);
+    assert.equal(problems.length, 0, file);
+    assert.equal(items.length, 1, file);
+    assert.deepEqual(items[0].needs, ['utest:x/run#1'], file);
+  }
+});
+
 test('PHP accepts // and # line comments and /* */', () => {
   const { items } = parse('index.php', [
     '// [impl:php/a#1]',
@@ -295,6 +307,41 @@ test('PHP accepts // and # line comments and /* */', () => {
     '/* [impl:php/c#1] */',
   ]);
   assert.deepEqual(items.map((i) => i.id), ['impl:php/a#1', 'impl:php/b#1', 'impl:php/c#1']);
+});
+
+test('hash-comment extras (Crystal, GDScript, awk) recognise # tags', () => {
+  for (const file of ['app.cr', 'player.gd', 'report.awk']) {
+    const { items, problems } = parse(file, [
+      '# [impl:app/main#1]',
+      'x = "// [impl:not-a-tag#1]"',
+    ]);
+    assert.equal(problems.length, 0, file);
+    assert.deepEqual(items.map((i) => i.id), ['impl:app/main#1'], file);
+  }
+});
+
+test('CMake uses # line and #[[ ]] block comments', () => {
+  const { items } = parse('build.cmake', [
+    '# [impl:cmake/mod#1]',
+    '#[[ [>>utest:cmake/mod#1] ]]',
+  ]);
+  assert.equal(items.length, 1);
+  assert.deepEqual(items[0].needs, ['utest:cmake/mod#1']);
+});
+
+test('CMake #[[ ]] block comment opens and spans multiple lines', () => {
+  // #[[ shares its prefix with the # line marker; the block opener must win the
+  // tie, otherwise the block never opens and the inner tags are missed.
+  const { items } = parse('build.cmake', [
+    '#[[',
+    '  [impl:cmake/block#1]',
+    '  [>>utest:cmake/block#1]',
+    ']]',
+    'add_executable(app main.c)',
+  ]);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].id, 'impl:cmake/block#1');
+  assert.deepEqual(items[0].needs, ['utest:cmake/block#1']);
 });
 
 test('Lua uses -- line and --[[ ]] block comments', () => {
@@ -511,6 +558,18 @@ test('Haskell {- -} block comments nest', () => {
     'x = 1',
   ]);
   assert.deepEqual(items.map((i) => i.id), ['impl:hs/still#1']);
+});
+
+test('Elm and PureScript share the Haskell grammar (nesting {- -})', () => {
+  for (const file of ['Main.elm', 'Main.purs']) {
+    const { items, problems } = parse(file, [
+      '-- [impl:m/main#1]',
+      '{- outer {- inner -} [>>utest:m/main#1] -}',
+    ]);
+    assert.equal(problems.length, 0, file);
+    assert.equal(items.length, 1, file);
+    assert.deepEqual(items[0].needs, ['utest:m/main#1'], file);
+  }
 });
 
 test('Pascal (* *) does not nest (closes at the first *))', () => {

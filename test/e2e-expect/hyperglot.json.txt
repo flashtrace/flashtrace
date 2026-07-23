@@ -837,7 +837,7 @@
         {
           "id": "req:c-like/c#1",
           "file": "c-like/spec.md",
-          "line": 35,
+          "line": 43,
           "character": 1
         }
       ]
@@ -862,7 +862,7 @@
         {
           "id": "req:c-like/c#1",
           "file": "c-like/spec.md",
-          "line": 35,
+          "line": 43,
           "character": 1
         }
       ]
@@ -887,7 +887,7 @@
         {
           "id": "req:c-like/cc#1",
           "file": "c-like/spec.md",
-          "line": 41,
+          "line": 49,
           "character": 1
         }
       ]
@@ -912,7 +912,7 @@
         {
           "id": "req:c-like/cc#1",
           "file": "c-like/spec.md",
-          "line": 41,
+          "line": 49,
           "character": 1
         }
       ]
@@ -937,7 +937,7 @@
         {
           "id": "req:c-like/cjs#1",
           "file": "c-like/spec.md",
-          "line": 47,
+          "line": 55,
           "character": 1
         }
       ]
@@ -962,7 +962,7 @@
         {
           "id": "req:c-like/cjs#1",
           "file": "c-like/spec.md",
-          "line": 47,
+          "line": 55,
           "character": 1
         }
       ]
@@ -987,7 +987,7 @@
         {
           "id": "req:c-like/cpp#1",
           "file": "c-like/spec.md",
-          "line": 53,
+          "line": 61,
           "character": 1
         }
       ]
@@ -1012,7 +1012,7 @@
         {
           "id": "req:c-like/cpp#1",
           "file": "c-like/spec.md",
-          "line": 53,
+          "line": 61,
           "character": 1
         }
       ]
@@ -1037,7 +1037,7 @@
         {
           "id": "req:c-like/cs#1",
           "file": "c-like/spec.md",
-          "line": 59,
+          "line": 67,
           "character": 1
         }
       ]
@@ -1062,7 +1062,7 @@
         {
           "id": "req:c-like/cs#1",
           "file": "c-like/spec.md",
-          "line": 59,
+          "line": 67,
           "character": 1
         }
       ]
@@ -1087,7 +1087,7 @@
         {
           "id": "req:c-like/cts#1",
           "file": "c-like/spec.md",
-          "line": 65,
+          "line": 73,
           "character": 1
         }
       ]
@@ -1112,7 +1112,57 @@
         {
           "id": "req:c-like/cts#1",
           "file": "c-like/spec.md",
-          "line": 65,
+          "line": 73,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/cxx-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/cxx.cxx",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/cxx#1",
+          "file": "c-like/spec.md",
+          "line": 79,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/cxx-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/cxx.cxx",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/cxx#1",
+          "file": "c-like/spec.md",
+          "line": 79,
           "character": 1
         }
       ]
@@ -1137,7 +1187,7 @@
         {
           "id": "req:c-like/dart#1",
           "file": "c-like/spec.md",
-          "line": 71,
+          "line": 85,
           "character": 1
         }
       ]
@@ -1162,7 +1212,7 @@
         {
           "id": "req:c-like/dart#1",
           "file": "c-like/spec.md",
-          "line": 71,
+          "line": 85,
           "character": 1
         }
       ]
@@ -1187,7 +1237,7 @@
         {
           "id": "req:c-like/go#1",
           "file": "c-like/spec.md",
-          "line": 77,
+          "line": 91,
           "character": 1
         }
       ]
@@ -1212,7 +1262,107 @@
         {
           "id": "req:c-like/go#1",
           "file": "c-like/spec.md",
-          "line": 77,
+          "line": 91,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/gradle-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/gradle.gradle",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/gradle#1",
+          "file": "c-like/spec.md",
+          "line": 97,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/gradle-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/gradle.gradle",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/gradle#1",
+          "file": "c-like/spec.md",
+          "line": 97,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/groovy-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/groovy.groovy",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/groovy#1",
+          "file": "c-like/spec.md",
+          "line": 103,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/groovy-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/groovy.groovy",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/groovy#1",
+          "file": "c-like/spec.md",
+          "line": 103,
           "character": 1
         }
       ]
@@ -1237,7 +1387,7 @@
         {
           "id": "req:c-like/h#1",
           "file": "c-like/spec.md",
-          "line": 83,
+          "line": 109,
           "character": 1
         }
       ]
@@ -1262,7 +1412,7 @@
         {
           "id": "req:c-like/h#1",
           "file": "c-like/spec.md",
-          "line": 83,
+          "line": 109,
           "character": 1
         }
       ]
@@ -1287,7 +1437,7 @@
         {
           "id": "req:c-like/hpp#1",
           "file": "c-like/spec.md",
-          "line": 89,
+          "line": 115,
           "character": 1
         }
       ]
@@ -1312,7 +1462,157 @@
         {
           "id": "req:c-like/hpp#1",
           "file": "c-like/spec.md",
-          "line": 89,
+          "line": 115,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/hxx-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/hxx.hxx",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/hxx#1",
+          "file": "c-like/spec.md",
+          "line": 121,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/hxx-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/hxx.hxx",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/hxx#1",
+          "file": "c-like/spec.md",
+          "line": 121,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/inl-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/inl.inl",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/inl#1",
+          "file": "c-like/spec.md",
+          "line": 127,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/inl-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/inl.inl",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/inl#1",
+          "file": "c-like/spec.md",
+          "line": 127,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/ino-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/ino.ino",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/ino#1",
+          "file": "c-like/spec.md",
+          "line": 133,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/ino-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/ino.ino",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/ino#1",
+          "file": "c-like/spec.md",
+          "line": 133,
           "character": 1
         }
       ]
@@ -1337,7 +1637,7 @@
         {
           "id": "req:c-like/java#1",
           "file": "c-like/spec.md",
-          "line": 95,
+          "line": 139,
           "character": 1
         }
       ]
@@ -1362,7 +1662,7 @@
         {
           "id": "req:c-like/java#1",
           "file": "c-like/spec.md",
-          "line": 95,
+          "line": 139,
           "character": 1
         }
       ]
@@ -1387,7 +1687,7 @@
         {
           "id": "req:c-like/js#1",
           "file": "c-like/spec.md",
-          "line": 101,
+          "line": 145,
           "character": 1
         }
       ]
@@ -1412,7 +1712,7 @@
         {
           "id": "req:c-like/js#1",
           "file": "c-like/spec.md",
-          "line": 101,
+          "line": 145,
           "character": 1
         }
       ]
@@ -1437,7 +1737,7 @@
         {
           "id": "req:c-like/jsx#1",
           "file": "c-like/spec.md",
-          "line": 107,
+          "line": 151,
           "character": 1
         }
       ]
@@ -1462,7 +1762,7 @@
         {
           "id": "req:c-like/jsx#1",
           "file": "c-like/spec.md",
-          "line": 107,
+          "line": 151,
           "character": 1
         }
       ]
@@ -1487,7 +1787,7 @@
         {
           "id": "req:c-like/less#1",
           "file": "c-like/spec.md",
-          "line": 113,
+          "line": 157,
           "character": 1
         }
       ]
@@ -1512,7 +1812,7 @@
         {
           "id": "req:c-like/less#1",
           "file": "c-like/spec.md",
-          "line": 113,
+          "line": 157,
           "character": 1
         }
       ]
@@ -1537,7 +1837,7 @@
         {
           "id": "req:c-like/mjs#1",
           "file": "c-like/spec.md",
-          "line": 119,
+          "line": 163,
           "character": 1
         }
       ]
@@ -1562,7 +1862,7 @@
         {
           "id": "req:c-like/mjs#1",
           "file": "c-like/spec.md",
-          "line": 119,
+          "line": 163,
           "character": 1
         }
       ]
@@ -1587,7 +1887,7 @@
         {
           "id": "req:c-like/mts#1",
           "file": "c-like/spec.md",
-          "line": 125,
+          "line": 169,
           "character": 1
         }
       ]
@@ -1612,7 +1912,7 @@
         {
           "id": "req:c-like/mts#1",
           "file": "c-like/spec.md",
-          "line": 125,
+          "line": 169,
           "character": 1
         }
       ]
@@ -1637,7 +1937,7 @@
         {
           "id": "req:c-like/proto#1",
           "file": "c-like/spec.md",
-          "line": 131,
+          "line": 175,
           "character": 1
         }
       ]
@@ -1662,7 +1962,7 @@
         {
           "id": "req:c-like/proto#1",
           "file": "c-like/spec.md",
-          "line": 131,
+          "line": 175,
           "character": 1
         }
       ]
@@ -1687,7 +1987,7 @@
         {
           "id": "req:c-like/scss#1",
           "file": "c-like/spec.md",
-          "line": 137,
+          "line": 181,
           "character": 1
         }
       ]
@@ -1712,7 +2012,57 @@
         {
           "id": "req:c-like/scss#1",
           "file": "c-like/spec.md",
-          "line": 137,
+          "line": 181,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/sol-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/sol.sol",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/sol#1",
+          "file": "c-like/spec.md",
+          "line": 187,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/sol-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/sol.sol",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/sol#1",
+          "file": "c-like/spec.md",
+          "line": 187,
           "character": 1
         }
       ]
@@ -1769,6 +2119,12 @@
           ]
         },
         {
+          "ref": "req:c-like/cxx#1",
+          "resolvedTo": [
+            "req:c-like/cxx#1"
+          ]
+        },
+        {
           "ref": "req:c-like/dart#1",
           "resolvedTo": [
             "req:c-like/dart#1"
@@ -1781,6 +2137,18 @@
           ]
         },
         {
+          "ref": "req:c-like/gradle#1",
+          "resolvedTo": [
+            "req:c-like/gradle#1"
+          ]
+        },
+        {
+          "ref": "req:c-like/groovy#1",
+          "resolvedTo": [
+            "req:c-like/groovy#1"
+          ]
+        },
+        {
           "ref": "req:c-like/h#1",
           "resolvedTo": [
             "req:c-like/h#1"
@@ -1790,6 +2158,24 @@
           "ref": "req:c-like/hpp#1",
           "resolvedTo": [
             "req:c-like/hpp#1"
+          ]
+        },
+        {
+          "ref": "req:c-like/hxx#1",
+          "resolvedTo": [
+            "req:c-like/hxx#1"
+          ]
+        },
+        {
+          "ref": "req:c-like/inl#1",
+          "resolvedTo": [
+            "req:c-like/inl#1"
+          ]
+        },
+        {
+          "ref": "req:c-like/ino#1",
+          "resolvedTo": [
+            "req:c-like/ino#1"
           ]
         },
         {
@@ -1841,6 +2227,18 @@
           ]
         },
         {
+          "ref": "req:c-like/sol#1",
+          "resolvedTo": [
+            "req:c-like/sol#1"
+          ]
+        },
+        {
+          "ref": "req:c-like/tpp#1",
+          "resolvedTo": [
+            "req:c-like/tpp#1"
+          ]
+        },
+        {
           "ref": "req:c-like/ts#1",
           "resolvedTo": [
             "req:c-like/ts#1"
@@ -1877,7 +2275,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 35,
+      "line": 43,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -1915,7 +2313,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 41,
+      "line": 49,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -1953,7 +2351,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 47,
+      "line": 55,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -1991,7 +2389,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 53,
+      "line": 61,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2029,7 +2427,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 59,
+      "line": 67,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2067,7 +2465,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 65,
+      "line": 73,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2100,12 +2498,50 @@
       ]
     },
     {
+      "id": "req:c-like/cxx#1",
+      "title": ".cxx",
+      "origin": "spec",
+      "tags": [],
+      "file": "c-like/spec.md",
+      "line": 79,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:c-like/cxx-line#1",
+          "resolvedTo": [
+            "impl:c-like/cxx-line#1"
+          ]
+        },
+        {
+          "ref": "impl:c-like/cxx-block#1",
+          "resolvedTo": [
+            "impl:c-like/cxx-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/grammar#1",
+          "file": "c-like/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
       "id": "req:c-like/dart#1",
       "title": ".dart",
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 71,
+      "line": 85,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2143,7 +2579,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 77,
+      "line": 91,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2176,12 +2612,88 @@
       ]
     },
     {
+      "id": "req:c-like/gradle#1",
+      "title": ".gradle",
+      "origin": "spec",
+      "tags": [],
+      "file": "c-like/spec.md",
+      "line": 97,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:c-like/gradle-line#1",
+          "resolvedTo": [
+            "impl:c-like/gradle-line#1"
+          ]
+        },
+        {
+          "ref": "impl:c-like/gradle-block#1",
+          "resolvedTo": [
+            "impl:c-like/gradle-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/grammar#1",
+          "file": "c-like/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:c-like/groovy#1",
+      "title": ".groovy",
+      "origin": "spec",
+      "tags": [],
+      "file": "c-like/spec.md",
+      "line": 103,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:c-like/groovy-line#1",
+          "resolvedTo": [
+            "impl:c-like/groovy-line#1"
+          ]
+        },
+        {
+          "ref": "impl:c-like/groovy-block#1",
+          "resolvedTo": [
+            "impl:c-like/groovy-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/grammar#1",
+          "file": "c-like/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
       "id": "req:c-like/h#1",
       "title": ".h",
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 83,
+      "line": 109,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2219,7 +2731,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 89,
+      "line": 115,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2252,12 +2764,126 @@
       ]
     },
     {
+      "id": "req:c-like/hxx#1",
+      "title": ".hxx",
+      "origin": "spec",
+      "tags": [],
+      "file": "c-like/spec.md",
+      "line": 121,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:c-like/hxx-line#1",
+          "resolvedTo": [
+            "impl:c-like/hxx-line#1"
+          ]
+        },
+        {
+          "ref": "impl:c-like/hxx-block#1",
+          "resolvedTo": [
+            "impl:c-like/hxx-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/grammar#1",
+          "file": "c-like/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:c-like/inl#1",
+      "title": ".inl",
+      "origin": "spec",
+      "tags": [],
+      "file": "c-like/spec.md",
+      "line": 127,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:c-like/inl-line#1",
+          "resolvedTo": [
+            "impl:c-like/inl-line#1"
+          ]
+        },
+        {
+          "ref": "impl:c-like/inl-block#1",
+          "resolvedTo": [
+            "impl:c-like/inl-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/grammar#1",
+          "file": "c-like/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:c-like/ino#1",
+      "title": ".ino",
+      "origin": "spec",
+      "tags": [],
+      "file": "c-like/spec.md",
+      "line": 133,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:c-like/ino-line#1",
+          "resolvedTo": [
+            "impl:c-like/ino-line#1"
+          ]
+        },
+        {
+          "ref": "impl:c-like/ino-block#1",
+          "resolvedTo": [
+            "impl:c-like/ino-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/grammar#1",
+          "file": "c-like/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
       "id": "req:c-like/java#1",
       "title": ".java",
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 95,
+      "line": 139,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2295,7 +2921,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 101,
+      "line": 145,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2333,7 +2959,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 107,
+      "line": 151,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2371,7 +2997,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 113,
+      "line": 157,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2409,7 +3035,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 119,
+      "line": 163,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2447,7 +3073,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 125,
+      "line": 169,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2485,7 +3111,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 131,
+      "line": 175,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2523,7 +3149,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 137,
+      "line": 181,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2556,12 +3182,88 @@
       ]
     },
     {
+      "id": "req:c-like/sol#1",
+      "title": ".sol",
+      "origin": "spec",
+      "tags": [],
+      "file": "c-like/spec.md",
+      "line": 187,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:c-like/sol-line#1",
+          "resolvedTo": [
+            "impl:c-like/sol-line#1"
+          ]
+        },
+        {
+          "ref": "impl:c-like/sol-block#1",
+          "resolvedTo": [
+            "impl:c-like/sol-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/grammar#1",
+          "file": "c-like/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:c-like/tpp#1",
+      "title": ".tpp",
+      "origin": "spec",
+      "tags": [],
+      "file": "c-like/spec.md",
+      "line": 193,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:c-like/tpp-line#1",
+          "resolvedTo": [
+            "impl:c-like/tpp-line#1"
+          ]
+        },
+        {
+          "ref": "impl:c-like/tpp-block#1",
+          "resolvedTo": [
+            "impl:c-like/tpp-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/grammar#1",
+          "file": "c-like/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
       "id": "req:c-like/ts#1",
       "title": ".ts",
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 143,
+      "line": 199,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2599,7 +3301,7 @@
       "origin": "spec",
       "tags": [],
       "file": "c-like/spec.md",
-      "line": 149,
+      "line": 205,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -2632,6 +3334,56 @@
       ]
     },
     {
+      "id": "impl:c-like/tpp-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/tpp.tpp",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/tpp#1",
+          "file": "c-like/spec.md",
+          "line": 193,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:c-like/tpp-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "c-like/tpp.tpp",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:c-like/tpp#1",
+          "file": "c-like/spec.md",
+          "line": 193,
+          "character": 1
+        }
+      ]
+    },
+    {
       "id": "impl:c-like/ts-line#1",
       "title": null,
       "origin": "code",
@@ -2651,7 +3403,7 @@
         {
           "id": "req:c-like/ts#1",
           "file": "c-like/spec.md",
-          "line": 143,
+          "line": 199,
           "character": 1
         }
       ]
@@ -2676,7 +3428,7 @@
         {
           "id": "req:c-like/ts#1",
           "file": "c-like/spec.md",
-          "line": 143,
+          "line": 199,
           "character": 1
         }
       ]
@@ -2701,7 +3453,7 @@
         {
           "id": "req:c-like/tsx#1",
           "file": "c-like/spec.md",
-          "line": 149,
+          "line": 205,
           "character": 1
         }
       ]
@@ -2726,7 +3478,135 @@
         {
           "id": "req:c-like/tsx#1",
           "file": "c-like/spec.md",
-          "line": 149,
+          "line": 205,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:cmake/cmake-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "cmake/cmake.cmake",
+      "line": 2,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:cmake/cmake#1",
+          "file": "cmake/spec.md",
+          "line": 16,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:cmake/cmake-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "cmake/cmake.cmake",
+      "line": 5,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:cmake/cmake#1",
+          "file": "cmake/spec.md",
+          "line": 16,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:cmake/grammar#1",
+      "title": "CMake comment grammar",
+      "origin": "spec",
+      "tags": [
+        "grammar",
+        "hash"
+      ],
+      "file": "cmake/spec.md",
+      "line": 3,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "req:cmake/cmake#1",
+          "resolvedTo": [
+            "req:cmake/cmake#1"
+          ]
+        }
+      ],
+      "covers": [
+        {
+          "ref": "feat:support-grammar/cmake#1",
+          "status": "valid"
+        }
+      ],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:support-grammar/cmake#1",
+          "file": "spec.md",
+          "line": 26,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:cmake/cmake#1",
+      "title": ".cmake",
+      "origin": "spec",
+      "tags": [],
+      "file": "cmake/spec.md",
+      "line": 16,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:cmake/cmake-line#1",
+          "resolvedTo": [
+            "impl:cmake/cmake-line#1"
+          ]
+        },
+        {
+          "ref": "impl:cmake/cmake-block#1",
+          "resolvedTo": [
+            "impl:cmake/cmake-block#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:cmake/grammar#1",
+          "file": "cmake/spec.md",
+          "line": 3,
           "character": 1
         }
       ]
@@ -2841,7 +3721,7 @@
         {
           "id": "feat:support-grammar/coffee#1",
           "file": "spec.md",
-          "line": 26,
+          "line": 34,
           "character": 1
         }
       ]
@@ -2950,7 +3830,7 @@
         {
           "id": "feat:support-grammar/css#1",
           "file": "spec.md",
-          "line": 34,
+          "line": 42,
           "character": 1
         }
       ]
@@ -3090,7 +3970,7 @@
         {
           "id": "feat:support-grammar/dash-line#1",
           "file": "spec.md",
-          "line": 42,
+          "line": 50,
           "character": 1
         }
       ]
@@ -3620,7 +4500,7 @@
         {
           "id": "feat:support-grammar/fsharp#1",
           "file": "spec.md",
-          "line": 50,
+          "line": 58,
           "character": 1
         }
       ]
@@ -3776,6 +4656,31 @@
       ]
     },
     {
+      "id": "impl:hash/awk#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "hash/awk.awk",
+      "line": 2,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:hash/awk#1",
+          "file": "hash/spec.md",
+          "line": 35,
+          "character": 1
+        }
+      ]
+    },
+    {
       "id": "impl:hash/bash#2.5",
       "title": null,
       "origin": "code",
@@ -3795,7 +4700,32 @@
         {
           "id": "req:hash/bash#1",
           "file": "hash/spec.md",
-          "line": 32,
+          "line": 41,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:hash/cr#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "hash/cr.cr",
+      "line": 2,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:hash/cr#1",
+          "file": "hash/spec.md",
+          "line": 47,
           "character": 1
         }
       ]
@@ -3820,7 +4750,7 @@
         {
           "id": "req:hash/ex#1",
           "file": "hash/spec.md",
-          "line": 38,
+          "line": 53,
           "character": 1
         }
       ]
@@ -3845,7 +4775,32 @@
         {
           "id": "req:hash/exs#1",
           "file": "hash/spec.md",
-          "line": 44,
+          "line": 59,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:hash/gd#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "hash/gd.gd",
+      "line": 2,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:hash/gd#1",
+          "file": "hash/spec.md",
+          "line": 65,
           "character": 1
         }
       ]
@@ -3870,7 +4825,7 @@
         {
           "id": "req:hash/gql#1",
           "file": "hash/spec.md",
-          "line": 50,
+          "line": 71,
           "character": 1
         }
       ]
@@ -3895,7 +4850,7 @@
         {
           "id": "req:hash/graphql#1",
           "file": "hash/spec.md",
-          "line": 56,
+          "line": 77,
           "character": 1
         }
       ]
@@ -3920,7 +4875,7 @@
         {
           "id": "req:hash/pm#1",
           "file": "hash/spec.md",
-          "line": 62,
+          "line": 83,
           "character": 1
         }
       ]
@@ -3945,7 +4900,7 @@
         {
           "id": "req:hash/py#1",
           "file": "hash/spec.md",
-          "line": 68,
+          "line": 89,
           "character": 1
         }
       ]
@@ -3970,7 +4925,7 @@
         {
           "id": "req:hash/r#1",
           "file": "hash/spec.md",
-          "line": 74,
+          "line": 95,
           "character": 1
         }
       ]
@@ -3995,7 +4950,7 @@
         {
           "id": "req:hash/rb#1",
           "file": "hash/spec.md",
-          "line": 80,
+          "line": 101,
           "character": 1
         }
       ]
@@ -4020,7 +4975,7 @@
         {
           "id": "req:hash/sh#1",
           "file": "hash/spec.md",
-          "line": 86,
+          "line": 107,
           "character": 1
         }
       ]
@@ -4041,9 +4996,21 @@
       "deepCovered": true,
       "needs": [
         {
+          "ref": "req:hash/awk#1",
+          "resolvedTo": [
+            "req:hash/awk#1"
+          ]
+        },
+        {
           "ref": "req:hash/bash#1",
           "resolvedTo": [
             "req:hash/bash#1"
+          ]
+        },
+        {
+          "ref": "req:hash/cr#1",
+          "resolvedTo": [
+            "req:hash/cr#1"
           ]
         },
         {
@@ -4056,6 +5023,12 @@
           "ref": "req:hash/exs#1",
           "resolvedTo": [
             "req:hash/exs#1"
+          ]
+        },
+        {
+          "ref": "req:hash/gd#1",
+          "resolvedTo": [
+            "req:hash/gd#1"
           ]
         },
         {
@@ -4144,7 +5117,39 @@
         {
           "id": "feat:support-grammar/hash#1",
           "file": "spec.md",
-          "line": 58,
+          "line": 66,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:hash/awk#1",
+      "title": ".awk",
+      "origin": "spec",
+      "tags": [],
+      "file": "hash/spec.md",
+      "line": 35,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:hash/awk#1",
+          "resolvedTo": [
+            "impl:hash/awk#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:hash/grammar#1",
+          "file": "hash/spec.md",
+          "line": 5,
           "character": 1
         }
       ]
@@ -4155,7 +5160,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 32,
+      "line": 41,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4182,12 +5187,44 @@
       ]
     },
     {
+      "id": "req:hash/cr#1",
+      "title": ".cr",
+      "origin": "spec",
+      "tags": [],
+      "file": "hash/spec.md",
+      "line": 47,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:hash/cr#1",
+          "resolvedTo": [
+            "impl:hash/cr#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:hash/grammar#1",
+          "file": "hash/spec.md",
+          "line": 5,
+          "character": 1
+        }
+      ]
+    },
+    {
       "id": "req:hash/ex#1",
       "title": ".ex",
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 38,
+      "line": 53,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4219,7 +5256,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 44,
+      "line": 59,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4246,12 +5283,44 @@
       ]
     },
     {
+      "id": "req:hash/gd#1",
+      "title": ".gd",
+      "origin": "spec",
+      "tags": [],
+      "file": "hash/spec.md",
+      "line": 65,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:hash/gd#1",
+          "resolvedTo": [
+            "impl:hash/gd#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:hash/grammar#1",
+          "file": "hash/spec.md",
+          "line": 5,
+          "character": 1
+        }
+      ]
+    },
+    {
       "id": "req:hash/gql#1",
       "title": ".gql",
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 50,
+      "line": 71,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4283,7 +5352,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 56,
+      "line": 77,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4315,7 +5384,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 62,
+      "line": 83,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4347,7 +5416,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 68,
+      "line": 89,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4379,7 +5448,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 74,
+      "line": 95,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4411,7 +5480,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 80,
+      "line": 101,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4443,7 +5512,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 86,
+      "line": 107,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4475,7 +5544,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 92,
+      "line": 113,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4507,7 +5576,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 98,
+      "line": 119,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4539,7 +5608,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 104,
+      "line": 125,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4571,7 +5640,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 110,
+      "line": 131,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4603,7 +5672,7 @@
       "origin": "spec",
       "tags": [],
       "file": "hash/spec.md",
-      "line": 116,
+      "line": 137,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4649,7 +5718,7 @@
         {
           "id": "req:hash/tcl#1",
           "file": "hash/spec.md",
-          "line": 92,
+          "line": 113,
           "character": 1
         }
       ]
@@ -4674,7 +5743,7 @@
         {
           "id": "req:hash/toml#1",
           "file": "hash/spec.md",
-          "line": 98,
+          "line": 119,
           "character": 1
         }
       ]
@@ -4699,7 +5768,7 @@
         {
           "id": "req:hash/yaml#1",
           "file": "hash/spec.md",
-          "line": 104,
+          "line": 125,
           "character": 1
         }
       ]
@@ -4724,7 +5793,7 @@
         {
           "id": "req:hash/yml#1",
           "file": "hash/spec.md",
-          "line": 110,
+          "line": 131,
           "character": 1
         }
       ]
@@ -4749,7 +5818,107 @@
         {
           "id": "req:hash/zsh#1",
           "file": "hash/spec.md",
-          "line": 116,
+          "line": 137,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:haskell/elm-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "haskell/elm.elm",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/elm#1",
+          "file": "haskell/spec.md",
+          "line": 18,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:haskell/elm-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "haskell/elm.elm",
+      "line": 5,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/elm#1",
+          "file": "haskell/spec.md",
+          "line": 18,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:haskell/elm-nested/deep#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "haskell/elm.elm",
+      "line": 9,
+      "character": 6,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/elm#1",
+          "file": "haskell/spec.md",
+          "line": 18,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:haskell/elm-nested/after-close#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "haskell/elm.elm",
+      "line": 10,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/elm#1",
+          "file": "haskell/spec.md",
+          "line": 18,
           "character": 1
         }
       ]
@@ -4774,7 +5943,7 @@
         {
           "id": "req:haskell/hs#1",
           "file": "haskell/spec.md",
-          "line": 15,
+          "line": 28,
           "character": 1
         }
       ]
@@ -4799,7 +5968,7 @@
         {
           "id": "req:haskell/hs#1",
           "file": "haskell/spec.md",
-          "line": 15,
+          "line": 28,
           "character": 1
         }
       ]
@@ -4824,7 +5993,7 @@
         {
           "id": "req:haskell/hs#1",
           "file": "haskell/spec.md",
-          "line": 15,
+          "line": 28,
           "character": 1
         }
       ]
@@ -4849,7 +6018,107 @@
         {
           "id": "req:haskell/hs#1",
           "file": "haskell/spec.md",
-          "line": 15,
+          "line": 28,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:haskell/purs-line#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "haskell/purs.purs",
+      "line": 2,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/purs#1",
+          "file": "haskell/spec.md",
+          "line": 38,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:haskell/purs-block#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "haskell/purs.purs",
+      "line": 5,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/purs#1",
+          "file": "haskell/spec.md",
+          "line": 38,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:haskell/purs-nested/deep#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "haskell/purs.purs",
+      "line": 9,
+      "character": 6,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/purs#1",
+          "file": "haskell/spec.md",
+          "line": 38,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:haskell/purs-nested/after-close#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "haskell/purs.purs",
+      "line": 10,
+      "character": 3,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/purs#1",
+          "file": "haskell/spec.md",
+          "line": 38,
           "character": 1
         }
       ]
@@ -4870,9 +6139,21 @@
       "deepCovered": true,
       "needs": [
         {
+          "ref": "req:haskell/elm#1",
+          "resolvedTo": [
+            "req:haskell/elm#1"
+          ]
+        },
+        {
           "ref": "req:haskell/hs#1",
           "resolvedTo": [
             "req:haskell/hs#1"
+          ]
+        },
+        {
+          "ref": "req:haskell/purs#1",
+          "resolvedTo": [
+            "req:haskell/purs#1"
           ]
         }
       ],
@@ -4889,7 +6170,57 @@
         {
           "id": "feat:support-grammar/haskell#1",
           "file": "spec.md",
-          "line": 66,
+          "line": 74,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:haskell/elm#1",
+      "title": ".elm",
+      "origin": "spec",
+      "tags": [],
+      "file": "haskell/spec.md",
+      "line": 18,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:haskell/elm-line#1",
+          "resolvedTo": [
+            "impl:haskell/elm-line#1"
+          ]
+        },
+        {
+          "ref": "impl:haskell/elm-block#1",
+          "resolvedTo": [
+            "impl:haskell/elm-block#1"
+          ]
+        },
+        {
+          "ref": "impl:haskell/elm-nested/deep#1",
+          "resolvedTo": [
+            "impl:haskell/elm-nested/deep#1"
+          ]
+        },
+        {
+          "ref": "impl:haskell/elm-nested/after-close#1",
+          "resolvedTo": [
+            "impl:haskell/elm-nested/after-close#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/grammar#1",
+          "file": "haskell/spec.md",
+          "line": 3,
           "character": 1
         }
       ]
@@ -4900,7 +6231,7 @@
       "origin": "spec",
       "tags": [],
       "file": "haskell/spec.md",
-      "line": 15,
+      "line": 28,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -4928,6 +6259,56 @@
           "ref": "impl:haskell/hs-nested/after-close#1",
           "resolvedTo": [
             "impl:haskell/hs-nested/after-close#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:haskell/grammar#1",
+          "file": "haskell/spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:haskell/purs#1",
+      "title": ".purs",
+      "origin": "spec",
+      "tags": [],
+      "file": "haskell/spec.md",
+      "line": 38,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:haskell/purs-line#1",
+          "resolvedTo": [
+            "impl:haskell/purs-line#1"
+          ]
+        },
+        {
+          "ref": "impl:haskell/purs-block#1",
+          "resolvedTo": [
+            "impl:haskell/purs-block#1"
+          ]
+        },
+        {
+          "ref": "impl:haskell/purs-nested/deep#1",
+          "resolvedTo": [
+            "impl:haskell/purs-nested/deep#1"
+          ]
+        },
+        {
+          "ref": "impl:haskell/purs-nested/after-close#1",
+          "resolvedTo": [
+            "impl:haskell/purs-nested/after-close#1"
           ]
         }
       ],
@@ -5066,7 +6447,7 @@
         {
           "id": "feat:support-grammar/hcl#1",
           "file": "spec.md",
-          "line": 74,
+          "line": 82,
           "character": 1
         }
       ]
@@ -5656,7 +7037,7 @@
         {
           "id": "feat:support-grammar/html#1",
           "file": "spec.md",
-          "line": 82,
+          "line": 90,
           "character": 1
         }
       ]
@@ -6401,7 +7782,7 @@
         {
           "id": "feat:support-grammar/julia#1",
           "file": "spec.md",
-          "line": 90,
+          "line": 98,
           "character": 1
         }
       ]
@@ -6541,7 +7922,7 @@
         {
           "id": "feat:support-grammar/lua#1",
           "file": "spec.md",
-          "line": 98,
+          "line": 106,
           "character": 1
         }
       ]
@@ -6775,7 +8156,7 @@
         {
           "id": "feat:support-grammar/ml#1",
           "file": "spec.md",
-          "line": 106,
+          "line": 114,
           "character": 1
         }
       ]
@@ -7078,7 +8459,7 @@
         {
           "id": "feat:support-grammar/nim#1",
           "file": "spec.md",
-          "line": 114,
+          "line": 122,
           "character": 1
         }
       ]
@@ -7342,7 +8723,7 @@
         {
           "id": "feat:support-grammar/pascal#1",
           "file": "spec.md",
-          "line": 122,
+          "line": 130,
           "character": 1
         }
       ]
@@ -7538,7 +8919,7 @@
         {
           "id": "feat:support-grammar/percent#1",
           "file": "spec.md",
-          "line": 130,
+          "line": 138,
           "character": 1
         }
       ]
@@ -7831,7 +9212,7 @@
         {
           "id": "feat:support-grammar/php#1",
           "file": "spec.md",
-          "line": 138,
+          "line": 146,
           "character": 1
         }
       ]
@@ -8021,7 +9402,7 @@
         {
           "id": "feat:support-grammar/powershell#1",
           "file": "spec.md",
-          "line": 146,
+          "line": 154,
           "character": 1
         }
       ]
@@ -8349,7 +9730,7 @@
         {
           "id": "feat:support-grammar/scheme#1",
           "file": "spec.md",
-          "line": 154,
+          "line": 162,
           "character": 1
         }
       ]
@@ -8819,7 +10200,7 @@
         {
           "id": "feat:support-grammar/semicolon#1",
           "file": "spec.md",
-          "line": 162,
+          "line": 170,
           "character": 1
         }
       ]
@@ -9067,12 +10448,37 @@
       "wantedBy": []
     },
     {
+      "id": "feat:support-grammar/cmake#1",
+      "title": "CMake",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 26,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "req:cmake/grammar#1",
+          "resolvedTo": [
+            "req:cmake/grammar#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
       "id": "feat:support-grammar/coffee#1",
       "title": "CoffeeScript",
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 26,
+      "line": 34,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9097,7 +10503,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 34,
+      "line": 42,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9122,7 +10528,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 42,
+      "line": 50,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9147,7 +10553,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 50,
+      "line": 58,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9172,7 +10578,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 58,
+      "line": 66,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9197,7 +10603,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 66,
+      "line": 74,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9222,7 +10628,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 74,
+      "line": 82,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9247,7 +10653,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 82,
+      "line": 90,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9272,7 +10678,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 90,
+      "line": 98,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9297,7 +10703,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 98,
+      "line": 106,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9322,7 +10728,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 106,
+      "line": 114,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9347,7 +10753,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 114,
+      "line": 122,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9372,7 +10778,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 122,
+      "line": 130,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9397,7 +10803,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 130,
+      "line": 138,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9422,7 +10828,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 138,
+      "line": 146,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9447,7 +10853,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 146,
+      "line": 154,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9472,7 +10878,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 154,
+      "line": 162,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9497,7 +10903,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 162,
+      "line": 170,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9522,7 +10928,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 170,
+      "line": 178,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9547,7 +10953,7 @@
       "origin": "spec",
       "tags": [],
       "file": "spec.md",
-      "line": 178,
+      "line": 186,
       "character": 1,
       "status": "deep-covered",
       "defective": false,
@@ -9601,7 +11007,7 @@
         {
           "id": "feat:support-grammar/sql#1",
           "file": "spec.md",
-          "line": 170,
+          "line": 178,
           "character": 1
         }
       ]
@@ -9735,7 +11141,7 @@
         {
           "id": "feat:support-grammar/xml#1",
           "file": "spec.md",
-          "line": 178,
+          "line": 186,
           "character": 1
         }
       ]
@@ -9882,10 +11288,10 @@
   ],
   "problems": [],
   "summary": {
-    "items": 317,
-    "specItems": 127,
-    "codeItems": 190,
-    "okItems": 317,
+    "items": 362,
+    "specItems": 143,
+    "codeItems": 219,
+    "okItems": 362,
     "defectiveItems": 0,
     "shallowCoveredItems": 0,
     "problems": 0

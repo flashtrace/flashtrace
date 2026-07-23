@@ -27,6 +27,7 @@ var hash = { line: ["#"], block: [] };
 var coffee = { line: ["#", "####"], block: [["###", "###"]] };
 var julia = { line: ["#"], block: [["#=", "=#", true]] };
 var nim = { line: ["#"], block: [["#[", "]#", true], ["##[", "]##", true]] };
+var cmake = { line: ["#"], block: [["#[[", "]]"]] };
 var powershell = { line: ["#"], block: [["<#", "#>"]] };
 var sql = { line: ["--"], block: [["/*", "*/"]] };
 var lua = { line: ["--"], block: [["--[[", "]]"]] };
@@ -78,9 +79,17 @@ var BY_EXT = {
   ".cpp": cLike,
   ".cc": cLike,
   ".hpp": cLike,
+  ".cxx": cLike,
+  ".hxx": cLike,
+  ".ino": cLike,
+  ".inl": cLike,
+  ".tpp": cLike,
   ".cs": cLike,
   ".java": cLike,
   ".go": cLike,
+  ".groovy": cLike,
+  ".gradle": cLike,
+  ".sol": cLike,
   ".dart": cLike,
   ".php": php,
   ".proto": cLike,
@@ -106,12 +115,16 @@ var BY_EXT = {
   ".ex": hash,
   ".exs": hash,
   ".tcl": hash,
+  ".cr": hash,
+  ".gd": hash,
+  ".awk": hash,
   ".graphql": hash,
   ".gql": hash,
   // hash line comments plus a block pair of their own
   ".jl": julia,
   ".nim": nim,
   ".coffee": coffee,
+  ".cmake": cmake,
   ".ps1": powershell,
   ".psm1": powershell,
   ".tf": hcl,
@@ -150,6 +163,8 @@ var BY_EXT = {
   ".sql": sql,
   ".lua": lua,
   ".hs": haskell,
+  ".elm": haskell,
+  ".purs": haskell,
   ".css": css,
   ".xml": xml,
   ".svg": xml,

@@ -35,6 +35,9 @@ const julia = { line: ['#'], block: [['#=', '=#', true]] };
 // Nim also has ##[ ]## doc blocks; the longer opener wins the tie against both
 // # and #[ at the same position, so doc blocks are recognized as such.
 const nim = { line: ['#'], block: [['#[', ']#', true], ['##[', ']##', true]] };
+// CMake bracket comments: #[[ opens, ]] closes, and they do not nest. Like Lua
+// we recognize the base level, not the equal-signed #[=[ ... ]=] variants.
+const cmake = { line: ['#'], block: [['#[[', ']]']] };
 const powershell = { line: ['#'], block: [['<#', '#>']] };
 const sql = { line: ['--'], block: [['/*', '*/']] };
 const lua = { line: ['--'], block: [['--[[', ']]']] };
@@ -91,7 +94,9 @@ const BY_EXT = {
   '.ts': cLike, '.js': cLike, '.mjs': cLike, '.cjs': cLike,
   '.jsx': cLike, '.tsx': cLike, '.cts': cLike, '.mts': cLike,
   '.c': cLike, '.h': cLike, '.cpp': cLike, '.cc': cLike, '.hpp': cLike,
+  '.cxx': cLike, '.hxx': cLike, '.ino': cLike, '.inl': cLike, '.tpp': cLike,
   '.cs': cLike, '.java': cLike, '.go': cLike,
+  '.groovy': cLike, '.gradle': cLike, '.sol': cLike,
   '.dart': cLike, '.php': php, '.proto': cLike,
   '.scss': cLike, '.less': cLike,
   // C-family with nested block comments
@@ -101,9 +106,10 @@ const BY_EXT = {
   '.py': hash, '.rb': hash, '.sh': hash, '.bash': hash, '.zsh': hash,
   '.yaml': hash, '.yml': hash, '.toml': hash, '.r': hash, '.pm': hash,
   '.ex': hash, '.exs': hash, '.tcl': hash,
+  '.cr': hash, '.gd': hash, '.awk': hash,
   '.graphql': hash, '.gql': hash,
   // hash line comments plus a block pair of their own
-  '.jl': julia, '.nim': nim, '.coffee': coffee,
+  '.jl': julia, '.nim': nim, '.coffee': coffee, '.cmake': cmake,
   '.ps1': powershell, '.psm1': powershell,
   '.tf': hcl, '.tfvars': hcl, '.hcl': hcl,
   // semicolon (Lisp family)
@@ -121,7 +127,7 @@ const BY_EXT = {
   // dashes and others
   '.sql': sql,
   '.lua': lua,
-  '.hs': haskell,
+  '.hs': haskell, '.elm': haskell, '.purs': haskell,
   '.css': css,
   '.xml': xml, '.svg': xml,
   // composite: HTML markup with embedded <script>/<style> regions

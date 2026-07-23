@@ -9,9 +9,12 @@ A single line-comment marker and no block comments.
 Covers: feat:support-grammar/hash#1
 
 Needs:
++ req:hash/awk#1
 + req:hash/bash#1
++ req:hash/cr#1
 + req:hash/ex#1
 + req:hash/exs#1
++ req:hash/gd#1
 + req:hash/gql#1
 + req:hash/graphql#1
 + req:hash/pm#1
@@ -27,11 +30,23 @@ Needs:
 
 Tags: grammar, hash
 
+## .awk
+
+`req:hash/awk#1`
+
+Needs: impl:hash/awk#1
+
 ## .bash
 
 `req:hash/bash#1`
 
 Needs: impl#x.y
+
+## .cr
+
+`req:hash/cr#1`
+
+Needs: impl:hash/cr#1
 
 ## .ex
 
@@ -44,6 +59,12 @@ Needs: impl:hash/ex#1
 `req:hash/exs#1`
 
 Needs: impl:hash/exs#1
+
+## .gd
+
+`req:hash/gd#1`
+
+Needs: impl:hash/gd#1
 
 ## .gql
 

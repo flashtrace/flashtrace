@@ -1,0 +1,6 @@
+// hyperglot fixture: .gradle is scanned with the C-like comment grammar.
+// [impl:c-like/gradle-line#1]
+
+/*
+ * [impl:c-like/gradle-block#1]
+ */

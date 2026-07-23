@@ -21,6 +21,14 @@ Line comments plus block comments that nest.
 
 Needs: req:c-like-nested/grammar#1
 
+## CMake
+
+`feat:support-grammar/cmake#1`
+
+Hash line comments plus a bracket block pair that does not nest.
+
+Needs: req:cmake/grammar#1
+
 ## CoffeeScript
 
 `feat:support-grammar/coffee#1`
