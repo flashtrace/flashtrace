@@ -265,21 +265,19 @@ function newItem(id, origin, file, line, character) {
 // src/spec-items.mjs
 var KEYWORDS = ["Needs", "Covers", "Tags"];
 var isKeyword = (text) => KEYWORDS.includes(text);
-var REFERENCE_KEYWORDS = {
+var parseVerbatimKeyword = (raw) => raw;
+var KEYWORD_HANDLERS = {
   Needs: { target: "needs", parse: parseNeedEntry },
-  Covers: { target: "covers", parse: parseCoverEntry }
+  Covers: { target: "covers", parse: parseCoverEntry },
+  Tags: { target: "tags", parse: parseVerbatimKeyword }
 };
 function applyKeyword(item, keyword, entries, file, problems, source) {
-  if (keyword === "Tags") {
-    for (const entry of entries) item.tags.push(entry.value);
-    return;
-  }
-  const reference = REFERENCE_KEYWORDS[keyword];
-  if (!reference) throw new Error(`applyKeyword: no handling for keyword "${keyword}"`);
-  const { target, parse } = reference;
+  const handler = KEYWORD_HANDLERS[keyword];
+  if (!handler) throw new Error(`applyKeyword: no handling for keyword "${keyword}"`);
+  const { target, parse } = handler;
   for (const entry of entries) {
-    const id = parse(entry.value, item.id);
-    if (id) item[target].push(id);
+    const value = parse(entry.value, item.id);
+    if (value) item[target].push(value);
     else
       problems.push({
         file,

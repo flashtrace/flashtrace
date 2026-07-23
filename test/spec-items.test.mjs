@@ -34,3 +34,13 @@ test('Tags entries are taken verbatim', () => {
   applyKeyword(item, 'Tags', [entry], 'f.md', [], 'test');
   assert.deepEqual(item.tags, ['draft']);
 });
+
+// A verbatim keyword shares applyKeyword's reference loop, so a value that
+// looks like an invalid ID must still be stored, never reported as a problem.
+test('Tags take a value verbatim without validating it as an ID', () => {
+  const item = newItem();
+  const problems = [];
+  applyKeyword(item, 'Tags', [{ value: 'not an id', line: 1, character: 1 }], 'f.md', problems, 'test');
+  assert.deepEqual(item.tags, ['not an id']);
+  assert.deepEqual(problems, []);
+});
