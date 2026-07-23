@@ -23,7 +23,7 @@
  */
 
 import { FORWARD_SRC, ID_SRC, makeForward, makeId, newItem } from './ids.mjs';
-import { KEYWORDS, applyKeyword, isKeyword } from './spec-items.mjs';
+import { KEYWORDS, applyKeyword, isKeyword, keywordEntries } from './spec-items.mjs';
 
 const DEFINITION_RE = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
 const HEADING_RE = /^(#{1,6})\s+(\S(?:.*\S)?)\s*$/;
@@ -149,37 +149,6 @@ function titleAbove(lines, inTable, definitionIndex) {
     return null; // any other text directly above -> no title
   }
   return null;
-}
-
-// entries of a keyword line: inline comma-separated, or a bullet list on the
-// following lines. Each entry carries its own source location (the column of
-// its first character, and - for a bullet list - the line it sits on rather
-// than the keyword line), so an invalid-ID problem points at the entry itself.
-// Returns the entries and the index of the last consumed line.
-function keywordEntries(lines, j, inline) {
-  if (inline.trim() !== '') {
-    // inline is the `$`-anchored tail of lines[j], so it begins at this offset
-    const inlineStart = lines[j].length - inline.length;
-    const entries = [];
-    let pos = 0;
-    for (const part of inline.split(',')) {
-      const value = part.trim();
-      if (value) {
-        const leading = part.length - part.trimStart().length;
-        entries.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
-      }
-      pos += part.length + 1; // + 1 for the consumed comma
-    }
-    return { entries, j };
-  }
-  const entries = [];
-  while (j + 1 < lines.length) {
-    const bullet = lines[j + 1].match(BULLET_RE);
-    if (!bullet) break;
-    entries.push({ value: bullet[1].trim(), line: j + 2, character: lines[j + 1].indexOf(bullet[1]) + 1 });
-    j++;
-  }
-  return { entries, j };
 }
 
 // cells of a `| a | b |` table row, or null; as in GFM, one leading and one
@@ -335,7 +304,7 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
     const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
     if (keywordMatch) {
       descriptionDone = true;
-      const collected = keywordEntries(lines, j, keywordMatch[2]);
+      const collected = keywordEntries(lines, j, keywordMatch[2], BULLET_RE);
       applyKeyword(
         item,
         keywordMatch[1],

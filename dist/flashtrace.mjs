@@ -271,6 +271,30 @@ var KEYWORD_HANDLERS = {
   Covers: { target: "covers", parse: parseCoverEntry },
   Tags: { target: "tags", parse: parseVerbatimKeyword }
 };
+function keywordEntries(lines, j, inline, listMarkerRe) {
+  if (inline.trim() !== "") {
+    const inlineStart = lines[j].length - inline.length;
+    const entries2 = [];
+    let pos = 0;
+    for (const part of inline.split(",")) {
+      const value = part.trim();
+      if (value) {
+        const leading = part.length - part.trimStart().length;
+        entries2.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
+      }
+      pos += part.length + 1;
+    }
+    return { entries: entries2, j };
+  }
+  const entries = [];
+  while (j + 1 < lines.length) {
+    const marker = lines[j + 1].match(listMarkerRe);
+    if (!marker) break;
+    entries.push({ value: marker[1].trim(), line: j + 2, character: lines[j + 1].indexOf(marker[1]) + 1 });
+    j++;
+  }
+  return { entries, j };
+}
 function applyKeyword(item, keyword, entries, file, problems, source) {
   const handler = KEYWORD_HANDLERS[keyword];
   if (!handler) throw new Error(`applyKeyword: no handling for keyword "${keyword}"`);
@@ -346,30 +370,6 @@ function titleAbove(lines, inTable, definitionIndex) {
     return null;
   }
   return null;
-}
-function keywordEntries(lines, j, inline) {
-  if (inline.trim() !== "") {
-    const inlineStart = lines[j].length - inline.length;
-    const entries2 = [];
-    let pos = 0;
-    for (const part of inline.split(",")) {
-      const value = part.trim();
-      if (value) {
-        const leading = part.length - part.trimStart().length;
-        entries2.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
-      }
-      pos += part.length + 1;
-    }
-    return { entries: entries2, j };
-  }
-  const entries = [];
-  while (j + 1 < lines.length) {
-    const bullet = lines[j + 1].match(BULLET_RE);
-    if (!bullet) break;
-    entries.push({ value: bullet[1].trim(), line: j + 2, character: lines[j + 1].indexOf(bullet[1]) + 1 });
-    j++;
-  }
-  return { entries, j };
 }
 function rowCells(line) {
   let row = line.trim();
@@ -480,7 +480,7 @@ function parseItemBody(lines, boundary, start, item, file, problems, forwards) {
     const tableEnd = keywordMatch ? null : takeKeywordTable(lines, inTable, j, item, file, problems);
     if (keywordMatch) {
       descriptionDone = true;
-      const collected = keywordEntries(lines, j, keywordMatch[2]);
+      const collected = keywordEntries(lines, j, keywordMatch[2], BULLET_RE);
       applyKeyword(
         item,
         keywordMatch[1],
@@ -538,10 +538,503 @@ function parseMarkdown(file, text, problems, forwards = []) {
   return items;
 }
 
+// src/parse-typst.mjs
+var DEFINITION_RE2 = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
+var HEADING_RE2 = /^\s*=+\s+(\S(?:.*\S)?)\s*$/;
+var LABEL_RE = /<[A-Za-z_][A-Za-z0-9_.:-]*>$/;
+var KEYWORD_RE2 = new RegExp(String.raw`^(?:\/\s+)?(${KEYWORDS.join("|")}):\s*((?:\S.*)?)$`);
+var BULLET_RE2 = /^\s*[-+]\s+(\S(?:.*\S)?)\s*$/;
+var FORWARD_LINE_RE2 = new RegExp(String.raw`^\s*\`${FORWARD_SRC}\`\s*$`);
+var BARE_FORWARD_LINE_RE = new RegExp(String.raw`^\s*${FORWARD_SRC}\s*$`);
+var TABLE_LINE_RE = /^\s*#table\(/;
+var IDENTIFIER_RE = /[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*/y;
+var DIGITS_RE = /\d+/y;
+var firstNonBlankColumn2 = (line) => line.search(/\S/) + 1;
+var blankAt = (out, index) => {
+  if (out[index] !== "\n" && out[index] !== "\r") out[index] = " ";
+};
+var blankRange = (out, from, to) => {
+  for (let k = from; k < to; k++) blankAt(out, k);
+};
+var backtickRunLength = (text, index) => {
+  let run = 0;
+  while (text[index + run] === "`") run++;
+  return run;
+};
+function stepBlockComment(text, masking, i) {
+  if (text[i] === "/" && text[i + 1] === "*") masking.blockCommentDepth++;
+  else if (text[i] === "*" && text[i + 1] === "/") masking.blockCommentDepth--;
+  else {
+    blankAt(masking.out, i);
+    return i + 1;
+  }
+  blankAt(masking.out, i);
+  blankAt(masking.out, i + 1);
+  return i + 2;
+}
+function stepRawBlock(text, masking, i) {
+  const run = backtickRunLength(text, i);
+  if (run === 0) {
+    blankAt(masking.out, i);
+    return i + 1;
+  }
+  blankRange(masking.out, i, i + run);
+  if (run >= masking.rawFence) masking.rawFence = 0;
+  return i + run;
+}
+function stepBacktickRun(text, masking, i) {
+  if (masking.inRawSpan) {
+    masking.inRawSpan = false;
+    return i + 1;
+  }
+  const run = backtickRunLength(text, i);
+  if (run >= 3) {
+    blankRange(masking.out, i, i + run);
+    masking.rawFence = run;
+  } else if (run === 1) {
+    masking.inRawSpan = true;
+  }
+  return i + run;
+}
+function stepSlash(text, masking, i) {
+  if (text[i + 1] === "/") {
+    if (text[i - 1] === ":" && /[A-Za-z0-9]/.test(text[i - 2] ?? "")) return i + 2;
+    let j = i;
+    while (j < text.length && text[j] !== "\n" && text[j] !== "\r") {
+      blankAt(masking.out, j);
+      j++;
+    }
+    return j;
+  }
+  if (text[i + 1] === "*") {
+    masking.blockCommentDepth = 1;
+    blankAt(masking.out, i);
+    blankAt(masking.out, i + 1);
+    return i + 2;
+  }
+  return i + 1;
+}
+function maskStep(text, masking, i) {
+  const character = text[i];
+  if (character === "\n") {
+    masking.inRawSpan = false;
+    return i + 1;
+  }
+  if (masking.blockCommentDepth > 0) return stepBlockComment(text, masking, i);
+  if (masking.rawFence > 0) return stepRawBlock(text, masking, i);
+  if (character === "`") return stepBacktickRun(text, masking, i);
+  if (character === "/" && !masking.inRawSpan) return stepSlash(text, masking, i);
+  return i + 1;
+}
+function maskCommentsAndRawBlocks(text) {
+  const masking = {
+    out: text.split(""),
+    blockCommentDepth: 0,
+    rawFence: 0,
+    // length of the backtick run that opened a raw block
+    inRawSpan: false
+    // inside a single-backtick raw span, one line only
+  };
+  let i = 0;
+  while (i < text.length) i = maskStep(text, masking, i);
+  return masking.out.join("");
+}
+function takeForward2(line, file, lineIndex, problems, forwards) {
+  const forward = line.match(FORWARD_LINE_RE2);
+  if (forward) {
+    forwards.push(makeForward(forward, 1, file, lineIndex + 1, firstNonBlankColumn2(line)));
+    return true;
+  }
+  const bare = line.match(BARE_FORWARD_LINE_RE);
+  if (bare) {
+    const from = makeId(bare[1], bare[2], bare[3], bare[4]);
+    const to = makeId(bare[5], bare[6], bare[7], bare[8]);
+    problems.push({
+      file,
+      line: lineIndex + 1,
+      character: firstNonBlankColumn2(line),
+      message: `bare forwarding tag [${from} --> ${to}]; a '#' outside backticks opens Typst code mode - wrap the tag in backticks`
+    });
+    return true;
+  }
+  return false;
+}
+function applyTypstKeyword(item, keyword, entries, file, problems, source) {
+  const accepted = [];
+  for (const entry of entries) {
+    const bareRevision = keyword !== "Tags" && entry.value.includes("#") && !(entry.value.length > 2 && entry.value.startsWith("`") && entry.value.endsWith("`"));
+    if (bareRevision) {
+      problems.push({
+        file,
+        line: entry.line,
+        character: entry.character,
+        message: `bare ID "${entry.value}" in ${source}; a '#' outside backticks opens Typst code mode - wrap the ID in backticks`
+      });
+      continue;
+    }
+    accepted.push(entry);
+  }
+  applyKeyword(item, keyword, accepted, file, problems, source);
+}
+function titleAbove2(lines, inTable, definitionIndex) {
+  for (let k = definitionIndex - 1; k >= 0; k--) {
+    const line = lines[k];
+    if (line.trim() === "") continue;
+    const heading = inTable[k] ? null : line.match(HEADING_RE2);
+    if (!heading) return null;
+    const title = heading[1].replace(LABEL_RE, "").trim();
+    return title === "" ? null : title;
+  }
+  return null;
+}
+var isBoundary2 = (lines, inTable, j) => !inTable[j] && (DEFINITION_RE2.test(lines[j]) || HEADING_RE2.test(lines[j]));
+function skipString(text, open) {
+  let i = open + 1;
+  while (i < text.length && text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+  return i + 1;
+}
+function skipBalanced(text, open) {
+  let depth = 0;
+  let inRawSpan = false;
+  let i = open;
+  while (i < text.length) {
+    const character = text[i];
+    if (character === "`") {
+      inRawSpan = !inRawSpan;
+      i++;
+      continue;
+    }
+    if (inRawSpan) {
+      i++;
+      continue;
+    }
+    if (character === '"') {
+      i = skipString(text, i);
+      continue;
+    }
+    if (character === "(" || character === "[") depth++;
+    else if (character === ")" || character === "]") {
+      depth--;
+      if (depth === 0) return i + 1;
+    }
+    i++;
+  }
+  return i;
+}
+function readContentBlock(text, open) {
+  const after = skipBalanced(text, open);
+  return { contentStart: open + 1, contentEnd: after - 1, after };
+}
+function skipToArgumentEnd(text, from) {
+  let i = from;
+  let inRawSpan = false;
+  while (i < text.length) {
+    const character = text[i];
+    if (character === "`") {
+      inRawSpan = !inRawSpan;
+      i++;
+      continue;
+    }
+    if (inRawSpan) {
+      i++;
+      continue;
+    }
+    if (character === ",") return i + 1;
+    if (character === ")") return i;
+    if (character === '"') {
+      i = skipString(text, i);
+      continue;
+    }
+    if (character === "(" || character === "[") {
+      i = skipBalanced(text, i);
+      continue;
+    }
+    i++;
+  }
+  return i;
+}
+function countTrackList(text, open) {
+  const after = skipBalanced(text, open);
+  let count = 0;
+  let sawEntry = false;
+  let i = open + 1;
+  while (i < after - 1) {
+    const character = text[i];
+    if (character === ",") {
+      if (sawEntry) count++;
+      sawEntry = false;
+      i++;
+      continue;
+    }
+    if (character === "(" || character === "[") {
+      i = skipBalanced(text, i);
+      sawEntry = true;
+      continue;
+    }
+    if (character === '"') {
+      i = skipString(text, i);
+      sawEntry = true;
+      continue;
+    }
+    if (/\S/.test(character)) sawEntry = true;
+    i++;
+  }
+  if (sawEntry) count++;
+  return { count, after };
+}
+function parseColumnsArgument(text, from) {
+  let i = from;
+  while (text[i] === " " || text[i] === "	") i++;
+  if (text[i] === "(") {
+    const tracks = countTrackList(text, i);
+    return { count: tracks.count || null, after: tracks.after };
+  }
+  DIGITS_RE.lastIndex = i;
+  const digits = DIGITS_RE.exec(text)?.[0];
+  if (digits && !/[.\w%]/.test(text[i + digits.length] ?? "")) {
+    return { count: Number(digits), after: i + digits.length };
+  }
+  return { count: null, after: skipToArgumentEnd(text, i) };
+}
+function takeCellToken(text, i, cells) {
+  const character = text[i];
+  if (character === "[") {
+    const block = readContentBlock(text, i);
+    cells.push(block);
+    return block.after;
+  }
+  if (character === '"') return skipString(text, i);
+  if (character === "(") return skipBalanced(text, i);
+  return null;
+}
+function collectCells(text, open) {
+  const cells = [];
+  let i = open + 1;
+  while (i < text.length && text[i] !== ")") {
+    const taken = takeCellToken(text, i, cells);
+    i = taken ?? i + 1;
+  }
+  return { cells, after: i + 1 };
+}
+var CELL_FREE_CALLS = /* @__PURE__ */ new Set(["table.hline", "table.vline"]);
+function scanNamedArgument(text, scan, identifier, from) {
+  if (identifier !== "columns") return skipToArgumentEnd(text, from);
+  const parsed = parseColumnsArgument(text, from);
+  scan.columnsCount = parsed.count;
+  return parsed.after;
+}
+function scanNestedCall(text, scan, identifier, open) {
+  if (identifier === "table.header") {
+    const collected = collectCells(text, open);
+    scan.header = collected.cells;
+    return collected.after;
+  }
+  if (identifier !== "table.footer" && !CELL_FREE_CALLS.has(identifier)) scan.degraded = true;
+  let i = skipBalanced(text, open);
+  while (text[i] === " " || text[i] === "	") i++;
+  if (text[i] === "[") i = readContentBlock(text, i).after;
+  return i;
+}
+function scanTableToken(text, scan, i) {
+  const taken = takeCellToken(text, i, scan.cells);
+  if (taken !== null) return taken;
+  IDENTIFIER_RE.lastIndex = i;
+  const identifier = IDENTIFIER_RE.exec(text)?.[0];
+  if (!identifier) return i + 1;
+  let after = i + identifier.length;
+  while (text[after] === " " || text[after] === "	") after++;
+  if (text[after] === ":" && !identifier.includes(".")) {
+    return scanNamedArgument(text, scan, identifier, after + 1);
+  }
+  if (text[after] === "(") return scanNestedCall(text, scan, identifier, after);
+  return after;
+}
+function scanTableCall(text, open) {
+  const scan = { cells: [], header: null, columnsCount: null, degraded: false };
+  let i = open + 1;
+  while (i < text.length && text[i] !== ")") i = scanTableToken(text, scan, i);
+  return { end: Math.min(i, text.length - 1), ...scan };
+}
+function makeCell(text, block, locate) {
+  const content = text.slice(block.contentStart, block.contentEnd);
+  const value = content.replace(/\s+/g, " ").trim();
+  const offset = content.search(/\S/);
+  const position = locate(block.contentStart + Math.max(offset, 0));
+  return { value, line: position.line, character: position.character };
+}
+function tableRecord(call, start, end, text, locate, file, problems) {
+  const count = call.columnsCount ?? (call.header ? call.header.length : null);
+  const usable = !call.degraded && Number.isInteger(count) && count > 0;
+  const allCells = call.cells.map((block) => makeCell(text, block, locate));
+  let headerCells = [];
+  if (call.header) headerCells = call.header.map((block) => makeCell(text, block, locate));
+  else if (usable) headerCells = allCells.slice(0, count);
+  if (!usable) {
+    const keywords = [
+      ...new Set([...headerCells, ...allCells].filter((cell) => isKeyword(cell.value)).map((cell) => cell.value))
+    ];
+    if (keywords.length > 0) {
+      const reason = call.degraded ? "a table.cell or unrecognized call makes the columns ambiguous" : "the column count is unknown";
+      problems.push({
+        file,
+        line: start.line,
+        character: start.character,
+        message: `a ${keywords.join("/")} column in a table the tracer cannot read (${reason}); the table contributes no entries`
+      });
+    }
+    return { end, hasKeywordColumns: false, keywordCells: [] };
+  }
+  const bodyCells = call.header ? allCells : allCells.slice(count);
+  const keywordByColumn = /* @__PURE__ */ new Map();
+  headerCells.forEach((cell, index) => {
+    if (isKeyword(cell.value)) keywordByColumn.set(index % count, cell.value);
+  });
+  const flagDefinition = (cell) => {
+    const definition = cell.value.match(DEFINITION_RE2);
+    if (definition) {
+      problems.push({
+        file,
+        line: cell.line,
+        character: cell.character,
+        message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a table; a table cell is not an item definition`
+      });
+    }
+  };
+  const keywordCells = [];
+  headerCells.forEach((cell, index) => {
+    if (!keywordByColumn.has(index % count)) flagDefinition(cell);
+  });
+  bodyCells.forEach((cell, index) => {
+    const keyword = keywordByColumn.get(index % count);
+    if (keyword === void 0) flagDefinition(cell);
+    else if (cell.value !== "") keywordCells.push({ keyword, ...cell });
+  });
+  return { end, hasKeywordColumns: keywordByColumn.size > 0, keywordCells };
+}
+function scanTables2(lines, text, lineStarts, locate, file, problems) {
+  const inTable = new Array(lines.length).fill(false);
+  const tables = /* @__PURE__ */ new Map();
+  let j = 0;
+  while (j < lines.length) {
+    const start = lines[j].match(TABLE_LINE_RE);
+    if (!start) {
+      j++;
+      continue;
+    }
+    const call = scanTableCall(text, lineStarts[j] + start[0].length - 1);
+    const endLine = locate(call.end).line - 1;
+    for (let k = j; k <= endLine; k++) inTable[k] = true;
+    const startPosition = { line: j + 1, character: firstNonBlankColumn2(lines[j]) };
+    tables.set(j, tableRecord(call, startPosition, endLine, text, locate, file, problems));
+    j = endLine + 1;
+  }
+  return { inTable, tables };
+}
+function makeLocator(lineStarts) {
+  return (index) => {
+    let low = 0;
+    let high = lineStarts.length - 1;
+    while (low < high) {
+      const mid = low + high + 1 >> 1;
+      if (lineStarts[mid] <= index) low = mid;
+      else high = mid - 1;
+    }
+    return { line: low + 1, character: index - lineStarts[low] + 1 };
+  };
+}
+function applyKeywordTable(table, item, context) {
+  for (const cell of table.keywordCells) {
+    applyTypstKeyword(item, cell.keyword, [cell], context.file, context.problems, `the ${cell.keyword} column of ${item.id}`);
+  }
+  return table.hasKeywordColumns;
+}
+function takeDescriptionLine(line, item, descriptionDone) {
+  if (line.trim() === "") return descriptionDone || item.description.length > 0;
+  if (!descriptionDone) item.description.push(line.trim());
+  return descriptionDone;
+}
+function parseItemBody2(context, start, item) {
+  const { lines, tables, inTable, file, problems, forwards } = context;
+  let j = start;
+  let descriptionDone = false;
+  while (j < lines.length && !isBoundary2(lines, inTable, j)) {
+    const line = lines[j];
+    const table = tables.get(j);
+    if (table) {
+      if (applyKeywordTable(table, item, context)) descriptionDone = true;
+      j = table.end + 1;
+      continue;
+    }
+    if (takeForward2(line, file, j, problems, forwards)) {
+      j++;
+      continue;
+    }
+    const keywordMatch = line.match(KEYWORD_RE2);
+    if (keywordMatch) {
+      descriptionDone = true;
+      const collected = keywordEntries(lines, j, keywordMatch[2], BULLET_RE2);
+      applyTypstKeyword(
+        item,
+        keywordMatch[1],
+        collected.entries,
+        file,
+        problems,
+        `${keywordMatch[1]}: list of ${item.id}`
+      );
+      j = collected.j;
+    } else {
+      descriptionDone = takeDescriptionLine(line, item, descriptionDone);
+    }
+    j++;
+  }
+  return j;
+}
+function parseTypst(file, text, problems, forwards = []) {
+  const masked = maskCommentsAndRawBlocks(text);
+  const lines = masked.split(/\r?\n/);
+  const lineStarts = [0];
+  for (let i2 = 0; i2 < masked.length; i2++) {
+    if (masked[i2] === "\n") lineStarts.push(i2 + 1);
+  }
+  const locate = makeLocator(lineStarts);
+  const { inTable, tables } = scanTables2(lines, masked, lineStarts, locate, file, problems);
+  const context = { lines, tables, inTable, file, problems, forwards };
+  const items = [];
+  let i = 0;
+  while (i < lines.length) {
+    const table = tables.get(i);
+    if (table) {
+      i = table.end + 1;
+      continue;
+    }
+    if (takeForward2(lines[i], file, i, problems, forwards)) {
+      i++;
+      continue;
+    }
+    const definition = lines[i].match(DEFINITION_RE2);
+    if (!definition) {
+      i++;
+      continue;
+    }
+    const item = newItem(
+      makeId(definition[1], definition[2], definition[3], definition[4]),
+      "spec",
+      file,
+      i + 1,
+      firstNonBlankColumn2(lines[i])
+    );
+    item.title = titleAbove2(lines, inTable, i);
+    i = parseItemBody2(context, i + 1, item);
+    items.push(item);
+  }
+  return items;
+}
+
 // src/parse-spec.mjs
 var BY_EXT2 = {
   ".md": parseMarkdown,
-  ".markdown": parseMarkdown
+  ".markdown": parseMarkdown,
+  ".typ": parseTypst
 };
 var SPEC_EXT = new Set(Object.keys(BY_EXT2));
 var specParserFor = (ext) => BY_EXT2[ext] ?? null;
@@ -1276,9 +1769,9 @@ function reportJson(items, forwards, problems, cwd, opts = {}) {
 // src/cli.mjs
 var HELP = `Usage: flashtrace [options] [directory-or-file ...]
 
-Traces requirement coverage between Markdown specifications and source code
-(.ts, .js, .mjs, .sql, .vue). Defaults to the current directory. Files ignored
-by git are excluded.
+Traces requirement coverage between specifications (Markdown: .md, .markdown;
+Typst: .typ) and source code (.ts, .js, .mjs, .sql, .vue). Defaults to the
+current directory. Files ignored by git are excluded.
 
 Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
@@ -1437,5 +1930,6 @@ export {
   collectFiles,
   parseCode,
   parseMarkdown,
+  parseTypst,
   reportJson
 };

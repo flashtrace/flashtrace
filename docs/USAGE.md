@@ -1,8 +1,8 @@
 # Usage Guide
 
-flashtrace traces requirement coverage between Markdown specifications and
-source code. It has no runtime dependencies and runs anywhere Node.js ≥ 18 is
-available.
+flashtrace traces requirement coverage between specifications (Markdown or
+Typst) and source code. It has no runtime dependencies and runs anywhere
+Node.js ≥ 18 is available.
 
 ## Running
 
@@ -11,7 +11,7 @@ flashtrace [options] [directory-or-file ...]
 ```
 
 Scans the given directories/files (default: current directory) for Markdown
-(`.md`, `.markdown`) and code files across many languages (C-family, Python,
+(`.md`, `.markdown`), Typst (`.typ`) and code files across many languages (C-family, Python,
 Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 [Code tags](code-tags.md) for the full list). Files ignored by git are excluded.
 
@@ -71,6 +71,10 @@ Tags: security
   `impl:name`, `impl#2`) whose omitted `[group/]name` and revision are taken
   from the item stating it; see [markdown-items.md](markdown-items.md).
 
+Typst (`.typ`) files define items with the same constructs in Typst markup:
+`= Title` headings, `#table(...)` keyword columns, and backticked IDs
+throughout; see [typst-items.md](typst-items.md).
+
 ## Tagging code
 
 Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
@@ -91,8 +95,8 @@ Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
 coverage obligation: instead of its own `Needs`, it counts as covered exactly
 when `dsn:auth#2` exists, and as deep-covered when `dsn:auth#2` is. The tag is
 recognized inside code comments and on a standalone line in Markdown
-(optionally backticked). At most one forwarding per item, and forwarding
-chains must be acyclic.
+(optionally backticked) or Typst (backticked). At most one forwarding per
+item, and forwarding chains must be acyclic.
 
 ## Coverage rules
 

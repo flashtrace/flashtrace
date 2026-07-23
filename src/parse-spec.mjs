@@ -10,9 +10,11 @@
  */
 
 import { parseMarkdown } from './parse-markdown.mjs';
+import { parseTypst } from './parse-typst.mjs';
 
 const BY_EXT = {
   '.md': parseMarkdown, '.markdown': parseMarkdown,
+  '.typ': parseTypst,
 };
 
 export const SPEC_EXT = new Set(Object.keys(BY_EXT));

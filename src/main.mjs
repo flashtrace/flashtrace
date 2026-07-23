@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * flashtrace - lightweight requirement tracing for Markdown specs and source code.
+ * flashtrace - lightweight requirement tracing for Markdown/Typst specs and source code.
  *
  * Entry point for the bundled dist/flashtrace.mjs; the implementation lives in:
  *   src/ids.mjs            item ID format, parsing and item construction
@@ -8,6 +8,7 @@
  *   src/files.mjs          gitignore-aware file collection
  *   src/parse-spec.mjs     spec parser per file extension
  *   src/parse-markdown.mjs Markdown item parser
+ *   src/parse-typst.mjs    Typst item parser
  *   src/languages.mjs      comment grammar per file extension
  *   src/parse-code.mjs     comment-aware code tag scanner
  *   src/analyze.mjs        coverage analysis
@@ -27,6 +28,7 @@ import { runCli } from './cli.mjs';
 export { UsageError } from './errors.mjs';
 export { collectFiles } from './files.mjs';
 export { parseMarkdown } from './parse-markdown.mjs';
+export { parseTypst } from './parse-typst.mjs';
 export { parseCode } from './parse-code.mjs';
 export { analyze } from './analyze.mjs';
 export { DEFECT_KINDS } from './defects.mjs';

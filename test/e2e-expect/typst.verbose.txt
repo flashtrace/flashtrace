@@ -1,0 +1,31 @@
+✔ utest:auth/login#1  auth.spec.ts:7  [deep-covered]
+    wanted by req:auth/login#1  spec.typ:14
+✔ utest:auth/logout#1  auth.spec.ts:13  [deep-covered]
+    wanted by req:auth/logout#1  spec.typ:25
+
+✔ impl:auth/login#1  login.ts:1  [deep-covered]
+    wanted by req:auth/login#1  spec.typ:14
+
+✔ impl:auth/logout#1  logout.ts:1  [deep-covered]
+    wanted by req:auth/logout#1  spec.typ:25
+
+✔ feat:auth#1 "Authentication"  spec.typ:2  [deep-covered]
+    needs req:auth/login#1  ✔ spec.typ:14
+    needs req:auth/logout#1  ✔ spec.typ:25
+✔ req:auth/login#1 "Login requires a valid session token"  spec.typ:14  [deep-covered]
+    needs impl:auth/login#1  ✔ login.ts:1
+    needs utest:auth/login#1  ✔ auth.spec.ts:7
+    covers feat:auth#1  ✔ spec.typ:2
+    wanted by feat:auth#1  spec.typ:2
+✔ req:auth/logout#1 "Logout revokes the session token"  spec.typ:25  [deep-covered]
+    needs impl:auth/logout#1  ✔ logout.ts:1
+    needs utest:auth/logout#1  ✔ auth.spec.ts:13
+    covers feat:auth#1  ✔ spec.typ:2
+    wanted by feat:auth#1  spec.typ:2
+
+Summary
+  items       7  (3 from specs, 4 from code)
+  ok          7
+  defective   0
+
+ok

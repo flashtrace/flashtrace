@@ -3,8 +3,11 @@
  * format spells them. `KEYWORDS` is the keyword vocabulary ("Needs", "Covers",
  * "Tags") and `applyKeyword` folds a keyword's entries into an item: Tags are
  * taken verbatim, Needs and Covers are parsed as references against the item
- * stating them. How a format finds those entries - a Markdown keyword line, a
- * bullet list, a table column - stays in that format's parser.
+ * stating them. The line layout of a keyword's entries - inline
+ * comma-separated, or a list on the following lines - is shared too
+ * (`keywordEntries`), parameterized by the format's list-marker regex. Where
+ * a format spells those constructs - the keyword line's shape, the list
+ * markers, a table column - stays in that format's parser.
  */
 
 import { parseCoverEntry, parseNeedEntry } from './ids.mjs';
@@ -30,6 +33,39 @@ const KEYWORD_HANDLERS = {
   Covers: { target: 'covers', parse: parseCoverEntry },
   Tags: { target: 'tags', parse: parseVerbatimKeyword },
 };
+
+// Entries of a keyword line: inline comma-separated, or a list on the
+// following lines - each line matching `listMarkerRe`, the format's list
+// regex, which captures the entry text as group 1. Each entry carries its own
+// source location (the column of its first character, and - for a list - the
+// line it sits on rather than the keyword line), so an invalid-ID problem
+// points at the entry itself. Returns the entries and the index of the last
+// consumed line.
+export function keywordEntries(lines, j, inline, listMarkerRe) {
+  if (inline.trim() !== '') {
+    // inline is the `$`-anchored tail of lines[j], so it begins at this offset
+    const inlineStart = lines[j].length - inline.length;
+    const entries = [];
+    let pos = 0;
+    for (const part of inline.split(',')) {
+      const value = part.trim();
+      if (value) {
+        const leading = part.length - part.trimStart().length;
+        entries.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
+      }
+      pos += part.length + 1; // + 1 for the consumed comma
+    }
+    return { entries, j };
+  }
+  const entries = [];
+  while (j + 1 < lines.length) {
+    const marker = lines[j + 1].match(listMarkerRe);
+    if (!marker) break;
+    entries.push({ value: marker[1].trim(), line: j + 2, character: lines[j + 1].indexOf(marker[1]) + 1 });
+    j++;
+  }
+  return { entries, j };
+}
 
 // `source` names where the entries were read from - the keyword line's list
 // or the table column the cell sits in - so a problem report points at the
