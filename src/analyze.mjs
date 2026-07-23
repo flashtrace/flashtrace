@@ -38,6 +38,12 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
   }
 }
 
+// the ID a duplicate defect (duplicate ID or duplicate forwarding) names:
+// spelled identically everywhere, that spelling; SemVer-equal spellings, the
+// canonical ID
+const displayedDuplicateId = (writtenIds, canonical) =>
+  writtenIds.every((id) => id === writtenIds[0]) ? writtenIds[0] : canonical;
+
 // forwarding chains must be acyclic (self-forwarding included); every
 // forwarding on a cycle is reported as a problem, voided, and has no effect
 function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
@@ -104,8 +110,10 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
     }
     // only the first declaration takes effect; later ones for the same source
     // are voided as duplicates (and flagged as a defect on the source item)
-    if (group.length > 1)
-      for (const item of sources) item.defects.push(duplicateForwarding(group[0].from, group.length));
+    if (group.length > 1) {
+      const shown = displayedDuplicateId(group.map((forward) => forward.from), from);
+      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length));
+    }
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {
       group[i].effective = false;
@@ -241,8 +249,7 @@ export function analyze(items, forwards = [], problems = []) {
 
   for (const [id, group] of byId) {
     if (group.length > 1) {
-      // written identically -> show that spelling; SemVer-equal spellings -> the canonical ID
-      const shown = group.every((item) => item.id === group[0].id) ? group[0].id : id;
+      const shown = displayedDuplicateId(group.map((item) => item.id), id);
       for (const item of group) item.defects.push(duplicateId(shown, group.length));
     }
   }

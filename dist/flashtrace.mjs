@@ -851,6 +851,7 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
     item.defects.push(unwantedItem(item.id));
   }
 }
+var displayedDuplicateId = (writtenIds, canonical) => writtenIds.every((id) => id === writtenIds[0]) ? writtenIds[0] : canonical;
 function dropCyclicForwards(forwardTargets, declarationBySource, problems) {
   const done = /* @__PURE__ */ new Set();
   for (const start of forwardTargets.keys()) {
@@ -905,8 +906,10 @@ function buildForwardMap(forwards, byId, neededIds, revHint, problems) {
       }
       continue;
     }
-    if (group.length > 1)
-      for (const item of sources) item.defects.push(duplicateForwarding(group[0].from, group.length));
+    if (group.length > 1) {
+      const shown = displayedDuplicateId(group.map((forward) => forward.from), from);
+      for (const item of sources) item.defects.push(duplicateForwarding(shown, group.length));
+    }
     group[0].effective = true;
     for (let i = 1; i < group.length; i++) {
       group[i].effective = false;
@@ -1007,7 +1010,7 @@ function analyze(items, forwards = [], problems = []) {
   const isNeeded = (id) => exactNeeds.has(canonicalId(id)) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
   for (const [id, group] of byId) {
     if (group.length > 1) {
-      const shown = group.every((item) => item.id === group[0].id) ? group[0].id : id;
+      const shown = displayedDuplicateId(group.map((item) => item.id), id);
       for (const item of group) item.defects.push(duplicateId(shown, group.length));
     }
   }

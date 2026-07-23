@@ -326,7 +326,8 @@ test('SemVer-equal source spellings group into one duplicate forwarding', () => 
     ],
   });
   const reqA = byId(items, 'req:a#1');
-  assert.match(reqA.defects[0].message, /^duplicate: forwarding for req:a#\S+ is declared 2 times/);
+  // differing SemVer-equal spellings name the duplicate canonically, like a duplicate ID
+  assert.match(reqA.defects[0].message, /^duplicate: forwarding for req:a#1\.0\.0 is declared 2 times/);
   assert.equal(reqA.forwardsTo, 'dsn:b#1'); // the first declaration stays effective
 });
 
