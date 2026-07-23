@@ -37,13 +37,11 @@ jobs:
           # GitHub computes mergeability lazily: right after a push the API
           # reports "mergeable": null while a background test merge runs.
           # Poll until it settles.
-          # One immediate check, then up to 6 retries 30 seconds apart - the
-          # last one roughly 3 minutes after the run started.
+          # Back off exponentially: check 0, 5, 15, 30, 60 and 120 seconds
+          # after the run started, then give up.
           mergeable=null
-          for attempt in $(seq 0 6); do
-            if [ "$attempt" -gt 0 ]; then
-              sleep 30
-            fi
+          for delay in 0 5 10 15 30 60; do
+            sleep "$delay"
             mergeable=$(gh api "repos/$REPO/pulls/$PR" --jq '.mergeable')
             if [ "$mergeable" != 'null' ]; then
               break
