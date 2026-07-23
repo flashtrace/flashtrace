@@ -307,6 +307,8 @@ function newItem(id, origin, file, line, character) {
     id,
     key: keyOf(id),
     revision: revOf(id),
+    canonicalId: canonicalId(id),
+    // the SemVer-equal identity every exact-ID lookup keys on
     origin,
     // 'spec' | 'code'
     file,
@@ -758,7 +760,7 @@ function collectTags(comment, file, line, state, items, problems) {
     if (m[8]) {
       const item = newItem(makeId(m[8], m[9], m[10], m[11]), "code", file, line, character);
       state.lastItem = item;
-      state.byId.set(canonicalId(item.id), item);
+      state.byId.set(item.canonicalId, item);
       items.push(item);
     } else {
       attachNeed(m, file, line, character, state, problems);
@@ -829,7 +831,7 @@ var duplicateForwarding = (from, count) => ({
 
 // src/analyze.mjs
 function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
-  const forwardTarget = forwardTargets.get(canonicalId(item.id));
+  const forwardTarget = forwardTargets.get(item.canonicalId);
   if (forwardTarget !== void 0) {
     if (!byId.has(canonicalId(forwardTarget)))
       item.defects.push(withRevisions(uncoveredForward(forwardTarget)));
@@ -847,7 +849,7 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
       item.defects.push(unwantedCover(coverId, item.id));
     }
   }
-  if (item.origin === "code" && !isNeeded(item.id)) {
+  if (item.origin === "code" && !isNeeded(item.canonicalId)) {
     item.defects.push(unwantedItem(item.id));
   }
 }
@@ -943,7 +945,7 @@ function markDeepCoverage(items, byId, matchesOf, forwardTargets) {
     return ok;
   };
   const needDeep = (need) => matchesOf(need).some((id) => deep(id));
-  for (const item of items) item.deepCovered = deep(canonicalId(item.id));
+  for (const item of items) item.deepCovered = deep(item.canonicalId);
 }
 function groupIdsByKey(byId) {
   const idsByKey = /* @__PURE__ */ new Map();
@@ -963,8 +965,7 @@ function buildWantedBy(items, byId, matchesOf) {
 function buildResolver(items) {
   const byId = /* @__PURE__ */ new Map();
   for (const item of items) {
-    const id = canonicalId(item.id);
-    (byId.get(id) ?? byId.set(id, []).get(id)).push(item);
+    (byId.get(item.canonicalId) ?? byId.set(item.canonicalId, []).get(item.canonicalId)).push(item);
   }
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
@@ -1007,7 +1008,7 @@ function analyze(items, forwards = [], problems = []) {
   for (const item of items)
     (revsByKey.get(item.key) ?? revsByKey.set(item.key, /* @__PURE__ */ new Set()).get(item.key)).add(item.revision);
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
-  const isNeeded = (id) => exactNeeds.has(canonicalId(id)) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
+  const isNeeded = (canonical) => exactNeeds.has(canonical) || wildcardNeeds.some((wildcard) => idMatches(wildcard, canonical));
   for (const [id, group] of byId) {
     if (group.length > 1) {
       const shown = displayedDuplicateId(group.map((item) => item.id), id);
@@ -1034,7 +1035,7 @@ function analyze(items, forwards = [], problems = []) {
   };
   const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
   for (const item of items) {
-    item.forwardsTo = forwardTargets.get(canonicalId(item.id)) ?? null;
+    item.forwardsTo = forwardTargets.get(item.canonicalId) ?? null;
     checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets);
   }
   markDeepCoverage(items, byId, matchesOf, forwardTargets);

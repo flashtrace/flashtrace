@@ -12,10 +12,11 @@ import { canonicalId, compareRev, idMatches, isWildcardRev, keyOf, revOf } from 
 // a forwarded item (source of an [A --> B] tag) has its own needs excused; its
 // coverage obligation is redirected to the target, checked here instead.
 // matchesOf(ref) returns the defined items satisfying a (possibly wildcard)
-// need; isNeeded(id) tells whether any need - exact or wildcard - wants that id.
+// need; isNeeded(canonical) tells whether any need - exact or wildcard - wants
+// the ID behind that canonical form.
 // withRevisions adds the revision-mismatch hint to a defect where it applies.
 function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets) {
-  const forwardTarget = forwardTargets.get(canonicalId(item.id));
+  const forwardTarget = forwardTargets.get(item.canonicalId);
   if (forwardTarget !== undefined) {
     if (!byId.has(canonicalId(forwardTarget)))
       item.defects.push(withRevisions(uncoveredForward(forwardTarget)));
@@ -33,7 +34,7 @@ function checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, for
       item.defects.push(unwantedCover(coverId, item.id));
     }
   }
-  if (item.origin === 'code' && !isNeeded(item.id)) {
+  if (item.origin === 'code' && !isNeeded(item.canonicalId)) {
     item.defects.push(unwantedItem(item.id));
   }
 }
@@ -151,7 +152,7 @@ function markDeepCoverage(items, byId, matchesOf, forwardTargets) {
     return ok;
   };
   const needDeep = (need) => matchesOf(need).some((id) => deep(id));
-  for (const item of items) item.deepCovered = deep(canonicalId(item.id));
+  for (const item of items) item.deepCovered = deep(item.canonicalId);
 }
 
 // defined IDs grouped by their key (everything but the revision), so a wildcard
@@ -184,8 +185,7 @@ function buildWantedBy(items, byId, matchesOf) {
 export function buildResolver(items) {
   const byId = new Map(); // canonical ID -> items (each keeps its raw item.id for display)
   for (const item of items) {
-    const id = canonicalId(item.id);
-    (byId.get(id) ?? byId.set(id, []).get(id)).push(item);
+    (byId.get(item.canonicalId) ?? byId.set(item.canonicalId, []).get(item.canonicalId)).push(item);
   }
   const idsByKey = groupIdsByKey(byId);
   const matchesOf = (ref) => (idsByKey.get(keyOf(ref)) ?? []).filter((id) => idMatches(ref, id));
@@ -242,10 +242,11 @@ export function analyze(items, forwards = [], problems = []) {
   for (const item of items)
     (revsByKey.get(item.key) ?? revsByKey.set(item.key, new Set()).get(item.key)).add(item.revision);
 
-  // is a code item wanted? an exact need matches by ID, a wildcard by pattern;
-  // forwarding targets are added to the exact set below
+  // is a code item wanted, by its canonical ID? an exact need matches by ID, a
+  // wildcard by pattern; forwarding targets are added to the exact set below
   const { exact: exactNeeds, wildcard: wildcardNeeds } = splitNeeds(items);
-  const isNeeded = (id) => exactNeeds.has(canonicalId(id)) || wildcardNeeds.some((wildcard) => idMatches(wildcard, id));
+  const isNeeded = (canonical) =>
+    exactNeeds.has(canonical) || wildcardNeeds.some((wildcard) => idMatches(wildcard, canonical));
 
   for (const [id, group] of byId) {
     if (group.length > 1) {
@@ -280,7 +281,7 @@ export function analyze(items, forwards = [], problems = []) {
   const forwardTargets = buildForwardMap(forwards, byId, exactNeeds, revHint, problems);
 
   for (const item of items) {
-    item.forwardsTo = forwardTargets.get(canonicalId(item.id)) ?? null; // effective forwarding target, for renderers
+    item.forwardsTo = forwardTargets.get(item.canonicalId) ?? null; // effective forwarding target, for renderers
     checkItemReferences(item, byId, matchesOf, isNeeded, withRevisions, forwardTargets);
   }
 

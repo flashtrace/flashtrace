@@ -258,7 +258,7 @@ function collectTags(comment, file, line, state, items, problems) {
       // [<id>] item tag
       const item = newItem(makeId(m[8], m[9], m[10], m[11]), 'code', file, line, character);
       state.lastItem = item;
-      state.byId.set(canonicalId(item.id), item);
+      state.byId.set(item.canonicalId, item);
       items.push(item);
     } else {
       attachNeed(m, file, line, character, state, problems);

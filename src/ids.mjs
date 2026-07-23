@@ -145,6 +145,7 @@ export function newItem(id, origin, file, line, character) {
     id,
     key: keyOf(id),
     revision: revOf(id),
+    canonicalId: canonicalId(id), // the SemVer-equal identity every exact-ID lookup keys on
     origin, // 'spec' | 'code'
     file,
     line,
