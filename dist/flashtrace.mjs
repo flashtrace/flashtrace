@@ -538,10 +538,522 @@ function parseMarkdown(file, text, problems, forwards = []) {
   return items;
 }
 
+// src/parse-typst.mjs
+var DEFINITION_RE2 = new RegExp(String.raw`^\s*\`${ID_SRC}\`\s*$`);
+var HEADING_RE2 = /^\s*=+\s+(\S(?:.*\S)?)\s*$/;
+var LABEL_RE = /\s*<[A-Za-z_][A-Za-z0-9_.:-]*>$/;
+var KEYWORD_RE2 = new RegExp(String.raw`^(?:\/\s+)?(${KEYWORDS.join("|")}):\s*((?:\S.*)?)$`);
+var BULLET_RE2 = /^\s*[-+]\s+(\S(?:.*\S)?)\s*$/;
+var FORWARD_LINE_RE2 = new RegExp(String.raw`^\s*\`${FORWARD_SRC}\`\s*$`);
+var BARE_FORWARD_LINE_RE = new RegExp(String.raw`^\s*${FORWARD_SRC}\s*$`);
+var TABLE_LINE_RE = /^\s*#table\(/;
+var IDENTIFIER_RE = /[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*/y;
+var DIGITS_RE = /\d+/y;
+var firstNonBlankColumn2 = (line) => line.search(/\S/) + 1;
+function maskCommentsAndRawBlocks(text) {
+  const out = text.split("");
+  const blank = (index) => {
+    if (out[index] !== "\n" && out[index] !== "\r") out[index] = " ";
+  };
+  let blockCommentDepth = 0;
+  let rawFence = 0;
+  let inRawSpan = false;
+  let i = 0;
+  while (i < text.length) {
+    const character = text[i];
+    if (character === "\n") {
+      inRawSpan = false;
+      i++;
+      continue;
+    }
+    if (blockCommentDepth > 0) {
+      if (character === "/" && text[i + 1] === "*") blockCommentDepth++;
+      else if (character === "*" && text[i + 1] === "/") blockCommentDepth--;
+      else {
+        blank(i);
+        i++;
+        continue;
+      }
+      blank(i);
+      blank(i + 1);
+      i += 2;
+      continue;
+    }
+    if (rawFence > 0 || character === "`" && !inRawSpan) {
+      let run = 0;
+      while (text[i + run] === "`") run++;
+      if (rawFence > 0) {
+        if (run === 0) {
+          blank(i);
+          i++;
+          continue;
+        }
+        for (let k = 0; k < run; k++) blank(i + k);
+        if (run >= rawFence) rawFence = 0;
+      } else if (run >= 3) {
+        for (let k = 0; k < run; k++) blank(i + k);
+        rawFence = run;
+      } else if (run === 1) {
+        inRawSpan = true;
+      }
+      i += Math.max(run, 1);
+      continue;
+    }
+    if (character === "`") {
+      inRawSpan = false;
+      i++;
+      continue;
+    }
+    if (!inRawSpan && character === "/" && text[i + 1] === "/") {
+      if (text[i - 1] === ":" && /[A-Za-z0-9]/.test(text[i - 2] ?? "")) {
+        i += 2;
+        continue;
+      }
+      while (i < text.length && text[i] !== "\n" && text[i] !== "\r") {
+        blank(i);
+        i++;
+      }
+      continue;
+    }
+    if (!inRawSpan && character === "/" && text[i + 1] === "*") {
+      blockCommentDepth = 1;
+      blank(i);
+      blank(i + 1);
+      i += 2;
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
+}
+function takeForward2(line, file, lineIndex, problems, forwards) {
+  const forward = line.match(FORWARD_LINE_RE2);
+  if (forward) {
+    forwards.push(makeForward(forward, 1, file, lineIndex + 1, firstNonBlankColumn2(line)));
+    return true;
+  }
+  const bare = line.match(BARE_FORWARD_LINE_RE);
+  if (bare) {
+    const from = makeId(bare[1], bare[2], bare[3], bare[4]);
+    const to = makeId(bare[5], bare[6], bare[7], bare[8]);
+    problems.push({
+      file,
+      line: lineIndex + 1,
+      character: firstNonBlankColumn2(line),
+      message: `bare forwarding tag [${from} --> ${to}]; a '#' outside backticks opens Typst code mode - wrap the tag in backticks`
+    });
+    return true;
+  }
+  return false;
+}
+function applyTypstKeyword(item, keyword, entries, file, problems, source) {
+  const accepted = [];
+  for (const entry of entries) {
+    const bareRevision = keyword !== "Tags" && entry.value.includes("#") && !(entry.value.length > 2 && entry.value.startsWith("`") && entry.value.endsWith("`"));
+    if (bareRevision) {
+      problems.push({
+        file,
+        line: entry.line,
+        character: entry.character,
+        message: `bare ID "${entry.value}" in ${source}; a '#' outside backticks opens Typst code mode - wrap the ID in backticks`
+      });
+      continue;
+    }
+    accepted.push(entry);
+  }
+  applyKeyword(item, keyword, accepted, file, problems, source);
+}
+function keywordEntries2(lines, j, inline) {
+  if (inline.trim() !== "") {
+    const inlineStart = lines[j].length - inline.length;
+    const entries2 = [];
+    let pos = 0;
+    for (const part of inline.split(",")) {
+      const value = part.trim();
+      if (value) {
+        const leading = part.length - part.trimStart().length;
+        entries2.push({ value, line: j + 1, character: inlineStart + pos + leading + 1 });
+      }
+      pos += part.length + 1;
+    }
+    return { entries: entries2, j };
+  }
+  const entries = [];
+  while (j + 1 < lines.length) {
+    const bullet = lines[j + 1].match(BULLET_RE2);
+    if (!bullet) break;
+    entries.push({ value: bullet[1].trim(), line: j + 2, character: lines[j + 1].indexOf(bullet[1]) + 1 });
+    j++;
+  }
+  return { entries, j };
+}
+function titleAbove2(lines, inTable, definitionIndex) {
+  for (let k = definitionIndex - 1; k >= 0; k--) {
+    const line = lines[k];
+    if (line.trim() === "") continue;
+    const heading = inTable[k] ? null : line.match(HEADING_RE2);
+    if (!heading) return null;
+    const title = heading[1].replace(LABEL_RE, "").trim();
+    return title === "" ? null : title;
+  }
+  return null;
+}
+var isBoundary2 = (lines, inTable, j) => !inTable[j] && (DEFINITION_RE2.test(lines[j]) || HEADING_RE2.test(lines[j]));
+function skipString(text, open) {
+  let i = open + 1;
+  while (i < text.length && text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+  return i + 1;
+}
+function skipBalanced(text, open) {
+  let depth = 0;
+  let inRawSpan = false;
+  let i = open;
+  while (i < text.length) {
+    const character = text[i];
+    if (character === "`") {
+      inRawSpan = !inRawSpan;
+      i++;
+      continue;
+    }
+    if (inRawSpan) {
+      i++;
+      continue;
+    }
+    if (character === '"') {
+      i = skipString(text, i);
+      continue;
+    }
+    if (character === "(" || character === "[") depth++;
+    else if (character === ")" || character === "]") {
+      depth--;
+      if (depth === 0) return i + 1;
+    }
+    i++;
+  }
+  return i;
+}
+function readContentBlock(text, open) {
+  const after = skipBalanced(text, open);
+  return { contentStart: open + 1, contentEnd: after - 1, after };
+}
+function skipToArgumentEnd(text, from) {
+  let i = from;
+  let inRawSpan = false;
+  while (i < text.length) {
+    const character = text[i];
+    if (character === "`") {
+      inRawSpan = !inRawSpan;
+      i++;
+      continue;
+    }
+    if (inRawSpan) {
+      i++;
+      continue;
+    }
+    if (character === ",") return i + 1;
+    if (character === ")") return i;
+    if (character === '"') {
+      i = skipString(text, i);
+      continue;
+    }
+    if (character === "(" || character === "[") {
+      i = skipBalanced(text, i);
+      continue;
+    }
+    i++;
+  }
+  return i;
+}
+function countTrackList(text, open) {
+  const after = skipBalanced(text, open);
+  let count = 0;
+  let sawEntry = false;
+  let i = open + 1;
+  while (i < after - 1) {
+    const character = text[i];
+    if (character === ",") {
+      if (sawEntry) count++;
+      sawEntry = false;
+      i++;
+      continue;
+    }
+    if (character === "(" || character === "[") {
+      i = skipBalanced(text, i);
+      sawEntry = true;
+      continue;
+    }
+    if (character === '"') {
+      i = skipString(text, i);
+      sawEntry = true;
+      continue;
+    }
+    if (/\S/.test(character)) sawEntry = true;
+    i++;
+  }
+  if (sawEntry) count++;
+  return { count, after };
+}
+function parseColumnsArgument(text, from) {
+  let i = from;
+  while (text[i] === " " || text[i] === "	") i++;
+  if (text[i] === "(") {
+    const tracks = countTrackList(text, i);
+    return { count: tracks.count || null, after: tracks.after };
+  }
+  DIGITS_RE.lastIndex = i;
+  const digits = DIGITS_RE.exec(text)?.[0];
+  if (digits && !/[.\w%]/.test(text[i + digits.length] ?? "")) {
+    return { count: Number(digits), after: i + digits.length };
+  }
+  return { count: null, after: skipToArgumentEnd(text, i) };
+}
+function collectCells(text, open) {
+  const cells = [];
+  let i = open + 1;
+  while (i < text.length && text[i] !== ")") {
+    const character = text[i];
+    if (character === "[") {
+      const block = readContentBlock(text, i);
+      cells.push(block);
+      i = block.after;
+      continue;
+    }
+    if (character === '"') {
+      i = skipString(text, i);
+      continue;
+    }
+    if (character === "(") {
+      i = skipBalanced(text, i);
+      continue;
+    }
+    i++;
+  }
+  return { cells, after: i + 1 };
+}
+var CELL_FREE_CALLS = /* @__PURE__ */ new Set(["table.hline", "table.vline"]);
+function scanTableCall(text, open) {
+  const cells = [];
+  let header = null;
+  let columnsCount = null;
+  let degraded = false;
+  let i = open + 1;
+  while (i < text.length && text[i] !== ")") {
+    const character = text[i];
+    if (character === "[") {
+      const block = readContentBlock(text, i);
+      cells.push(block);
+      i = block.after;
+      continue;
+    }
+    if (character === '"') {
+      i = skipString(text, i);
+      continue;
+    }
+    if (character === "(") {
+      i = skipBalanced(text, i);
+      continue;
+    }
+    IDENTIFIER_RE.lastIndex = i;
+    const identifier = IDENTIFIER_RE.exec(text)?.[0];
+    if (!identifier) {
+      i++;
+      continue;
+    }
+    let after = i + identifier.length;
+    while (text[after] === " " || text[after] === "	") after++;
+    if (text[after] === ":" && !identifier.includes(".")) {
+      if (identifier === "columns") {
+        const parsed = parseColumnsArgument(text, after + 1);
+        columnsCount = parsed.count;
+        i = parsed.after;
+      } else {
+        i = skipToArgumentEnd(text, after + 1);
+      }
+      continue;
+    }
+    if (text[after] === "(") {
+      if (identifier === "table.header") {
+        const collected = collectCells(text, after);
+        header = collected.cells;
+        i = collected.after;
+        continue;
+      }
+      if (identifier !== "table.footer" && !CELL_FREE_CALLS.has(identifier)) degraded = true;
+      i = skipBalanced(text, after);
+      while (text[i] === " " || text[i] === "	") i++;
+      if (text[i] === "[") i = readContentBlock(text, i).after;
+      continue;
+    }
+    i = after;
+  }
+  return { end: Math.min(i, text.length - 1), cells, header, columnsCount, degraded };
+}
+function makeCell(text, block, locate) {
+  const content = text.slice(block.contentStart, block.contentEnd);
+  const value = content.replace(/\s+/g, " ").trim();
+  const offset = content.search(/\S/);
+  const position = locate(block.contentStart + Math.max(offset, 0));
+  return { value, line: position.line, character: position.character };
+}
+function tableRecord(call, start, end, text, locate, file, problems) {
+  const count = call.columnsCount ?? (call.header ? call.header.length : null);
+  const usable = !call.degraded && Number.isInteger(count) && count > 0;
+  const allCells = call.cells.map((block) => makeCell(text, block, locate));
+  const headerCells = call.header ? call.header.map((block) => makeCell(text, block, locate)) : usable ? allCells.slice(0, count) : [];
+  if (!usable) {
+    const keywords = [
+      ...new Set([...headerCells, ...allCells].filter((cell) => isKeyword(cell.value)).map((cell) => cell.value))
+    ];
+    if (keywords.length > 0) {
+      const reason = call.degraded ? "a table.cell or unrecognized call makes the columns ambiguous" : "the column count is unknown";
+      problems.push({
+        file,
+        line: start.line,
+        character: start.character,
+        message: `a ${keywords.join("/")} column in a table the tracer cannot read (${reason}); the table contributes no entries`
+      });
+    }
+    return { end, hasKeywordColumns: false, keywordCells: [] };
+  }
+  const bodyCells = call.header ? allCells : allCells.slice(count);
+  const keywordByColumn = /* @__PURE__ */ new Map();
+  headerCells.forEach((cell, index) => {
+    if (isKeyword(cell.value)) keywordByColumn.set(index % count, cell.value);
+  });
+  const flagDefinition = (cell) => {
+    const definition = cell.value.match(DEFINITION_RE2);
+    if (definition) {
+      problems.push({
+        file,
+        line: cell.line,
+        character: cell.character,
+        message: `item ${makeId(definition[1], definition[2], definition[3], definition[4])} defined inside a table; a table cell is not an item definition`
+      });
+    }
+  };
+  const keywordCells = [];
+  headerCells.forEach((cell, index) => {
+    if (!keywordByColumn.has(index % count)) flagDefinition(cell);
+  });
+  bodyCells.forEach((cell, index) => {
+    const keyword = keywordByColumn.get(index % count);
+    if (keyword === void 0) flagDefinition(cell);
+    else if (cell.value !== "") keywordCells.push({ keyword, ...cell });
+  });
+  return { end, hasKeywordColumns: keywordByColumn.size > 0, keywordCells };
+}
+function scanTables2(lines, text, lineStarts, locate, file, problems) {
+  const inTable = new Array(lines.length).fill(false);
+  const tables = /* @__PURE__ */ new Map();
+  for (let j = 0; j < lines.length; j++) {
+    const start = lines[j].match(TABLE_LINE_RE);
+    if (!start) continue;
+    const call = scanTableCall(text, lineStarts[j] + start[0].length - 1);
+    const endLine = locate(call.end).line - 1;
+    for (let k = j; k <= endLine; k++) inTable[k] = true;
+    const startPosition = { line: j + 1, character: firstNonBlankColumn2(lines[j]) };
+    tables.set(j, tableRecord(call, startPosition, endLine, text, locate, file, problems));
+    j = endLine;
+  }
+  return { inTable, tables };
+}
+function makeLocator(lineStarts) {
+  return (index) => {
+    let low = 0;
+    let high = lineStarts.length - 1;
+    while (low < high) {
+      const mid = low + high + 1 >> 1;
+      if (lineStarts[mid] <= index) low = mid;
+      else high = mid - 1;
+    }
+    return { line: low + 1, character: index - lineStarts[low] + 1 };
+  };
+}
+function parseItemBody2(lines, tables, inTable, start, item, file, problems, forwards) {
+  let j = start;
+  let descriptionDone = false;
+  while (j < lines.length && !isBoundary2(lines, inTable, j)) {
+    const line = lines[j];
+    const table = tables.get(j);
+    if (table) {
+      if (table.hasKeywordColumns) descriptionDone = true;
+      for (const cell of table.keywordCells) {
+        applyTypstKeyword(item, cell.keyword, [cell], file, problems, `the ${cell.keyword} column of ${item.id}`);
+      }
+      j = table.end + 1;
+      continue;
+    }
+    if (takeForward2(line, file, j, problems, forwards)) {
+      j++;
+      continue;
+    }
+    const keywordMatch = line.match(KEYWORD_RE2);
+    if (keywordMatch) {
+      descriptionDone = true;
+      const collected = keywordEntries2(lines, j, keywordMatch[2]);
+      applyTypstKeyword(
+        item,
+        keywordMatch[1],
+        collected.entries,
+        file,
+        problems,
+        `${keywordMatch[1]}: list of ${item.id}`
+      );
+      j = collected.j;
+    } else if (line.trim() === "") {
+      if (item.description.length > 0) descriptionDone = true;
+    } else if (!descriptionDone) {
+      item.description.push(line.trim());
+    }
+    j++;
+  }
+  return j;
+}
+function parseTypst(file, text, problems, forwards = []) {
+  const masked = maskCommentsAndRawBlocks(text);
+  const lines = masked.split(/\r?\n/);
+  const lineStarts = [0];
+  for (let i2 = 0; i2 < masked.length; i2++) {
+    if (masked[i2] === "\n") lineStarts.push(i2 + 1);
+  }
+  const locate = makeLocator(lineStarts);
+  const { inTable, tables } = scanTables2(lines, masked, lineStarts, locate, file, problems);
+  const items = [];
+  let i = 0;
+  while (i < lines.length) {
+    const table = tables.get(i);
+    if (table) {
+      i = table.end + 1;
+      continue;
+    }
+    if (takeForward2(lines[i], file, i, problems, forwards)) {
+      i++;
+      continue;
+    }
+    const definition = lines[i].match(DEFINITION_RE2);
+    if (!definition) {
+      i++;
+      continue;
+    }
+    const item = newItem(
+      makeId(definition[1], definition[2], definition[3], definition[4]),
+      "spec",
+      file,
+      i + 1,
+      firstNonBlankColumn2(lines[i])
+    );
+    item.title = titleAbove2(lines, inTable, i);
+    i = parseItemBody2(lines, tables, inTable, i + 1, item, file, problems, forwards);
+    items.push(item);
+  }
+  return items;
+}
+
 // src/parse-spec.mjs
 var BY_EXT2 = {
   ".md": parseMarkdown,
-  ".markdown": parseMarkdown
+  ".markdown": parseMarkdown,
+  ".typ": parseTypst
 };
 var SPEC_EXT = new Set(Object.keys(BY_EXT2));
 var specParserFor = (ext) => BY_EXT2[ext] ?? null;
@@ -1276,9 +1788,9 @@ function reportJson(items, forwards, problems, cwd, opts = {}) {
 // src/cli.mjs
 var HELP = `Usage: flashtrace [options] [directory-or-file ...]
 
-Traces requirement coverage between Markdown specifications and source code
-(.ts, .js, .mjs, .sql, .vue). Defaults to the current directory. Files ignored
-by git are excluded.
+Traces requirement coverage between specifications (Markdown: .md, .markdown;
+Typst: .typ) and source code (.ts, .js, .mjs, .sql, .vue). Defaults to the
+current directory. Files ignored by git are excluded.
 
 Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
@@ -1437,5 +1949,6 @@ export {
   collectFiles,
   parseCode,
   parseMarkdown,
+  parseTypst,
   reportJson
 };

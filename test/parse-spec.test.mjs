@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { SPEC_EXT, specParserFor } from '../src/parse-spec.mjs';
 import { parseMarkdown } from '../src/parse-markdown.mjs';
+import { parseTypst } from '../src/parse-typst.mjs';
 import { KEYWORDS, isKeyword } from '../src/spec-items.mjs';
 
 // The dispatcher and the extension set are two views of one map, so they cannot
@@ -10,6 +11,7 @@ import { KEYWORDS, isKeyword } from '../src/spec-items.mjs';
 test('specParserFor resolves spec extensions to their parser', () => {
   assert.equal(specParserFor('.md'), parseMarkdown);
   assert.equal(specParserFor('.markdown'), parseMarkdown);
+  assert.equal(specParserFor('.typ'), parseTypst);
 });
 
 test('specParserFor returns null for non-spec extensions', () => {
@@ -20,7 +22,7 @@ test('specParserFor returns null for non-spec extensions', () => {
 });
 
 test('SPEC_EXT is exactly the set of dispatched extensions', () => {
-  assert.deepEqual([...SPEC_EXT].sort(), ['.markdown', '.md']);
+  assert.deepEqual([...SPEC_EXT].sort(), ['.markdown', '.md', '.typ']);
   for (const ext of SPEC_EXT) assert.notEqual(specParserFor(ext), null);
 });
 

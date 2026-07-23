@@ -12,9 +12,9 @@ import { reportJson } from './report-json.mjs';
 
 const HELP = `Usage: flashtrace [options] [directory-or-file ...]
 
-Traces requirement coverage between Markdown specifications and source code
-(.ts, .js, .mjs, .sql, .vue). Defaults to the current directory. Files ignored
-by git are excluded.
+Traces requirement coverage between specifications (Markdown: .md, .markdown;
+Typst: .typ) and source code (.ts, .js, .mjs, .sql, .vue). Defaults to the
+current directory. Files ignored by git are excluded.
 
 Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
