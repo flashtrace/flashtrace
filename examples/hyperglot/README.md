@@ -35,6 +35,7 @@ not repeated here - only what its grammar offers.
 | [hash/](hash/) | line |
 | [julia/](julia/) | line, block, nesting block |
 | [nim/](nim/) | line, block and doc block, both nesting |
+| [cmake/](cmake/) | line, bracket block |
 | [coffee/](coffee/) | two line markers, block with identical open and close |
 | [powershell/](powershell/) | line, block |
 | [hcl/](hcl/) | two line markers, block |
