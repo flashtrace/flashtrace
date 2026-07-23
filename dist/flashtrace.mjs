@@ -24,7 +24,7 @@ var cLike = { line: ["//"], block: [["/*", "*/"]] };
 var cLikeNested = { line: ["//"], block: [["/*", "*/", true]] };
 var php = { line: ["//", "#"], block: [["/*", "*/"]] };
 var hash = { line: ["#"], block: [] };
-var coffee = { line: ["#"], block: [["###", "###"]] };
+var coffee = { line: ["#", "####"], block: [["###", "###"]] };
 var julia = { line: ["#"], block: [["#=", "=#", true]] };
 var nim = { line: ["#"], block: [["#[", "]#", true], ["##[", "]##", true]] };
 var powershell = { line: ["#"], block: [["<#", "#>"]] };
