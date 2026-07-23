@@ -265,13 +265,18 @@ function newItem(id, origin, file, line, character) {
 // src/spec-items.mjs
 var KEYWORDS = ["Needs", "Covers", "Tags"];
 var isKeyword = (text) => KEYWORDS.includes(text);
+var REFERENCE_KEYWORDS = {
+  Needs: { target: "needs", parse: parseNeedEntry },
+  Covers: { target: "covers", parse: parseCoverEntry }
+};
 function applyKeyword(item, keyword, entries, file, problems, source) {
   if (keyword === "Tags") {
     for (const entry of entries) item.tags.push(entry.value);
     return;
   }
-  const target = keyword === "Needs" ? "needs" : "covers";
-  const parse = keyword === "Needs" ? parseNeedEntry : parseCoverEntry;
+  const reference = REFERENCE_KEYWORDS[keyword];
+  if (!reference) throw new Error(`applyKeyword: no handling for keyword "${keyword}"`);
+  const { target, parse } = reference;
   for (const entry of entries) {
     const id = parse(entry.value, item.id);
     if (id) item[target].push(id);
