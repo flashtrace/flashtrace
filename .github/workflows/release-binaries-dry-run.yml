@@ -1,0 +1,78 @@
+name: Release binaries dry run
+
+# Builds the Rust CLI for every release target on the runner matrix the real
+# release will use, and uploads the artifacts for inspection. Run by hand to
+# prove the cross-target toolchains and arm64 runners work before any release
+# depends on them; it publishes nothing.
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: rust
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+            setup: sudo apt-get update && sudo apt-get install -y musl-tools
+            test: true
+          - target: aarch64-unknown-linux-musl
+            runner: ubuntu-24.04-arm
+            setup: sudo apt-get update && sudo apt-get install -y musl-tools
+            test: true
+          - target: x86_64-apple-darwin
+            runner: macos-14
+            setup: ''
+            test: false # cross-compiled on the arm64 runner
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            setup: ''
+            test: true
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            setup: ''
+            test: true
+          - target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+            setup: ''
+            test: true
+    permissions:
+      contents: read # checkout only; the build runs locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install target prerequisites
+        if: matrix.setup != ''
+        shell: bash
+        run: ${{ matrix.setup }}
+
+      - name: Add the target
+        shell: bash
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Test on the target
+        if: matrix.test
+        shell: bash
+        run: cargo test --locked --target ${{ matrix.target }}
+
+      - name: Build the release binary
+        shell: bash
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Upload the binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flashtrace-${{ matrix.target }}
+          path: |
+            rust/target/${{ matrix.target }}/release/flashtrace
+            rust/target/${{ matrix.target }}/release/flashtrace.exe
+          retention-days: 7
