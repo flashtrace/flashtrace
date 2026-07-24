@@ -6,9 +6,11 @@
  * `errors` the user-facing error types, `parse_markdown` the Markdown
  * specification parser, `parse_spec` the format dispatch, `languages` the
  * comment grammars per file extension, `parse_code` the comment-aware code
- * tag scanner and `paths` the lexical path helpers std lacks.
+ * tag scanner, `analyze` the coverage analysis and `paths` the lexical path
+ * helpers std lacks.
  */
 
+pub mod analyze;
 pub mod defects;
 pub mod errors;
 pub mod ids;

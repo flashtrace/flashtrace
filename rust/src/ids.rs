@@ -312,6 +312,9 @@ pub struct Item {
     pub defects: Vec<Defect>,
     /// effective forwarding target, set by the analysis
     pub forwards_to: Option<String>,
+    /// deep-coverage verdict, set by the analysis: all needs exist and are
+    /// themselves deep-covered
+    pub deep_covered: bool,
 }
 
 pub fn new_item(id: &str, origin: Origin, file: &str, line: usize, character: usize) -> Item {
@@ -331,6 +334,7 @@ pub fn new_item(id: &str, origin: Origin, file: &str, line: usize, character: us
         tags: Vec::new(),
         defects: Vec::new(),
         forwards_to: None,
+        deep_covered: false,
     }
 }
 
