@@ -1,5 +1,8 @@
-# One toolchain for everyone: rustup installs and uses exactly this version in
-# every checkout and on CI, so builds and lints cannot drift between machines.
+# Explicit toolchain for pinned version to avoid any drift between machines.
+# Read more: https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file
 [toolchain]
 channel = "1.95.0"
+# "minimal" pins the base set (rustc, rust-std, cargo)
+profile = "minimal"
+# no local rust-docs
 components = ["rustfmt", "clippy"]
