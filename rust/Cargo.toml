@@ -1,0 +1,16 @@
+[package]
+name = "flashtrace"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+description = "Lightning-fast, reference-based requirement tracing"
+license = "Apache-2.0"
+repository = "https://github.com/flashtrace/flashtrace"
+# not published while the JavaScript implementation in src/ is the shipped one
+publish = false
+
+[dependencies]
+regex = "1"
+
+[dev-dependencies]
+serde_json = "1"

@@ -1,0 +1,5 @@
+# One toolchain for everyone: rustup installs and uses exactly this version in
+# every checkout and on CI, so builds and lints cannot drift between machines.
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]
