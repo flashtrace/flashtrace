@@ -1,7 +1,7 @@
 # Explicit toolchain for pinned version to avoid any drift between machines.
 # Read more: https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file
 [toolchain]
-channel = "1.95.0"
+channel = "1.97.1"
 # "minimal" pins the base set (rustc, rust-std, cargo)
 profile = "minimal"
 # no local rust-docs
