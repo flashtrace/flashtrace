@@ -188,7 +188,7 @@ mod tests {
     // the exact message wording is part of the byte-parity surface: the
     // plain-text and JSON reports carry it verbatim
     #[test]
-    fn every_factory_words_its_message_as_the_javascript_one_does() {
+    fn every_factory_words_its_message_as_expected() {
         let location = || Location {
             file: "f.md".to_string(),
             line: 2,
