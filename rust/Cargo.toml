@@ -2,10 +2,14 @@
 name = "flashtrace"
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.95"
-description = "Lightning-fast, reference-based requirement tracing"
-license = "Apache-2.0"
+rust-version = "1.97.1"
+description = "Lightning-fast, reference-based requirement tracing that works anywhere."
+readme = "README.md"
+homepage = "https://flashtrace.github.io/"
 repository = "https://github.com/flashtrace/flashtrace"
+license = "Apache-2.0"
+keywords = ["requirements", "traceability", "tracing", "coverage", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 # not published while the JavaScript implementation in src/ is the shipped one
 publish = false
 
