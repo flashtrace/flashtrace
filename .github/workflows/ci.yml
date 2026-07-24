@@ -9,41 +9,121 @@ on:
       - main
 
 jobs:
-  verify:
-    name: Build and test
+  lint:
+    name: Format and lint
     runs-on: ubuntu-latest
     permissions:
-      contents: read # checkout only; build, tests and npm pack run locally
+      contents: read # checkout only; rustfmt and clippy run locally
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      # rustup is preinstalled on every GitHub runner and installs the exact
+      # toolchain rust-toolchain.toml pins on first use
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Lint
+        run: cargo clippy --all-targets -- -D warnings
+
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    permissions:
+      contents: read # checkout only; the tests run locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Verify the crate packages
+        if: runner.os == 'Linux'
+        run: cargo package --locked --list > /dev/null
+
+  # The npm launcher and platform-package templates ship binaries only at
+  # release time; this keeps them packable and the launcher working meanwhile.
+  npm-packages:
+    name: npm launcher packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout only; the checks run locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
-          cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Parse the launcher
+        run: node --check npm/flashtrace/bin/flashtrace.js
 
-      - name: Build
-        run: pnpm build
+      - name: Verify every package packs
+        run: |
+          for package in npm/flashtrace npm/@flashtrace/*; do
+            (cd "$package" && npm pack --dry-run)
+          done
 
-      - name: Ensure committed dist/ matches a fresh build
-        run: git diff --exit-code -- dist/
+      - name: Run the launcher against a stub binary
+        run: |
+          stub_dir=npm/flashtrace/node_modules/@flashtrace/linux-x64/bin
+          mkdir --parents "$stub_dir"
+          printf '#!/bin/sh\necho "stub ran: $@"\nexit 42\n' > "$stub_dir/flashtrace"
+          chmod +x "$stub_dir/flashtrace"
+          set +e
+          output=$(node npm/flashtrace/bin/flashtrace.js --json 2>&1)
+          status=$?
+          set -e
+          rm -rf npm/flashtrace/node_modules
+          echo "$output"
+          test "$status" = 42
+          test "$output" = "stub ran: --json"
 
-      - name: Test
-        run: pnpm run test:coverage
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout only; coverage runs locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Verify publishable tarball
-        run: npm pack --dry-run
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
 
+      - name: Test the CI helper scripts
+        run: node --test .github/scripts/quality-badges.test.mjs
+
+      - name: Install cargo-llvm-cov and cargo-nextest
+        uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2.85.0
+        with:
+          tool: cargo-llvm-cov,cargo-nextest
+
+      # cargo-llvm-cov writes the report but not its directory; nextest's ci
+      # profile writes the JUnit report the test-count badge reads
+      - name: Measure test coverage
+        run: |
+          mkdir --parents coverage
+          cargo llvm-cov nextest --locked --profile ci --lcov --output-path coverage/lcov.info
+
+      # The badges script also fails the build when a source file appears in
+      # no coverage record. lib.rs is the one exemption: it holds only module
+      # declarations, which llvm has no code regions for; any executable line
+      # it ever gains is compiled into every test binary and brings the
+      # record with it.
       - name: Build quality badges
-        run: node .github/scripts/quality-badges.mjs coverage/lcov.info coverage/junit.xml src badges
+        run: |
+          node .github/scripts/quality-badges.mjs \
+            coverage/lcov.info target/nextest/ci/junit.xml src badges .rs --exempt lib.rs
 
       - name: Hand the quality badges to the publishing job
         if: github.event_name == 'push'
@@ -55,7 +135,7 @@ jobs:
 
   publish-badges:
     name: Publish quality badges
-    needs: verify
+    needs: coverage
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     # Serialize publications so two quickly merged PRs - or a merge and the

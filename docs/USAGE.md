@@ -1,8 +1,7 @@
 # Usage Guide
 
 flashtrace traces requirement coverage between Markdown specifications and
-source code. It has no runtime dependencies and runs anywhere Node.js ≥ 18 is
-available.
+source code. It ships as a single native binary with no runtime dependencies.
 
 ## Running
 

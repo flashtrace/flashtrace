@@ -21,9 +21,7 @@ use flashtrace::parse_markdown::parse_markdown;
 use flashtrace::report_json::{build_report_document, serialize_report_document};
 
 fn repo_path(relative: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join(relative)
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(relative)
 }
 
 fn schema() -> Value {
@@ -718,7 +716,7 @@ fn the_reference_document_reaches_a_problem() {
 fn every_committed_json_snapshot_matches_the_schema_and_its_invariants() {
     // every snapshot is checked before the test fails, so one run names all
     // the broken ones
-    let mut names: Vec<String> = std::fs::read_dir(repo_path("test/e2e-expect"))
+    let mut names: Vec<String> = std::fs::read_dir(repo_path("tests/e2e-expect"))
         .unwrap()
         .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
         .filter(|name| name.ends_with(".json.txt"))
@@ -727,7 +725,7 @@ fn every_committed_json_snapshot_matches_the_schema_and_its_invariants() {
     assert!(!names.is_empty(), "no JSON snapshots found to check");
     let mut errors = Vec::new();
     for name in &names {
-        let text = std::fs::read_to_string(repo_path("test/e2e-expect").join(name)).unwrap();
+        let text = std::fs::read_to_string(repo_path("tests/e2e-expect").join(name)).unwrap();
         let found = match serde_json::from_str::<Value>(&text) {
             Ok(document) => document_errors(&document),
             Err(error) => vec![format!("not JSON: {error}")],

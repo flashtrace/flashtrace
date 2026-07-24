@@ -1,6 +1,6 @@
 [package]
 name = "flashtrace"
-version = "0.0.0"
+version = "0.12.1"
 edition = "2024"
 rust-version = "1.97.1"
 description = "Lightning-fast, reference-based requirement tracing that works anywhere."
@@ -10,8 +10,8 @@ repository = "https://github.com/flashtrace/flashtrace"
 license = "Apache-2.0"
 keywords = ["requirements", "traceability", "tracing", "coverage", "cli"]
 categories = ["command-line-utilities", "development-tools"]
-# not published while the JavaScript implementation in src/ is the shipped one
-publish = false
+# the crate ships only its sources; examples and snapshots stay in the repository
+include = ["src/**", "LICENSE", "README.md"]
 
 [dependencies]
 regex = "1"

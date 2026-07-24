@@ -12,7 +12,7 @@ import {
   assertEverySourceFileMeasured,
   countTestCases,
   writeBadge,
-} from '../../.github/scripts/quality-badges.mjs';
+} from './quality-badges.mjs';
 
 // One scratch directory for every case that needs real files; removed at the end.
 const workDir = mkdtempSync(join(tmpdir(), 'quality-badges-'));
@@ -48,6 +48,9 @@ test('relativeToSourceDir strips the source prefix and rejects outsiders', () =>
   assert.equal(relativeToSourceDir('test/analyze.test.mjs', 'src'), null);
   // A sibling that merely starts with the same letters is not inside src/.
   assert.equal(relativeToSourceDir('sources/a.mjs', 'src'), null);
+  // absolute records (cargo-llvm-cov) anchor on the source directory
+  assert.equal(relativeToSourceDir('C:\\repo\\src\\ids.rs', 'src'), 'ids.rs');
+  assert.equal(relativeToSourceDir('/home/runner/repo/src/nested/deep.rs', 'src'), 'nested/deep.rs');
 });
 
 test('readLineCoverage weights each file by its size, not by its percentage', () => {
@@ -96,12 +99,18 @@ test('assertEverySourceFileMeasured passes when every source file was measured',
     ['a.mjs', 'nested/b.mjs'],
     ['a.mjs', 'nested/b.mjs'],
   );
-  assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir));
+  assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs'));
+});
+
+test('assertEverySourceFileMeasured skips exempt files', () => {
+  const { lcov, sourceDir } = sourceTreeAndReport(['a.mjs', 'lib.mjs'], ['a.mjs']);
+  assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['lib.mjs']));
+  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['other.mjs']), /lib\.mjs/);
 });
 
 test('assertEverySourceFileMeasured throws and names the file no test loaded', () => {
   const { lcov, sourceDir } = sourceTreeAndReport(['a.mjs', 'orphan.mjs'], ['a.mjs']);
-  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir), /orphan\.mjs/);
+  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs'), /orphan\.mjs/);
 });
 
 test('writeBadge writes an endpoint document with the schema version and a trailing newline', () => {
