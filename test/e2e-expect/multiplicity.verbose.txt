@@ -1,0 +1,47 @@
+✔ utest:order/create#1  order.spec.ts:6  [deep-covered]
+    wanted by req:order/create#1  spec.md:11
+✔ utest:order/cancel#1  order.spec.ts:11  [deep-covered]
+    wanted by req:order/cancel#1  spec.md:20
+
+✔ impl:order/create/repository#1  repository.ts:5  [deep-covered]
+    wanted by impl:order/create/route#1  routes.ts:3
+    wanted by req:order/create#1  spec.md:11
+✔ impl:order/cancel/repository#1  repository.ts:11  [deep-covered]
+    wanted by impl:order/cancel/service#1  service.ts:8
+    wanted by req:order/cancel#1  spec.md:20
+
+✔ impl:order/create/route#1  routes.ts:3  [deep-covered]
+    wanted by req:order/create#1  spec.md:11
+✔ impl:order/cancel/route#1  routes.ts:10  [deep-covered]
+    wanted by req:order/cancel#1  spec.md:20
+
+✔ impl:order/create/service#1  service.ts:3  [deep-covered]
+    wanted by impl:order/create/route#1  routes.ts:3
+    wanted by req:order/create#1  spec.md:11
+✔ impl:order/cancel/service#1  service.ts:8  [deep-covered]
+    wanted by req:order/cancel#1  spec.md:20
+
+✔ feat:order#1 "Order API"  spec.md:3  [deep-covered]
+    needs req:order/create#1  ✔ spec.md:11
+    needs req:order/cancel#1  ✔ spec.md:20
+✔ req:order/create#1 "Creating an order"  spec.md:11  [deep-covered]
+    needs impl:order/create/route#1  ✔ routes.ts:3
+    needs impl:order/create/service#1  ✔ service.ts:3
+    needs impl:order/create/repository#1  ✔ repository.ts:5
+    needs utest:order/create#1  ✔ order.spec.ts:6
+    covers feat:order#1  ✔ spec.md:3
+    wanted by feat:order#1  spec.md:3
+✔ req:order/cancel#1 "Cancelling an order"  spec.md:20  [deep-covered]
+    needs impl:order/cancel/route#1  ✔ routes.ts:10
+    needs impl:order/cancel/service#1  ✔ service.ts:8
+    needs impl:order/cancel/repository#1  ✔ repository.ts:11
+    needs utest:order/cancel#1  ✔ order.spec.ts:11
+    covers feat:order#1  ✔ spec.md:3
+    wanted by feat:order#1  spec.md:3
+
+Summary
+  items       11  (3 from specs, 8 from code)
+  ok          11
+  defective   0
+
+ok

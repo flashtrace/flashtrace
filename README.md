@@ -82,7 +82,7 @@ Read our [Usage Guide](docs/USAGE.md) for more details.
 Node >= 18 is required for flashtrace to work.
 
 Looking for a working setup to start from? The [examples/](examples/) folder
-holds four self-contained example projects, from a minimal clean trace to a
+holds seven self-contained example projects, from a minimal clean trace to a
 deliberately broken one showing every defect flashtrace reports. Each has a
 README, and the end-to-end tests verify their exact report output on every run.
 
