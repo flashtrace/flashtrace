@@ -21,31 +21,26 @@ jobs:
     name: Publish quality badges
     if: github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    # Serialize publications so two quickly merged PRs - or a merge and the
-    # version bump release.yml pushes on top of it - cannot race on the badges
-    # branch, where the loser would be rejected as non-fast-forward.
+    # Serialize publications so two quickly merged PRs cannot race on the
+    # badges branch, where the loser's ref update would be rejected as
+    # non-fast-forward.
     concurrency:
       group: publish-badges
       cancel-in-progress: false
-    # The `badges` branch only accepts pushes from the badges app (a ruleset
-    # blocks everyone else), so the push below runs on the app's token and
-    # GITHUB_TOKEN stays read-only. actions:read lets download-artifact reach
-    # into the completed CI run that triggered this one.
+    # This job runs no code from any checkout: workflow_run is a privileged
+    # trigger (githubactions:S7631), so nothing is checked out at all. The
+    # `badges` branch - an orphan branch holding nothing but the shields.io
+    # endpoint documents that README.md's Quality Summary reads - is compared
+    # and updated through the Git Data API below. Its ruleset only accepts
+    # updates from the badges app, so those calls run on the app's token and
+    # GITHUB_TOKEN carries just the actions:read that lets download-artifact
+    # reach into the completed CI run that triggered this one.
     permissions:
-      contents: read
       actions: read
     steps:
-      # The `badges` branch is an orphan branch holding nothing but the
-      # shields.io endpoint documents that README.md's Quality Summary reads.
-      # It shares no history with main and is never merged into it.
-      - name: Check out the badges branch
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          ref: badges
-          persist-credentials: false
-
       # The artifact lives on the CI run that triggered this workflow, not on
-      # this run - hence the explicit run-id and token.
+      # this run - hence the explicit run-id and token. It unpacks the two
+      # endpoint documents, coverage.json and tests.json, into the workspace.
       - name: Download the measured badges
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -60,25 +55,41 @@ jobs:
           app-id: ${{ vars.BADGES_APP_ID }}
           private-key: ${{ secrets.BADGES_APP_PRIVATE_KEY }}
 
-      # Author the commit as the badges app's bot user so it shows the app's
-      # name and avatar. GitHub resolves the identity from the author email,
-      # which embeds the bot's user id.
+      # Trees are content-addressed, so building the measured documents onto
+      # the branch tip's tree yields the tip's own tree id when nothing
+      # changed - the same "commit only when a number changed" the previous
+      # `git diff --cached --quiet` gave a working copy. Commits created with
+      # the app's installation token are attributed to the app's bot user and
+      # signed by GitHub without any author configuration.
       - name: Commit when a number changed
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
           REPO: ${{ github.repository }}
           # The commit CI measured; this run's own GITHUB_SHA points at main's
           # tip when the trigger fired, which may already have moved on.
           MEASURED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
-          git config user.name "${APP_SLUG}[bot]"
-          git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
-          git add coverage.json tests.json
-          if git diff --cached --quiet; then
+          head=$(gh api "repos/${REPO}/git/ref/heads/badges" --jq .object.sha)
+          base_tree=$(gh api "repos/${REPO}/git/commits/${head}" --jq .tree.sha)
+          coverage_blob=$(gh api "repos/${REPO}/git/blobs" -F content=@coverage.json -f encoding=utf-8 --jq .sha)
+          tests_blob=$(gh api "repos/${REPO}/git/blobs" -F content=@tests.json -f encoding=utf-8 --jq .sha)
+          new_tree=$(gh api "repos/${REPO}/git/trees" --input - --jq .sha <<EOF
+          {
+            "base_tree": "${base_tree}",
+            "tree": [
+              { "path": "coverage.json", "mode": "100644", "type": "blob", "sha": "${coverage_blob}" },
+              { "path": "tests.json", "mode": "100644", "type": "blob", "sha": "${tests_blob}" }
+            ]
+          }
+          EOF
+          )
+          if [ "$new_tree" = "$base_tree" ]; then
             echo 'Coverage and test count are unchanged; nothing to publish.'
             exit 0
           fi
-          git commit -m "chore: update quality badges for ${MEASURED_SHA:0:7}"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" HEAD:badges
+          commit=$(gh api "repos/${REPO}/git/commits" \
+            -f message="chore: update quality badges for ${MEASURED_SHA:0:7}" \
+            -f tree="$new_tree" -f "parents[]=$head" --jq .sha)
+          # Not forced, so a ref that moved since $head was read is rejected
+          # as non-fast-forward instead of overwritten.
+          gh api --method PATCH "repos/${REPO}/git/refs/heads/badges" -f sha="$commit"
