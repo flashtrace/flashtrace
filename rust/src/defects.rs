@@ -17,8 +17,8 @@
  * one. schemas/report/v0.json lists the same kinds and the tests hold the two
  * lists together.
  *
- * A mirror of ../src/defects.mjs. The JavaScript `ref` field is named
- * `reference` here (`ref` is a Rust keyword); it still serializes as `ref`.
+ * The report's `ref` field is named `reference` here (`ref` is a Rust
+ * keyword); it still serializes as `ref`.
  */
 
 /// every defect kind, in the order the schema lists them
@@ -34,7 +34,8 @@ pub const DEFECT_KINDS: [&str; 9] = [
     "cyclic-forwarding",
 ];
 
-/// A source position: 1-based line and 1-based UTF-16 column in a file.
+/// A source position: 1-based line and 1-based column in a file, the column
+/// counted in characters (Unicode scalar values).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Location {
     pub file: String,
@@ -185,7 +186,7 @@ mod tests {
         assert_eq!(unique.len(), DEFECT_KINDS.len());
     }
 
-    // the exact message wording is part of the byte-parity surface: the
+    // the exact message wording is part of the report surface: the
     // plain-text and JSON reports carry it verbatim
     #[test]
     fn every_factory_words_its_message_as_expected() {

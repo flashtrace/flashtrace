@@ -7,9 +7,8 @@
  * Omitted layers are zero, as SemVer defines: 2.4 and 2.4.0 name the same
  * revision (see canonical_rev / rev_matches).
  *
- * A mirror of ../src/ids.mjs. Ported regexes write `[0-9]` where the
- * JavaScript wrote `\d` and jscompat::JS_WHITESPACE_CLASS where it wrote `\s`
- * (see the policy in jscompat.rs); the expressions are otherwise verbatim.
+ * The grammar admits ASCII digits only, so the expressions write `[0-9]`
+ * rather than the Unicode-aware `\d`.
  */
 
 use std::sync::LazyLock;
@@ -17,7 +16,6 @@ use std::sync::LazyLock;
 use regex::{Captures, Regex};
 
 use crate::defects::Defect;
-use crate::jscompat::js_trim;
 
 const SEGMENT_SRC: &str = "[A-Za-z][A-Za-z0-9_.-]*";
 // concrete revision: X, X.Y or X.Y.Z (one to three numeric layers)
@@ -77,12 +75,7 @@ pub static COVER_REF_RE: LazyLock<Regex> = LazyLock::new(|| {
 // Contains two id_src captures (4 groups each); make_forward turns a match
 // into a forwarding record given the index of the first captured group.
 pub fn forward_src() -> String {
-    let whitespace = crate::jscompat::JS_WHITESPACE_CLASS;
-    format!(
-        r"\[{whitespace}*{}{whitespace}*-->{whitespace}*{}{whitespace}*\]",
-        id_src(),
-        id_src()
-    )
+    format!(r"\[\s*{}\s*-->\s*{}\s*\]", id_src(), id_src())
 }
 
 pub fn make_id(id_type: &str, group: Option<&str>, name: &str, rev: &str) -> String {
@@ -160,10 +153,7 @@ pub fn resolve_ref(id_type: &str, path: Option<&str>, rev: Option<&str>, owner_i
     )
 }
 
-// a revision layer with its leading zeros dropped - JavaScript's
-// String(Number(layer)) for the layer sizes the grammar admits in practice;
-// layers beyond 15 digits, where JavaScript falls into float notation, are
-// documented as out of parity scope
+// a revision layer with its leading zeros dropped
 fn canonical_layer(layer: &str) -> &str {
     let stripped = layer.trim_start_matches('0');
     if stripped.is_empty() { "0" } else { stripped }
@@ -258,7 +248,7 @@ pub fn id_matches(need: &str, id: &str) -> bool {
 /// text is not a valid reference.
 pub fn parse_need_entry(raw: &str, owner_id: &str) -> Option<String> {
     let cleaned = raw.replace('`', "");
-    let cleaned = js_trim(&cleaned);
+    let cleaned = cleaned.trim();
     REF_RE.captures(cleaned).map(|m| {
         resolve_ref(
             m.get(1).unwrap().as_str(),
@@ -274,7 +264,7 @@ pub fn parse_need_entry(raw: &str, owner_id: &str) -> Option<String> {
 /// completes from owner_id just the same.
 pub fn parse_cover_entry(raw: &str, owner_id: &str) -> Option<String> {
     let cleaned = raw.replace('`', "");
-    let cleaned = js_trim(&cleaned);
+    let cleaned = cleaned.trim();
     COVER_REF_RE.captures(cleaned).map(|m| {
         resolve_ref(
             m.get(1).unwrap().as_str(),
@@ -439,7 +429,6 @@ mod tests {
         }
     }
 
-    // the JavaScript reference completion these ports must reproduce
     #[test]
     fn references_complete_from_the_stating_item() {
         assert_eq!(

@@ -6,8 +6,6 @@
  * against the item stating them. How a format finds those entries - a
  * Markdown keyword line, a bullet list, a table column - stays in that
  * format's parser.
- *
- * A mirror of ../src/spec-items.mjs.
  */
 
 use crate::defects::{Location, invalid_reference};

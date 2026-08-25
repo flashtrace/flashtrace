@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 /// A mistake on the command line: reported as `error: <message>` followed by
-/// the help text, with exit code 2. Mirrors `UsageError` in ../src/errors.mjs.
+/// the help text, with exit code 2.
 #[derive(Debug)]
 pub struct UsageError(pub String);
 
