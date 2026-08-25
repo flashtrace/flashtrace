@@ -1,0 +1,397 @@
+{
+  "schemaVersion": 0,
+  "flashtrace": "<version>",
+  "ok": true,
+  "items": [
+    {
+      "id": "utest:order/create#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "order.spec.ts",
+      "line": 6,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:order/create#1",
+          "file": "spec.md",
+          "line": 11,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "utest:order/cancel#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "order.spec.ts",
+      "line": 11,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:order/cancel#1",
+          "file": "spec.md",
+          "line": 20,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:order/create/repository#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "repository.ts",
+      "line": 5,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "impl:order/create/route#1",
+          "file": "routes.ts",
+          "line": 3,
+          "character": 4
+        },
+        {
+          "id": "req:order/create#1",
+          "file": "spec.md",
+          "line": 11,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:order/cancel/repository#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "repository.ts",
+      "line": 11,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "impl:order/cancel/service#1",
+          "file": "service.ts",
+          "line": 8,
+          "character": 4
+        },
+        {
+          "id": "req:order/cancel#1",
+          "file": "spec.md",
+          "line": 20,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:order/create/route#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "routes.ts",
+      "line": 3,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:order/create/service#1",
+          "resolvedTo": [
+            "impl:order/create/service#1"
+          ]
+        },
+        {
+          "ref": "impl:order/create/repository#1",
+          "resolvedTo": [
+            "impl:order/create/repository#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:order/create#1",
+          "file": "spec.md",
+          "line": 11,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:order/cancel/route#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "routes.ts",
+      "line": 10,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:order/cancel#1",
+          "file": "spec.md",
+          "line": 20,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:order/create/service#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "service.ts",
+      "line": 3,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "impl:order/create/route#1",
+          "file": "routes.ts",
+          "line": 3,
+          "character": 4
+        },
+        {
+          "id": "req:order/create#1",
+          "file": "spec.md",
+          "line": 11,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:order/cancel/service#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "service.ts",
+      "line": 8,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:order/cancel/repository#1",
+          "resolvedTo": [
+            "impl:order/cancel/repository#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:order/cancel#1",
+          "file": "spec.md",
+          "line": 20,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "feat:order#1",
+      "title": "Order API",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 3,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "req:order/create#1",
+          "resolvedTo": [
+            "req:order/create#1"
+          ]
+        },
+        {
+          "ref": "req:order/cancel#1",
+          "resolvedTo": [
+            "req:order/cancel#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "req:order/create#1",
+      "title": "Creating an order",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 11,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:order/create/route#1",
+          "resolvedTo": [
+            "impl:order/create/route#1"
+          ]
+        },
+        {
+          "ref": "impl:order/create/service#1",
+          "resolvedTo": [
+            "impl:order/create/service#1"
+          ]
+        },
+        {
+          "ref": "impl:order/create/repository#1",
+          "resolvedTo": [
+            "impl:order/create/repository#1"
+          ]
+        },
+        {
+          "ref": "utest:order/create#1",
+          "resolvedTo": [
+            "utest:order/create#1"
+          ]
+        }
+      ],
+      "covers": [
+        {
+          "ref": "feat:order#1",
+          "status": "valid"
+        }
+      ],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:order#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:order/cancel#1",
+      "title": "Cancelling an order",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 20,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:order/cancel/route#1",
+          "resolvedTo": [
+            "impl:order/cancel/route#1"
+          ]
+        },
+        {
+          "ref": "impl:order/cancel/service#1",
+          "resolvedTo": [
+            "impl:order/cancel/service#1"
+          ]
+        },
+        {
+          "ref": "impl:order/cancel/repository#1",
+          "resolvedTo": [
+            "impl:order/cancel/repository#1"
+          ]
+        },
+        {
+          "ref": "utest:order/cancel#1",
+          "resolvedTo": [
+            "utest:order/cancel#1"
+          ]
+        }
+      ],
+      "covers": [
+        {
+          "ref": "feat:order#1",
+          "status": "valid"
+        }
+      ],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:order#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    }
+  ],
+  "forwards": [],
+  "problems": [],
+  "summary": {
+    "items": 11,
+    "specItems": 3,
+    "codeItems": 8,
+    "okItems": 11,
+    "defectiveItems": 0,
+    "shallowCoveredItems": 0,
+    "problems": 0
+  }
+}
