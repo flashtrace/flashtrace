@@ -444,7 +444,11 @@ test('-v groups items by file then line, with a blank line between files', async
     const one = res.stdout.indexOf('req:one#1');
     const two = res.stdout.indexOf('req:two#1');
     const three = res.stdout.indexOf('req:three#1');
-    assert.ok(one >= 0 && one < two && two < three, res.stdout);
+    assert.ok(one >= 0, res.stdout);
+    assert.ok(two >= 0, res.stdout);
+    assert.ok(three >= 0, res.stdout);
+    assert.ok(one < two, res.stdout);
+    assert.ok(two < three, res.stdout);
     assert.match(res.stdout, /req:two#1\s+a\.md:5\s+\[deep-covered\]\n\n✔ req:three#1/);
   });
 });
