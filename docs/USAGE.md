@@ -1,8 +1,7 @@
 # Usage Guide
 
 flashtrace traces requirement coverage between Markdown specifications and
-source code. It has no runtime dependencies and runs anywhere Node.js ≥ 18 is
-available.
+source code. It ships as a single native binary with no runtime dependencies.
 
 ## Running
 
@@ -14,6 +13,8 @@ Scans the given directories/files (default: current directory) for Markdown
 (`.md`, `.markdown`) and code files across many languages (C-family, Python,
 Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 [Code tags](code-tags.md) for the full list). Files ignored by git are excluded.
+Files are read as UTF-8: a leading byte-order mark is ignored, and bytes that do
+not decode are replaced by U+FFFD rather than failing the run.
 
 | Option | Effect |
 |---|---|

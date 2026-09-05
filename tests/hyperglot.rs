@@ -32,7 +32,7 @@ use flashtrace::parse_code::parse_code;
 use flashtrace::paths::extension_of;
 
 fn root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../examples/hyperglot")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/hyperglot")
 }
 
 const MARKDOWN: [&str; 2] = ["md", "markdown"];

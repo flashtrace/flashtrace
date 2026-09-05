@@ -63,10 +63,10 @@
         README is viewed on.
     -->
     <a href="https://github.com/flashtrace/flashtrace/actions/workflows/ci.yml">
-        <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fflashtrace%2Fflashtrace%2Fbadges%2Fcoverage.json" alt="Line coverage of src/, measured by node --test." />
+        <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fflashtrace%2Fflashtrace%2Fbadges%2Fcoverage.json" alt="Line coverage of src/." />
     </a>
     <a href="https://github.com/flashtrace/flashtrace/actions/workflows/ci.yml">
-        <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fflashtrace%2Fflashtrace%2Fbadges%2Ftests.json" alt="Number of tests run by node --test." />
+        <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fflashtrace%2Fflashtrace%2Fbadges%2Ftests.json" alt="Number of tests." />
     </a>
 </p>
 
@@ -74,12 +74,11 @@
 
 To use flashtrace in your project,
 
-- either download `dist/flashtrace.mjs` into your own repository and run `node flashtrace.mjs`
-- or run `npm install flashtrace -D` to add it as a proper dev dependency to your project.
+- run `npm install flashtrace -D` to add it as a dev dependency (a prebuilt native binary; `npx flashtrace` runs the tracing),
+- or `cargo install flashtrace` to build it from the published crate,
+- or download the binary for your platform from the [releases](https://github.com/flashtrace/flashtrace/releases).
 
-You can then execute `npx flashtrace` to run the tracing.
 Read our [Usage Guide](docs/USAGE.md) for more details.
-Node >= 18 is required for flashtrace to work.
 
 Looking for a working setup to start from? The [examples/](examples/) folder
 holds seven self-contained example projects, from a minimal clean trace to a
