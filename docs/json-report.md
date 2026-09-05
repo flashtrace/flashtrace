@@ -48,6 +48,6 @@ An item's incoming edges are therefore `wantedBy` (something declares a need it 
 
 The same input processed by the same flashtrace version produces a byte-identical document. The schema cannot express that, so the guarantees are stated here:
 
-- Every array is ordered deterministically: entries that carry a source location sort by it, entries that mirror a declaration keep declaration order.
+- Every array is ordered deterministically: entries that carry a source location sort by it (file paths in code-point order, then line, then character), entries that mirror a declaration keep declaration order.
 - Object keys serialize in a fixed order.
 - The document is UTF-8, two-space indented, free of ANSI escapes and ends with a single newline.

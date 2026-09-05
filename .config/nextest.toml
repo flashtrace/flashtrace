@@ -1,0 +1,4 @@
+# The ci profile exists for the JUnit report the quality badges read their
+# test count from; local `cargo test` and `cargo nextest run` need no profile.
+[profile.ci.junit]
+path = "junit.xml"

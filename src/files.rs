@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn collect_files_takes_a_single_file_verbatim_and_rejects_a_missing_path() {
-        let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/../examples/basic/spec.md");
+        let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic/spec.md");
         let collected = collect_files(&[manifest.to_string()]).unwrap();
         assert_eq!(collected.len(), 1);
         assert!(collected[0].ends_with("spec.md"));
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn collect_files_filters_to_known_extensions_and_sorts_in_code_point_order() {
-        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/../examples/basic");
+        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic");
         let collected = collect_files(&[example.to_string()]).unwrap();
         // examples/basic holds spec.md, login.ts and a README the filter drops
         let names: Vec<&str> = collected
@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn collected_paths_are_absolute_and_normalized() {
-        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/../examples/./basic");
+        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/./basic");
         let collected = collect_files(&[example.to_string()]).unwrap();
         for file in &collected {
             assert!(Path::new(file).is_absolute(), "{file}");
