@@ -1,0 +1,27 @@
+{
+  "name": "flashtrace",
+  "version": "0.0.0",
+  "description": "Lightning-fast, reference-based requirement tracing",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flashtrace/flashtrace.git"
+  },
+  "bin": {
+    "flashtrace": "bin/flashtrace.js"
+  },
+  "files": [
+    "bin/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@flashtrace/darwin-arm64": "0.0.0",
+    "@flashtrace/darwin-x64": "0.0.0",
+    "@flashtrace/linux-arm64": "0.0.0",
+    "@flashtrace/linux-x64": "0.0.0",
+    "@flashtrace/win32-arm64": "0.0.0",
+    "@flashtrace/win32-x64": "0.0.0"
+  }
+}
