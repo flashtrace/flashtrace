@@ -19,7 +19,7 @@ jobs:
           # first parent (the base branch tip) available for comparison.
           fetch-depth: 2
 
-      - name: Ensure package.json "version" is unchanged
+      - name: Ensure the release-owned version fields are unchanged
         run: |
           # cat-file -e cannot distinguish "file absent on base" from "HEAD^1
           # unresolvable"; verify the parent first so a broken checkout (e.g.
@@ -28,22 +28,66 @@ jobs:
             echo '::error::Cannot resolve HEAD^1; the guard needs fetch-depth: 2 on checkout.'
             exit 1
           fi
-          if ! git cat-file -e HEAD^1:package.json 2>/dev/null; then
-            echo 'package.json does not exist on the base branch; nothing to guard.'
+
+          # One extractor per file shape. A file absent on either side has
+          # nothing to compare: adding or removing a versioned file is a
+          # visible, reviewable act, while silently editing the number inside
+          # one is what this guard blocks.
+          version_of() {
+            case "$1" in
+              *.json) node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version' ;;
+              Cargo.toml) sed -n 's/^version = "\(.*\)"$/\1/p' | head -1 ;;
+              Cargo.lock) awk '/^name = "flashtrace"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' ;;
+            esac
+          }
+          guard() {
+            file=$1
+            if ! git cat-file -e "HEAD^1:$file" 2>/dev/null; then
+              echo "$file does not exist on the base branch; nothing to guard."
+              return 0
+            fi
+            if [ ! -f "$file" ]; then
+              echo "$file was removed by this PR; the removal is reviewed as such."
+              return 0
+            fi
+            base_version=$(git show "HEAD^1:$file" | version_of "$file")
+            pr_version=$(version_of "$file" < "$file")
+            echo "$file base: $base_version, PR: $pr_version"
+            if [ "$base_version" != "$pr_version" ]; then
+              echo "::error file=$file::The version must not be changed in a PR. It is bumped automatically by the release workflow (release:* labels)."
+              exit 1
+            fi
+          }
+
+          guard package.json
+          guard Cargo.toml
+          guard Cargo.lock
+          guard npm/flashtrace/package.json
+          for manifest in npm/@flashtrace/*/package.json; do
+            [ -f "$manifest" ] && guard "$manifest"
+          done
+
+      - name: Ensure the platform-package pins match the main npm package
+        run: |
+          # The optionalDependencies pins ride the same release bump as the
+          # versions; a PR must leave them alone too.
+          if [ ! -f npm/flashtrace/package.json ]; then
+            echo 'No npm main package; nothing to check.'
             exit 0
           fi
-          base_version=$(git show HEAD^1:package.json | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
-          pr_version=$(node -p 'require("./package.json").version')
-          echo "Base version: $base_version"
-          echo "PR version:   $pr_version"
-          if [ "$base_version" != "$pr_version" ]; then
-            echo '::error file=package.json::The "version" field must not be changed in a PR. It is bumped automatically by the release workflow (release:* labels).'
-            exit 1
-          fi
+          node -e '
+            const manifest = require("./npm/flashtrace/package.json");
+            const pins = Object.values(manifest.optionalDependencies ?? {});
+            const mismatched = pins.filter((pin) => pin !== manifest.version);
+            if (mismatched.length > 0) {
+              console.error(`optionalDependencies pins ${mismatched.join(", ")} do not match version ${manifest.version}`);
+              process.exit(1);
+            }
+          '
 
       - name: Ensure CITATION.cff release fields are unchanged
         run: |
-          # Same shape as the package.json guard above: HEAD^1 is already
+          # Same shape as the version guard above: HEAD^1 is already
           # verified, and a file absent from the base branch (the PR that adds
           # it) has nothing to compare against.
           if ! git cat-file -e HEAD^1:CITATION.cff 2>/dev/null; then

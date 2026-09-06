@@ -1,7 +1,7 @@
 /*
  * End-to-end suite: runs the built CLI over the example projects under
  * examples/ and compares full stdout byte-for-byte against the snapshot files
- * in test/e2e-expect/. Each example is copied to a fresh temp directory first,
+ * in tests/e2e-expect/. Each example is copied to a fresh temp directory first,
  * so the run is isolated from this repository's git metadata and file
  * collection uses the deterministic walk + sort path.
  *
@@ -17,9 +17,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 
 fn repo_path(relative: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join(relative)
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(relative)
 }
 
 // one CLI run per row: example directory, arguments, expected exit code; the
@@ -133,7 +131,7 @@ fn every_example_output_matches_its_snapshot() {
         );
 
         let actual = normalize(&stdout);
-        let file = repo_path("test/e2e-expect").join(format!("{example}.{variant}.txt"));
+        let file = repo_path("tests/e2e-expect").join(format!("{example}.{variant}.txt"));
         if update {
             std::fs::write(&file, &actual).unwrap();
         }

@@ -11,13 +11,13 @@ This is intended to give you some structural guidance.
 | Folder        | Purpose                                                     |
 |---------------|-------------------------------------------------------------|
 | src/          | Source code. Where you make edits most likely.              |
-| test/         | Test code. Use `pnpm test` to execute them.                 |
+| tests/        | Integration tests and the e2e snapshots (`tests/e2e-expect/`). |
 | docs/         | Exact Documentation ("spec-driven"). Written in Markdown.   |
-| dist/         | Generated build output.                                     |
+| npm/          | The npm packages: the launcher and the platform binaries.   |
 | .github/      | Continuous integration workflows and more.                  |
 
-We try to keep dev dependencies to a minimum.
-We try to keep (runtime) dependencies to zero.
+We keep dev dependencies to a minimum.
+We keep runtime dependencies to the approved set: `regex`, `serde` and `serde_json`.
 
 ## The Commands
 
@@ -25,11 +25,11 @@ This is intended to give you a quick but complete overview.
 
 | Cmd           | Purpose                                         |
 |---------------|-------------------------------------------------|
-| `pnpm build`  | Run esbuild, bundling from 'src/' to 'dist/'.   |
-| `pnpm test`   | Run all tests under 'test/'.                    |
-| `pnpm run test:coverage` | Run the same tests, writing an lcov and a JUnit report to 'coverage/'. Needs Node 22.5 or newer; `pnpm test` does not. |
+| `cargo build` | Build the CLI.                                  |
+| `cargo test`  | Run all tests, unit and integration.            |
+| `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` | The lint gates CI enforces. |
 
-The coverage run measures 'src/' alone, and every file in it has to be reachable from the test suite - an unreachable one is never loaded, so it would silently leave the measurement rather than lower it. The run fails when that happens.
+CI additionally measures coverage with `cargo llvm-cov`, and every file under 'src/' has to appear in the measurement - a file missing from the report would silently leave the ratio rather than lower it, so the run fails when that happens (lib.rs, holding only module declarations, is the one exemption).
 
 ## Our Workflow
 
@@ -66,9 +66,6 @@ gitGraph
 
 ### Some Constraints
 
-Your commited `dist/` must match a fresh build.
-You can verify this with `git diff --exit-code -- dist/`.
-
-Never bump `package.json` version manually; releases are PR-label driven per GitHub workflow and bump that automatically (as you can see in the above mermaid diagram as well).
+Never bump a version manually - not in `Cargo.toml`, `Cargo.lock`, the `npm/` manifests, nor `CITATION.cff`; releases are PR-label driven per GitHub workflow and bump them all automatically (as you can see in the above mermaid diagram as well).
 
 Write identifiers out in full; the abbreviations we do use are collected in [ABBREVIATIONS.md](ABBREVIATIONS.md).

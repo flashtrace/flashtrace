@@ -1,6 +1,0 @@
-# esbuild's install script only relinks the platform binary that its
-# optionalDependencies already provide, and the build resolves that binary
-# without it. Denying the script keeps a local install free of lifecycle code,
-# matching the --ignore-scripts installs the workflows run.
-allowBuilds:
-  esbuild: false

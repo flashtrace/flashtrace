@@ -8,6 +8,10 @@ name: Release
 # reviewed, merged content, so the run always has the repository's full
 # context - regardless of where the PR came from. The gate job recovers the
 # release label from the PR whose merge produced the pushed commit.
+#
+# The version is compiled into the binary, so the bump comes first: the bump
+# job commits and tags the new version, the build matrix builds that tag for
+# every target, and the release job publishes what was built.
 on:
   push:
     branches:
@@ -37,7 +41,7 @@ jobs:
         run: |
           # The PR whose merge produced this commit. A push with no such PR
           # (e.g. the version bump commit this workflow itself pushes) yields
-          # no labels, so the release job is skipped.
+          # no labels, so the release is skipped.
           labels=$(gh api "repos/$REPO/commits/$SHA/pulls" \
             --jq '[.[] | select(.merge_commit_sha == env.SHA) | .labels[].name] | join(" ")')
           level=""
@@ -48,94 +52,29 @@ jobs:
           esac
           echo "level=$level" >> "$GITHUB_OUTPUT"
 
-  # Everything that executes repository-controlled code (dependency install
-  # scripts, esbuild, the tests) runs here, in a job that holds no secrets and
-  # no id-token permission: nothing this job executes can reach the release
-  # credentials or npm's OIDC token exchange. The release job below publishes
-  # the committed dist/ only after this job has proven it identical to a fresh
-  # build.
-  build:
-    name: Build and test
+  # This job holds the app key for pushing to main and in exchange executes no
+  # repository-controlled code: the version arithmetic and every file edit are
+  # plain shell, each edit verified so a reshaped file fails the release
+  # instead of shipping a half-bumped tree.
+  bump:
+    name: Bump version and tag
     needs: gate
     if: needs.gate.outputs.level != ''
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # the push below uses the app token, not GITHUB_TOKEN
     outputs:
-      sha: ${{ steps.head.outputs.sha }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       # The tip of main, not github.sha: if another PR merged while this run
       # was queued, the release ships that newer - still reviewed and merged -
       # content under this run's label, and the newer push's own run reads its
-      # own label. Pinning github.sha instead would leave the bump push below
-      # permanently non-fast-forwardable whenever a second merge lands first.
+      # own label.
       - name: Checkout main
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: main
           persist-credentials: false
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-
-      - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      - name: Build
-        run: pnpm build
-
-      - name: Test
-        run: pnpm test
-
-      - name: Verify committed dist/ matches a fresh build
-        run: git diff --exit-code -- dist/
-
-      - name: Record the verified commit
-        id: head
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-  # This job holds the release credentials (id-token for npm trusted
-  # publishing, the app key for pushing to main) and in exchange executes no
-  # repository-controlled code: the checkout keeps no credentials, npm runs
-  # with --ignore-scripts (package.json's prepack would otherwise rebuild -
-  # and run repo code - right here), and the published tarball contains the
-  # committed dist/ that the build job verified.
-  release:
-    name: Bump version and publish
-    needs: [gate, build]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read # pushes and the GitHub Release use the app token below, not GITHUB_TOKEN
-      id-token: write # npm trusted publishing (OIDC) with provenance
-    steps:
-      - name: Checkout main
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          ref: main
-          persist-credentials: false
-
-      # Publish exactly what the build job verified; if main moved in
-      # between, fail and let a re-run of all jobs verify the new tip.
-      - name: Verify main still points at the verified commit
-        env:
-          BUILT_SHA: ${{ needs.build.outputs.sha }}
-        run: |
-          head=$(git rev-parse HEAD)
-          if [ "$head" != "$BUILT_SHA" ]; then
-            echo "main moved from $BUILT_SHA to $head since the build job ran; re-run all jobs." >&2
-            exit 1
-          fi
-
-      - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 22
 
       # main is protected by a ruleset that GITHUB_TOKEN cannot bypass; the
       # release app is on the ruleset's bypass list, so its token may push the
@@ -150,12 +89,6 @@ jobs:
       # Author the bump commit as the release app's bot user so it shows the
       # app's name and avatar. GitHub resolves the identity from the author
       # email, which embeds the bot's user id.
-      #
-      # The commit and tag are hand-rolled rather than left to npm: the release
-      # carries CITATION.cff's "version" and "date-released" alongside
-      # package.json's version, and npm version refuses to run at all with
-      # another file staged ("Git working directory not clean"). So npm only
-      # rewrites package.json (--no-git-tag-version) and git does the rest.
       - name: Bump version
         id: version
         env:
@@ -166,40 +99,66 @@ jobs:
           bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
-          npm version "$LEVEL" --no-git-tag-version --ignore-scripts
-          version=$(node -p "require('./package.json').version")
+
+          current=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          IFS=. read -r major minor patch <<< "$current"
+          case "$LEVEL" in
+            major) version="$((major + 1)).0.0" ;;
+            minor) version="${major}.$((minor + 1)).0" ;;
+            patch) version="${major}.${minor}.$((patch + 1))" ;;
+          esac
+          echo "Bumping ${current} -> ${version} (${LEVEL})"
+
+          # Cargo.toml carries the version once, at the top of [package];
+          # Cargo.lock in the package's own [[package]] block.
+          sed -i "0,/^version = \".*\"$/s//version = \"${version}\"/" Cargo.toml
+          sed -i "/^name = \"flashtrace\"$/{n;s/^version = .*/version = \"${version}\"/}" Cargo.lock
+
+          # The npm manifests: each package's own version, and the main
+          # package's optionalDependencies pins.
+          for manifest in npm/flashtrace/package.json npm/@flashtrace/*/package.json; do
+            sed -i "s/^  \"version\": \".*\"/  \"version\": \"${version}\"/" "$manifest"
+          done
+          sed -i "s|\(\"@flashtrace/[a-z0-9-]*\": \"\)[^\"]*\"|\1${version}\"|g" npm/flashtrace/package.json
 
           # Carry the same version into the citation metadata, dated with the
-          # UTC day of this run. Rewriting the two lines in place keeps the
-          # file's comments, ordering, and quoting intact and needs no YAML
-          # parser - this job installs nothing and runs no repository code.
-          # Each edit is verified, so a renamed or reformatted field fails the
-          # release instead of shipping stale citation metadata.
-          for field in "version:$version" "date-released:$(date -u +%Y-%m-%d)"; do
+          # UTC day of this run. Rewriting the lines in place keeps the files'
+          # comments, ordering, and quoting intact and needs no parser - this
+          # job installs nothing and runs no repository code.
+          for field in "version:${version}" "date-released:$(date -u +%Y-%m-%d)"; do
             key=${field%%:*}
             value=${field#*:}
             if ! grep -q "^${key}: " CITATION.cff; then
-              echo "::error file=CITATION.cff::No \"${key}\" field to update; the release keeps it in sync with package.json."
+              echo "::error file=CITATION.cff::No \"${key}\" field to update; the release keeps it in sync with Cargo.toml."
               exit 1
             fi
             sed -i "s|^${key}: .*|${key}: \"${value}\"|" CITATION.cff
-            if [ "$(sed -n "s|^${key}: ||p" CITATION.cff)" != "\"${value}\"" ]; then
-              echo "::error file=CITATION.cff::Failed to set \"${key}\" to \"${value}\"."
-              exit 1
-            fi
           done
+
+          # Every edit verified: the bumped version must now appear exactly
+          # where it belongs, nowhere stale.
+          test "$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)" = "$version"
+          test "$(awk '/^name = "flashtrace"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' Cargo.lock)" = "$version"
+          for manifest in npm/flashtrace/package.json npm/@flashtrace/*/package.json; do
+            test "$(node -p "require('./$manifest').version")" = "$version"
+          done
+          node -e '
+            const manifest = require("./npm/flashtrace/package.json");
+            const stale = Object.values(manifest.optionalDependencies).filter((pin) => pin !== manifest.version);
+            if (stale.length > 0) { console.error(`stale pins: ${stale}`); process.exit(1); }
+          '
+          test "$(sed -n 's|^version: ||p' CITATION.cff)" = "\"$version\""
 
           # The skip-checks trailer stops the bump push from creating runs of
           # the push-triggered workflows, which have nothing to do on this
-          # commit: CI verified this exact tree moments ago, the communicator
-          # already refreshed its comments on the merge push via its bump
-          # anticipation, and this workflow itself would only log a skipped
-          # run. The trailer lives in the commit body, keeping the subject a
-          # clean "release: vX.Y.Z". GitHub only honors it after two empty
-          # lines, which git's default message cleanup would collapse into
-          # one - hence verbatim.
+          # commit: CI verified this tree on the merge push moments ago, and
+          # this workflow itself would only log a skipped run. The trailer
+          # lives in the commit body, keeping the subject a clean
+          # "release: vX.Y.Z". GitHub only honors it after two empty lines,
+          # which git's default message cleanup would collapse into one -
+          # hence verbatim.
           git config commit.cleanup verbatim
-          git add package.json CITATION.cff
+          git add Cargo.toml Cargo.lock npm CITATION.cff
           git commit -m "release: v${version}"$'\n\n\n'"skip-checks: true"
           # Annotated, because the push below uses --follow-tags, which skips
           # lightweight tags.
@@ -209,18 +168,195 @@ jobs:
       # The checkout above holds no credentials, so this push authenticates
       # explicitly with the app token. If a merge lands between the checkout
       # and here, the push is rejected as non-fast-forward and the run fails
-      # cleanly: re-run all jobs to build, verify, and release the new tip.
+      # cleanly before anything was published: re-run all jobs to bump and
+      # release the new tip.
       - name: Push bump commit and tag
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
         run: git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" HEAD:main --follow-tags
 
-      - name: Create GitHub Release
+  # Everything that executes repository-controlled code (the tests, the build)
+  # runs here, in jobs that hold no secrets and no id-token permission:
+  # nothing these jobs execute can reach the release credentials or the OIDC
+  # token exchanges. They build the tag the bump job pushed, so every binary
+  # reports the released version.
+  build:
+    name: Build ${{ matrix.target }}
+    needs: bump
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+            setup: sudo apt-get update && sudo apt-get install -y musl-tools
+            test: true
+          - target: aarch64-unknown-linux-musl
+            runner: ubuntu-24.04-arm
+            setup: sudo apt-get update && sudo apt-get install -y musl-tools
+            test: true
+          - target: x86_64-apple-darwin
+            runner: macos-14
+            setup: ''
+            test: false # cross-compiled on the arm64 runner
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            setup: ''
+            test: true
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            setup: ''
+            test: true
+          - target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+            setup: ''
+            test: true
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout the released tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: v${{ needs.bump.outputs.version }}
+          persist-credentials: false
+
+      - name: Install target prerequisites
+        if: matrix.setup != ''
+        shell: bash
+        run: ${{ matrix.setup }}
+
+      - name: Add the target
+        shell: bash
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Test on the target
+        if: matrix.test
+        shell: bash
+        run: cargo test --locked --target ${{ matrix.target }}
+
+      - name: Build the release binary
+        shell: bash
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      # Archived here, where the file mode still exists: upload-artifact does
+      # not preserve the executable bit, a tar does.
+      - name: Package the binary
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ needs.bump.outputs.version }}
+        run: |
+          staging=$(mktemp -d)
+          case "$TARGET" in
+            *windows*)
+              cp "target/$TARGET/release/flashtrace.exe" "$staging/"
+              (cd "$staging" && 7z a "flashtrace-v${VERSION}-${TARGET}.zip" flashtrace.exe > /dev/null)
+              ;;
+            *)
+              cp "target/$TARGET/release/flashtrace" "$staging/"
+              tar -czf "$staging/flashtrace-v${VERSION}-${TARGET}.tar.gz" -C "$staging" flashtrace
+              ;;
+          esac
+          mkdir -p assets
+          mv "$staging"/flashtrace-v*.zip "$staging"/flashtrace-v*.tar.gz assets/ 2>/dev/null || true
+          ls -l assets
+
+      - name: Upload the packaged binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: asset-${{ matrix.target }}
+          path: assets/*
+          retention-days: 1
+
+  # This job holds the release credentials (id-token for npm and crates.io
+  # trusted publishing, the app key for the GitHub Release) and in exchange
+  # executes no repository-controlled code beyond `cargo publish`, whose
+  # packaging verify runs the same locked build the matrix above just proved
+  # on six targets. npm runs with --ignore-scripts throughout.
+  release:
+    name: Publish release, npm packages and crate
+    needs: [bump, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # the GitHub Release uses the app token below, not GITHUB_TOKEN
+      id-token: write # npm and crates.io trusted publishing (OIDC)
+    steps:
+      - name: Checkout the released tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: v${{ needs.bump.outputs.version }}
+          persist-credentials: false
+
+      - name: Download the packaged binaries
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: asset-*
+          merge-multiple: true
+          path: assets
+
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Create GitHub Release with the binaries
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: gh release create "v${VERSION}" --generate-notes
+          VERSION: ${{ needs.bump.outputs.version }}
+        run: |
+          (cd assets && sha256sum flashtrace-v* > SHA256SUMS)
+          gh release create "v${VERSION}" --generate-notes assets/*
+
+      # Each platform package receives its binary, mode restored, and
+      # publishes before the main package: the launcher's optionalDependencies
+      # must never point at versions that do not exist yet.
+      - name: Update npm for trusted publishing
+        # OIDC trusted publishing requires npm >= 11.5.1; Node's bundled npm
+        # is older. The version is pinned rather than "latest" so a release
+        # installs the npm this repository was tested against, and
+        # --ignore-scripts keeps this credential-bearing job from executing
+        # install hooks.
+        run: npm install -g --ignore-scripts npm@11.18.0
+
+      - name: Publish the npm packages
+        env:
+          VERSION: ${{ needs.bump.outputs.version }}
+        run: |
+          declare -A platform_of=(
+            [x86_64-unknown-linux-musl]=linux-x64
+            [aarch64-unknown-linux-musl]=linux-arm64
+            [x86_64-apple-darwin]=darwin-x64
+            [aarch64-apple-darwin]=darwin-arm64
+            [x86_64-pc-windows-msvc]=win32-x64
+            [aarch64-pc-windows-msvc]=win32-arm64
+          )
+          for target in "${!platform_of[@]}"; do
+            platform=${platform_of[$target]}
+            bin_dir="npm/@flashtrace/${platform}/bin"
+            case "$target" in
+              *windows*)
+                unzip -o "assets/flashtrace-v${VERSION}-${target}.zip" -d "$bin_dir"
+                ;;
+              *)
+                tar -xzf "assets/flashtrace-v${VERSION}-${target}.tar.gz" -C "$bin_dir"
+                chmod +x "$bin_dir/flashtrace"
+                ;;
+            esac
+            (cd "npm/@flashtrace/${platform}" && npm publish --ignore-scripts --access public)
+          done
+          (cd npm/flashtrace && npm publish --ignore-scripts)
+
+      - name: Authenticate with crates.io
+        id: crates-io
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+      - name: Publish the crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io.outputs.token }}
+        run: cargo publish --locked
 
       # A new release should refresh the docs website, which builds its docs
       # from flashtrace's latest release tag. Dispatch a repository_dispatch
@@ -246,19 +382,9 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.website-token.outputs.token }}
-          TAG: v${{ steps.version.outputs.version }}
+          TAG: v${{ needs.bump.outputs.version }}
         run: |
           gh api --method POST \
             "repos/${{ github.repository_owner }}/flashtrace.github.io/dispatches" \
             -f event_type=flashtrace-release \
             -f "client_payload[tag]=$TAG"
-
-      - name: Update npm for trusted publishing
-        # OIDC trusted publishing requires npm >= 11.5.1; Node 22 ships an older
-        # npm. The version is pinned rather than "latest" so a release installs
-        # the npm this repository was tested against, and --ignore-scripts keeps
-        # this credential-bearing job from executing install hooks.
-        run: npm install -g --ignore-scripts npm@11.18.0
-
-      - name: Publish to npmjs
-        run: npm publish --ignore-scripts

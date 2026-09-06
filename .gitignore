@@ -1,6 +1,4 @@
 node_modules/
 coverage/
 badges/
-rust/target/
-
-package-lock.json
+target/

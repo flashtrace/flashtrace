@@ -1,8 +1,8 @@
-// Turns the reports written by `pnpm run test:coverage` into shields.io
-// endpoint documents, one per metric. The CI workflow publishes them to the
-// `badges` branch, where README.md's Quality Summary reads them from.
+// Turns the coverage and test reports of the CI run into shields.io endpoint
+// documents, one per metric. The CI workflow publishes them to the `badges`
+// branch, where README.md's Quality Summary reads them from.
 //
-// Usage: node .github/scripts/quality-badges.mjs <lcov-file> <junit-file> <source-dir> <output-dir>
+// Usage: node .github/scripts/quality-badges.mjs <lcov-file> <junit-file> <source-dir> <output-dir> <source-extension>
 
 import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,19 +25,23 @@ export function coverageColorFor(percent) {
   return COVERAGE_COLORS.find((band) => percent >= band.atLeast)?.color ?? 'red';
 }
 
-// lcov spells paths the way Node saw them - relative to the working directory,
-// on Windows with backslashes. Comparing them to a directory listing needs one
-// spelling.
+// lcov spells paths the way the producing tool saw them - relative or
+// absolute, on Windows with backslashes. Comparing them to a directory
+// listing needs one spelling.
 export function toPosixPath(value) {
   return value.replaceAll('\\', '/');
 }
 
 // The path a record carries, restated relative to the source directory, or
-// null for a record from outside it. lcov writes paths relative to the working
-// directory the test run started in, so a src/ record begins with `src/`.
+// null for a record from outside it. A record may be relative to the working
+// directory the run started in (`src/...`) or absolute (cargo-llvm-cov);
+// either way the source directory anchors the tail that names the file.
 export function relativeToSourceDir(path, sourceDir) {
+  const posix = toPosixPath(path);
   const prefix = `${toPosixPath(sourceDir)}/`;
-  return path.startsWith(prefix) ? path.slice(prefix.length) : null;
+  if (posix.startsWith(prefix)) return posix.slice(prefix.length);
+  const anchored = posix.lastIndexOf(`/${prefix}`);
+  return anchored === -1 ? null : posix.slice(anchored + 1 + prefix.length);
 }
 
 // lcov records one `LF:` (lines found) and one `LH:` (lines hit) per source
@@ -59,13 +63,11 @@ export function readLineCoverage(lcovPath) {
   return (linesHit / linesFound) * 100;
 }
 
-// V8 instruments only the modules a test actually loaded, and no flag widens
-// that - `--test-coverage-include` filters what was loaded, it does not pull in
-// what was not. A source file that no test reaches therefore leaves no record
-// at all: it drops out of the ratio entirely and raises the percentage instead
-// of lowering it. Holding the report against the directory listing turns that
-// blind spot into a failed run.
-export function assertEverySourceFileMeasured(lcovPath, sourceDir) {
+// A source file missing from the report drops out of the ratio entirely and
+// raises the percentage instead of lowering it - whether the instrumenter
+// skipped it or a path mapping went wrong. Holding the report against the
+// directory listing turns that blind spot into a failed run.
+export function assertEverySourceFileMeasured(lcovPath, sourceDir, sourceExtension, exempt = []) {
   const measured = new Set();
 
   for (const line of readFileSync(lcovPath, 'utf8').split(/\r?\n/)) {
@@ -76,7 +78,8 @@ export function assertEverySourceFileMeasured(lcovPath, sourceDir) {
 
   const unmeasured = readdirSync(sourceDir, { recursive: true })
     .map(toPosixPath)
-    .filter((entry) => entry.endsWith('.mjs'))
+    .filter((entry) => entry.endsWith(sourceExtension))
+    .filter((entry) => !exempt.includes(entry))
     .filter((entry) => !measured.has(entry));
 
   if (unmeasured.length > 0) {
@@ -106,15 +109,22 @@ export function writeBadge(outputDir, name, badge) {
 }
 
 function main(argv) {
-  const [lcovPath, junitPath, sourceDir, outputDir] = argv;
-  if (!lcovPath || !junitPath || !sourceDir || !outputDir) {
+  const [lcovPath, junitPath, sourceDir, outputDir, sourceExtension, ...rest] = argv;
+  // files exempt from the completeness gate (relative to the source
+  // directory), e.g. a declarations-only module the instrumenter records
+  // nothing for
+  const exempt = rest[0] === '--exempt' ? rest.slice(1) : [];
+  if (!lcovPath || !junitPath || !sourceDir || !outputDir || !sourceExtension
+    || (rest.length > 0 && exempt.length === 0)) {
     console.error(
-      'Usage: node .github/scripts/quality-badges.mjs <lcov-file> <junit-file> <source-dir> <output-dir>',
+      'Usage: node .github/scripts/quality-badges.mjs '
+      + '<lcov-file> <junit-file> <source-dir> <output-dir> <source-extension> '
+      + '[--exempt <file> ...]',
     );
     process.exit(2);
   }
 
-  assertEverySourceFileMeasured(lcovPath, sourceDir);
+  assertEverySourceFileMeasured(lcovPath, sourceDir, sourceExtension, exempt);
 
   const coverage = readLineCoverage(lcovPath);
   const testCount = countTestCases(junitPath);

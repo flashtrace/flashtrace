@@ -46,7 +46,7 @@
       "minimum": 1
     },
     "character": {
-      "description": "1-based column of the first character of the construct.",
+      "description": "1-based column of the first character of the construct, counted in characters (Unicode scalar values).",
       "type": "integer",
       "minimum": 1
     },

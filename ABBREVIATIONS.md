@@ -11,18 +11,18 @@ long form would hurt readability. Use them consistently - and use no others.
 |---|---|---|
 | `rev` | revision | Part of the item-ID grammar (`<name>#<revision>`, see [docs/revisions.md](docs/revisions.md)); used in names like `revOf`, `compareRev`, `revMatches`, `isWildcardRev`, `canonicalRev`. |
 | `id` | identifier | An item ID such as `req:auth/login#1`. |
-| `ext` | file extension | Always lowercased, with the leading dot (`.mjs`). |
-| `md` | Markdown | The `.md` file extension; used in names like the `md` fixture parameter carrying Markdown input in `test/analyze.test.mjs`. |
+| `ext` | file extension | Always lowercased and without the leading dot (`rs`), as `std::path::Path::extension` yields it. |
+| `md` | Markdown | The `.md` file extension; used in names like the `md` fixture parameter carrying Markdown input in the analyze test suite. |
 | `url` | Uniform Resource Locator | URL-shaped text (`scheme://…`), exempt from comment detection (see [docs/code-tags.md](docs/code-tags.md)); used in `URL_RE`, `urlSpans`. |
 
-## Regex conventions (src/ids.mjs and the parsers)
+## Regex conventions (src/ids.rs and the parsers)
 
 | Convention | Meaning |
 |---|---|
 | `*_SRC` | A regex **source string**, kept as a string so it can be composed into larger expressions. |
-| `*_RE` | A compiled `RegExp`. |
-| `re` | A `RegExp` parameter. |
-| `m` | A regex match result (`String.prototype.match` / `RegExp.prototype.exec`). |
+| `*_RE` | A compiled regex. |
+| `re` | A regex parameter. |
+| `m` | A regex match or its captures. |
 
 ## Universal programming conventions
 
