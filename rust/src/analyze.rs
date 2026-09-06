@@ -164,9 +164,11 @@ pub fn status_of(item: &Item) -> &'static str {
     }
 }
 
-/// The counts both reports show, in the key order the JSON document uses.
-/// Derived here alone so the two reports cannot disagree on them.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// The counts both reports show, in the key order the JSON document uses -
+/// the struct serializes straight into the document. Derived here alone so
+/// the two reports cannot disagree on them.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Summary {
     pub items: usize,
     pub spec_items: usize,
