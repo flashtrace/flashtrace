@@ -33,7 +33,10 @@ fn assert_valid(document: &Value, label: &str) {
     let validator = jsonschema::validator_for(&schema).unwrap();
     let errors: Vec<String> = validator
         .iter_errors(document)
-        .map(|error| format!("{}: {error}", error.instance_path()))
+        .map(|error| {
+            let path = error.instance_path();
+            format!("{path}: {error}")
+        })
         .collect();
     assert!(
         errors.is_empty(),
