@@ -92,8 +92,8 @@ struct Renderer<'run> {
 
 impl<'run> Renderer<'run> {
     fn dim_location(&self, file: &str, line: usize) -> String {
-        self.style
-            .dim(&format!("{}:{line}", display_relative(&self.cwd, file)))
+        let path = display_relative(&self.cwd, file);
+        self.style.dim(&format!("{path}:{line}"))
     }
 
     // a need or forwarding edge carries this item's coverage obligation, so
@@ -105,18 +105,17 @@ impl<'run> Renderer<'run> {
             .group(&canonical_id(forwards_to))
             .and_then(|group| group.first())
             .map(|&index| &self.items[index]);
+        let arrow = self.style.cyan("\u{2192}");
         match target {
-            None => format!(
-                "    {} {forwards_to}  {}",
-                self.style.cyan("\u{2192}"),
-                self.style.red("\u{2718} missing")
-            ),
-            Some(target) => format!(
-                "    {} {forwards_to}  {} {}",
-                self.style.cyan("\u{2192}"),
-                styled_mark(target, &self.style),
-                self.dim_location(&target.file, target.line)
-            ),
+            None => {
+                let missing = self.style.red("\u{2718} missing");
+                format!("    {arrow} {forwards_to}  {missing}")
+            }
+            Some(target) => {
+                let mark = styled_mark(target, &self.style);
+                let location = self.dim_location(&target.file, target.line);
+                format!("    {arrow} {forwards_to}  {mark} {location}")
+            }
         }
     }
 
@@ -128,11 +127,9 @@ impl<'run> Renderer<'run> {
         for need in &item.needs {
             let ids = resolver.matches_of(need);
             if ids.is_empty() {
-                lines.push(format!(
-                    "    {} {need}  {}",
-                    self.style.dim("needs"),
-                    self.style.red("\u{2718} missing")
-                ));
+                let needs_label = self.style.dim("needs");
+                let missing = self.style.red("\u{2718} missing");
+                lines.push(format!("    {needs_label} {need}  {missing}"));
                 continue;
             }
             let wildcard = is_wildcard_rev(rev_of(need));
@@ -146,12 +143,10 @@ impl<'run> Renderer<'run> {
                 } else {
                     need.clone()
                 };
-                lines.push(format!(
-                    "    {} {reference}  {} {}",
-                    self.style.dim("needs"),
-                    styled_mark(covering, &self.style),
-                    self.dim_location(&covering.file, covering.line)
-                ));
+                let needs_label = self.style.dim("needs");
+                let mark = styled_mark(covering, &self.style);
+                let location = self.dim_location(&covering.file, covering.line);
+                lines.push(format!("    {needs_label} {reference}  {mark} {location}"));
             }
         }
         lines
@@ -167,18 +162,17 @@ impl<'run> Renderer<'run> {
                 .group(&canonical_id(cover_id))
                 .and_then(|group| group.first())
                 .map(|&index| &self.items[index]);
+            let covers_label = self.style.dim("covers");
             match target {
-                None => lines.push(format!(
-                    "    {} {cover_id}  {}",
-                    self.style.dim("covers"),
-                    self.style.red("\u{2718} missing")
-                )),
-                Some(target) => lines.push(format!(
-                    "    {} {cover_id}  {} {}",
-                    self.style.dim("covers"),
-                    self.style.green("\u{2714}"),
-                    self.dim_location(&target.file, target.line)
-                )),
+                None => {
+                    let missing = self.style.red("\u{2718} missing");
+                    lines.push(format!("    {covers_label} {cover_id}  {missing}"));
+                }
+                Some(target) => {
+                    let mark = self.style.green("\u{2714}");
+                    let location = self.dim_location(&target.file, target.line);
+                    lines.push(format!("    {covers_label} {cover_id}  {mark} {location}"));
+                }
             }
         }
         lines
@@ -197,11 +191,9 @@ impl<'run> Renderer<'run> {
                     }
                     None => String::new(),
                 };
-                format!(
-                    "    {} {}{location}",
-                    self.style.red("\u{2022}"),
-                    defect.message
-                )
+                let bullet = self.style.red("\u{2022}");
+                let message = &defect.message;
+                format!("    {bullet} {message}{location}")
             })
             .collect()
     }
@@ -226,12 +218,10 @@ impl<'run> Renderer<'run> {
             .unwrap_or(&[])
         {
             let wanting = &self.items[wanting];
-            lines.push(format!(
-                "    {} {}  {}",
-                self.style.dim("wanted by"),
-                wanting.id,
-                self.dim_location(&wanting.file, wanting.line)
-            ));
+            let wanted_by_label = self.style.dim("wanted by");
+            let wanting_id = &wanting.id;
+            let location = self.dim_location(&wanting.file, wanting.line);
+            lines.push(format!("    {wanted_by_label} {wanting_id}  {location}"));
         }
         lines
     }
@@ -258,13 +248,11 @@ impl<'run> Renderer<'run> {
                 Some(title) => format!(" {}", self.style.dim(&format!("\"{title}\""))),
                 None => String::new(),
             };
-            out.push(format!(
-                "{} {}{title}  {}  {}",
-                styled_mark(item, &self.style),
-                self.style.bold(&item.id),
-                self.dim_location(&item.file, item.line),
-                styled_tag(item, &self.style)
-            ));
+            let mark = styled_mark(item, &self.style);
+            let id = self.style.bold(&item.id);
+            let location = self.dim_location(&item.file, item.line);
+            let tag = styled_tag(item, &self.style);
+            out.push(format!("{mark} {id}{title}  {location}  {tag}"));
             out.extend(self.edge_lines(*index, &resolver));
             out.extend(self.defect_lines(item));
         }
@@ -280,59 +268,48 @@ impl<'run> Renderer<'run> {
                 Some(title) => format!(" {}", self.style.dim(&format!("\"{title}\""))),
                 None => String::new(),
             };
-            out.push(format!(
-                "{} {}{title}  {}",
-                styled_mark(item, &self.style),
-                self.style.bold(&item.id),
-                self.dim_location(&item.file, item.line)
-            ));
+            let mark = styled_mark(item, &self.style);
+            let id = self.style.bold(&item.id);
+            let location = self.dim_location(&item.file, item.line);
+            out.push(format!("{mark} {id}{title}  {location}"));
             out.extend(self.defect_lines(item));
             out.push(String::new());
         }
     }
 
     fn render_summary(&self, summary: &crate::analyze::Summary, out: &mut Vec<String>) {
+        let spec_items = summary.spec_items;
+        let code_items = summary.code_items;
         let origin_breakdown = self.style.dim(&format!(
-            "({} from specs, {} from code)",
-            summary.spec_items, summary.code_items
+            "({spec_items} from specs, {code_items} from code)"
         ));
         // an ok item is either deep-covered or shallow-covered; naming both
         // keeps the split readable without a second summary line
         let coverage_breakdown = if summary.shallow_covered_items > 0 {
-            format!(
-                "  {}",
-                self.style.dim(&format!(
-                    "({} deep-covered, {} only shallow-covered)",
-                    summary.ok_items - summary.shallow_covered_items,
-                    summary.shallow_covered_items
-                ))
-            )
+            let deep_covered = summary.ok_items - summary.shallow_covered_items;
+            let shallow_covered = summary.shallow_covered_items;
+            let breakdown = self.style.dim(&format!(
+                "({deep_covered} deep-covered, {shallow_covered} only shallow-covered)"
+            ));
+            format!("  {breakdown}")
         } else {
             String::new()
         };
+        let item_count = summary.items;
+        let ok_count = self.style.green(&summary.ok_items.to_string());
+        let defective_count = if summary.defective_items > 0 {
+            self.style.red(&summary.defective_items.to_string())
+        } else {
+            "0".to_string()
+        };
 
         out.push(self.style.bold("Summary"));
-        out.push(format!(
-            "  items       {}  {origin_breakdown}",
-            summary.items
-        ));
-        out.push(format!(
-            "  ok          {}{coverage_breakdown}",
-            self.style.green(&summary.ok_items.to_string())
-        ));
-        out.push(format!(
-            "  defective   {}",
-            if summary.defective_items > 0 {
-                self.style.red(&summary.defective_items.to_string())
-            } else {
-                "0".to_string()
-            }
-        ));
+        out.push(format!("  items       {item_count}  {origin_breakdown}"));
+        out.push(format!("  ok          {ok_count}{coverage_breakdown}"));
+        out.push(format!("  defective   {defective_count}"));
         if summary.problems > 0 {
-            out.push(format!(
-                "  problems    {}",
-                self.style.yellow(&summary.problems.to_string())
-            ));
+            let problem_count = self.style.yellow(&summary.problems.to_string());
+            out.push(format!("  problems    {problem_count}"));
         }
         out.push(String::new());
     }
@@ -354,12 +331,10 @@ pub fn report(items: &[Item], problems: &[Problem], cwd: &Path, verbose: bool) -
     }
 
     for problem in problems {
-        out.push(format!(
-            "{} {}  {}",
-            renderer.style.yellow("\u{26a0}"),
-            problem.message,
-            renderer.dim_location(&problem.file, problem.line)
-        ));
+        let warning = renderer.style.yellow("\u{26a0}");
+        let message = &problem.message;
+        let location = renderer.dim_location(&problem.file, problem.line);
+        out.push(format!("{warning} {message}  {location}"));
     }
     if !problems.is_empty() {
         out.push(String::new());
