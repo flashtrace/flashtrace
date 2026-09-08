@@ -69,8 +69,8 @@ impl Drop for TempCopy {
 }
 
 fn temp_copy(example: &str) -> TempCopy {
-    let dir =
-        std::env::temp_dir().join(format!("flashtrace-e2e-{}-{}", example, std::process::id()));
+    let process_id = std::process::id();
+    let dir = std::env::temp_dir().join(format!("flashtrace-e2e-{example}-{process_id}"));
     let _ = std::fs::remove_dir_all(&dir);
     copy_tree(&repo_path("examples").join(example), &dir);
     TempCopy(dir)
@@ -94,14 +94,14 @@ fn first_difference(expected: &str, actual: &str) -> String {
     let actual_lines: Vec<&str> = actual.split('\n').collect();
     for i in 0..expected_lines.len().max(actual_lines.len()) {
         if expected_lines.get(i) != actual_lines.get(i) {
+            let line = i + 1;
+            let expected_line = expected_lines
+                .get(i)
+                .copied()
+                .unwrap_or("<end of snapshot>");
+            let actual_line = actual_lines.get(i).copied().unwrap_or("<end of output>");
             return format!(
-                "first difference at line {}:\n  expected: {:?}\n  actual:   {:?}",
-                i + 1,
-                expected_lines
-                    .get(i)
-                    .copied()
-                    .unwrap_or("<end of snapshot>"),
-                actual_lines.get(i).copied().unwrap_or("<end of output>"),
+                "first difference at line {line}:\n  expected: {expected_line:?}\n  actual:   {actual_line:?}"
             );
         }
     }

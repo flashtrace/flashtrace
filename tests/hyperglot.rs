@@ -129,7 +129,10 @@ fn by_extension(fixtures: &[Fixture]) -> HashMap<&str, &Fixture> {
 
 fn where_of(fixture: &Fixture) -> String {
     match &fixture.folder {
-        Some(folder) => format!("{folder}/{}", fixture.name),
+        Some(folder) => {
+            let name = &fixture.name;
+            format!("{folder}/{name}")
+        }
         None => fixture.name.clone(),
     }
 }
@@ -191,13 +194,14 @@ fn each_extension_has_exactly_one_fixture_named_after_it() {
 
     let mut misnamed: Vec<String> = fixtures
         .iter()
-        .filter(|fixture| fixture.name != format!("{ext}.{ext}", ext = fixture.ext))
+        .filter(|fixture| {
+            let ext = &fixture.ext;
+            fixture.name != format!("{ext}.{ext}")
+        })
         .map(|fixture| {
-            format!(
-                "{} (expected {ext}.{ext})",
-                where_of(fixture),
-                ext = fixture.ext
-            )
+            let location = where_of(fixture);
+            let ext = &fixture.ext;
+            format!("{location} (expected {ext}.{ext})")
         })
         .collect();
     misnamed.sort();
@@ -278,7 +282,8 @@ fn each_fixture_writes_every_marker_and_defines_an_item_per_comment_form() {
             .filter(|marker| !fixture.text.contains(marker))
             .collect();
         if !missing.is_empty() {
-            unwritten.push(format!("{location}: {}", missing.join(" ")));
+            let markers = missing.join(" ");
+            unwritten.push(format!("{location}: {markers}"));
         }
     }
     unwritten.sort();

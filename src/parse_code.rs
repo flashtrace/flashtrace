@@ -38,10 +38,10 @@ use crate::paths::extension_of;
 // reference (type, optional [group/]name, optional revision) completed against
 // the anchor item; the source and item tags stay full, concrete IDs (id_src).
 static TAG_RE: LazyLock<Regex> = LazyLock::new(|| {
+    let id = id_src();
+    let reference = ref_src();
     Regex::new(&format!(
-        r"\[(?:\s*{id}\s*)?>>\s*{reference}\s*\]|\[\s*{id}\s*\]",
-        id = id_src(),
-        reference = ref_src()
+        r"\[(?:\s*{id}\s*)?>>\s*{reference}\s*\]|\[\s*{id}\s*\]"
     ))
     .unwrap()
 });
