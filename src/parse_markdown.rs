@@ -397,13 +397,13 @@ fn scan_tables(lines: &[&str], file: &str, problems: &mut Vec<Problem>) -> Vec<b
                     DEFINITION_RE.captures(cell)
                 };
                 if let Some(definition) = definition {
+                    let id = captured_id(&definition);
                     problems.push(Problem {
                         file: file.to_string(),
                         line: k + 1,
                         character: columns[col],
                         message: format!(
-                            "item {} defined inside a table; a table cell is not an item definition",
-                            captured_id(&definition)
+                            "item {id} defined inside a table; a table cell is not an item definition"
                         ),
                     });
                 }
@@ -448,6 +448,8 @@ fn take_keyword_table(
             let Some(cell) = cells.get(*col).filter(|cell| !cell.is_empty()) else {
                 continue;
             };
+            let item_id = &item.id;
+            let source = format!("the {keyword} column of {item_id}");
             apply_keyword(
                 item,
                 keyword,
@@ -457,7 +459,7 @@ fn take_keyword_table(
                     character: cell_columns[*col],
                 }],
                 file,
-                &format!("the {keyword} column of {}", item.id),
+                &source,
             );
         }
     }
@@ -493,13 +495,9 @@ fn parse_item_body(
             description_done = true;
             let keyword = m.get(1).unwrap().as_str().to_string();
             let (entries, consumed) = keyword_entries(lines, j, m.get(2).unwrap().range());
-            apply_keyword(
-                item,
-                &keyword,
-                &entries,
-                file,
-                &format!("the {keyword} list of {}", item.id),
-            );
+            let item_id = &item.id;
+            let source = format!("the {keyword} list of {item_id}");
+            apply_keyword(item, &keyword, &entries, file, &source);
             j = consumed;
         } else if let Some(table_end) = table_end {
             description_done = true;
@@ -552,13 +550,13 @@ pub fn parse_markdown(
             // No blank line below the ID, so its paragraph folds into a setext
             // heading (CommonMark): the ID is heading text, not a definition.
             // Report it and create no item; the folded text titles the item below.
+            let id = captured_id(&definition);
             problems.push(Problem {
                 file: file.to_string(),
                 line: i + 1,
                 character: first_non_blank_column(lines[i]),
                 message: format!(
-                    "item {} defined inside a setext heading; a heading is not an item definition",
-                    captured_id(&definition)
+                    "item {id} defined inside a setext heading; a heading is not an item definition"
                 ),
             });
             i += 1;

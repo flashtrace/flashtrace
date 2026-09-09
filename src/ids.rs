@@ -54,7 +54,9 @@ fn path_src() -> String {
 }
 
 pub fn ref_src() -> String {
-    format!("([A-Za-z]+)(?::({}))?(?:#({}))?", path_src(), rev_ref_src())
+    let path = path_src();
+    let rev = rev_ref_src();
+    format!("([A-Za-z]+)(?::({path}))?(?:#({rev}))?")
 }
 
 pub static REF_RE: LazyLock<Regex> =
@@ -64,18 +66,16 @@ pub static REF_RE: LazyLock<Regex> =
 // wildcard. An omitted name or revision still completes from the stating item
 // (whose revision is always concrete).
 pub static COVER_REF_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(&format!(
-        "^([A-Za-z]+)(?::({}))?(?:#({REV_SRC}))?$",
-        path_src()
-    ))
-    .unwrap()
+    let path = path_src();
+    Regex::new(&format!("^([A-Za-z]+)(?::({path}))?(?:#({REV_SRC}))?$")).unwrap()
 });
 
 // Forwarding tag: [<source-id> --> <target-id>], spaces optional.
 // Contains two id_src captures (4 groups each); make_forward turns a match
 // into a forwarding record given the index of the first captured group.
 pub fn forward_src() -> String {
-    format!(r"\[\s*{}\s*-->\s*{}\s*\]", id_src(), id_src())
+    let id = id_src();
+    format!(r"\[\s*{id}\s*-->\s*{id}\s*\]")
 }
 
 pub fn make_id(id_type: &str, group: Option<&str>, name: &str, rev: &str) -> String {
@@ -146,11 +146,9 @@ fn path_of(id: &str) -> &str {
 // missing name or revision is taken from owner_id. Its revision is always
 // concrete, so a completed revision is concrete too.
 pub fn resolve_ref(id_type: &str, path: Option<&str>, rev: Option<&str>, owner_id: &str) -> String {
-    format!(
-        "{id_type}:{}#{}",
-        path.unwrap_or_else(|| path_of(owner_id)),
-        rev.unwrap_or_else(|| rev_of(owner_id))
-    )
+    let path = path.unwrap_or_else(|| path_of(owner_id));
+    let rev = rev.unwrap_or_else(|| rev_of(owner_id));
+    format!("{id_type}:{path}#{rev}")
 }
 
 // a revision layer with its leading zeros dropped
@@ -174,7 +172,9 @@ pub fn canonical_rev(rev: &str) -> String {
 /// bookkeeping (definitions, needs, covers, forwarding) keys on this form so
 /// SemVer-equal revisions meet; the raw ID as written is kept for display.
 pub fn canonical_id(id: &str) -> String {
-    format!("{}#{}", key_of(id), canonical_rev(rev_of(id)))
+    let key = key_of(id);
+    let rev = canonical_rev(rev_of(id));
+    format!("{key}#{rev}")
 }
 
 // two canonical layers compared as the numbers they spell: with leading zeros
