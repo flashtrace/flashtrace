@@ -11,13 +11,20 @@
  * Input files are UTF-8: a leading byte-order mark is ignored, and bytes
  * that do not decode become U+FFFD rather than failing the run - IDs are
  * ASCII, so a damaged line still traces where it can.
+ *
+ * Files are read and parsed on as many threads as the machine offers, and
+ * the products are merged in sorted file order, so the output does not
+ * depend on the thread count. An unreadable file is reported as the lowest
+ * such file in that order, as a serial run would report it.
  */
 
 use std::collections::HashMap;
 use std::io::Write;
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::analyze::analyze;
+use crate::defects::Problem;
 use crate::errors::UsageError;
 use crate::files::collect_files;
 use crate::ids::{Forward, Item};
@@ -236,22 +243,136 @@ fn decode(bytes: &[u8]) -> String {
     text.strip_prefix('\u{feff}').unwrap_or(&text).to_string()
 }
 
+/// The parse products of one input file, kept apart per file so a run can
+/// merge them in file order.
+#[derive(Debug, Default, PartialEq)]
+struct ParsedFile {
+    items: Vec<Item>,
+    problems: Vec<Problem>,
+    forwards: Vec<Forward>,
+}
+
+fn read_and_parse(file: &str) -> Result<ParsedFile, UsageError> {
+    let bytes =
+        std::fs::read(file).map_err(|error| UsageError(format!("cannot read {file}: {error}")))?;
+    let text = decode(&bytes);
+    let ext = extension_of(file);
+    // a file has one role: its spec parser when the format has one, the
+    // code tag scanner otherwise
+    let parse = spec_parser_for(&ext).unwrap_or(parse_code as _);
+    let mut problems = Vec::new();
+    let mut forwards = Vec::new();
+    let items = parse(file, &text, &mut problems, &mut forwards);
+    Ok(ParsedFile {
+        items,
+        problems,
+        forwards,
+    })
+}
+
+// the index of the file that could not be read, with the error for it
+type Failure = (usize, UsageError);
+
+// Workers claim files one at a time from a shared counter, so a worker that
+// lands on a large file does not hold the rest back. Each product is kept
+// under the index of its file and merged in that order, which makes the
+// result the serial one whatever the claiming order.
+fn parse_claimed_files(
+    files: &[String],
+    next_index: &AtomicUsize,
+    failed_at: &AtomicUsize,
+) -> Result<Vec<(usize, ParsedFile)>, Failure> {
+    let mut out = Vec::new();
+    loop {
+        let index = next_index.fetch_add(1, Ordering::Relaxed);
+        // Stop at the end, or once a file below this one has failed. The
+        // counter hands out indices in order, so every file below a failure
+        // is already claimed and finishes on its own; the lowest failing
+        // index is therefore always among the reported ones.
+        if index >= files.len() || index > failed_at.load(Ordering::Relaxed) {
+            return Ok(out);
+        }
+        match read_and_parse(&files[index]) {
+            Ok(parsed) => out.push((index, parsed)),
+            Err(error) => {
+                failed_at.fetch_min(index, Ordering::Relaxed);
+                return Err((index, error));
+            }
+        }
+    }
+}
+
+fn merge_parsed_files(
+    file_count: usize,
+    results: Vec<Result<Vec<(usize, ParsedFile)>, Failure>>,
+) -> Result<ParsedFile, UsageError> {
+    let mut first_failure: Option<Failure> = None;
+    let mut by_index: Vec<Option<ParsedFile>> = (0..file_count).map(|_| None).collect();
+    for result in results {
+        match result {
+            Ok(parsed) => {
+                for (index, file) in parsed {
+                    by_index[index] = Some(file);
+                }
+            }
+            // the error the serial loop would have raised: the lowest index
+            Err(failure) => {
+                if first_failure
+                    .as_ref()
+                    .is_none_or(|(index, _)| failure.0 < *index)
+                {
+                    first_failure = Some(failure);
+                }
+            }
+        }
+    }
+    if let Some((_, error)) = first_failure {
+        return Err(error);
+    }
+    let mut merged = ParsedFile::default();
+    for parsed in by_index {
+        let parsed = parsed.expect("every file below the end was parsed");
+        merged.items.extend(parsed.items);
+        merged.problems.extend(parsed.problems);
+        merged.forwards.extend(parsed.forwards);
+    }
+    Ok(merged)
+}
+
+// every file's products in file order, read and parsed by up to
+// worker_count threads; the first unreadable file in that order ends the run
+fn parse_files(files: &[String], worker_count: usize) -> Result<ParsedFile, UsageError> {
+    let worker_count = worker_count.clamp(1, files.len().max(1));
+    let next_index = AtomicUsize::new(0);
+    let failed_at = AtomicUsize::new(usize::MAX);
+    let worker = || parse_claimed_files(files, &next_index, &failed_at);
+    // The calling thread is one of the workers: with a single worker nothing
+    // is spawned and the run is the plain loop it always was.
+    let results = std::thread::scope(|scope| {
+        let handles: Vec<_> = (1..worker_count).map(|_| scope.spawn(worker)).collect();
+        let mut results = vec![worker()];
+        for handle in handles {
+            // a parser panic is a bug in this crate: re-raise it with its own
+            // payload rather than the scope's generic "a scoped thread panicked"
+            results.push(
+                handle
+                    .join()
+                    .unwrap_or_else(|payload| std::panic::resume_unwind(payload)),
+            );
+        }
+        results
+    });
+    merge_parsed_files(files.len(), results)
+}
+
 fn main_flow(options: &Options) -> Result<bool, UsageError> {
     let files = collect_files(&options.dirs)?;
-    let mut problems = Vec::new();
-    let mut forwards: Vec<Forward> = Vec::new();
-    let mut items: Vec<Item> = Vec::new();
-
-    for file in &files {
-        let bytes = std::fs::read(file)
-            .map_err(|error| UsageError(format!("cannot read {file}: {error}")))?;
-        let text = decode(&bytes);
-        let ext = extension_of(file);
-        // a file has one role: its spec parser when the format has one, the
-        // code tag scanner otherwise
-        let parse = spec_parser_for(&ext).unwrap_or(parse_code as _);
-        items.extend(parse(file, &text, &mut problems, &mut forwards));
-    }
+    let worker_count = std::thread::available_parallelism().map_or(1, |count| count.get());
+    let ParsedFile {
+        mut items,
+        mut problems,
+        mut forwards,
+    } = parse_files(&files, worker_count)?;
 
     if let Some(tags) = &options.tags {
         let want_untagged = tags.iter().any(|tag| tag == "_");
@@ -308,6 +429,94 @@ mod tests {
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|argument| argument.to_string()).collect()
+    }
+
+    // the sorted input files of an example project
+    fn example_files(name: &str) -> Vec<String> {
+        collect_files(&[format!("{}/examples/{name}", env!("CARGO_MANIFEST_DIR"))]).unwrap()
+    }
+
+    const EXAMPLES: [&str; 7] = [
+        "basic",
+        "diagnostics",
+        "hyperglot",
+        "multiplicity",
+        "polyglot-web",
+        "revisions-and-forwarding",
+        "shortforms",
+    ];
+
+    #[test]
+    fn parse_files_merges_in_file_order_whatever_the_worker_count() {
+        for name in EXAMPLES {
+            let files = example_files(name);
+            let serial = parse_files(&files, 1).unwrap();
+            // the serial run is the products of the files, concatenated in
+            // file order
+            let mut expected = ParsedFile::default();
+            for file in &files {
+                let parsed = read_and_parse(file).unwrap();
+                expected.items.extend(parsed.items);
+                expected.problems.extend(parsed.problems);
+                expected.forwards.extend(parsed.forwards);
+            }
+            assert_eq!(serial, expected, "{name}");
+            assert!(!serial.items.is_empty(), "{name}");
+            for worker_count in [2, 3, files.len(), 64] {
+                for _ in 0..10 {
+                    assert_eq!(
+                        parse_files(&files, worker_count).unwrap(),
+                        serial,
+                        "{name} with {worker_count} workers"
+                    );
+                }
+            }
+        }
+        // every vector's order is exercised: problems and forwards too
+        assert!(
+            !parse_files(&example_files("diagnostics"), 4)
+                .unwrap()
+                .problems
+                .is_empty()
+        );
+        assert!(
+            !parse_files(&example_files("revisions-and-forwarding"), 4)
+                .unwrap()
+                .forwards
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn parse_files_reports_the_lowest_indexed_unreadable_file() {
+        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic");
+        let files = vec![
+            format!("{example}/login.ts"),
+            format!("{example}/missing.md"),
+            format!("{example}/spec.md"),
+            // reading a directory fails on every platform
+            example.to_string(),
+            format!("{example}/also-missing.ts"),
+        ];
+        for worker_count in [1, 2, 3, 5, 16] {
+            for _ in 0..20 {
+                let error = parse_files(&files, worker_count).unwrap_err();
+                assert!(
+                    error.0.starts_with(&format!("cannot read {}: ", files[1])),
+                    "{worker_count} workers: {error}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn parse_files_clamps_the_worker_count_and_accepts_no_files() {
+        assert_eq!(parse_files(&[], 0).unwrap(), ParsedFile::default());
+        assert_eq!(parse_files(&[], 8).unwrap(), ParsedFile::default());
+        let basic = example_files("basic");
+        let serial = parse_files(&basic, 1).unwrap();
+        assert_eq!(parse_files(&basic, 0).unwrap(), serial);
+        assert_eq!(parse_files(&basic, 1000).unwrap(), serial);
     }
 
     #[test]

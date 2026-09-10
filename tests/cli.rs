@@ -452,3 +452,36 @@ fn undecodable_bytes_are_replaced_rather_than_failing_the_run() {
     assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
     assert!(stdout(&result).ends_with("ok\n"));
 }
+
+// An input file the process cannot read ends the run as a usage error.
+// Permission bits are the portable way to make one on unix; a root user
+// reads it regardless, so the case is skipped there rather than failed.
+#[cfg(unix)]
+#[test]
+fn an_unreadable_file_is_a_usage_error_with_exit_2() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let project = with_project(
+        "unreadable",
+        &[
+            (
+                "spec.md",
+                &["# Login", "`req:login#1`", "", "Needs: impl:login#1"],
+            ),
+            ("login.ts", &["// [impl:login#1]"]),
+        ],
+    );
+    let unreadable = project.0.join("login.ts");
+    std::fs::set_permissions(&unreadable, std::fs::Permissions::from_mode(0o000)).unwrap();
+    if std::fs::read(&unreadable).is_ok() {
+        eprintln!("skipped: this user reads files regardless of their permissions");
+        return;
+    }
+    let result = run(&project, &[]);
+    assert_eq!(result.status.code(), Some(2));
+    assert_eq!(stdout(&result), "");
+    let error = stderr(&result);
+    assert!(error.starts_with("error: cannot read "), "{error}");
+    assert!(error.contains("login.ts: "), "{error}");
+    assert!(error.contains("Usage: flashtrace"), "{error}");
+}
