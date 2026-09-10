@@ -18,6 +18,7 @@ use std::io::Write;
 use std::process::ExitCode;
 
 use crate::analyze::analyze;
+use crate::defects::Problem;
 use crate::errors::UsageError;
 use crate::files::collect_files;
 use crate::ids::{Forward, Item};
@@ -236,22 +237,52 @@ fn decode(bytes: &[u8]) -> String {
     text.strip_prefix('\u{feff}').unwrap_or(&text).to_string()
 }
 
+/// The parse products of one input file, kept apart per file so a run can
+/// merge them in file order.
+#[derive(Debug, Default, PartialEq)]
+struct ParsedFile {
+    items: Vec<Item>,
+    problems: Vec<Problem>,
+    forwards: Vec<Forward>,
+}
+
+fn read_and_parse(file: &str) -> Result<ParsedFile, UsageError> {
+    let bytes =
+        std::fs::read(file).map_err(|error| UsageError(format!("cannot read {file}: {error}")))?;
+    let text = decode(&bytes);
+    let ext = extension_of(file);
+    // a file has one role: its spec parser when the format has one, the
+    // code tag scanner otherwise
+    let parse = spec_parser_for(&ext).unwrap_or(parse_code as _);
+    let mut problems = Vec::new();
+    let mut forwards = Vec::new();
+    let items = parse(file, &text, &mut problems, &mut forwards);
+    Ok(ParsedFile {
+        items,
+        problems,
+        forwards,
+    })
+}
+
+// every file's products in file order; the first unreadable file ends the run
+fn parse_files(files: &[String]) -> Result<ParsedFile, UsageError> {
+    let mut merged = ParsedFile::default();
+    for file in files {
+        let parsed = read_and_parse(file)?;
+        merged.items.extend(parsed.items);
+        merged.problems.extend(parsed.problems);
+        merged.forwards.extend(parsed.forwards);
+    }
+    Ok(merged)
+}
+
 fn main_flow(options: &Options) -> Result<bool, UsageError> {
     let files = collect_files(&options.dirs)?;
-    let mut problems = Vec::new();
-    let mut forwards: Vec<Forward> = Vec::new();
-    let mut items: Vec<Item> = Vec::new();
-
-    for file in &files {
-        let bytes = std::fs::read(file)
-            .map_err(|error| UsageError(format!("cannot read {file}: {error}")))?;
-        let text = decode(&bytes);
-        let ext = extension_of(file);
-        // a file has one role: its spec parser when the format has one, the
-        // code tag scanner otherwise
-        let parse = spec_parser_for(&ext).unwrap_or(parse_code as _);
-        items.extend(parse(file, &text, &mut problems, &mut forwards));
-    }
+    let ParsedFile {
+        mut items,
+        mut problems,
+        mut forwards,
+    } = parse_files(&files)?;
 
     if let Some(tags) = &options.tags {
         let want_untagged = tags.iter().any(|tag| tag == "_");
@@ -308,6 +339,73 @@ mod tests {
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|argument| argument.to_string()).collect()
+    }
+
+    // the sorted input files of an example project
+    fn example_files(name: &str) -> Vec<String> {
+        collect_files(&[format!("{}/examples/{name}", env!("CARGO_MANIFEST_DIR"))]).unwrap()
+    }
+
+    #[test]
+    fn parse_files_merges_every_example_in_file_order() {
+        for name in [
+            "basic",
+            "diagnostics",
+            "hyperglot",
+            "multiplicity",
+            "polyglot-web",
+            "revisions-and-forwarding",
+            "shortforms",
+        ] {
+            let files = example_files(name);
+            let merged = parse_files(&files).unwrap();
+            // items keep the order of the files they came from
+            let mut expected = ParsedFile::default();
+            for file in &files {
+                let parsed = read_and_parse(file).unwrap();
+                expected.items.extend(parsed.items);
+                expected.problems.extend(parsed.problems);
+                expected.forwards.extend(parsed.forwards);
+            }
+            assert_eq!(merged, expected, "{name}");
+            assert!(!merged.items.is_empty(), "{name}");
+            let item_files: Vec<&str> =
+                merged.items.iter().map(|item| item.file.as_str()).collect();
+            let mut sorted_item_files = item_files.clone();
+            sorted_item_files.sort();
+            assert_eq!(item_files, sorted_item_files, "{name}");
+        }
+        assert!(
+            !parse_files(&example_files("diagnostics"))
+                .unwrap()
+                .problems
+                .is_empty()
+        );
+        assert!(
+            !parse_files(&example_files("revisions-and-forwarding"))
+                .unwrap()
+                .forwards
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn parse_files_reports_the_first_unreadable_file() {
+        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic");
+        let files = vec![
+            format!("{example}/login.ts"),
+            format!("{example}/missing.md"),
+            format!("{example}/spec.md"),
+            // reading a directory fails on every platform
+            example.to_string(),
+            format!("{example}/also-missing.ts"),
+        ];
+        let error = parse_files(&files).unwrap_err();
+        assert!(
+            error.0.starts_with(&format!("cannot read {}: ", files[1])),
+            "{error}"
+        );
+        assert_eq!(parse_files(&[]).unwrap(), ParsedFile::default());
     }
 
     #[test]
