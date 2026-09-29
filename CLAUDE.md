@@ -13,26 +13,50 @@ Ask refining questions before you start writing.
 
 | Folder | Purpose |
 |---|---|
-| src/ | Source code |
-| test/ | Test code |
+| src/ | Source code (Rust) |
+| tests/ | Integration tests; tests/e2e-expect/ holds the byte-exact e2e snapshots |
 | docs/ | Exact Documentation ("spec-driven") - written in Markdown |
 | schemas/ | Published JSON Schemas for machine-readable output formats; one file per format version, mirroring the URL it is served at |
 | examples/ | Self-contained example projects; fixtures for the end-to-end tests |
-| dist/ | Generated build output |
+| npm/ | The npm packages: the flashtrace launcher and the @flashtrace/* platform packages whose bin/ receives its binary at release time |
 | .github/ | Continuous integration workflows and the helper scripts they run |
 
 Keep dev dependencies to a minimum.
-Keep (runtime) dependencies to zero.
+Keep runtime dependencies to the approved set: `regex`, `serde` and `serde_json` - nothing else.
 
 ## The Commands
 
 | Cmd | Purpose |
 |---|---|
-| `pnpm build` | Run esbuild, bundling from 'src/' to 'dist/'. |
-| `pnpm test` | Run all tests under 'test/'. |
-| `pnpm run test:coverage` | Run the same tests, writing an lcov and a JUnit report to 'coverage/'. Needs Node 22.5 or newer. |
+| `cargo build` | Build the CLI (`target/debug/flashtrace`). |
+| `cargo test` | Run all tests: per-module unit suites and the integration tests under 'tests/', including the e2e snapshot gate. |
+| `cargo fmt --check` | The formatting gate CI enforces. |
+| `cargo clippy --all-targets -- -D warnings` | The lint gate CI enforces. |
 
-The coverage run measures `src/` alone and fails when a file in it is unreachable from the test suite, because an unmeasured file would leave the ratio instead of lowering it.
+The e2e snapshots in tests/e2e-expect/ are generated, never hand-edited: run
+`FLASHTRACE_UPDATE_SNAPSHOTS=1 cargo test --test e2e` and review the diff.
+
+CI measures coverage with `cargo llvm-cov` and fails when a file in `src/` is
+missing from the measurement, because an unmeasured file would leave the ratio
+instead of lowering it (lib.rs, module declarations only, is the one exemption).
+
+## Output contract
+
+The CLI's observable output is a contract: docs/ and schemas/report/v0.json pin
+it, and the e2e snapshots in tests/e2e-expect/ pin it byte for byte. Its text
+semantics are Rust's own, and every place where text positions or orderings
+reach the output follows them:
+
+- Columns are 1-based and count characters (Unicode scalar values), never bytes
+  or UTF-16 code units.
+- Whitespace is Unicode `White_Space` (`str::trim`, the regex `\s`); digits in
+  the ID grammar are ASCII (`[0-9]`).
+- Output-visible orderings are code-point order (`str::cmp` on the string form),
+  never locale-aware and never component-wise path order.
+- Input files are UTF-8; a leading byte-order mark is ignored and undecodable
+  bytes become U+FFFD rather than failing the run.
+- Paths are handled lexically through `paths.rs` on `std::path`: relative to the
+  working directory in the reports, forward slashes in the JSON document.
 
 ## Naming
 
@@ -52,10 +76,9 @@ Every PR is being merged in as a commit; we do not squash the commits nor do we 
 Remember to have one branch focused on one change.
 Suggest to split into multiple if applicable.
 
-Commited `dist/` must match a fresh build.
-Verify this with `git diff --exit-code -- dist/`.
-
-Never bump `package.json` version manually; releases are PR-label driven per GitHub workflow and bump that automatically.
+Never bump a version manually - not in `Cargo.toml`, `Cargo.lock`, the npm/
+manifests, nor `CITATION.cff`; releases are PR-label driven per GitHub workflow
+and bump them all automatically.
 
 ## Parallel work with git worktrees
 
@@ -63,8 +86,6 @@ One task = one branch = one worktree = one session.
 All rules apply unchanged inside every worktree.
 
 - Create worktrees as siblings of the main checkout: `git worktree add ..\flashtrace-wt\<branch-dir> -b <type>/<description> origin/main`
-- Run `pnpm install` in a fresh worktree before building or testing; node_modules is per-worktree (pnpm's store makes this fast).
 - Branch only from up-to-date `origin/main`. Never commit to `main`, and never check out or modify a branch owned by another worktree.
-- Before opening a PR: `pnpm build`, `pnpm test`, then verify `git diff --exit-code -- dist/` passes.
-- If `dist/` conflicts when merging main into your branch: do NOT hand-resolve. Try to rebase, then rebuild your dist.
+- Before opening a PR: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`.
 - After your PR merges: `git worktree remove <path>` and delete the branch.

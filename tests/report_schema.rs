@@ -20,9 +20,7 @@ use flashtrace::parse_markdown::parse_markdown;
 use flashtrace::report_json::{build_report_document, serialize_report_document};
 
 fn repo_path(relative: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join(relative)
+    Path::new(env!("CARGO_MANIFEST_DIR")).join(relative)
 }
 
 fn schema() -> Value {
@@ -535,7 +533,7 @@ fn the_reference_document_actually_reaches_every_defect_kind_and_void_reason() {
 
 #[test]
 fn every_committed_json_snapshot_matches_the_schema_and_its_invariants() {
-    let snapshot_dir = repo_path("test/e2e-expect");
+    let snapshot_dir = repo_path("tests/e2e-expect");
     let mut checked = 0;
     for entry in std::fs::read_dir(&snapshot_dir).unwrap() {
         let entry = entry.unwrap();

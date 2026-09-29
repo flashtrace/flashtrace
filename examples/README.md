@@ -20,6 +20,6 @@ Each directory is a self-contained project traceable with a plain
 - [diagnostics](diagnostics/) - an intentionally defective project showing
   every defect and problem kind flashtrace reports.
 
-The end-to-end suite (`test/e2e.test.mjs`) runs every example and verifies
-its report byte-for-byte against the snapshots in [test/e2e-expect/](../test/e2e-expect/),
+The end-to-end suite (`tests/e2e.rs`) runs every example and verifies
+its report byte-for-byte against the snapshots in [tests/e2e-expect/](../tests/e2e-expect/),
 so the exact output flashtrace prints for each example can be read there.
