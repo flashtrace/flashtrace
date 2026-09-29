@@ -43,6 +43,17 @@ pub struct Location {
     pub character: usize,
 }
 
+/// A problem outside any item's scope - a located message on the run itself,
+/// the diagnostics channel next to the item-scoped defects, pushed by the
+/// parsers and the analysis.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Problem {
+    pub file: String,
+    pub line: usize,
+    pub character: usize,
+    pub message: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Defect {
     pub kind: &'static str,
