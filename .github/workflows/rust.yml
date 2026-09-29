@@ -1,0 +1,95 @@
+name: Rust
+
+# The Rust port under rust/ builds and tests on every change, alongside the
+# JavaScript CI that keeps guarding the shipped implementation. It runs
+# unconditionally - not path-filtered - because the port's parity checks read
+# shared fixtures (schemas/, and later examples/ and the e2e snapshots), so a
+# JavaScript-side change can break the Rust suite without touching rust/.
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    working-directory: rust
+
+jobs:
+  lint:
+    name: Format and lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout only; rustfmt and clippy run locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # rustup is preinstalled on every GitHub runner and installs the exact
+      # toolchain rust-toolchain.toml pins on first use
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Lint
+        run: cargo clippy --all-targets -- -D warnings
+
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    permissions:
+      contents: read # checkout only; the tests run locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Test
+        run: cargo test --locked
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout only; coverage runs locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2.85.0
+        with:
+          tool: cargo-llvm-cov
+
+      # cargo-llvm-cov writes the report but not its directory
+      - name: Measure test coverage
+        run: |
+          mkdir --parents coverage
+          cargo llvm-cov --locked --lcov --output-path coverage/lcov.info
+
+      # A source file the suite never reaches still gets an SF record (llvm
+      # instruments every compiled file), so this guards the report's
+      # completeness against path-mapping mistakes, mirroring the JavaScript
+      # CI's rule that an unmeasured source file fails the build rather than
+      # flattering the percentage. lib.rs is the one exemption: it holds only
+      # module declarations, which llvm has no code regions for; any
+      # executable line it ever gains is compiled into every test binary and
+      # brings the record with it.
+      - name: Ensure every source file is measured
+        run: |
+          status=0
+          for source_file in src/*.rs; do
+            if [ "$source_file" = "src/lib.rs" ]; then
+              continue
+            fi
+            if ! grep -q "SF:.*$(basename "$source_file")" coverage/lcov.info; then
+              echo "::error::$source_file appears in no coverage record"
+              status=1
+            fi
+          done
+          exit $status
