@@ -1,12 +1,11 @@
 /*
  * Argument parsing, help text and the main flow.
  *
- * Exit behavior: --help, --version and the usage-error path write their
- * fixed strings, flush, and exit right away; the success path computes the
- * exit code and lets the process end on its own after everything is written
- * (print_line writes synchronously, so nothing can be left behind in a
- * pipe). A file that cannot be read ends the run with exit code 2 and the
- * error on stderr.
+ * Exit behavior: every outcome returns its exit code from run_cli for main
+ * to hand back, so the process ends the regular way with destructors run
+ * (the std::process::exit documentation recommends this over calling it).
+ * A usage error or a file that cannot be read returns 2 with the error on
+ * stderr.
  *
  * Input files are UTF-8: a leading byte-order mark is ignored, and bytes
  * that do not decode become U+FFFD rather than failing the run - IDs are
@@ -48,24 +47,13 @@ The report format and the tag filter may each be selected only once.
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error";
 
-// Both of these end the run mid-parse, which is what stops the parser from
-// reading the rest of the arguments. Exiting here is safe where it is not at
-// the end of the main flow: each prints a fixed string far below the buffer
-// of any pipe, so there is nothing left buffered to lose.
-fn print_help_and_exit() -> ! {
+// --help and --version write fixed text: one line-terminated write, flushed
+// so the text is out before the exit code is returned
+fn print_fixed(text: &str) {
     let mut out = std::io::stdout().lock();
-    let _ = out.write_all(HELP.as_bytes());
+    let _ = out.write_all(text.as_bytes());
     let _ = out.write_all(b"\n");
     let _ = out.flush();
-    std::process::exit(0)
-}
-
-fn print_version_and_exit() -> ! {
-    let mut out = std::io::stdout().lock();
-    let _ = out.write_all(env!("CARGO_PKG_VERSION").as_bytes());
-    let _ = out.write_all(b"\n");
-    let _ = out.flush();
-    std::process::exit(0)
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -88,6 +76,15 @@ struct Options {
     // remembers the option that made each selection, so the second one can
     // name the first.
     selected_by: HashMap<&'static str, String>,
+}
+
+// What the command line asks for. --help and --version stop the parser where
+// they stand, so nothing after them is read or rejected.
+#[derive(Debug)]
+enum Command {
+    Run(Options),
+    Help,
+    Version,
 }
 
 fn select_once(
@@ -151,7 +148,7 @@ fn reject_value(name: &str, inline: Option<&str>) -> Result<(), UsageError> {
     Ok(())
 }
 
-fn parse_args(argv: &[String]) -> Result<Options, UsageError> {
+fn parse_args(argv: &[String]) -> Result<Command, UsageError> {
     let mut options = Options {
         dirs: Vec::new(),
         tags: None,
@@ -166,11 +163,11 @@ fn parse_args(argv: &[String]) -> Result<Options, UsageError> {
         match name {
             "--help" => {
                 reject_value(raw, inline)?;
-                print_help_and_exit();
+                return Ok(Command::Help);
             }
             "--version" => {
                 reject_value(raw, inline)?;
-                print_version_and_exit();
+                return Ok(Command::Version);
             }
             "--verbose" => {
                 reject_value(raw, inline)?;
@@ -225,7 +222,7 @@ fn parse_args(argv: &[String]) -> Result<Options, UsageError> {
     if options.dirs.is_empty() {
         options.dirs.push(".".to_string());
     }
-    Ok(options)
+    Ok(Command::Run(options))
 }
 
 // the text of an input file: UTF-8 decoded leniently (undecodable bytes
@@ -277,16 +274,24 @@ fn main_flow(options: &Options) -> Result<bool, UsageError> {
     Ok(clean)
 }
 
-/// Run the CLI: parse, trace, report. Returns the process exit code; a usage
-/// error prints `error: <message>` and the help text to stderr and exits 2
-/// right here.
+/// Run the CLI: parse, trace, report. Returns the process exit code for main
+/// to hand back; a usage error prints `error: <message>` and the help text to
+/// stderr and returns 2.
 pub fn run_cli() -> ExitCode {
     let argv: Vec<String> = std::env::args().skip(1).collect();
-    let result = parse_args(&argv).and_then(|options| main_flow(&options));
+    let result = parse_args(&argv).and_then(|command| match command {
+        Command::Help => {
+            print_fixed(HELP);
+            Ok(true)
+        }
+        Command::Version => {
+            print_fixed(env!("CARGO_PKG_VERSION"));
+            Ok(true)
+        }
+        Command::Run(options) => main_flow(&options),
+    });
     match result {
         Ok(clean) => {
-            // Set the code and let the process end on its own: everything is
-            // already written synchronously, so nothing is left to lose.
             if clean {
                 ExitCode::from(0)
             } else {
@@ -297,7 +302,7 @@ pub fn run_cli() -> ExitCode {
             let mut err = std::io::stderr().lock();
             let _ = write!(err, "error: {usage_error}\n\n{HELP}\n");
             let _ = err.flush();
-            std::process::exit(2)
+            ExitCode::from(2)
         }
     }
 }
@@ -310,9 +315,28 @@ mod tests {
         list.iter().map(|argument| argument.to_string()).collect()
     }
 
+    fn run_options(argv: &[String]) -> Options {
+        match parse_args(argv).unwrap() {
+            Command::Run(options) => options,
+            command => panic!("expected a run, got {command:?}"),
+        }
+    }
+
+    #[test]
+    fn help_and_version_stop_the_parser_where_they_stand() {
+        for flag in ["--help", "-h"] {
+            let command = parse_args(&args(&[flag, "--frobnicate"])).unwrap();
+            assert!(matches!(command, Command::Help), "{flag}");
+        }
+        for flag in ["--version", "-V"] {
+            let command = parse_args(&args(&[flag, "--frobnicate"])).unwrap();
+            assert!(matches!(command, Command::Version), "{flag}");
+        }
+    }
+
     #[test]
     fn defaults_to_the_current_directory_and_the_text_format() {
-        let options = parse_args(&args(&[])).unwrap();
+        let options = run_options(&args(&[]));
         assert_eq!(options.dirs, ["."]);
         assert_eq!(options.format, Format::Text);
         assert!(!options.verbose);
@@ -321,19 +345,19 @@ mod tests {
 
     #[test]
     fn positional_arguments_become_input_paths() {
-        let options = parse_args(&args(&["docs", "src"])).unwrap();
+        let options = run_options(&args(&["docs", "src"]));
         assert_eq!(options.dirs, ["docs", "src"]);
     }
 
     #[test]
     fn the_tag_filter_splits_trims_and_drops_empty_segments() {
-        let options = parse_args(&args(&["--tags", "Auth , _,,B,"])).unwrap();
+        let options = run_options(&args(&["--tags", "Auth , _,,B,"]));
         assert_eq!(options.tags.unwrap(), ["Auth", "_", "B"]);
     }
 
     #[test]
     fn an_equals_attached_value_splits_at_the_first_equals_only() {
-        let options = parse_args(&args(&["--tags=a=b"])).unwrap();
+        let options = run_options(&args(&["--tags=a=b"]));
         assert_eq!(options.tags.unwrap(), ["a=b"]);
     }
 
@@ -427,7 +451,7 @@ mod tests {
             vec!["--format", "json"],
             vec!["--format=json"],
         ] {
-            let options = parse_args(&args(&list)).unwrap();
+            let options = run_options(&args(&list));
             assert_eq!(options.format, Format::Json, "{list:?}");
         }
     }
