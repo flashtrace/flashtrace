@@ -59,7 +59,7 @@ const SURFACE = [
 // version; both are provenance, not behavior, so both spellings collapse
 const normalize = (text) =>
   text
-    .replace(/^(  "flashtrace": ")[^"]*"/m, '$1<version>"')
+    .replace(/^( {2}"flashtrace": ")[^"]*"/m, '$1<version>"')
     .replace(/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?\r?\n$/, '<version>\n');
 
 function run(command, args, cwd) {
