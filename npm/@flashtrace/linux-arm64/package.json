@@ -1,0 +1,19 @@
+{
+  "name": "@flashtrace/linux-arm64",
+  "version": "0.0.0",
+  "description": "The flashtrace binary for linux arm64; installed as an optional dependency of the flashtrace package",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flashtrace/flashtrace.git"
+  },
+  "files": [
+    "bin/"
+  ],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ]
+}
