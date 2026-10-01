@@ -86,7 +86,4 @@ symlinks are not followed, and symlink entries discovered during traversal are
 not scanned. Explicit file arguments bypass ignore rules, but must still have a
 supported extension. Results are deduplicated and sorted.
 
-Known limitation: the scanner does not read Git's index. A tracked or staged
-file matching an ignore rule is excluded during directory scanning, unlike the
-previous `git ls-files --cached` behavior. Supply that file explicitly to include
-it. Ignored files and explicit overrides do not produce warnings.
+Ignored files and explicit overrides do not produce warnings.
