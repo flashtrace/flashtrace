@@ -6,8 +6,6 @@
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
-use flashtrace::files::find_git;
-
 struct Project(PathBuf);
 
 impl Drop for Project {
@@ -260,11 +258,7 @@ fn verbose_groups_items_by_file_then_line_with_a_blank_line_between_files() {
 }
 
 #[test]
-fn git_ignored_files_are_excluded_from_the_scan() {
-    let Some(git) = find_git() else {
-        eprintln!("skipped: git not available in a fixed install location");
-        return;
-    };
+fn git_ignored_files_are_excluded_outside_a_repository() {
     let project = with_project(
         "gitignore",
         &[
@@ -273,12 +267,6 @@ fn git_ignored_files_are_excluded_from_the_scan() {
             ("ignored.md", &["`req:bad#1`", "", "Needs: impl:missing#1"]),
         ],
     );
-    let init = Command::new(git)
-        .args(["init", "-q"])
-        .current_dir(&project.0)
-        .status()
-        .unwrap();
-    assert!(init.success());
     let result = run(&project, &[]);
     assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
     assert!(!stdout(&result).contains("req:bad#1"));
@@ -451,4 +439,181 @@ fn undecodable_bytes_are_replaced_rather_than_failing_the_run() {
     let result = run(&project, &[]);
     assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
     assert!(stdout(&result).ends_with("ok\n"));
+}
+
+fn write_project_file(project: &Project, path: &str, content: &str) {
+    let path = project.0.join(path);
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, content).unwrap();
+}
+
+// Isolate ambient Git configuration in the child,
+// without changing the test process's environment or requiring Git.
+fn isolated_scan(project: &Project, args: &[&str]) -> Output {
+    let configuration = project.0.join("configuration");
+    std::fs::create_dir_all(&configuration).unwrap();
+    Command::new(env!("CARGO_BIN_EXE_flashtrace"))
+        .args(args)
+        .current_dir(project.0.join("repository"))
+        .env("HOME", &configuration)
+        .env("USERPROFILE", &configuration)
+        .env("XDG_CONFIG_HOME", &configuration)
+        .env("PATH", "")
+        .output()
+        .unwrap()
+}
+
+fn scanned_items(output: &Output) -> Vec<String> {
+    assert_eq!(output.status.code(), Some(0), "{}", stderr(output));
+    assert_eq!(stderr(output), "");
+    let report: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let mut identifiers: Vec<String> = report["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| item["id"].as_str().unwrap().to_string())
+        .collect();
+    identifiers.sort();
+    identifiers
+}
+
+#[test]
+fn nested_parent_and_ignore_rules_apply_without_git() {
+    let project = with_project("nested-ignore", &[]);
+    write_project_file(&project, ".gitignore", "parent.ts\n");
+    write_project_file(
+        &project,
+        "repository/.gitignore",
+        "*.md\n!keep.md\n!child/\n",
+    );
+    write_project_file(&project, "repository/.ignore", "!override.md\n");
+    write_project_file(
+        &project,
+        "repository/child/.gitignore",
+        "!nested.md\nparent.md\n",
+    );
+    for (path, identifier) in [
+        ("keep.md", "keep"),
+        ("drop.md", "drop"),
+        ("override.md", "override"),
+        ("child/nested.md", "nested"),
+        ("child/parent.md", "parent"),
+    ] {
+        write_project_file(
+            &project,
+            &format!("repository/{path}"),
+            &format!("`req:{identifier}#1`"),
+        );
+    }
+    write_project_file(
+        &project,
+        "repository/child/parent.ts",
+        "// [req:excluded#1]",
+    );
+    assert_eq!(
+        scanned_items(&isolated_scan(&project, &["--json"])),
+        ["req:keep#1", "req:nested#1", "req:override#1"]
+    );
+    assert_eq!(
+        scanned_items(&isolated_scan(&project, &["--json", "child"])),
+        ["req:nested#1"]
+    );
+}
+
+#[test]
+fn metadata_and_dependencies_are_excluded_but_hidden_content_is_scanned_and_inputs_are_deduplicated()
+ {
+    let project = with_project("hidden-ignore", &[]);
+    for (path, identifier) in [
+        (".git/internal.md", "metadata"),
+        ("nested/.git/internal.md", "nestedmetadata"),
+        ("node_modules/package/spec.md", "dependency"),
+        ("nested/node_modules/package/spec.md", "nesteddependency"),
+        (".github/workflows/spec.md", "workflow"),
+        (".hidden.md", "hidden"),
+        ("visible.md", "visible"),
+    ] {
+        write_project_file(
+            &project,
+            &format!("repository/{path}"),
+            &format!("`req:{identifier}#1`"),
+        );
+    }
+    assert_eq!(
+        scanned_items(&isolated_scan(
+            &project,
+            &["--json", ".", ".github", "visible.md"]
+        )),
+        ["req:hidden#1", "req:visible#1", "req:workflow#1"]
+    );
+    for directory in [".git", "node_modules", "nested/node_modules"] {
+        assert!(scanned_items(&isolated_scan(&project, &["--json", directory])).is_empty());
+    }
+    assert_eq!(
+        scanned_items(&isolated_scan(
+            &project,
+            &["--json", "node_modules/package/spec.md"]
+        )),
+        ["req:dependency#1"]
+    );
+}
+
+#[test]
+fn local_and_global_git_excludes_apply_without_a_git_executable() {
+    let project = with_project("global-ignore", &[]);
+    write_project_file(&project, "repository/.git/info/exclude", "local.md\n");
+    write_project_file(&project, "configuration/git/ignore", "global.md\n");
+    for name in ["local", "global", "keep"] {
+        write_project_file(
+            &project,
+            &format!("repository/{name}.md"),
+            &format!("`req:{name}#1`"),
+        );
+    }
+    assert_eq!(
+        scanned_items(&isolated_scan(&project, &["--json"])),
+        ["req:keep#1"]
+    );
+
+    write_project_file(&project, "configuration/custom-ignore", "keep.md\n");
+    let ignore_path = project
+        .0
+        .join("configuration/custom-ignore")
+        .to_string_lossy()
+        .replace('\\', "/");
+    write_project_file(
+        &project,
+        "configuration/.gitconfig",
+        &format!("[core]\nexcludesFile = \"{ignore_path}\"\n"),
+    );
+    assert_eq!(
+        scanned_items(&isolated_scan(&project, &["--json"])),
+        ["req:global#1"]
+    );
+}
+
+#[test]
+fn explicit_files_bypass_ignore_rules_but_still_require_supported_extensions() {
+    let project = with_project("explicit-ignore", &[]);
+    write_project_file(&project, "repository/.gitignore", "*.md\n");
+    write_project_file(&project, "repository/.ignore", "*.ts\n");
+    write_project_file(
+        &project,
+        "repository/ignored.md",
+        "`req:explicit#1`\n\nNeeds: req:code#1",
+    );
+    write_project_file(&project, "repository/ignored.ts", "// [req:code#1]");
+    write_project_file(
+        &project,
+        "repository/ignored.unknown",
+        "`req:unsupported#1`",
+    );
+    assert!(scanned_items(&isolated_scan(&project, &["--json"])).is_empty());
+    assert_eq!(
+        scanned_items(&isolated_scan(
+            &project,
+            &["--json", "ignored.md", "ignored.ts", "ignored.unknown"]
+        )),
+        ["req:code#1", "req:explicit#1"]
+    );
 }

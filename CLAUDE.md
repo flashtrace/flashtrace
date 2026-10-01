@@ -22,7 +22,7 @@ Ask refining questions before you start writing.
 | .github/ | Continuous integration workflows and the helper scripts they run |
 
 Keep dev dependencies to a minimum.
-Keep runtime dependencies to the approved set: `regex`, `serde` and `serde_json` - nothing else.
+Keep runtime dependencies to the approved set: `ignore`, `regex`, `serde` and `serde_json` - nothing else.
 
 ## The Commands
 

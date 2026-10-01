@@ -31,7 +31,8 @@ const HELP: &str = "Usage: flashtrace [options] [directory-or-file ...]
 
 Traces requirement coverage between Markdown specifications and source code
 (.ts, .js, .mjs, .sql, .vue). Defaults to the current directory. Files ignored
-by git are excluded.
+by .gitignore, .ignore and Git exclude rules are excluded, even outside a
+repository. Explicit file arguments bypass ignore rules.
 
 Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
