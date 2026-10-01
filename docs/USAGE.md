@@ -17,7 +17,7 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 outside repositories. Hidden content remains eligible, except `.git/` metadata.
 `node_modules/` dependency directories are also automatically excluded.
 Explicit file arguments bypass ignore rules. Tracked files matching ignore rules
-are excluded too; see [File selection](code-tags.md#file-selection) for details.
+are excluded too; see [Known limitations](known-limitations.md) for details.
 
 | Option | Effect |
 |---|---|
