@@ -1,96 +1,16 @@
 /*
- * File collection (gitignore-aware): files ignored by git are excluded via
- * `git ls-files`; plain directory walk as fallback outside a git repository.
+ * File collection uses ignore rules directly, without executing Git.
  */
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::sync::OnceLock;
+
+use ignore::WalkBuilder;
 
 use crate::errors::UsageError;
 use crate::languages::CODE_EXT;
 use crate::parse_spec::SPEC_EXT;
 use crate::paths::{absolute_normalized, extension_of};
-
-// git is looked up in fixed, non-user-writable install locations only, never
-// via PATH (writable PATH entries would allow binary planting).
-const GIT_LOCATIONS: &[&str] = if cfg!(windows) {
-    &[
-        r"C:\Program Files\Git\cmd\git.exe",
-        r"C:\Program Files (x86)\Git\cmd\git.exe",
-    ]
-} else {
-    &["/usr/bin/git", "/bin/git"]
-};
-
-pub fn find_git() -> Option<&'static str> {
-    static GIT_BIN: OnceLock<Option<&'static str>> = OnceLock::new();
-    *GIT_BIN.get_or_init(|| {
-        GIT_LOCATIONS
-            .iter()
-            .copied()
-            .find(|location| Path::new(location).exists())
-    })
-}
-
-fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let name = entry.file_name();
-        if name == ".git" || name == "node_modules" {
-            continue;
-        }
-        let Ok(file_type) = entry.file_type() else {
-            continue;
-        };
-        if file_type.is_dir() {
-            walk(&entry.path(), out);
-        } else if file_type.is_file() {
-            out.push(entry.path());
-        }
-    }
-}
-
-// the repository's file list as git reports it, or None when the directory is
-// no repository (or git is missing or fails)
-fn git_listed_files(abs: &Path) -> Option<Vec<PathBuf>> {
-    let git = find_git()?;
-    let output = Command::new(git)
-        .arg("-C")
-        .arg(abs)
-        .args([
-            "ls-files",
-            "-z",
-            "--cached",
-            "--others",
-            "--exclude-standard",
-        ])
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let listed = String::from_utf8_lossy(&output.stdout);
-    Some(
-        listed
-            .split('\0')
-            .filter(|file| !file.is_empty())
-            .map(|file| {
-                // git spells the path with forward slashes on every platform;
-                // pushing it segment by segment gives it native separators
-                let mut path = abs.to_path_buf();
-                path.extend(file.split('/'));
-                path
-            })
-            .collect(),
-    )
-}
 
 pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
     let mut files: Vec<String> = Vec::new();
@@ -111,17 +31,21 @@ pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
             add(abs);
             continue;
         }
-        let list = match git_listed_files(&abs) {
-            Some(list) => list,
-            None => {
-                // not a git repo (or git missing)
-                let mut walked = Vec::new();
-                walk(&abs, &mut walked);
-                walked
+        if abs.file_name().is_some_and(|name| name == ".git") {
+            continue;
+        }
+        let walker = WalkBuilder::new(&abs)
+            .hidden(false)
+            .require_git(false)
+            .follow_links(false)
+            .filter_entry(|entry| entry.file_name() != ".git")
+            .build();
+        // Preserve silent traversal failures for now; general diagnostics are
+        // a separate change. Explicit file arguments bypass the walker above.
+        for entry in walker.flatten() {
+            if entry.file_type().is_some_and(|kind| kind.is_file()) {
+                add(entry.into_path());
             }
-        };
-        for file in list {
-            add(file);
         }
     }
     let mut collected: Vec<String> = files
