@@ -797,11 +797,14 @@ fn nested_parent_and_ignore_rules_apply_without_git() {
 }
 
 #[test]
-fn metadata_is_excluded_but_hidden_content_is_scanned_and_inputs_are_deduplicated() {
+fn metadata_and_dependencies_are_excluded_but_hidden_content_is_scanned_and_inputs_are_deduplicated()
+ {
     let project = with_project("hidden-ignore", &[]);
     for (path, identifier) in [
         (".git/internal.md", "metadata"),
         ("nested/.git/internal.md", "nestedmetadata"),
+        ("node_modules/package/spec.md", "dependency"),
+        ("nested/node_modules/package/spec.md", "nesteddependency"),
         (".github/workflows/spec.md", "workflow"),
         (".hidden.md", "hidden"),
         ("visible.md", "visible"),
@@ -819,7 +822,16 @@ fn metadata_is_excluded_but_hidden_content_is_scanned_and_inputs_are_deduplicate
         )),
         ["req:hidden#1", "req:visible#1", "req:workflow#1"]
     );
-    assert!(scanned_items(&isolated_scan(&project, &["--json", ".git"])).is_empty());
+    for directory in [".git", "node_modules", "nested/node_modules"] {
+        assert!(scanned_items(&isolated_scan(&project, &["--json", directory])).is_empty());
+    }
+    assert_eq!(
+        scanned_items(&isolated_scan(
+            &project,
+            &["--json", "node_modules/package/spec.md"]
+        )),
+        ["req:dependency#1"]
+    );
 }
 
 #[test]

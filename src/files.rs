@@ -31,14 +31,19 @@ pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
             add(abs);
             continue;
         }
-        if abs.file_name().is_some_and(|name| name == ".git") {
+        if abs
+            .file_name()
+            .is_some_and(|name| name == ".git" || name == "node_modules")
+        {
             continue;
         }
         let walker = WalkBuilder::new(&abs)
             .hidden(false)
             .require_git(false)
             .follow_links(false)
-            .filter_entry(|entry| entry.file_name() != ".git")
+            .filter_entry(|entry| {
+                entry.file_name() != ".git" && entry.file_name() != "node_modules"
+            })
             .build();
         // Preserve silent traversal failures for now; general diagnostics are
         // a separate change. Explicit file arguments bypass the walker above.

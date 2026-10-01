@@ -15,6 +15,7 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 [Code tags](code-tags.md) for the full list). Directory scans respect
 `.gitignore`, `.ignore`, local Git excludes and global Git ignore rules, even
 outside repositories. Hidden content remains eligible, except `.git/` metadata.
+`node_modules/` dependency directories are also automatically excluded.
 Explicit file arguments bypass ignore rules. Tracked files matching ignore rules
 are excluded too; see [File selection](code-tags.md#file-selection) for details.
 
