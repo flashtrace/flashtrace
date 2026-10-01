@@ -69,7 +69,9 @@ Tags: security
 - **Needs / Covers / Tags** - inline comma-separated or as a bullet list on the
   following lines. A Needs or Covers entry is a full ID or a short form (`impl`,
   `impl:name`, `impl#2`) whose omitted `[group/]name` and revision are taken
-  from the item stating it; see [markdown-items.md](markdown-items.md).
+  from the item stating it; see [markdown-items.md](markdown-items.md). One
+  item may need several items of the same type - see
+  [Needing several items of the same type](#needing-several-items-of-the-same-type).
 
 ## Tagging code
 
@@ -84,6 +86,81 @@ Inside comments (`//`, `/* */`, `--` in SQL, `<!-- -->` in Vue):
 //                               with that ID (robust against item
 //                               tags inserted in between)
 ```
+
+## Needing several items of the same type
+
+A `Needs` entry references one concrete item; it is not a slot for an artifact
+type. An item may therefore demand as many items of the same type as its work
+actually takes, and each entry is traced on its own:
+
+```markdown
+## Create an order
+
+`req:order/create#1`
+
+A client can place an order.
+
+Needs: impl:order/create/route#1, impl:order/create/service#1, impl:order/create/repository#1
+```
+
+`req:order/create#1` counts as covered only once all three exist, and the
+report names the member that is missing rather than the requirement alone:
+
+```
+✘ req:order/create#1 "Create an order"  spec.md:5
+    • uncovered: needs impl:order/create/repository#1, which does not exist
+```
+
+Nothing here is special-cased; it follows from needs being explicit references.
+The same holds for a requirement needing two other requirements, three tests,
+or any mix of types.
+
+### Scale on the name, not on the type
+
+Telling those members apart is what the `[group/]` path of an
+[item ID](item-ids.md) is for. Because a name carries an arbitrarily deep group
+path, one artifact kind stays one type and the set grows along the name:
+`impl:order/create/route#1` beside `impl:order/create/service#1`. Numbering the
+types instead (`impl1`, `impl2`, ...) would spread a single kind across a type
+vocabulary that then identifies nothing.
+
+The pattern fits a fixed set of layers particularly well - every route of an
+API needs a route, a service and a repository, one need each - and each layer
+is traced, reported and revised separately.
+
+### Keeping a long Needs list readable
+
+Explicit needs do make the list longer than a bare artifact type would. A
+**short form** takes the edge off: an entry may drop whatever the item stating
+it already fixes, most usefully the revision.
+
+```markdown
+`req:order/create#1`
+
+Needs: impl:order/create/route, impl:order/create/service, impl:order/create/repository, utest
+```
+
+The three `impl` entries inherit `#1` from `req:order/create#1`; `utest`, which
+drops the `[group/]name` as well, resolves to `utest:order/create#1` - the short
+form for the one item that mirrors the requirement one to one. A need may also
+take a [wildcard revision](revisions.md#wildcard-revisions)
+(`impl:order/create/route#1.x`) to accept any matching downstream revision.
+
+### From the code side
+
+A code item attaches one need per tag, so several `[>>...]` tags below it
+express the same multiplicity:
+
+```ts
+// [impl:order/create/route#1]
+// [>>impl:order/create/service#1]
+// [>>utest:order/create/route#1]
+export const postOrder = () => createOrder();
+```
+
+Each member may point back with `Covers: req:order/create#1`. That entry is
+valid for every one of them at once, because the requirement names each of them
+in its `Needs`.
 
 ## Forwarding / delegation
 
