@@ -224,6 +224,150 @@ const SHALLOW_CHAIN_SPEC: &[&str] = &[
 ];
 
 #[test]
+fn verbose_renders_a_forwarding_source_as_an_arrow_edge_to_its_target() {
+    let project = with_project(
+        "verbose-forwarding",
+        &[(
+            "spec.md",
+            &[
+                "`req:login#1`",
+                "",
+                "`[req:login#1 --> dsn:auth#2]`",
+                "",
+                "`dsn:auth#2`",
+            ],
+        )],
+    );
+    let result = run(&project, &["-v"]);
+    assert_eq!(result.status.code(), Some(0));
+    let text = stdout(&result);
+    assert!(text.contains("\u{2714} req:login#1  spec.md:1  [deep-covered]"));
+    assert!(text.contains("\u{2192} dsn:auth#2  \u{2714} spec.md:5"));
+}
+
+#[test]
+fn verbose_marks_a_forwarding_to_a_nonexistent_target_as_missing() {
+    let project = with_project(
+        "verbose-forwarding-missing",
+        &[("spec.md", &["`req:a#1`", "", "`[req:a#1 --> dsn:gone#1]`"])],
+    );
+    let result = run(&project, &["-v"]);
+    assert_eq!(result.status.code(), Some(1));
+    let text = stdout(&result);
+    assert!(text.contains("\u{2718} req:a#1  spec.md:1  [defective]"));
+    assert!(text.contains("\u{2192} dsn:gone#1  \u{2718} missing"));
+    assert!(text.contains("uncovered: forwards to dsn:gone#1"));
+}
+
+#[test]
+fn verbose_shows_a_forwarding_edge_with_the_target_s_own_status_mark() {
+    // dsn:auth#2 exists but is itself shallow (its need is defective), so the
+    // source is shallow and its arrow edge shows ~, not a bare check mark
+    let project = with_project(
+        "verbose-forwarding-shallow",
+        &[(
+            "spec.md",
+            &[
+                "`req:login#1`",
+                "",
+                "`[req:login#1 --> dsn:auth#2]`",
+                "",
+                "`dsn:auth#2`",
+                "",
+                "Needs: dsn:auth#3",
+                "",
+                "`dsn:auth#3`",
+                "",
+                "Needs: impl:missing#1",
+            ],
+        )],
+    );
+    let result = run(&project, &["-v"]);
+    assert_eq!(result.status.code(), Some(1));
+    let text = stdout(&result);
+    assert!(text.contains("~ req:login#1  spec.md:1  [shallow-covered]"));
+    assert!(text.contains("\u{2192} dsn:auth#2  ~ spec.md:5"));
+}
+
+#[test]
+fn verbose_shows_a_code_item_s_need_on_a_markdown_target_as_wanted_by() {
+    let project = with_project(
+        "verbose-code-need",
+        &[
+            (
+                "spec.md",
+                &["`req:top#1`", "", "Needs: impl:a#1", "", "`dsn:spec#1`"],
+            ),
+            ("login.ts", &["// [impl:a#1]", "// [>>dsn:spec#1]"]),
+        ],
+    );
+    let result = run(&project, &["-v"]);
+    assert_eq!(result.status.code(), Some(0));
+    assert!(stdout(&result).contains(
+        "\u{2714} dsn:spec#1  spec.md:5  [deep-covered]\n    wanted by impl:a#1  login.ts:1"
+    ));
+}
+
+#[test]
+fn verbose_lists_covers_edges_valid_or_missing() {
+    let project = with_project(
+        "verbose-covers",
+        &[
+            (
+                "spec.md",
+                &[
+                    "`req:parent#1`",
+                    "",
+                    "Needs: req:child#1",
+                    "",
+                    "`req:child#1`",
+                    "",
+                    "Needs: impl:c#1",
+                    "Covers: req:parent#1, req:gone#1",
+                ],
+            ),
+            ("c.ts", &["// [impl:c#1]"]),
+        ],
+    );
+    let result = run(&project, &["-v"]);
+    assert_eq!(result.status.code(), Some(1));
+    let text = stdout(&result);
+    assert!(text.contains("covers req:parent#1  \u{2714} spec.md:1"));
+    assert!(text.contains("covers req:gone#1  \u{2718} missing"));
+    assert!(text.contains("orphaned: covers req:gone#1"));
+}
+
+#[test]
+fn verbose_lists_a_forwarding_source_s_own_covers_alongside_its_arrow_edge() {
+    // forwarding excuses the source's needs but not its Covers, which stay
+    // checked and still appear as edges in the verbose report
+    let project = with_project(
+        "verbose-forwarding-covers",
+        &[(
+            "spec.md",
+            &[
+                "`req:base#1`",
+                "",
+                "Needs: req:src#1",
+                "",
+                "`req:src#1`",
+                "",
+                "Covers: req:base#1",
+                "",
+                "`[req:src#1 --> dsn:tgt#1]`",
+                "",
+                "`dsn:tgt#1`",
+            ],
+        )],
+    );
+    let result = run(&project, &["-v"]);
+    assert_eq!(result.status.code(), Some(0));
+    let text = stdout(&result);
+    assert!(text.contains("\u{2192} dsn:tgt#1  \u{2714} spec.md:11"));
+    assert!(text.contains("covers req:base#1  \u{2714} spec.md:1"));
+}
+
+#[test]
 fn verbose_marks_an_item_with_a_defective_downstream_chain_as_shallow_covered() {
     let project = with_project("verbose-shallow", &[("spec.md", SHALLOW_CHAIN_SPEC)]);
     let result = run(&project, &["-v"]);
