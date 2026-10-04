@@ -131,6 +131,7 @@ fn tags_filters_markdown_items_and_underscore_readmits_untagged_ones() {
         (vec!["--tags=Auth"], "items       1"),
         (vec!["--tags=Auth,_"], "items       2"),
         (vec!["--tags", "Auth , _"], "items       2"),
+        (vec!["--tags=Auth , _"], "items       2"),
         (vec!["--tags=Auth,,_,"], "items       2"),
     ] {
         let result = run(&project, &args);
@@ -165,10 +166,23 @@ fn tags_split_at_the_first_equals_only_keeping_equals_in_the_value() {
 #[test]
 fn selecting_the_tag_filter_twice_is_a_usage_error_with_empty_stdout() {
     let project = with_project("tags-twice", &[("spec.md", TAGS_SPEC)]);
-    let result = run(&project, &["-t", "Auth", "--tags=Other"]);
-    assert_eq!(result.status.code(), Some(2));
-    assert_eq!(stdout(&result), "");
-    assert!(stderr(&result).contains("the tag filter is already selected by -t"));
+    // differing, agreeing and mixed spellings alike: one rule
+    for (args, blamed) in [
+        (vec!["-t", "Auth", "-t", "Other"], "-t"),
+        (vec!["--tags", "Auth", "--tags", "Other"], "--tags"),
+        (vec!["--tags=Auth", "--tags=Other"], "--tags"),
+        (vec!["-t", "Auth", "--tags=Auth"], "-t"),
+        (vec!["--tags", "Auth", "-t", "Other"], "--tags"),
+    ] {
+        let result = run(&project, &args);
+        assert_eq!(result.status.code(), Some(2), "{args:?}");
+        assert_eq!(stdout(&result), "", "{args:?}");
+        assert!(
+            stderr(&result).contains(&format!("the tag filter is already selected by {blamed}")),
+            "{args:?}: {}",
+            stderr(&result)
+        );
+    }
 }
 
 #[test]
@@ -621,6 +635,14 @@ fn usage_errors_reach_stderr_with_empty_stdout() {
         ),
         (
             vec!["--json", "--format", "text"],
+            "the report format is already selected by --json",
+        ),
+        (
+            vec!["--json", "--format", "json"],
+            "the report format is already selected by --json",
+        ),
+        (
+            vec!["--json", "--json"],
             "the report format is already selected by --json",
         ),
     ] {
