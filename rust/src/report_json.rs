@@ -559,6 +559,77 @@ mod tests {
     }
 
     #[test]
+    fn defective_agrees_with_the_defects_array_on_every_item() {
+        let document = build(
+            &["`req:a#1`", "", "Needs: impl:gone#1", "", "`req:b#1`"],
+            &["// [impl:stray#1]"],
+        );
+        for item in &document.items {
+            assert_eq!(
+                item.defective,
+                !item.defects.is_empty(),
+                "{} disagrees",
+                item.id
+            );
+        }
+    }
+
+    #[test]
+    fn a_valid_cover_stays_valid_on_an_item_that_is_defective_for_another_reason() {
+        // cover status is read off the defects, so an unrelated defect on the
+        // same item must not colour it
+        let document = build(
+            &[
+                "`req:wants#1`",
+                "",
+                "Needs: req:a#1",
+                "",
+                "`req:a#1`",
+                "",
+                "Covers: req:wants#1, req:gone#1",
+                "",
+                "Needs: impl:missing#1",
+            ],
+            &[],
+        );
+        let item = item_of(&document, "req:a#1");
+        let statuses: Vec<(&str, &str)> = item
+            .covers
+            .iter()
+            .map(|entry| (entry.reference.as_str(), entry.status))
+            .collect();
+        assert_eq!(
+            statuses,
+            [("req:wants#1", "valid"), ("req:gone#1", "orphaned")]
+        );
+        let mut kinds: Vec<&str> = item.defects.iter().map(|defect| defect.kind).collect();
+        kinds.sort_unstable();
+        assert_eq!(kinds, ["orphaned-cover", "uncovered-need"]);
+    }
+
+    #[test]
+    fn status_distinguishes_deep_covered_shallow_covered_and_defective() {
+        let document = build(
+            &[
+                "`req:top#1`",
+                "",
+                "Needs: req:mid#1",
+                "",
+                "`req:mid#1`",
+                "",
+                "Needs: impl:missing#1",
+                "",
+                "`req:leaf#1`",
+            ],
+            &[],
+        );
+        // the chain below req:top#1 is broken
+        assert_eq!(item_of(&document, "req:top#1").status, "shallow-covered");
+        assert_eq!(item_of(&document, "req:mid#1").status, "defective");
+        assert_eq!(item_of(&document, "req:leaf#1").status, "deep-covered");
+    }
+
+    #[test]
     fn a_forwarding_source_still_has_its_covers_classified() {
         // forwarding excuses the source's needs but not its covers
         let document = build(
