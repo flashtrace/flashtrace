@@ -388,6 +388,45 @@ fn the_summary_splits_the_ok_count_into_deep_and_shallow_covered_items() {
 }
 
 #[test]
+fn the_summary_omits_the_coverage_breakdown_when_no_item_is_shallow_covered() {
+    let project = with_project("summary-plain", &[("spec.md", &["`req:a#1`"])]);
+    let result = run(&project, &[]);
+    assert_eq!(result.status.code(), Some(0));
+    let text = stdout(&result);
+    assert!(text.contains("ok          1\n"), "{text}");
+    assert!(!text.contains("deep-covered"), "{text}");
+}
+
+#[test]
+fn verbose_still_renders_parse_problems() {
+    let project = with_project("verbose-problems", &[("orphan.ts", &["// [>>utest:a#1]"])]);
+    let result = run(&project, &["-v"]);
+    assert_eq!(result.status.code(), Some(1));
+    let text = stdout(&result);
+    let problem = text
+        .lines()
+        .find(|line| line.contains("no preceding item tag"))
+        .expect("the parse problem is rendered");
+    assert!(problem.trim_start().starts_with('\u{26A0}'), "{problem}");
+    assert!(text.contains("problems    1\n"), "{text}");
+}
+
+#[test]
+fn verbose_keeps_defect_details_and_the_exit_code_of_a_defective_run() {
+    let project = with_project(
+        "verbose-defective",
+        &[("spec.md", &["`req:login#1`", "", "Needs: impl:missing#1"])],
+    );
+    let result = run(&project, &["-v"]);
+    assert_eq!(result.status.code(), Some(1));
+    let text = stdout(&result);
+    assert!(text.contains("\u{2718} req:login#1  spec.md:1  [defective]"));
+    assert!(text.contains("needs impl:missing#1  \u{2718} missing"));
+    assert!(text.contains("uncovered: needs impl:missing#1"));
+    assert!(text.trim_end().ends_with("not ok"));
+}
+
+#[test]
 fn verbose_groups_items_by_file_then_line_with_a_blank_line_between_files() {
     let project = with_project(
         "verbose-groups",
