@@ -224,6 +224,43 @@ const SHALLOW_CHAIN_SPEC: &[&str] = &[
 ];
 
 #[test]
+fn verbose_honors_the_tag_filter_leaving_filtered_out_items_absent() {
+    let project = with_project(
+        "verbose-tags",
+        &[
+            (
+                "spec.md",
+                &[
+                    "# A",
+                    "`req:a#1`",
+                    "",
+                    "Needs: impl:a#1",
+                    "Tags: Auth",
+                    "",
+                    "# B",
+                    "`req:b#1`",
+                    "",
+                    "Needs: impl:a#1",
+                    "Tags: Other",
+                ],
+            ),
+            ("a.ts", &["// [impl:a#1]"]),
+        ],
+    );
+    let result = run(&project, &["-v", "-t", "Auth"]);
+    assert_eq!(result.status.code(), Some(0));
+    let text = stdout(&result);
+    assert!(text.contains("\u{2714} req:a#1 \"A\"  spec.md:2  [deep-covered]"));
+    assert!(text.contains("needs impl:a#1  \u{2714} a.ts:1"));
+    assert!(!text.contains("req:b#1"), "{text}");
+    // req:a and impl:a; req:b is filtered out
+    assert!(
+        text.contains("items       2  (1 from specs, 1 from code)"),
+        "{text}"
+    );
+}
+
+#[test]
 fn verbose_renders_a_forwarding_source_as_an_arrow_edge_to_its_target() {
     let project = with_project(
         "verbose-forwarding",
@@ -495,12 +532,43 @@ fn json_prints_the_document_and_keeps_the_exit_code() {
     assert_eq!(document["ok"], serde_json::Value::Bool(true));
     assert_eq!(document["flashtrace"], env!("CARGO_PKG_VERSION"));
     assert!(text.ends_with("}\n")); // single trailing newline
-    let forwards = document["forwards"].as_array().unwrap();
-    assert_eq!(forwards.len(), 1);
-    assert_eq!(forwards[0]["effective"], serde_json::Value::Bool(true));
-    for item in document["items"].as_array().unwrap() {
+    let items = document["items"].as_array().unwrap();
+    assert!(items.iter().any(|item| item["id"] == "req:login#1"));
+    for item in items {
         assert!(item.get("wantedBy").is_some());
     }
+    let forwards: Vec<_> = document["forwards"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|forward| {
+            (
+                forward["from"].clone(),
+                forward["to"].clone(),
+                forward["effective"].clone(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        forwards,
+        [(
+            "req:legacy#1".into(),
+            "req:login#1".into(),
+            serde_json::Value::Bool(true)
+        )]
+    );
+}
+
+#[test]
+fn json_honors_the_tag_filter() {
+    let project = with_project("json-tags", &[("spec.md", TAGS_SPEC)]);
+    let result = run(&project, &["--json", "-t", "Auth"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    let document: serde_json::Value = serde_json::from_str(&stdout(&result)).unwrap();
+    assert_eq!(document["summary"]["items"], 1);
+    let items = document["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0]["id"], "req:a#1");
 }
 
 #[test]
