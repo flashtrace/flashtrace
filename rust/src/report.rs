@@ -1,7 +1,7 @@
 /*
  * Terminal report.
  *
- * Colors are on exactly when stdout is a terminal and NO_COLOR is unset or
+ * Colors are enabled exactly when stdout is a terminal and NO_COLOR is unset or
  * empty (per no-color.org, only a non-empty NO_COLOR disables them). Output
  * goes through print_line, which swallows write errors: on a broken pipe the
  * run ends quietly with its computed exit code.
@@ -24,19 +24,19 @@ pub fn print_line(text: &str) {
 }
 
 struct Styler {
-    on: bool,
+    is_color_enabled: bool,
 }
 
 impl Styler {
     fn new() -> Styler {
         let no_color = std::env::var_os("NO_COLOR").is_some_and(|value| !value.is_empty());
         Styler {
-            on: std::io::stdout().is_terminal() && !no_color,
+            is_color_enabled: std::io::stdout().is_terminal() && !no_color,
         }
     }
 
     fn wrap(&self, code: &str, text: &str) -> String {
-        if self.on {
+        if self.is_color_enabled {
             format!("\u{001b}[{code}m{text}\u{001b}[0m")
         } else {
             text.to_string()
