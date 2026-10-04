@@ -38,10 +38,25 @@ fn schema_errors(document: &Value) -> Vec<String> {
     let validator = jsonschema::validator_for(&schema).unwrap();
     let mut errors: Vec<String> = validator
         .iter_errors(document)
-        .map(|error| format!("{}: {error}", error.instance_path()))
+        .map(|error| format!("{}: {error}", location(&error.instance_path().to_string())))
         .collect();
-    collect_undocumented_fields(document, &schema, &schema, "document", &mut errors);
+    collect_undocumented_fields(document, &schema, &schema, "", &mut errors);
     errors
+}
+
+// a JSON Pointer as the failure reports show it: the root, the empty
+// pointer, gets a name
+fn location(pointer: &str) -> &str {
+    if pointer.is_empty() {
+        "(root)"
+    } else {
+        pointer
+    }
+}
+
+// one JSON Pointer reference token, escaped per RFC 6901
+fn pointer_token(key: &str) -> String {
+    key.replace('~', "~0").replace('/', "~1")
 }
 
 // every failed check on one document. The invariants read the shape the
@@ -61,7 +76,7 @@ fn collect_undocumented_fields(
     value: &Value,
     node: &Value,
     schema: &Value,
-    where_: &str,
+    pointer: &str,
     errors: &mut Vec<String>,
 ) {
     if let Some(reference) = node.get("$ref").and_then(Value::as_str) {
@@ -69,7 +84,7 @@ fn collect_undocumented_fields(
             .trim_start_matches("#/")
             .split('/')
             .fold(schema, |step, key| &step[key]);
-        collect_undocumented_fields(value, target, schema, where_, errors);
+        collect_undocumented_fields(value, target, schema, pointer, errors);
         return;
     }
     if let Some(branches) = node.get("oneOf").and_then(Value::as_array) {
@@ -81,7 +96,7 @@ fn collect_undocumented_fields(
             .iter()
             .filter(|branch| matches(value, branch, schema))
         {
-            collect_undocumented_fields(value, branch, schema, where_, errors);
+            collect_undocumented_fields(value, branch, schema, pointer, errors);
         }
         return;
     }
@@ -91,12 +106,15 @@ fn collect_undocumented_fields(
     ) {
         for (key, child) in object {
             match properties.get(key) {
-                None => errors.push(format!("{where_}: undocumented field \"{key}\"")),
+                None => errors.push(format!(
+                    "{}: undocumented field \"{key}\"",
+                    location(pointer)
+                )),
                 Some(child_node) => collect_undocumented_fields(
                     child,
                     child_node,
                     schema,
-                    &format!("{where_}.{key}"),
+                    &format!("{pointer}/{}", pointer_token(key)),
                     errors,
                 ),
             }
@@ -108,7 +126,7 @@ fn collect_undocumented_fields(
                 entry,
                 items_node,
                 schema,
-                &format!("{where_}[{index}]"),
+                &format!("{pointer}/{index}"),
                 errors,
             );
         }
@@ -163,7 +181,7 @@ fn unknown_keywords(node: &Value, path: &str, found: &mut Vec<String>) {
         match keyword {
             "properties" | "$defs" => {
                 for (name, subschema) in child.as_object().unwrap() {
-                    unknown_keywords(subschema, &format!("{at}/{name}"), found);
+                    unknown_keywords(subschema, &format!("{at}/{}", pointer_token(name)), found);
                 }
             }
             "oneOf" => {
@@ -692,7 +710,7 @@ fn the_documented_fields_walk_follows_only_the_matching_one_of_branch() {
     });
     let walk = |value: Value| {
         let mut undocumented = Vec::new();
-        collect_undocumented_fields(&value, &schema, &schema, "value", &mut undocumented);
+        collect_undocumented_fields(&value, &schema, &schema, "", &mut undocumented);
         undocumented
     };
     assert_eq!(
@@ -706,7 +724,7 @@ fn the_documented_fields_walk_follows_only_the_matching_one_of_branch() {
     // an undocumented field still fails inside the branch the value matches
     assert_eq!(
         walk(serde_json::json!({ "name": "a", "extra": true })),
-        ["value: undocumented field \"extra\""]
+        ["(root): undocumented field \"extra\""]
     );
 }
 
