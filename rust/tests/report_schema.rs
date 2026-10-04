@@ -40,7 +40,7 @@ fn schema_errors(document: &Value) -> Vec<String> {
         .iter_errors(document)
         .map(|error| format!("{}: {error}", error.instance_path()))
         .collect();
-    assert_documented(document, &schema, &schema, "document", &mut errors);
+    collect_undocumented_fields(document, &schema, &schema, "document", &mut errors);
     errors
 }
 
@@ -57,7 +57,7 @@ fn document_errors(document: &Value) -> Vec<String> {
 // The schema leaves unknown fields unconstrained so a consumer can read a
 // newer document. As the producer we hold ourselves to the stricter rule:
 // everything we emit must be described, or the schema has fallen behind.
-fn assert_documented(
+fn collect_undocumented_fields(
     value: &Value,
     node: &Value,
     schema: &Value,
@@ -69,7 +69,7 @@ fn assert_documented(
             .trim_start_matches("#/")
             .split('/')
             .fold(schema, |step, key| &step[key]);
-        assert_documented(value, target, schema, where_, errors);
+        collect_undocumented_fields(value, target, schema, where_, errors);
         return;
     }
     if let Some(branches) = node.get("oneOf").and_then(Value::as_array) {
@@ -81,7 +81,7 @@ fn assert_documented(
             .iter()
             .filter(|branch| matches(value, branch, schema))
         {
-            assert_documented(value, branch, schema, where_, errors);
+            collect_undocumented_fields(value, branch, schema, where_, errors);
         }
         return;
     }
@@ -92,7 +92,7 @@ fn assert_documented(
         for (key, child) in object {
             match properties.get(key) {
                 None => errors.push(format!("{where_}: undocumented field \"{key}\"")),
-                Some(child_node) => assert_documented(
+                Some(child_node) => collect_undocumented_fields(
                     child,
                     child_node,
                     schema,
@@ -104,7 +104,7 @@ fn assert_documented(
     }
     if let (Some(entries), Some(items_node)) = (value.as_array(), node.get("items")) {
         for (index, entry) in entries.iter().enumerate() {
-            assert_documented(
+            collect_undocumented_fields(
                 entry,
                 items_node,
                 schema,
@@ -639,7 +639,7 @@ fn the_documented_fields_walk_follows_only_the_matching_one_of_branch() {
     });
     let walk = |value: Value| {
         let mut undocumented = Vec::new();
-        assert_documented(&value, &schema, &schema, "value", &mut undocumented);
+        collect_undocumented_fields(&value, &schema, &schema, "value", &mut undocumented);
         undocumented
     };
     assert_eq!(
