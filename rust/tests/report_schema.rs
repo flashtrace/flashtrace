@@ -10,6 +10,7 @@
  */
 
 use std::collections::HashSet;
+use std::fmt::{Debug, Display};
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -30,25 +31,27 @@ fn schema() -> Value {
         .unwrap()
 }
 
-fn assert_valid(document: &Value, label: &str) {
+// the document's departures from the schema: formal validation, then the
+// producer-side walk for undocumented fields
+fn schema_errors(document: &Value) -> Vec<String> {
     let schema = schema();
     let validator = jsonschema::validator_for(&schema).unwrap();
-    let errors: Vec<String> = validator
+    let mut errors: Vec<String> = validator
         .iter_errors(document)
         .map(|error| format!("{}: {error}", error.instance_path()))
         .collect();
-    assert!(
-        errors.is_empty(),
-        "{label} does not match the schema:\n  {}",
-        errors.join("\n  ")
-    );
-    let mut undocumented = Vec::new();
-    assert_documented(document, &schema, &schema, label, &mut undocumented);
-    assert!(
-        undocumented.is_empty(),
-        "{label} emits undocumented fields:\n  {}",
-        undocumented.join("\n  ")
-    );
+    assert_documented(document, &schema, &schema, "document", &mut errors);
+    errors
+}
+
+// every failed check on one document. The invariants read the shape the
+// schema guarantees, so they run only once the document matches it.
+fn document_errors(document: &Value) -> Vec<String> {
+    let errors = schema_errors(document);
+    if !errors.is_empty() {
+        return errors;
+    }
+    invariant_errors(document)
 }
 
 // The schema leaves unknown fields unconstrained so a consumer can read a
@@ -131,7 +134,29 @@ fn string_of(value: &Value) -> String {
     value.as_str().unwrap().to_string()
 }
 
-fn assert_invariants(document: &Value, label: &str) {
+// The checks record a failure instead of panicking, so one run reports every
+// broken invariant; expect_eq carries both values along as assert_eq! prints
+// them.
+fn expect(errors: &mut Vec<String>, condition: bool, message: impl Display) {
+    if !condition {
+        errors.push(message.to_string());
+    }
+}
+
+fn expect_eq<Left, Right>(errors: &mut Vec<String>, left: Left, right: Right, message: impl Display)
+where
+    Left: PartialEq<Right> + Debug,
+    Right: Debug,
+{
+    if left != right {
+        errors.push(format!(
+            "{message}\n    left: {left:?}\n   right: {right:?}"
+        ));
+    }
+}
+
+fn invariant_errors(document: &Value) -> Vec<String> {
+    let mut errors = Vec::new();
     let items = document["items"].as_array().unwrap();
     let defined_ids: HashSet<String> = items.iter().map(|item| string_of(&item["id"])).collect();
 
@@ -144,16 +169,17 @@ fn assert_invariants(document: &Value, label: &str) {
         } else {
             "shallow-covered"
         };
-        assert_eq!(
-            item["status"], expected,
-            "{label}: {} status disagrees",
-            item["id"]
+        expect_eq(
+            &mut errors,
+            item["status"].as_str(),
+            Some(expected),
+            format!("{} status disagrees", item["id"]),
         );
-        assert_eq!(
+        expect_eq(
+            &mut errors,
             item["defective"].as_bool().unwrap(),
             !item["defects"].as_array().unwrap().is_empty(),
-            "{label}: {} defective disagrees",
-            item["id"]
+            format!("{} defective disagrees", item["id"]),
         );
     }
 
@@ -177,17 +203,17 @@ fn assert_invariants(document: &Value, label: &str) {
                 .map(|cover| string_of(&cover["ref"]))
                 .collect()
         };
-        assert_eq!(
+        expect_eq(
+            &mut errors,
             covers_with("orphaned"),
             refs_with("orphaned-cover"),
-            "{label}: {} orphaned",
-            item["id"]
+            format!("{} orphaned", item["id"]),
         );
-        assert_eq!(
+        expect_eq(
+            &mut errors,
             covers_with("unwanted"),
             refs_with("unwanted-cover"),
-            "{label}: {} unwanted",
-            item["id"]
+            format!("{} unwanted", item["id"]),
         );
     }
 
@@ -195,11 +221,13 @@ fn assert_invariants(document: &Value, label: &str) {
     for item in items {
         for need in item["needs"].as_array().unwrap() {
             for id in need["resolvedTo"].as_array().unwrap() {
-                assert!(
+                expect(
+                    &mut errors,
                     defined_ids.contains(id.as_str().unwrap()),
-                    "{label}: {} needs {} resolving to unknown {id}",
-                    item["id"],
-                    need["ref"]
+                    format!(
+                        "{} needs {} resolving to unknown {id}",
+                        item["id"], need["ref"]
+                    ),
                 );
             }
         }
@@ -232,10 +260,11 @@ fn assert_invariants(document: &Value, label: &str) {
                 .map(move |wanter| (string_of(&wanter["id"]), string_of(&item["id"])))
         })
         .collect();
-    assert_eq!(
+    expect_eq(
+        &mut errors,
         pairs(&wants_inverse),
         pairs(&wants_forward),
-        "{label}: wantedBy inverse"
+        "wantedBy inverse",
     );
 
     // forwardedFrom is exactly the inverse of forwardsTo, over existing targets
@@ -257,10 +286,11 @@ fn assert_invariants(document: &Value, label: &str) {
                 .map(move |source| (string_of(&source["id"]), string_of(&item["id"])))
         })
         .collect();
-    assert_eq!(
+    expect_eq(
+        &mut errors,
         pairs(&forwards_inverse),
         pairs(&forwards_forward),
-        "{label}: forwardedFrom inverse"
+        "forwardedFrom inverse",
     );
 
     // forwardsTo mirrors exactly the effective declarations
@@ -276,35 +306,40 @@ fn assert_invariants(document: &Value, label: &str) {
         .filter(|forward| forward["effective"].as_bool().unwrap())
         .map(|forward| (string_of(&forward["from"]), string_of(&forward["to"])))
         .collect();
-    assert_eq!(
+    expect_eq(
+        &mut errors,
         pairs(&mirrored),
         pairs(&effective),
-        "{label}: forwardsTo mirror"
+        "forwardsTo mirror",
     );
 
     // voidedBy is present exactly when the declaration is not effective
     for forward in document["forwards"].as_array().unwrap() {
-        assert_eq!(
+        expect_eq(
+            &mut errors,
             forward.get("voidedBy").is_some(),
             !forward["effective"].as_bool().unwrap(),
-            "{label}: voidedBy presence on {} --> {}",
-            forward["from"],
-            forward["to"]
+            format!(
+                "voidedBy presence on {} --> {}",
+                forward["from"], forward["to"]
+            ),
         );
     }
 
     // existingRevisions accompanies the hint in the message, and only then
     for item in items {
         for defect in item["defects"].as_array().unwrap() {
-            assert_eq!(
+            expect_eq(
+                &mut errors,
                 defect.get("existingRevisions").is_some(),
                 defect["message"]
                     .as_str()
                     .unwrap()
                     .contains("(revision mismatch:"),
-                "{label}: {} defect {} existingRevisions presence",
-                item["id"],
-                defect["kind"]
+                format!(
+                    "{} defect {} existingRevisions presence",
+                    item["id"], defect["kind"]
+                ),
             );
         }
     }
@@ -315,31 +350,35 @@ fn assert_invariants(document: &Value, label: &str) {
         .filter(|item| item["defective"].as_bool().unwrap())
         .count();
     let spec_items = items.iter().filter(|item| item["origin"] == "spec").count();
+    let shallow_covered_items = items
+        .iter()
+        .filter(|item| {
+            !item["defective"].as_bool().unwrap() && !item["deepCovered"].as_bool().unwrap()
+        })
+        .count();
+    let problems = document["problems"].as_array().unwrap().len();
     let summary = &document["summary"];
-    assert_eq!(summary["items"], items.len(), "{label}");
-    assert_eq!(summary["specItems"], spec_items, "{label}");
-    assert_eq!(summary["codeItems"], items.len() - spec_items, "{label}");
-    assert_eq!(summary["okItems"], items.len() - defective_items, "{label}");
-    assert_eq!(summary["defectiveItems"], defective_items, "{label}");
-    assert_eq!(
-        summary["shallowCoveredItems"],
-        items
-            .iter()
-            .filter(|item| {
-                !item["defective"].as_bool().unwrap() && !item["deepCovered"].as_bool().unwrap()
-            })
-            .count(),
-        "{label}"
-    );
-    assert_eq!(
-        summary["problems"],
-        document["problems"].as_array().unwrap().len(),
-        "{label}"
-    );
-    assert_eq!(
+    for (field, count) in [
+        ("items", items.len()),
+        ("specItems", spec_items),
+        ("codeItems", items.len() - spec_items),
+        ("okItems", items.len() - defective_items),
+        ("defectiveItems", defective_items),
+        ("shallowCoveredItems", shallow_covered_items),
+        ("problems", problems),
+    ] {
+        expect_eq(
+            &mut errors,
+            &summary[field],
+            count,
+            format!("summary.{field} disagrees with the arrays"),
+        );
+    }
+    expect_eq(
+        &mut errors,
         document["ok"].as_bool().unwrap(),
-        defective_items == 0 && document["problems"].as_array().unwrap().is_empty(),
-        "{label}: ok disagrees"
+        defective_items == 0 && problems == 0,
+        "ok disagrees",
     );
 
     // located arrays are sorted by file, then line, then character
@@ -375,7 +414,12 @@ fn assert_invariants(document: &Value, label: &str) {
         let keys: Vec<_> = list.iter().map(&sort_key).collect();
         let mut sorted = keys.clone();
         sorted.sort();
-        assert_eq!(keys, sorted, "{label}: {name} is not sorted by location");
+        expect_eq(
+            &mut errors,
+            keys,
+            sorted,
+            format!("{name} is not sorted by location"),
+        );
     }
 
     // paths never leak a backslash, on any platform
@@ -384,12 +428,13 @@ fn assert_invariants(document: &Value, label: &str) {
         .chain(document["forwards"].as_array().unwrap())
         .chain(document["problems"].as_array().unwrap())
     {
-        assert!(
+        expect(
+            &mut errors,
             !entry["file"].as_str().unwrap().contains('\\'),
-            "{label}: {} carries a backslash",
-            entry["file"]
+            format!("{} carries a backslash", entry["file"]),
         );
     }
+    errors
 }
 
 // every kind of item, edge, defect, void reason and problem in one run
@@ -456,9 +501,12 @@ fn build_everything() -> Value {
 
 #[test]
 fn the_reference_document_matches_the_schema_and_its_invariants() {
-    let document = build_everything();
-    assert_valid(&document, "reference document");
-    assert_invariants(&document, "reference document");
+    let errors = document_errors(&build_everything());
+    assert!(
+        errors.is_empty(),
+        "reference document:\n  {}",
+        errors.join("\n  ")
+    );
 }
 
 #[test]
@@ -549,21 +597,25 @@ fn the_reference_document_actually_reaches_every_defect_kind_and_void_reason() {
 
 #[test]
 fn every_committed_json_snapshot_matches_the_schema_and_its_invariants() {
-    let snapshot_dir = repo_path("test/e2e-expect");
-    let mut checked = 0;
-    for entry in std::fs::read_dir(&snapshot_dir).unwrap() {
-        let entry = entry.unwrap();
-        let name = entry.file_name().to_string_lossy().into_owned();
-        if !name.ends_with(".json.txt") {
-            continue;
-        }
-        let document: Value =
-            serde_json::from_str(&std::fs::read_to_string(entry.path()).unwrap()).unwrap();
-        assert_valid(&document, &name);
-        assert_invariants(&document, &name);
-        checked += 1;
+    // every snapshot is checked before the test fails, so one run names all
+    // the broken ones
+    let mut names: Vec<String> = std::fs::read_dir(repo_path("test/e2e-expect"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|name| name.ends_with(".json.txt"))
+        .collect();
+    names.sort();
+    assert!(!names.is_empty(), "no JSON snapshots found to check");
+    let mut errors = Vec::new();
+    for name in &names {
+        let text = std::fs::read_to_string(repo_path("test/e2e-expect").join(name)).unwrap();
+        let found = match serde_json::from_str::<Value>(&text) {
+            Ok(document) => document_errors(&document),
+            Err(error) => vec![format!("not JSON: {error}")],
+        };
+        errors.extend(found.into_iter().map(|error| format!("{name}: {error}")));
     }
-    assert!(checked > 0, "no JSON snapshots found to check");
+    assert!(errors.is_empty(), "snapshots:\n  {}", errors.join("\n  "));
 }
 
 #[test]
