@@ -70,9 +70,14 @@ fn assert_documented(
         return;
     }
     if let Some(branches) = node.get("oneOf").and_then(Value::as_array) {
-        // the strictness walk only descends branches whose shape matches; the
-        // formal validator already guaranteed exactly one does
-        for branch in branches {
+        // only the branch the value matches documents it: another branch's
+        // properties would call the matched branch's fields undocumented. The
+        // schema leaves unknown fields open, so an undocumented field never
+        // stops a branch from matching and is still caught inside it.
+        for branch in branches
+            .iter()
+            .filter(|branch| matches(value, branch, schema))
+        {
             assert_documented(value, branch, schema, where_, errors);
         }
         return;
@@ -105,6 +110,15 @@ fn assert_documented(
             );
         }
     }
+}
+
+// whether the value satisfies one subschema; the subschema is validated with
+// the root's dialect and $defs, so its local $refs resolve as in the schema
+fn matches(value: &Value, subschema: &Value, schema: &Value) -> bool {
+    let mut standalone = subschema.clone();
+    standalone["$schema"] = schema["$schema"].clone();
+    standalone["$defs"] = schema["$defs"].clone();
+    jsonschema::is_valid(&standalone, value)
 }
 
 fn pairs(list: &[(String, String)]) -> HashSet<String> {
@@ -550,4 +564,43 @@ fn every_committed_json_snapshot_matches_the_schema_and_its_invariants() {
         checked += 1;
     }
     assert!(checked > 0, "no JSON snapshots found to check");
+}
+
+#[test]
+fn the_documented_fields_walk_follows_only_the_matching_one_of_branch() {
+    // two object shapes: a value of one shape must not be held to the other
+    let schema = serde_json::json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$defs": {
+            "byName": {
+                "type": "object",
+                "required": ["name"],
+                "properties": { "name": { "type": "string" } }
+            },
+            "byNumber": {
+                "type": "object",
+                "required": ["number"],
+                "properties": { "number": { "type": "integer" } }
+            }
+        },
+        "oneOf": [{ "$ref": "#/$defs/byName" }, { "$ref": "#/$defs/byNumber" }]
+    });
+    let walk = |value: Value| {
+        let mut undocumented = Vec::new();
+        assert_documented(&value, &schema, &schema, "value", &mut undocumented);
+        undocumented
+    };
+    assert_eq!(
+        walk(serde_json::json!({ "name": "a" })),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        walk(serde_json::json!({ "number": 1 })),
+        Vec::<String>::new()
+    );
+    // an undocumented field still fails inside the branch the value matches
+    assert_eq!(
+        walk(serde_json::json!({ "name": "a", "extra": true })),
+        ["value: undocumented field \"extra\""]
+    );
 }
