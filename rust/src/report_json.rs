@@ -354,8 +354,8 @@ pub fn build_report_document(
     }
 }
 
-/// the serialized document exactly as `JSON.stringify(document, null, 2)`
-/// spells it
+/// the serialized document in its pinned shape: two-space indentation,
+/// `": "` separators and the documented key order
 pub fn serialize_report_document(document: &ReportDocument) -> String {
     serde_json::to_string_pretty(document).expect("the document serializes")
 }
