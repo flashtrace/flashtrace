@@ -5,7 +5,7 @@
  * A producer-side strictness walk the schema deliberately does not
  * express: everything emitted must be documented, or the schema has fallen
  * behind. And the invariants the schema cannot express - the inverse edges,
- * the summary counts, the orderings - asserted on every document the suite
+ * the summary counts, the orderings - checked on every document the suite
  * can lay hands on, including the committed e2e snapshots.
  */
 
@@ -580,6 +580,8 @@ fn the_reference_document_matches_the_schema_and_its_invariants() {
     );
 }
 
+// besides defect kinds and void reasons, the other enums the schema declares
+// - item statuses, cover statuses, origins - and at least one problem
 #[test]
 fn the_reference_document_actually_reaches_every_defect_kind_and_void_reason() {
     let document = build_everything();
