@@ -834,15 +834,72 @@ mod tests {
 
     #[test]
     fn items_forwards_and_problems_are_sorted_by_file_line_character() {
-        let document = build(&["`req:b#1`", "", "`req:a#1`"], &[]);
-        // two items on the same file: order follows line, not id
-        let ids: Vec<&str> = document.items.iter().map(|item| item.id.as_str()).collect();
-        assert_eq!(ids, ["req:b#1", "req:a#1"]);
-        let lines: Vec<usize> = document.items.iter().map(|item| item.line).collect();
-        assert_eq!(lines, [1, 3]);
-        for item in &document.items {
-            assert!(!item.file.contains('\\')); // forward slashes only
-        }
+        let mut problems = Vec::new();
+        let mut forwards = Vec::new();
+        let mut items = parse_markdown(
+            "docs/spec.md",
+            &[
+                "`req:b#1`",
+                "",
+                "`req:a#1`",
+                "",
+                "`dsn:x#1`",
+                "",
+                "`dsn:y#1`",
+                "",
+                "`[req:b#1 --> dsn:x#1]`",
+                "`[req:a#1 --> dsn:y#1]`",
+            ]
+            .join("\n"),
+            &mut problems,
+            &mut forwards,
+        );
+        items.extend(parse_code(
+            "src/impl.js",
+            &["// [>>utest:a#1] [>>utest:b#1]", "// [impl:c#1]"].join("\n"),
+            &mut problems,
+            &mut forwards,
+        ));
+        analyze(&mut items, &mut forwards, &mut problems);
+        // hand everything over back to front: the order must come from the
+        // document, not from the parsers
+        items.reverse();
+        forwards.reverse();
+        problems.reverse();
+        let document = build_report_document(&items, &forwards, &problems, Path::new(""), "9.9.9");
+
+        // file first, then line - not id
+        let item_locations: Vec<(&str, &str, usize)> = document
+            .items
+            .iter()
+            .map(|item| (item.file.as_str(), item.id.as_str(), item.line))
+            .collect();
+        assert_eq!(
+            item_locations,
+            [
+                ("docs/spec.md", "req:b#1", 1),
+                ("docs/spec.md", "req:a#1", 3),
+                ("docs/spec.md", "dsn:x#1", 5),
+                ("docs/spec.md", "dsn:y#1", 7),
+                ("src/impl.js", "impl:c#1", 2),
+            ]
+        );
+        // lines compare as numbers: 9 before 10
+        let forward_lines: Vec<usize> = document
+            .forwards
+            .iter()
+            .map(|forward| forward.line)
+            .collect();
+        assert_eq!(forward_lines, [9, 10]);
+        // the same line falls back to the character
+        let problem_locations: Vec<(usize, usize)> = document
+            .problems
+            .iter()
+            .map(|problem| (problem.line, problem.character))
+            .collect();
+        assert_eq!(problem_locations.len(), 2);
+        assert_eq!(problem_locations[0].0, problem_locations[1].0);
+        assert!(problem_locations[0].1 < problem_locations[1].1);
     }
 
     // the serialized shape is part of the format: two-space indentation,
