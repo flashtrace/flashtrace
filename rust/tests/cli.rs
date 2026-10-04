@@ -212,23 +212,20 @@ fn verbose_resolves_a_wildcard_need_and_shows_every_matched_revision() {
     assert!(text.contains("needs impl:login#2.x (\u{2192} impl:login#2.5)  \u{2714} login.ts:2"));
 }
 
+// req:a is ok through req:b, whose own need is missing
+const SHALLOW_CHAIN_SPEC: &[&str] = &[
+    "`req:a#1`",
+    "",
+    "Needs: req:b#1",
+    "",
+    "`req:b#1`",
+    "",
+    "Needs: impl:missing#1",
+];
+
 #[test]
-fn verbose_renders_forwarding_covers_and_shallow_marks() {
-    let project = with_project(
-        "verbose-edges",
-        &[(
-            "spec.md",
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: req:b#1",
-                "",
-                "`req:b#1`",
-                "",
-                "Needs: impl:missing#1",
-            ],
-        )],
-    );
+fn verbose_marks_an_item_with_a_defective_downstream_chain_as_shallow_covered() {
+    let project = with_project("verbose-shallow", &[("spec.md", SHALLOW_CHAIN_SPEC)]);
     let result = run(&project, &["-v"]);
     assert_eq!(result.status.code(), Some(1));
     let text = stdout(&result);
@@ -237,7 +234,13 @@ fn verbose_renders_forwarding_covers_and_shallow_marks() {
     // mark - the broken chain is diagnosable without scanning the whole report
     assert!(text.contains("needs req:b#1  \u{2718} spec.md:5"));
     assert!(text.contains("\u{2718} req:b#1  spec.md:5  [defective]"));
-    assert!(text.contains("ok          1  (0 deep-covered, 1 only shallow-covered)"));
+}
+
+#[test]
+fn the_summary_splits_the_ok_count_into_deep_and_shallow_covered_items() {
+    let project = with_project("summary-split", &[("spec.md", SHALLOW_CHAIN_SPEC)]);
+    let result = run(&project, &[]);
+    assert!(stdout(&result).contains("ok          1  (0 deep-covered, 1 only shallow-covered)"));
 }
 
 #[test]
