@@ -124,6 +124,59 @@ fn matches(value: &Value, subschema: &Value, schema: &Value) -> bool {
     jsonschema::is_valid(&standalone, value)
 }
 
+// the keywords collect_undocumented_fields descends through to reach a field
+const FOLLOWED_KEYWORDS: [&str; 4] = ["$ref", "oneOf", "properties", "items"];
+// keywords that describe or constrain a value without naming its fields
+const NEUTRAL_KEYWORDS: [&str; 10] = [
+    "$schema",
+    "$id",
+    "$defs",
+    "title",
+    "description",
+    "type",
+    "enum",
+    "const",
+    "minimum",
+    "required",
+];
+// the walk follows a $ref and nothing beside it, so only annotations may sit
+// next to one
+const REFERENCE_COMPANIONS: [&str; 2] = ["title", "description"];
+
+// the places in a schema the walk would pass over without looking
+fn unknown_keywords(node: &Value, path: &str, found: &mut Vec<String>) {
+    let Some(object) = node.as_object() else {
+        return;
+    };
+    let beside_reference = object.contains_key("$ref");
+    for (keyword, child) in object {
+        let keyword = keyword.as_str();
+        let at = format!("{path}/{keyword}");
+        if beside_reference && keyword != "$ref" && !REFERENCE_COMPANIONS.contains(&keyword) {
+            found.push(format!("{at} (beside $ref)"));
+            continue;
+        }
+        if !FOLLOWED_KEYWORDS.contains(&keyword) && !NEUTRAL_KEYWORDS.contains(&keyword) {
+            found.push(at);
+            continue;
+        }
+        match keyword {
+            "properties" | "$defs" => {
+                for (name, subschema) in child.as_object().unwrap() {
+                    unknown_keywords(subschema, &format!("{at}/{name}"), found);
+                }
+            }
+            "oneOf" => {
+                for (index, branch) in child.as_array().unwrap().iter().enumerate() {
+                    unknown_keywords(branch, &format!("{at}/{index}"), found);
+                }
+            }
+            "items" => unknown_keywords(child, &at, found),
+            _ => {}
+        }
+    }
+}
+
 fn pairs(list: &[(String, String)]) -> HashSet<String> {
     list.iter()
         .map(|(from, to)| format!("{from} -> {to}"))
@@ -654,5 +707,32 @@ fn the_documented_fields_walk_follows_only_the_matching_one_of_branch() {
     assert_eq!(
         walk(serde_json::json!({ "name": "a", "extra": true })),
         ["value: undocumented field \"extra\""]
+    );
+}
+
+#[test]
+fn the_schema_uses_only_keywords_the_undocumented_fields_walk_follows() {
+    let mut found = Vec::new();
+    unknown_keywords(&schema(), "", &mut found);
+    assert_eq!(
+        found,
+        Vec::<String>::new(),
+        "the walk passes over these; teach it the keywords before the schema uses them"
+    );
+
+    // and the check notices both ways a schema can outgrow the walk
+    let mut found = Vec::new();
+    unknown_keywords(
+        &serde_json::json!({
+            "properties": { "a": { "allOf": [] } },
+            "items": { "$ref": "#/$defs/b", "properties": {} }
+        }),
+        "",
+        &mut found,
+    );
+    found.sort();
+    assert_eq!(
+        found,
+        ["/items/properties (beside $ref)", "/properties/a/allOf"]
     );
 }
