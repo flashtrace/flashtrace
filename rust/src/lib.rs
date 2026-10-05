@@ -11,12 +11,16 @@
  */
 
 pub mod analyze;
+pub mod cli;
 pub mod defects;
 pub mod errors;
+pub mod files;
 pub mod ids;
 pub mod languages;
 pub mod parse_code;
 pub mod parse_markdown;
 pub mod parse_spec;
 pub mod paths;
+pub mod report;
+pub mod report_json;
 pub mod spec_items;
