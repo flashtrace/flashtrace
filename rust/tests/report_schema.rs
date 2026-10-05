@@ -707,11 +707,10 @@ fn the_reference_document_reaches_every_origin() {
 
 #[test]
 fn the_reference_document_reaches_a_problem() {
+    let document = build_everything();
     assert!(
-        !build_everything()["problems"]
-            .as_array()
-            .unwrap()
-            .is_empty()
+        !document["problems"].as_array().unwrap().is_empty(),
+        "no problem reached"
     );
 }
 
