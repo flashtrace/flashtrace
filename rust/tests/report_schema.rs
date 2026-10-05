@@ -615,29 +615,29 @@ fn the_reference_document_matches_the_schema_and_its_invariants() {
     );
 }
 
-// besides defect kinds and void reasons, the other enums the schema declares
-// - item statuses, cover statuses, origins - and at least one problem
-#[test]
-fn the_reference_document_actually_reaches_every_defect_kind_and_void_reason() {
-    let document = build_everything();
-    let schema = schema();
-    let enum_of = |path: &[&str]| -> Vec<String> {
-        let mut node = &schema;
-        for key in path {
-            node = &node[key];
-        }
-        let mut listed: Vec<String> = node.as_array().unwrap().iter().map(string_of).collect();
-        listed.sort();
-        listed
-    };
-    let sorted_set = |values: HashSet<String>| -> Vec<String> {
-        let mut listed: Vec<String> = values.into_iter().collect();
-        listed.sort();
-        listed
-    };
+// the values the reference document reaches equal those the schema lists at
+// `schema_path`, so a value the document never produces fails here
+fn assert_reaches_every_listed(reached: HashSet<String>, schema_path: &[&str]) {
+    let mut node = &schema();
+    for key in schema_path {
+        node = &node[key];
+    }
+    let mut listed: Vec<String> = node.as_array().unwrap().iter().map(string_of).collect();
+    listed.sort();
+    let mut reached: Vec<String> = reached.into_iter().collect();
+    reached.sort();
+    assert_eq!(
+        reached,
+        listed,
+        "values listed at {}",
+        schema_path.join("/")
+    );
+}
 
-    let items = document["items"].as_array().unwrap();
-    let kinds: HashSet<String> = items
+#[test]
+fn the_reference_document_reaches_every_defect_kind() {
+    let document = build_everything();
+    let kinds = items_of(&document)
         .iter()
         .flat_map(|item| {
             item["defects"]
@@ -647,33 +647,39 @@ fn the_reference_document_actually_reaches_every_defect_kind_and_void_reason() {
                 .map(|defect| string_of(&defect["kind"]))
         })
         .collect();
-    assert_eq!(
-        sorted_set(kinds),
-        enum_of(&["$defs", "defect", "properties", "kind", "enum"])
-    );
+    assert_reaches_every_listed(kinds, &["$defs", "defect", "properties", "kind", "enum"]);
+}
 
-    let reasons: HashSet<String> = document["forwards"]
+#[test]
+fn the_reference_document_reaches_every_void_reason() {
+    let document = build_everything();
+    let reasons = document["forwards"]
         .as_array()
         .unwrap()
         .iter()
         .filter(|forward| !forward["effective"].as_bool().unwrap())
         .map(|forward| string_of(&forward["voidedBy"]))
         .collect();
-    assert_eq!(
-        sorted_set(reasons),
-        enum_of(&["$defs", "forward", "properties", "voidedBy", "enum"])
+    assert_reaches_every_listed(
+        reasons,
+        &["$defs", "forward", "properties", "voidedBy", "enum"],
     );
+}
 
-    let statuses: HashSet<String> = items
+#[test]
+fn the_reference_document_reaches_every_item_status() {
+    let document = build_everything();
+    let statuses = items_of(&document)
         .iter()
         .map(|item| string_of(&item["status"]))
         .collect();
-    assert_eq!(
-        sorted_set(statuses),
-        enum_of(&["$defs", "item", "properties", "status", "enum"])
-    );
+    assert_reaches_every_listed(statuses, &["$defs", "item", "properties", "status", "enum"]);
+}
 
-    let cover_statuses: HashSet<String> = items
+#[test]
+fn the_reference_document_reaches_every_cover_status() {
+    let document = build_everything();
+    let statuses = items_of(&document)
         .iter()
         .flat_map(|item| {
             item["covers"]
@@ -683,23 +689,29 @@ fn the_reference_document_actually_reaches_every_defect_kind_and_void_reason() {
                 .map(|cover| string_of(&cover["status"]))
         })
         .collect();
-    assert_eq!(
-        sorted_set(cover_statuses),
-        enum_of(&["$defs", "cover", "properties", "status", "enum"])
+    assert_reaches_every_listed(
+        statuses,
+        &["$defs", "cover", "properties", "status", "enum"],
     );
+}
 
-    let origins: HashSet<String> = items
+#[test]
+fn the_reference_document_reaches_every_origin() {
+    let document = build_everything();
+    let origins = items_of(&document)
         .iter()
         .map(|item| string_of(&item["origin"]))
         .collect();
-    assert_eq!(
-        sorted_set(origins),
-        enum_of(&["$defs", "item", "properties", "origin", "enum"])
-    );
+    assert_reaches_every_listed(origins, &["$defs", "item", "properties", "origin", "enum"]);
+}
 
+#[test]
+fn the_reference_document_reaches_a_problem() {
     assert!(
-        !document["problems"].as_array().unwrap().is_empty(),
-        "no problem reached"
+        !build_everything()["problems"]
+            .as_array()
+            .unwrap()
+            .is_empty()
     );
 }
 
