@@ -228,11 +228,26 @@ where
 
 fn invariant_errors(document: &Value) -> Vec<String> {
     let mut errors = Vec::new();
-    let items = document["items"].as_array().unwrap();
-    let defined_ids: HashSet<String> = items.iter().map(|item| string_of(&item["id"])).collect();
+    check_item_statuses(&mut errors, document);
+    check_item_defects(&mut errors, document);
+    check_need_edges(&mut errors, document);
+    check_forwarding(&mut errors, document);
+    check_summary(&mut errors, document);
+    check_locations(&mut errors, document);
+    errors
+}
 
-    // status is the label; defective and deepCovered are the two axes behind it
-    for item in items {
+fn items_of(document: &Value) -> &Vec<Value> {
+    document["items"].as_array().unwrap()
+}
+
+fn defined_ids(items: &[Value]) -> HashSet<String> {
+    items.iter().map(|item| string_of(&item["id"])).collect()
+}
+
+// status is the label; defective and deepCovered are the two axes behind it
+fn check_item_statuses(errors: &mut Vec<String>, document: &Value) {
+    for item in items_of(document) {
         let expected = if item["defective"].as_bool().unwrap() {
             "defective"
         } else if item["deepCovered"].as_bool().unwrap() {
@@ -241,18 +256,22 @@ fn invariant_errors(document: &Value) -> Vec<String> {
             "shallow-covered"
         };
         expect_eq(
-            &mut errors,
+            errors,
             item["status"].as_str(),
             Some(expected),
             format!("{} status disagrees", item["id"]),
         );
         expect_eq(
-            &mut errors,
+            errors,
             item["defective"].as_bool().unwrap(),
             !item["defects"].as_array().unwrap().is_empty(),
             format!("{} defective disagrees", item["id"]),
         );
     }
+}
+
+fn check_item_defects(errors: &mut Vec<String>, document: &Value) {
+    let items = items_of(document);
 
     // covers[].status is the classification behind the cover defects
     for item in items {
@@ -275,25 +294,48 @@ fn invariant_errors(document: &Value) -> Vec<String> {
                 .collect()
         };
         expect_eq(
-            &mut errors,
+            errors,
             covers_with("orphaned"),
             refs_with("orphaned-cover"),
             format!("{} orphaned", item["id"]),
         );
         expect_eq(
-            &mut errors,
+            errors,
             covers_with("unwanted"),
             refs_with("unwanted-cover"),
             format!("{} unwanted", item["id"]),
         );
     }
 
+    // existingRevisions accompanies the hint in the message, and only then
+    for item in items {
+        for defect in item["defects"].as_array().unwrap() {
+            expect_eq(
+                errors,
+                defect.get("existingRevisions").is_some(),
+                defect["message"]
+                    .as_str()
+                    .unwrap()
+                    .contains("(revision mismatch:"),
+                format!(
+                    "{} defect {} existingRevisions presence",
+                    item["id"], defect["kind"]
+                ),
+            );
+        }
+    }
+}
+
+fn check_need_edges(errors: &mut Vec<String>, document: &Value) {
+    let items = items_of(document);
+    let defined_ids = defined_ids(items);
+
     // every resolvedTo entry names an item that exists
     for item in items {
         for need in item["needs"].as_array().unwrap() {
             for id in need["resolvedTo"].as_array().unwrap() {
                 expect(
-                    &mut errors,
+                    errors,
                     defined_ids.contains(id.as_str().unwrap()),
                     format!(
                         "{} needs {} resolving to unknown {id}",
@@ -332,11 +374,16 @@ fn invariant_errors(document: &Value) -> Vec<String> {
         })
         .collect();
     expect_eq(
-        &mut errors,
+        errors,
         pairs(&wants_inverse),
         pairs(&wants_forward),
         "wantedBy inverse",
     );
+}
+
+fn check_forwarding(errors: &mut Vec<String>, document: &Value) {
+    let items = items_of(document);
+    let defined_ids = defined_ids(items);
 
     // forwardedFrom is exactly the inverse of forwardsTo, over existing targets
     let forwards_forward: Vec<(String, String)> = items
@@ -358,7 +405,7 @@ fn invariant_errors(document: &Value) -> Vec<String> {
         })
         .collect();
     expect_eq(
-        &mut errors,
+        errors,
         pairs(&forwards_inverse),
         pairs(&forwards_forward),
         "forwardedFrom inverse",
@@ -378,7 +425,7 @@ fn invariant_errors(document: &Value) -> Vec<String> {
         .map(|forward| (string_of(&forward["from"]), string_of(&forward["to"])))
         .collect();
     expect_eq(
-        &mut errors,
+        errors,
         pairs(&mirrored),
         pairs(&effective),
         "forwardsTo mirror",
@@ -387,7 +434,7 @@ fn invariant_errors(document: &Value) -> Vec<String> {
     // voidedBy is present exactly when the declaration is not effective
     for forward in document["forwards"].as_array().unwrap() {
         expect_eq(
-            &mut errors,
+            errors,
             forward.get("voidedBy").is_some(),
             !forward["effective"].as_bool().unwrap(),
             format!(
@@ -396,26 +443,11 @@ fn invariant_errors(document: &Value) -> Vec<String> {
             ),
         );
     }
+}
 
-    // existingRevisions accompanies the hint in the message, and only then
-    for item in items {
-        for defect in item["defects"].as_array().unwrap() {
-            expect_eq(
-                &mut errors,
-                defect.get("existingRevisions").is_some(),
-                defect["message"]
-                    .as_str()
-                    .unwrap()
-                    .contains("(revision mismatch:"),
-                format!(
-                    "{} defect {} existingRevisions presence",
-                    item["id"], defect["kind"]
-                ),
-            );
-        }
-    }
-
-    // the summary counts what the arrays hold
+// the summary counts what the arrays hold
+fn check_summary(errors: &mut Vec<String>, document: &Value) {
+    let items = items_of(document);
     let defective_items = items
         .iter()
         .filter(|item| item["defective"].as_bool().unwrap())
@@ -439,18 +471,22 @@ fn invariant_errors(document: &Value) -> Vec<String> {
         ("problems", problems),
     ] {
         expect_eq(
-            &mut errors,
+            errors,
             &summary[field],
             count,
             format!("summary.{field} disagrees with the arrays"),
         );
     }
     expect_eq(
-        &mut errors,
+        errors,
         document["ok"].as_bool().unwrap(),
         defective_items == 0 && problems == 0,
         "ok disagrees",
     );
+}
+
+fn check_locations(errors: &mut Vec<String>, document: &Value) {
+    let items = items_of(document);
 
     // located arrays are sorted by file, then line, then character
     let sort_key = |entry: &Value| -> (String, u64, u64) {
@@ -486,7 +522,7 @@ fn invariant_errors(document: &Value) -> Vec<String> {
         let mut sorted = keys.clone();
         sorted.sort();
         expect_eq(
-            &mut errors,
+            errors,
             keys,
             sorted,
             format!("{name} is not sorted by location"),
@@ -500,12 +536,11 @@ fn invariant_errors(document: &Value) -> Vec<String> {
         .chain(document["problems"].as_array().unwrap())
     {
         expect(
-            &mut errors,
+            errors,
             !entry["file"].as_str().unwrap().contains('\\'),
             format!("{} carries a backslash", entry["file"]),
         );
     }
-    errors
 }
 
 // every kind of item, edge, defect, void reason and problem in one run
