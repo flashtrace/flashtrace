@@ -102,10 +102,10 @@ jobs:
           if [ -n "${EVENT_PR:-}" ]; then
             prs=$EVENT_PR
           else
-            # Push to main: refresh every open PR. The release workflow pushes
-            # its version bump with the default GITHUB_TOKEN, which does not
-            # trigger workflows - so if this push merged a release-labeled PR,
-            # anticipate that bump instead of reading a stale version.
+            # Push to main: refresh every open PR. The release workflow's
+            # version bump commit carries a skip-checks trailer, so its push
+            # never runs this workflow - if this push merged a release-labeled
+            # PR, anticipate that bump instead of reading a stale version.
             merged_labels=$(gh api "repos/$REPO/commits/$GITHUB_SHA/pulls" \
               --jq '[.[] | select(.merged_at != null) | .labels[].name] | join(" ")')
             merged_level=$(pick_level "$merged_labels")
