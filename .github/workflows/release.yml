@@ -263,6 +263,35 @@ jobs:
           mv "$staging"/flashtrace-v*.zip "$staging"/flashtrace-v*.tar.gz assets/ 2>/dev/null || true
           ls -l assets
 
+      - name: Set up Node.js
+        if: matrix.test
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+
+      # The binary comes back out of the archive just packaged, so the smoke
+      # test installs and runs the very bytes the release job publishes. The
+      # cross-compiled target cannot run here, as with its tests.
+      - name: Smoke-test the npm packages with the packaged binary
+        if: matrix.test
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ needs.bump.outputs.version }}
+        run: |
+          mkdir smoke-binary
+          case "$TARGET" in
+            *windows*)
+              7z x "assets/flashtrace-v${VERSION}-${TARGET}.zip" -osmoke-binary > /dev/null
+              binary=smoke-binary/flashtrace.exe
+              ;;
+            *)
+              tar -xzf "assets/flashtrace-v${VERSION}-${TARGET}.tar.gz" -C smoke-binary
+              binary=smoke-binary/flashtrace
+              ;;
+          esac
+          node .github/scripts/npm-smoke-test.mjs "$binary"
+
       - name: Upload the packaged binary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
