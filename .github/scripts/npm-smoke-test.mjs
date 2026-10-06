@@ -25,7 +25,7 @@ import {
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
@@ -101,23 +101,37 @@ function readSnapshot(name) {
   return readFileSync(join(repositoryRoot, 'tests', 'e2e-expect', `${name}.txt`), 'utf8');
 }
 
-function main() {
-  const binaryArgument = process.argv[2];
-  if (!binaryArgument) throw new Error('usage: node .github/scripts/npm-smoke-test.mjs <binary>');
-  const binary = resolve(binaryArgument);
-  const version = readCargoVersion();
-  const workDir = mkdtempSync(join(tmpdir(), 'flashtrace-npm-smoke-'));
-  const failures = [];
+const failures = [];
 
-  function check(name, passed, detail = '') {
-    console.log(`${passed ? 'ok  ' : 'FAIL'} ${name}`);
-    if (!passed) failures.push(detail ? `${name}\n${detail}` : name);
+function check(name, passed, detail = '') {
+  console.log(`${passed ? 'ok  ' : 'FAIL'} ${name}`);
+  if (!passed) failures.push(detail ? `${name}\n${detail}` : name);
+}
+
+function describe(res) {
+  return `exit ${res.status}\n--- stdout\n${res.stdout}\n--- stderr\n${res.stderr}`;
+}
+
+function installedCommand(projectDir) {
+  return join(projectDir, 'node_modules', '.bin', isWindows ? 'flashtrace.cmd' : 'flashtrace');
+}
+
+// The binary is a build output inside this checkout - target/ in CI, the
+// extracted archive in the release build - so a path leading elsewhere is
+// refused rather than copied from.
+function readBinaryArgument() {
+  const argument = process.argv[2];
+  if (!argument) throw new Error('usage: node .github/scripts/npm-smoke-test.mjs <binary>');
+  const binary = resolve(repositoryRoot, argument);
+  if (!binary.startsWith(`${repositoryRoot}${sep}`)) {
+    throw new Error(`the binary must lie inside the checkout ${repositoryRoot}: ${binary}`);
   }
+  return binary;
+}
 
-  console.log(`Smoke-testing ${platformPackage} ${version} with ${binary}`);
-
-  // S1: stage copies of both packages, the binary in the platform package's
-  // bin/, and pack them
+// S1: stage copies of both packages, the binary in the platform package's
+// bin/, and pack them
+function stageAndPack(workDir, binary, version) {
   const launcherDir = join(workDir, 'stage', 'launcher');
   const platformDir = join(workDir, 'stage', 'platform');
   const tarballDir = join(workDir, 'tarballs');
@@ -130,20 +144,24 @@ function main() {
   mkdirSync(tarballDir);
   const launcher = pack(launcherDir, tarballDir);
   const platformPacked = pack(platformDir, tarballDir);
+
   const packedBinary = platformPacked.files.find((file) => file.path === `bin/${binaryName}`);
   check(`S1 the platform tarball contains bin/${binaryName}`, packedBinary !== undefined);
   if (!isWindows) {
-    check('S1 the packed binary is executable', (packedBinary?.mode & 0o111) === 0o111, `mode ${packedBinary?.mode?.toString(8)}`);
+    const mode = packedBinary?.mode ?? 0;
+    check('S1 the packed binary is executable', (mode & 0o111) === 0o111, `mode ${mode.toString(8)}`);
   }
+  return { launcherTarball: launcher.tarball, platformTarball: platformPacked.tarball };
+}
 
-  // S2: install both tarballs into an empty project without the registry.
-  // The five other platform packages stay unresolved optional entries, so
-  // `npm ls` would fail here by design and is not the check.
-  const projectDir = join(workDir, 'project');
-  installOffline(projectDir, [launcher.tarball, platformPacked.tarball]);
+// S2-S3: install both tarballs into an empty project without the registry,
+// and the launcher resolves the installed platform package to the binary.
+// The five other platform packages stay unresolved optional entries, so
+// `npm ls` would fail here by design and is not the check.
+function installAndResolve(projectDir, tarballs, version) {
+  installOffline(projectDir, [tarballs.launcherTarball, tarballs.platformTarball]);
   check('S2 both tarballs install offline into an empty project', true);
 
-  // S3: the launcher resolves the installed platform package to the binary
   const installedLauncher = join(projectDir, 'node_modules', 'flashtrace', 'bin', 'flashtrace.js');
   const installedManifest = JSON.parse(
     readFileSync(join(projectDir, 'node_modules', '@flashtrace', platform, 'package.json'), 'utf8'),
@@ -159,19 +177,19 @@ function main() {
   if (!isWindows && resolvedBinary) {
     check('S3 the installed binary is executable', (statSync(resolvedBinary).mode & 0o111) === 0o111);
   }
+  return installedLauncher;
+}
 
-  // R1-R7 run the command npm installed, from a fresh copy of an example
-  const command = join(projectDir, 'node_modules', '.bin', isWindows ? 'flashtrace.cmd' : 'flashtrace');
+// R1-R7 run the command npm installed, from a fresh copy of an example where
+// the run needs a project
+function checkInstalledCommand(workDir, projectDir, version) {
   function runInstalled(args, example) {
     let cwd = projectDir;
     if (example) {
       cwd = join(workDir, 'examples', `${example}-${args.join('-')}`);
       cpSync(join(repositoryRoot, 'examples', example), cwd, { recursive: true });
     }
-    return runCommand(command, args, cwd);
-  }
-  function describe(res) {
-    return `exit ${res.status}\n--- stdout\n${res.stdout}\n--- stderr\n${res.stderr}`;
+    return runCommand(installedCommand(projectDir), args, cwd);
   }
 
   const versionRun = runInstalled(['--version']);
@@ -208,10 +226,12 @@ function main() {
     usageRun.status === 2 && usageRun.stdout === '' && usageRun.stderr.startsWith('error: unknown option'),
     describe(usageRun),
   );
+}
 
-  // R8 runs the launcher directly: Node quotes the arguments of both spawns,
-  // and only the launcher's own spawn is this repository's code - npm's
-  // Windows .cmd shim is not
+// R8 runs the launcher directly: Node quotes the arguments of both spawns,
+// and only the launcher's own spawn is this repository's code - npm's
+// Windows .cmd shim is not
+function checkArgumentPassing(projectDir, installedLauncher) {
   const argumentRun = spawnSync(process.execPath, [installedLauncher, '--format', UNUSUAL_ARGUMENT], {
     cwd: projectDir,
     encoding: 'utf8',
@@ -221,21 +241,33 @@ function main() {
     argumentRun.status === 2 && argumentRun.stderr.includes(`"${UNUSUAL_ARGUMENT}"`),
     describe(argumentRun),
   );
+}
 
-  // R9: without the optional dependency the launcher explains instead of
-  // crashing
+// R9: without the optional dependency the launcher explains instead of
+// crashing
+function checkMissingPlatformPackage(workDir, launcherTarball) {
   const bareProjectDir = join(workDir, 'project-without-binary');
-  installOffline(bareProjectDir, [launcher.tarball], ['--omit=optional']);
-  const missingRun = runCommand(
-    join(bareProjectDir, 'node_modules', '.bin', isWindows ? 'flashtrace.cmd' : 'flashtrace'),
-    ['--version'],
-    bareProjectDir,
-  );
+  installOffline(bareProjectDir, [launcherTarball], ['--omit=optional']);
+  const missingRun = runCommand(installedCommand(bareProjectDir), ['--version'], bareProjectDir);
   check(
     'R9 a missing platform package exits 1 with an explanation',
     missingRun.status === 1 && missingRun.stderr.includes(`no prebuilt binary for ${platform}`),
     describe(missingRun),
   );
+}
+
+function main() {
+  const binary = readBinaryArgument();
+  const version = readCargoVersion();
+  const workDir = mkdtempSync(join(tmpdir(), 'flashtrace-npm-smoke-'));
+  console.log(`Smoke-testing ${platformPackage} ${version} with ${binary}`);
+
+  const tarballs = stageAndPack(workDir, binary, version);
+  const projectDir = join(workDir, 'project');
+  const installedLauncher = installAndResolve(projectDir, tarballs, version);
+  checkInstalledCommand(workDir, projectDir, version);
+  checkArgumentPassing(projectDir, installedLauncher);
+  checkMissingPlatformPackage(workDir, tarballs.launcherTarball);
 
   if (failures.length > 0) {
     console.error(`\n${failures.length} check(s) failed; the staged packages remain in ${workDir}\n`);
