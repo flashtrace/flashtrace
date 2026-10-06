@@ -66,6 +66,21 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
+      # "Re-run all jobs" after a successful bump would bump the release commit again.
+      - name: Refuse to release this merge twice
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          # The API rather than git log: the depth-1 checkout has no parents.
+          read -r parent subject < <(gh api "repos/$REPO/commits/main" \
+            --jq '"\(.parents[0].sha) \(.commit.message | split("\n")[0])"')
+          if [[ "$subject" == "release: v"* && "$parent" == "$SHA" ]]; then
+            echo "::error::Already released as ${subject#release: } - use \"Re-run failed jobs\"."
+            exit 1
+          fi
+
       # The tip of main, not github.sha: if another PR merged while this run
       # was queued, the release ships that newer - still reviewed and merged -
       # content under this run's label, and the newer push's own run reads its
@@ -292,18 +307,27 @@ jobs:
           esac
           node .github/scripts/npm-smoke-test.mjs "$binary"
 
+      # Kept as long as the run can be re-run (30 days): a retried release job
+      # must publish these very bytes - a rebuild is not guaranteed to be
+      # byte-identical, and the publish guards refuse anything that differs
+      # from what an earlier attempt already published.
       - name: Upload the packaged binary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: asset-${{ matrix.target }}
           path: assets/*
-          retention-days: 1
+          retention-days: 30
 
   # This job holds the release credentials (id-token for npm and crates.io
   # trusted publishing, the app key for the GitHub Release) and in exchange
   # executes no repository-controlled code beyond `cargo publish`, whose
   # packaging verify runs the same locked build the matrix above just proved
   # on six targets. npm runs with --ignore-scripts throughout.
+  #
+  # Every publish is idempotent, so "Re-run failed jobs" recovers a release
+  # that failed halfway: the GitHub Release stays a draft until everything
+  # else is out, and each package registry is asked first - an identical
+  # package already there is skipped, a different one fails the run.
   release:
     name: Publish release, npm packages and crate
     needs: [bump, build]
@@ -332,13 +356,27 @@ jobs:
           app-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - name: Create GitHub Release with the binaries
+      # A draft, made public only after the registries: the release
+      # communicator lists releases with --exclude-drafts, so a draft never
+      # counts as the last release.
+      - name: Draft the GitHub Release with the binaries
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           VERSION: ${{ needs.bump.outputs.version }}
         run: |
           (cd assets && sha256sum flashtrace-v* > SHA256SUMS)
-          gh release create "v${VERSION}" --generate-notes assets/*
+          if ! is_draft=$(gh release view "v${VERSION}" --json isDraft --jq .isDraft 2> "$RUNNER_TEMP/view-error"); then
+            if ! grep -q "release not found" "$RUNNER_TEMP/view-error"; then
+              cat "$RUNNER_TEMP/view-error" >&2
+              exit 1
+            fi
+            gh release create "v${VERSION}" --draft --generate-notes assets/*
+          elif [ "$is_draft" = true ]; then
+            gh release upload "v${VERSION}" --clobber assets/*
+          else
+            echo "::error::Release v${VERSION} is already public; it is made public only once everything else is published."
+            exit 1
+          fi
 
       # Each platform package receives its binary, mode restored, and
       # publishes before the main package: the launcher's optionalDependencies
@@ -355,6 +393,32 @@ jobs:
         env:
           VERSION: ${{ needs.bump.outputs.version }}
         run: |
+          # Publishes the package in the given directory unless this version
+          # is already on the registry. npm pack yields the same bytes from
+          # the same files, so a retry with the same artifacts matches what an
+          # earlier attempt published; anything else is a conflicting release.
+          publish_once() {
+            local directory=$1 name pack remote
+            name=$(jq -r .name "$directory/package.json")
+            pack=$(npm pack --json --ignore-scripts --pack-destination "$RUNNER_TEMP" "./$directory")
+            # Not yet published is E404 (or, from older npm, empty output).
+            if ! remote=$(npm view --prefer-online "${name}@${VERSION}" dist.integrity 2> "$RUNNER_TEMP/view-error"); then
+              if ! grep -q E404 "$RUNNER_TEMP/view-error"; then
+                cat "$RUNNER_TEMP/view-error" >&2
+                return 1
+              fi
+              remote=""
+            fi
+            if [ -z "$remote" ]; then
+              npm publish --ignore-scripts --access public "$RUNNER_TEMP/$(jq -r '.[0].filename' <<< "$pack")"
+            elif [ "$remote" = "$(jq -r '.[0].integrity' <<< "$pack")" ]; then
+              echo "${name}@${VERSION} is already published with identical contents; skipping."
+            else
+              echo "::error::${name}@${VERSION} is already published with different contents."
+              return 1
+            fi
+          }
+
           declare -A platform_of=(
             [x86_64-unknown-linux-musl]=linux-x64
             [aarch64-unknown-linux-musl]=linux-arm64
@@ -375,17 +439,59 @@ jobs:
                 chmod +x "$bin_dir/flashtrace"
                 ;;
             esac
-            (cd "npm/@flashtrace/${platform}" && npm publish --ignore-scripts --access public)
+            publish_once "npm/@flashtrace/${platform}"
           done
-          (cd npm/flashtrace && npm publish --ignore-scripts)
+          publish_once npm/flashtrace
+
+      # The crates.io counterpart of publish_once. cargo package yields the
+      # same .crate on every run from the tag checkout (.cargo_vcs_info.json
+      # records the tagged commit), so the checksums of a retry match.
+      - name: Check whether the crate is already published
+        id: crate
+        env:
+          VERSION: ${{ needs.bump.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          # crates.io rejects API requests without a User-Agent.
+          status=$(curl -sS -o "$RUNNER_TEMP/crate.json" -w '%{http_code}' \
+            -A "flashtrace release workflow (https://github.com/${REPO})" \
+            "https://crates.io/api/v1/crates/flashtrace/${VERSION}")
+          case "$status" in
+            404)
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+              ;;
+            200)
+              cargo package --locked
+              local_checksum=$(sha256sum "target/package/flashtrace-${VERSION}.crate" | cut -d' ' -f1)
+              if [ "$(jq -r .version.checksum "$RUNNER_TEMP/crate.json")" != "$local_checksum" ]; then
+                echo "::error::flashtrace ${VERSION} is already on crates.io with different contents."
+                exit 1
+              fi
+              echo "flashtrace ${VERSION} is already on crates.io with identical contents; skipping."
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::crates.io answered HTTP ${status}."
+              cat "$RUNNER_TEMP/crate.json" >&2
+              exit 1
+              ;;
+          esac
 
       - name: Authenticate with crates.io
+        if: steps.crate.outputs.publish == 'true'
         id: crates-io
         uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
       - name: Publish the crate
+        if: steps.crate.outputs.publish == 'true'
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-io.outputs.token }}
         run: cargo publish --locked
+
+      - name: Make the GitHub Release public
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ needs.bump.outputs.version }}
+        run: gh release edit "v${VERSION}" --draft=false
 
       # A new release should refresh the docs website, which builds its docs
       # from flashtrace's latest release tag. Dispatch a repository_dispatch
