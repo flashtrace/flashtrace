@@ -21,7 +21,7 @@ defaults:
 jobs:
   lint:
     name: Format and lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; rustfmt and clippy run locally
     steps:
@@ -41,8 +41,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # every runner the release builds on (release-binaries-dry-run.yml),
+      # so an image problem surfaces in a PR rather than mid-release; bump
+      # the images in both workflows together
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os:
+          - ubuntu-26.04
+          - ubuntu-26.04-arm
+          - macos-26-intel
+          - macos-26
+          - windows-2025-vs2026
+          - windows-11-vs2026-arm
     permissions:
       contents: read # checkout only; the tests run locally
     steps:
@@ -60,8 +69,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # one release image per OS; the output does not depend on the CPU
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-26.04, windows-2025-vs2026, macos-26]
     permissions:
       contents: read # checkout only; both CLIs run locally
     defaults:
@@ -91,7 +101,7 @@ jobs:
 
   coverage:
     name: Coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; coverage runs locally
     steps:
@@ -130,3 +140,91 @@ jobs:
             fi
           done
           exit $status
+
+  # The npm launcher and platform-package templates ship nothing yet; this
+  # keeps them packable and the launcher working while they wait.
+  npm-packages:
+    name: npm launcher scaffolding
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read # checkout only; the checks run locally
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+
+      - name: Parse the launcher
+        run: node --check npm/flashtrace/bin/flashtrace.js
+
+      - name: Verify every package packs
+        run: |
+          for package in npm/flashtrace npm/@flashtrace/*; do
+            (cd "$package" && npm pack --dry-run)
+          done
+
+      # npm pack succeeds whatever "files" matches, so the launcher's tarball
+      # is checked for what a user needs, the prepack-copied README included
+      - name: Verify the launcher tarball contents
+        run: |
+          files=$(cd npm/flashtrace && npm pack --dry-run --json \
+            | node -p "JSON.parse(require('fs').readFileSync(0))[0].files.map((file) => file.path).join(' ')")
+          echo "packed: $files"
+          status=0
+          for expected in README.md bin/flashtrace.js package.json; do
+            case " $files " in
+              *" $expected "*) ;;
+              *) echo "::error::$expected is missing from the launcher tarball"; status=1 ;;
+            esac
+          done
+          exit $status
+
+      - name: Run the launcher against a stub binary
+        run: |
+          stub_dir=npm/flashtrace/node_modules/@flashtrace/linux-x64/bin
+          mkdir --parents "$stub_dir"
+          printf '#!/bin/sh\necho "stub ran: $@"\nexit 42\n' > "$stub_dir/flashtrace"
+          chmod +x "$stub_dir/flashtrace"
+          set +e
+          output=$(node npm/flashtrace/bin/flashtrace.js --json 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" = 42
+          test "$output" = "stub ran: --json"
+
+      - name: Run the launcher without a platform package
+        run: |
+          rm -rf npm/flashtrace/node_modules
+          set +e
+          output=$(node npm/flashtrace/bin/flashtrace.js --version 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" = 2
+          case "$output" in
+            "flashtrace: no prebuilt binary for linux-x64."*) ;;
+            *) echo "::error::the launcher did not explain the missing binary"; exit 1 ;;
+          esac
+
+      # a binary killed by a signal kills the launcher with the same one, so
+      # the shell reports 128 + 15 for SIGTERM rather than a plain failure
+      - name: Run the launcher against a stub binary killed by SIGTERM
+        run: |
+          stub_dir=npm/flashtrace/node_modules/@flashtrace/linux-x64/bin
+          mkdir --parents "$stub_dir"
+          printf '#!/bin/sh\nkill -TERM $$\n' > "$stub_dir/flashtrace"
+          chmod +x "$stub_dir/flashtrace"
+          set +e
+          node npm/flashtrace/bin/flashtrace.js
+          status=$?
+          set -e
+          rm -rf npm/flashtrace/node_modules
+          echo "exit $status"
+          test "$status" = 143

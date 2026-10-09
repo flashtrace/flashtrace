@@ -1,0 +1,20 @@
+{
+  "name": "@flashtrace/darwin-x64",
+  "version": "0.0.0",
+  "description": "The macOS 64-bit binary for flashtrace, a requirement tracing tool. Installed automatically as an optional dependency of the flashtrace package.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flashtrace/flashtrace.git"
+  },
+  "files": [
+    "bin/"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "preferUnplugged": true
+}
