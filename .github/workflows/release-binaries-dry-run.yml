@@ -20,13 +20,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # No musl-tools: the musl targets bring their own libc and startup
+          # files and link with the runner's toolchain. musl-gcc would only
+          # compile C code, and no dependency builds any (no cc crate in
+          # Cargo.lock). The dry run confirms both targets link without it.
           - target: x86_64-unknown-linux-musl
             runner: ubuntu-latest
-            setup: sudo apt-get update && sudo apt-get install -y musl-tools
+            setup: ''
             test: true
           - target: aarch64-unknown-linux-musl
             runner: ubuntu-24.04-arm
-            setup: sudo apt-get update && sudo apt-get install -y musl-tools
+            setup: ''
             test: true
           # Cross-compiled on the arm64 runner, whose Rosetta 2 runs the x86_64
           # test binaries. Whether the image ships Rosetta is undocumented, so
