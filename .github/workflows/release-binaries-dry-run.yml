@@ -2,8 +2,8 @@ name: Release binaries dry run
 
 # Builds the Rust CLI for every release target on the runner matrix the real
 # release will use, and uploads the artifacts for inspection. Run by hand to
-# prove the cross-target toolchains and arm64 runners work before any release
-# depends on them; it publishes nothing.
+# prove the per-target toolchains and the arm64 and Intel runners work before
+# any release depends on them; it publishes nothing.
 
 on:
   workflow_dispatch:
@@ -29,43 +29,31 @@ jobs:
           # Cargo.lock). The dry run confirms both targets link without it.
           - target: x86_64-unknown-linux-musl
             runner: ubuntu-latest
-            setup: ''
             test: true
           - target: aarch64-unknown-linux-musl
             runner: ubuntu-24.04-arm
-            setup: ''
             test: true
-          # Cross-compiled on the arm64 runner, whose Rosetta 2 runs the x86_64
-          # test binaries. Whether the image ships Rosetta is undocumented, so
-          # the setup installs it when missing. A trial: if this target's
-          # tests fail under Rosetta, fall back to test: false and drop the
-          # setup.
+          # Built and tested natively on an Intel runner. Intel macOS images
+          # end with Apple's Intel support; once the last one retires, build
+          # this target on the arm64 runner instead, cross-compiled, with
+          # test: false.
           - target: x86_64-apple-darwin
-            runner: macos-14
-            setup: arch -x86_64 /usr/bin/true || sudo softwareupdate --install-rosetta --agree-to-license
+            runner: macos-26-intel
             test: true
           - target: aarch64-apple-darwin
             runner: macos-14
-            setup: ''
             test: true
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
-            setup: ''
             test: true
           - target: aarch64-pc-windows-msvc
             runner: windows-11-arm
-            setup: ''
             test: true
     permissions:
       contents: read # checkout only; the build runs locally
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Install target prerequisites
-        if: matrix.setup != ''
-        shell: bash
-        run: ${{ matrix.setup }}
 
       - name: Add the target
         shell: bash
