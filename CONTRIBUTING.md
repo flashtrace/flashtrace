@@ -17,7 +17,7 @@ This is intended to give you some structural guidance.
 | .github/      | Continuous integration workflows and more.                  |
 
 We keep dev dependencies to a minimum.
-We keep runtime dependencies to the approved set: `regex`, `serde` and `serde_json`.
+We keep runtime dependencies to the approved set: `ignore`, `regex`, `serde` and `serde_json`.
 
 ## The Commands
 

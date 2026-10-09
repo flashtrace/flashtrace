@@ -14,6 +14,7 @@ categories = ["command-line-utilities", "development-tools"]
 include = ["src/**", "build.rs", "LICENSE", "README.md"]
 
 [dependencies]
+ignore = "0.4"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
