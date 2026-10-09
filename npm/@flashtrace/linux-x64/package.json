@@ -15,5 +15,6 @@
   ],
   "cpu": [
     "x64"
-  ]
+  ],
+  "preferUnplugged": true
 }
