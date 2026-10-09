@@ -25,7 +25,7 @@ concurrency:
 jobs:
   gate:
     name: Read release label of the merged PR
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read
@@ -60,7 +60,7 @@ jobs:
     name: Bump version and tag
     needs: gate
     if: needs.gate.outputs.level != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # the push below uses the app token, not GITHUB_TOKEN
     outputs:
@@ -339,7 +339,7 @@ jobs:
   release:
     name: Publish release, npm packages and crate
     needs: [bump, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # the GitHub Release uses the app token below, not GITHUB_TOKEN
       id-token: write # npm and crates.io trusted publishing (OIDC)
