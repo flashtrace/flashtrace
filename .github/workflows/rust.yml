@@ -195,13 +195,13 @@ jobs:
           output=$(node npm/flashtrace/bin/flashtrace.js --json 2>&1)
           status=$?
           set -e
-          rm -rf npm/flashtrace/node_modules
           echo "$output"
           test "$status" = 42
           test "$output" = "stub ran: --json"
 
       - name: Run the launcher without a platform package
         run: |
+          rm -rf npm/flashtrace/node_modules
           set +e
           output=$(node npm/flashtrace/bin/flashtrace.js --version 2>&1)
           status=$?
