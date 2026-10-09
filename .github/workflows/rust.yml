@@ -21,7 +21,7 @@ defaults:
 jobs:
   lint:
     name: Format and lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; rustfmt and clippy run locally
     steps:
@@ -41,8 +41,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # every runner the release builds on (release-binaries-dry-run.yml),
+      # so an image problem surfaces in a PR rather than mid-release; bump
+      # the images in both workflows together
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os:
+          - ubuntu-26.04
+          - ubuntu-26.04-arm
+          - macos-26-intel
+          - macos-26
+          - windows-2025-vs2026
+          - windows-11-vs2026-arm
     permissions:
       contents: read # checkout only; the tests run locally
     steps:
@@ -60,8 +69,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # one release image per OS; the output does not depend on the CPU
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-26.04, windows-2025-vs2026, macos-26]
     permissions:
       contents: read # checkout only; both CLIs run locally
     defaults:
@@ -91,7 +101,7 @@ jobs:
 
   coverage:
     name: Coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; coverage runs locally
     steps:
@@ -135,7 +145,7 @@ jobs:
   # keeps them packable and the launcher working while they wait.
   npm-packages:
     name: npm launcher scaffolding
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; the checks run locally
     defaults:

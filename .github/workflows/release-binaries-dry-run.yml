@@ -27,7 +27,8 @@ jobs:
       # Windows matters since the VC runtime is linked into the binary. The
       # image does not bound the supported OS versions (static musl, rustc's
       # default macOS deployment target), so bump them as GitHub retires
-      # images: https://github.com/actions/runner-images
+      # images: https://github.com/actions/runner-images - together with
+      # rust.yml, whose tests run on the same images
       matrix:
         include:
           # No musl-tools: the musl targets bring their own libc and startup
