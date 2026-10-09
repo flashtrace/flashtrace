@@ -159,6 +159,22 @@ jobs:
             (cd "$package" && npm pack --dry-run)
           done
 
+      # npm pack succeeds whatever "files" matches, so the launcher's tarball
+      # is checked for what a user needs, the prepack-copied README included
+      - name: Verify the launcher tarball contents
+        run: |
+          files=$(cd npm/flashtrace && npm pack --dry-run --json \
+            | node -p "JSON.parse(require('fs').readFileSync(0))[0].files.map((file) => file.path).join(' ')")
+          echo "packed: $files"
+          status=0
+          for expected in README.md bin/flashtrace.js package.json; do
+            case " $files " in
+              *" $expected "*) ;;
+              *) echo "::error::$expected is missing from the launcher tarball"; status=1 ;;
+            esac
+          done
+          exit $status
+
       - name: Run the launcher against a stub binary
         run: |
           stub_dir=npm/flashtrace/node_modules/@flashtrace/linux-x64/bin
