@@ -1,0 +1,6 @@
+# Compile for the statically linked C runtime on Windows MSVC, so the binary
+# does not depend on vcruntime140.dll. build.rs then switches only the
+# Universal CRT back to the DLL that ships with Windows (the "hybrid CRT").
+# Read more: https://github.com/ChrisDenton/static_vcruntime#details
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
