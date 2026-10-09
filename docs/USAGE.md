@@ -15,6 +15,8 @@ Scans the given directories/files (default: current directory) for Markdown
 (`.md`, `.markdown`) and code files across many languages (C-family, Python,
 Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 [Code tags](code-tags.md) for the full list). Files ignored by git are excluded.
+Files are read as UTF-8, and reports count columns in characters and order
+files the same way on every platform - see [Text handling](text-handling.md).
 
 | Option | Effect |
 |---|---|
