@@ -18,6 +18,7 @@ This is intended to give you some structural guidance.
 
 We keep dev dependencies to a minimum.
 We keep runtime dependencies to the approved set: `regex`, `serde` and `serde_json`.
+We keep build dependencies to the approved set: `static_vcruntime`.
 
 ## The Commands
 
@@ -30,6 +31,8 @@ This is intended to give you a quick but complete overview.
 | `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` | The lint gates CI enforces. |
 
 CI additionally measures coverage with `cargo llvm-cov`, and every file under 'src/' has to appear in the measurement - a file missing from the report would silently leave the ratio rather than lower it, so the run fails when that happens (lib.rs, holding only module declarations, is the one exemption).
+
+The end-to-end tests compare the CLI's output byte for byte with the snapshots in `tests/e2e-expect/`. Never edit those by hand: when you change the output on purpose, regenerate them with `FLASHTRACE_UPDATE_SNAPSHOTS=1 cargo test --test e2e` and review the diff before you commit it.
 
 ## Our Workflow
 
@@ -67,5 +70,7 @@ gitGraph
 ### Some Constraints
 
 Never bump a version manually - not in `Cargo.toml`, `Cargo.lock`, the `npm/` manifests, nor `CITATION.cff`; releases are PR-label driven per GitHub workflow and bump them all automatically (as you can see in the above mermaid diagram as well).
+
+The CLI's output is a contract, pinned by the docs, the JSON Schema in `schemas/` and the e2e snapshots. How text is decoded, counted and ordered is specified in [Text handling](docs/text-handling.md).
 
 Write identifiers out in full; the abbreviations we do use are collected in [ABBREVIATIONS.md](ABBREVIATIONS.md).
