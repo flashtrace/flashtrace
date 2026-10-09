@@ -23,6 +23,7 @@ Ask refining questions before you start writing.
 
 Keep dev dependencies to a minimum.
 Keep runtime dependencies to the approved set: `regex`, `serde` and `serde_json` - nothing else.
+Keep build dependencies to the approved set: `static_vcruntime` - nothing else.
 
 ## The Commands
 
@@ -40,12 +41,13 @@ CI measures coverage with `cargo llvm-cov` and fails when a file in `src/` is
 missing from the measurement, because an unmeasured file would leave the ratio
 instead of lowering it (lib.rs, module declarations only, is the one exemption).
 
-## Output parity
+## Output contract
 
 The CLI's observable output is a contract: docs/ and schemas/report/v0.json pin
-it, and the e2e snapshots pin it byte for byte. Columns are 1-based and count
+it, and the e2e snapshots pin it byte for byte. Text follows Rust-native string
+semantics, specified in docs/text-handling.md: columns are 1-based and count
 characters (Unicode scalar values), and output-visible orderings are `str::cmp`
-(code-point lexicographic) - Rust-native string semantics, not JavaScript's.
+(code-point lexicographic), files by their relative path with `/` separators.
 
 ## Naming
 
