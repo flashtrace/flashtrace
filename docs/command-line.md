@@ -27,7 +27,7 @@ With `-f json` (or its shorthand `--json`) the report is a single JSON document 
 
 ## Verbose report
 
-`-v` replaces the defective-only blocks with a list of *every* item, grouped by file and source line. Problems, the summary and the `ok` / `not ok` footer follow unchanged, and the exit codes are unaffected.
+`-v` replaces the defective-only blocks with a list of *every* item, grouped by file and source line (files in the order [Text handling](text-handling.md) defines). Problems, the summary and the `ok` / `not ok` footer follow unchanged, and the exit codes are unaffected.
 
 Each item carries a status marker matching the three states the summary distinguishes:
 
