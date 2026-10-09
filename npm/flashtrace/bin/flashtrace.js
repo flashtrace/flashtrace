@@ -29,13 +29,13 @@ try {
       'targets are listed at https://github.com/flashtrace/flashtrace/releases',
     ].join('\n'),
   );
-  process.exit(1);
+  process.exit(2);
 }
 
 const result = spawnSync(binary, process.argv.slice(2), { stdio: 'inherit' });
 if (result.error) {
   console.error(`flashtrace: failed to run ${binary}: ${result.error.message}`);
-  process.exit(1);
+  process.exit(2);
 }
 if (result.signal) {
   // the binary died on a signal: die on the same one, so the caller sees it
