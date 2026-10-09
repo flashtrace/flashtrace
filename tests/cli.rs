@@ -17,7 +17,8 @@ impl Drop for Project {
 }
 
 fn with_project(name: &str, files: &[(&str, &[&str])]) -> Project {
-    let dir = std::env::temp_dir().join(format!("flashtrace-cli-{name}-{}", std::process::id()));
+    let process_id = std::process::id();
+    let dir = std::env::temp_dir().join(format!("flashtrace-cli-{name}-{process_id}"));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     for (file, lines) in files {

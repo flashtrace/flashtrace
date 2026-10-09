@@ -36,7 +36,11 @@ fn schema_errors(document: &Value) -> Vec<String> {
     let validator = jsonschema::validator_for(&schema).unwrap();
     let mut errors: Vec<String> = validator
         .iter_errors(document)
-        .map(|error| format!("{}: {error}", location(&error.instance_path().to_string())))
+        .map(|error| {
+            let pointer = error.instance_path().to_string();
+            let path = location(&pointer);
+            format!("{path}: {error}")
+        })
         .collect();
     collect_undocumented_fields(document, &schema, &schema, "", &mut errors);
     errors

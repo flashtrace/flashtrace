@@ -245,11 +245,11 @@ impl RevisionsByKey {
     // string hint for a problem message (missing forwarding source)
     fn rev_hint(&self, id: &str) -> String {
         match self.existing_revisions_of(id) {
-            Some(revs) => format!(
-                " (revision mismatch: existing revision(s) of {}: {})",
-                key_of(id),
-                revs.join(", ")
-            ),
+            Some(revs) => {
+                let key = key_of(id);
+                let existing = revs.join(", ");
+                format!(" (revision mismatch: existing revision(s) of {key}: {existing})")
+            }
             None => String::new(),
         }
     }
@@ -260,12 +260,11 @@ impl RevisionsByKey {
         let Some(existing_revisions) = self.existing_revisions_of(&defect.reference) else {
             return defect;
         };
-        let message = format!(
-            "{} (revision mismatch: existing revision(s) of {}: {})",
-            defect.message,
-            key_of(&defect.reference),
-            existing_revisions.join(", ")
-        );
+        let stated = &defect.message;
+        let key = key_of(&defect.reference);
+        let existing = existing_revisions.join(", ");
+        let message =
+            format!("{stated} (revision mismatch: existing revision(s) of {key}: {existing})");
         Defect {
             kind: defect.kind,
             reference: defect.reference,
@@ -386,15 +385,14 @@ fn build_forward_map(
             for &forward_index in &group {
                 forwards[forward_index].effective = false;
                 forwards[forward_index].voided_by = Some("missing-source");
+                let source = &forwards[forward_index].from;
+                let hint = revisions.rev_hint(source);
+                let message = format!("forwarding from {source}, which does not exist{hint}");
                 problems.push(Problem {
                     file: forwards[forward_index].file.clone(),
                     line: forwards[forward_index].line,
                     character: forwards[forward_index].character,
-                    message: format!(
-                        "forwarding from {}, which does not exist{}",
-                        forwards[forward_index].from,
-                        revisions.rev_hint(&forwards[forward_index].from)
-                    ),
+                    message,
                 });
             }
             continue;
