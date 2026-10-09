@@ -23,6 +23,9 @@
   "files": [
     "bin/"
   ],
+  "scripts": {
+    "prepack": "node -e \"require('node:fs').copyFileSync('../../README.md', 'README.md')\""
+  },
   "engines": {
     "node": ">=18"
   },
