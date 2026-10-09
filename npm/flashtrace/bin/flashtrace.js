@@ -9,6 +9,7 @@
  */
 
 const { spawnSync } = require('node:child_process');
+const { constants } = require('node:os');
 
 const platformPackage = `@flashtrace/${process.platform}-${process.arch}`;
 const binaryName = process.platform === 'win32' ? 'flashtrace.exe' : 'flashtrace';
@@ -36,5 +37,10 @@ if (result.error) {
   console.error(`flashtrace: failed to run ${binary}: ${result.error.message}`);
   process.exit(1);
 }
-// a null status means the binary died on a signal; 1 keeps the failure visible
-process.exit(result.status === null ? 1 : result.status);
+if (result.signal) {
+  // the binary died on a signal: die on the same one, so the caller sees it
+  process.kill(process.pid, result.signal);
+  // still alive when Node ignores that signal (SIGPIPE): the shell's 128 + n
+  process.exit(128 + constants.signals[result.signal]);
+}
+process.exit(result.status);
