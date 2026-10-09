@@ -189,3 +189,32 @@ jobs:
           echo "$output"
           test "$status" = 42
           test "$output" = "stub ran: --json"
+
+      - name: Run the launcher without a platform package
+        run: |
+          set +e
+          output=$(node npm/flashtrace/bin/flashtrace.js --version 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" = 2
+          case "$output" in
+            "flashtrace: no prebuilt binary for linux-x64."*) ;;
+            *) echo "::error::the launcher did not explain the missing binary"; exit 1 ;;
+          esac
+
+      # a binary killed by a signal kills the launcher with the same one, so
+      # the shell reports 128 + 15 for SIGTERM rather than a plain failure
+      - name: Run the launcher against a stub binary killed by SIGTERM
+        run: |
+          stub_dir=npm/flashtrace/node_modules/@flashtrace/linux-x64/bin
+          mkdir --parents "$stub_dir"
+          printf '#!/bin/sh\nkill -TERM $$\n' > "$stub_dir/flashtrace"
+          chmod +x "$stub_dir/flashtrace"
+          set +e
+          node npm/flashtrace/bin/flashtrace.js
+          status=$?
+          set -e
+          rm -rf npm/flashtrace/node_modules
+          echo "exit $status"
+          test "$status" = 143
