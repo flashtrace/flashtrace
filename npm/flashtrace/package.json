@@ -1,12 +1,22 @@
 {
   "name": "flashtrace",
   "version": "0.0.0",
-  "description": "Lightning-fast, reference-based requirement tracing",
+  "description": "Lightning-fast, reference-based requirement tracing that works anywhere.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/flashtrace/flashtrace.git"
   },
+  "homepage": "https://github.com/flashtrace/flashtrace#readme",
+  "bugs": "https://github.com/flashtrace/flashtrace/issues",
+  "keywords": [
+    "requirements",
+    "traceability",
+    "tracing",
+    "coverage",
+    "markdown",
+    "cli"
+  ],
   "bin": {
     "flashtrace": "bin/flashtrace.js"
   },
