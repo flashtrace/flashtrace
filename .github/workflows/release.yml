@@ -437,7 +437,10 @@ jobs:
           )
           for target in "${!platform_of[@]}"; do
             platform=${platform_of[$target]}
+            # the repository holds no bin/; unzip -d would create it, tar -C
+            # does not
             bin_dir="npm/@flashtrace/${platform}/bin"
+            mkdir -p "$bin_dir"
             case "$target" in
               *windows*)
                 unzip -o "assets/flashtrace-v${VERSION}-${target}.zip" -d "$bin_dir"
@@ -449,6 +452,8 @@ jobs:
             esac
             publish_once "npm/@flashtrace/${platform}"
           done
+          # What the launcher's prepack does, which --ignore-scripts skips
+          cp README.md npm/flashtrace/README.md
           publish_once npm/flashtrace
 
       # The crates.io counterpart of publish_once. cargo package yields the
