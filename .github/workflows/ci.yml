@@ -11,7 +11,7 @@ on:
 jobs:
   lint:
     name: Format and lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; rustfmt and clippy run locally
     steps:
@@ -31,8 +31,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # every runner the release builds on (release.yml), so an image problem
+      # surfaces in a PR rather than mid-release; bump the images in both
+      # workflows together
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os:
+          - ubuntu-26.04
+          - ubuntu-26.04-arm
+          - macos-26-intel
+          - macos-26
+          - windows-2025-vs2026
+          - windows-11-vs2026-arm
     permissions:
       contents: read # checkout only; the tests run locally
     steps:
@@ -64,7 +73,7 @@ jobs:
   # them with a real binary is the test job's npm smoke test.
   npm-packages:
     name: npm launcher packages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; the checks run locally
     steps:
@@ -87,7 +96,7 @@ jobs:
 
   coverage:
     name: Coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; coverage runs locally
     steps:
