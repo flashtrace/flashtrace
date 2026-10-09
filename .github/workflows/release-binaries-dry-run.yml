@@ -21,6 +21,13 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      # Explicit images, never -latest: a release build changes its image only
+      # by a commit. Each target runs natively on a standard runner of the
+      # newest GA image; both builds of an OS share one toolchain, which on
+      # Windows matters since the VC runtime is linked into the binary. The
+      # image does not bound the supported OS versions (static musl, rustc's
+      # default macOS deployment target), so bump them as GitHub retires
+      # images: https://github.com/actions/runner-images
       matrix:
         include:
           # No musl-tools: the musl targets bring their own libc and startup
@@ -28,10 +35,10 @@ jobs:
           # compile C code, and no dependency builds any (no cc crate in
           # Cargo.lock). The dry run confirms both targets link without it.
           - target: x86_64-unknown-linux-musl
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
             test: true
           - target: aarch64-unknown-linux-musl
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-26.04-arm
             test: true
           # Built and tested natively on an Intel runner. Intel macOS images
           # end with Apple's Intel support; once the last one retires, build
@@ -41,13 +48,13 @@ jobs:
             runner: macos-26-intel
             test: true
           - target: aarch64-apple-darwin
-            runner: macos-14
+            runner: macos-26
             test: true
           - target: x86_64-pc-windows-msvc
-            runner: windows-latest
+            runner: windows-2025-vs2026
             test: true
           - target: aarch64-pc-windows-msvc
-            runner: windows-11-arm
+            runner: windows-11-vs2026-arm
             test: true
     permissions:
       contents: read # checkout only; the build runs locally
