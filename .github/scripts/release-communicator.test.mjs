@@ -9,7 +9,9 @@ import { join } from 'node:path';
 const workflow = readFileSync(new URL('../workflows/release-communicator.yml', import.meta.url), 'utf8')
   .replaceAll('\r\n', '\n');
 const runBlocks = workflow.split('        run: |\n');
-assert.equal(runBlocks.length, 2, 'expected one inline workflow script');
+if (runBlocks.length !== 2) {
+  throw new Error(`expected one inline workflow script, found ${runBlocks.length - 1}`);
+}
 const script = runBlocks[1].replace(/^ {10}/gm, '');
 const bash = process.platform === 'win32'
   ? join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
