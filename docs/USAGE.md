@@ -1,7 +1,9 @@
 # Usage Guide
 
-flashtrace traces requirement coverage between Markdown specifications and
-source code. It ships as a single native binary with no runtime dependencies.
+flashtrace traces requirements from Markdown specifications to the source code
+that references them. It is available as a native binary with no runtime
+dependencies for Windows, Linux and macOS on x64 and ARM64. It is also
+published as an npm package for Node.js 18 or later.
 
 ## Running
 
