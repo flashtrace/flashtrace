@@ -28,7 +28,7 @@ concurrency:
 jobs:
   communicate:
     name: Update release preview comment
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # GITHUB_TOKEN permissions only matter for the fallback below; the app
     # token carries its own scopes.
     permissions:
