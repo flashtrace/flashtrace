@@ -99,8 +99,8 @@ jobs:
           # The optionalDependencies pins ride the same release bump as the
           # versions; a PR must leave them alone too.
           if [ ! -f npm/flashtrace/package.json ]; then
-            echo 'No npm main package; nothing to check.'
-            exit 0
+            echo '::error file=npm/flashtrace/package.json::The main npm package is missing; its optionalDependencies pins are release-owned.'
+            exit 1
           fi
           node -e '
             const manifest = require("./npm/flashtrace/package.json");
@@ -114,12 +114,16 @@ jobs:
 
       - name: Ensure CITATION.cff release fields are unchanged
         run: |
-          # Same shape as the version guard above: HEAD^1 is already
-          # verified, and a file absent from the base branch (the PR that adds
-          # it) has nothing to compare against.
+          # Same rule as the version guard above (HEAD^1 is already verified):
+          # the release workflow sets these fields, so the file and both
+          # fields must exist on main and in the PR, with main's values.
           if ! git cat-file -e HEAD^1:CITATION.cff 2>/dev/null; then
-            echo 'CITATION.cff does not exist on the base branch; nothing to guard.'
-            exit 0
+            echo '::error file=CITATION.cff::CITATION.cff does not exist on the base branch; its release fields cannot be guarded.'
+            exit 1
+          fi
+          if [ ! -f CITATION.cff ]; then
+            echo '::error file=CITATION.cff::CITATION.cff is release-owned and must not be removed in a PR; removing it must update this guard and the release workflow.'
+            exit 1
           fi
           # Read the field's value with the surrounding quotes stripped, so
           # requoting a line is not reported as a version change.
@@ -134,6 +138,10 @@ jobs:
             pr_value=$(field CITATION.cff "$key")
             echo "Base $key: $base_value"
             echo "PR   $key: $pr_value"
+            if [ -z "$base_value" ] || [ -z "$pr_value" ]; then
+              echo "::error file=CITATION.cff::No \"$key\" field found in CITATION.cff; the release workflow needs one to update."
+              exit 1
+            fi
             if [ "$base_value" != "$pr_value" ]; then
               echo "::error file=CITATION.cff::The \"$key\" field must not be changed in a PR. It is set automatically by the release workflow (release:* labels)."
               exit 1
