@@ -89,8 +89,8 @@ function sourceTreeAndReport(sourceFiles, measuredFiles) {
     mkdirSync(join(full, '..'), { recursive: true });
     writeFileSync(full, 'export const x = 1;\n');
   }
-  // lcov spells each SF: with the same base the guard is handed, exactly as the
-  // real report does - Node writes both relative to the run's working directory.
+  // Each SF: is absolute, as cargo-llvm-cov writes it, and ends in the source
+  // directory the guard is handed, which is what relativeToSourceDir anchors on.
   const lcov = join(root, 'lcov.info');
   writeFileSync(lcov, measuredFiles.map((f) => `SF:${join(sourceDir, f)}\nLF:1\nLH:1`).join('\n') + '\n');
   return { lcov, sourceDir };
