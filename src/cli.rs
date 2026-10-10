@@ -29,8 +29,8 @@ use crate::report_json::report_json;
 const HELP: &str = "Usage: flashtrace [options] [directory-or-file ...]
 
 Traces requirement coverage between Markdown specifications and source code
-(.ts, .js, .mjs, .sql, .vue). Defaults to the current directory. Files ignored
-by git are excluded.
+in many languages. Defaults to the current directory. Files ignored by git are
+excluded.
 
 Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
