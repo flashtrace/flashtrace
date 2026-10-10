@@ -71,6 +71,14 @@ function communicate(environment = {}) {
   return result;
 }
 
+// pull_request_target hands secrets and a write token to the run, so the
+// workflow must never fetch or execute the PR's code.
+test('never checks out or references PR code under pull_request_target', () => {
+  assert.match(workflow, /^  pull_request_target:$/m);
+  assert.doesNotMatch(workflow, /actions\/checkout/);
+  assert.doesNotMatch(workflow, /github\.event\.pull_request\.head|github\.head_ref/);
+});
+
 test('a Rust-only main still rejects an unlabeled PR and posts its warning', () => {
   const result = communicate();
   assert.equal(result.status, 1, result.stderr);
