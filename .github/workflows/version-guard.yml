@@ -84,6 +84,15 @@ jobs:
           for manifest in $(platform_manifests HEAD^1); do
             guard "$manifest"
           done
+          # Nor may a PR add one: a new platform package changes the release
+          # targets, so adding it is a deliberate change to this guard too.
+          base_manifests=$(platform_manifests HEAD^1)
+          for manifest in $(platform_manifests HEAD); do
+            if ! grep -qxF "$manifest" <<<"$base_manifests"; then
+              echo "::error file=$manifest::$manifest is a new platform package; adding one changes the release targets and must update this guard and the release workflow."
+              exit 1
+            fi
+          done
 
       - name: Ensure the platform-package pins match the main npm package
         run: |
