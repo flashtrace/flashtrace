@@ -2,3 +2,6 @@
 # output; force LF so autocrlf checkouts cannot corrupt them.
 examples/** text eol=lf
 tests/e2e-expect/** text eol=lf
+# The help block in the command-line docs is compared byte-for-byte against
+# `flashtrace --help` by tests/docs_help.rs.
+docs/command-line.md text eol=lf

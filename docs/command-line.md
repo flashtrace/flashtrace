@@ -1,8 +1,13 @@
 # Command line
 
 ```
-flashtrace [options] [directory-or-file ...]     # defaults to "."
+Usage: flashtrace [options] [directory-or-file ...]
 
+Traces requirement coverage between Markdown specifications and source code
+in many languages. Defaults to the current directory. Files ignored by git are
+excluded.
+
+Options:
   -t, --tags <t1,t2,...>   only import spec items carrying one of these
                            tags; add "_" to also include untagged items
   -f, --format <format>    report format: "text" (default) or "json"; --json
@@ -10,7 +15,12 @@ flashtrace [options] [directory-or-file ...]     # defaults to "."
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones; text format only
   -V, --version            print the version number
-  -h, --help
+  -h, --help               show this help
+
+Long options also accept "="-attached values, e.g. --tags=a,b.
+The report format and the tag filter may each be selected only once.
+
+Exit codes: 0 clean, 1 defects or problems found, 2 usage error
 ```
 
 Long options also accept `=`-attached values, e.g. `--tags=a,b`; values containing spaces must be shell-quoted (`--tags="a , b"`).
