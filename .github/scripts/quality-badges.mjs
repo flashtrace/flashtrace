@@ -2,7 +2,7 @@
 // documents, one per metric. The CI workflow publishes them to the `badges`
 // branch, where README.md's Quality Summary reads them from.
 //
-// Usage: node .github/scripts/quality-badges.mjs <lcov-file> <junit-file> <source-dir> <output-dir> <source-extension>
+// Usage: node .github/scripts/quality-badges.mjs <lcov-file> <junit-file> <source-dir> <output-dir> <source-extension> [--exempt <file> ...]
 
 import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
