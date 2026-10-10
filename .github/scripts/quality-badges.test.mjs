@@ -1,8 +1,10 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   coverageColorFor,
@@ -139,4 +141,43 @@ test('writeBadge writes an endpoint document with the schema version and a trail
     message: '84.2%',
     color: 'green',
   });
+});
+
+// The command line, run as CI runs it: main() fires only for a direct call.
+const script = fileURLToPath(new URL('./quality-badges.mjs', import.meta.url));
+function runCli(args) {
+  return spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' });
+}
+
+test('the CLI rejects a call without the source extension', () => {
+  const result = runCli(['lcov.info', 'junit.xml', 'src', 'badges']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /Usage: .*<source-extension> \[--exempt <file> \.\.\.\]/);
+});
+
+test('the CLI rejects an extra argument that is not --exempt', () => {
+  const result = runCli(['lcov.info', 'junit.xml', 'src', 'badges', '.rs', 'lib.rs']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /Usage:/);
+});
+
+test('the CLI rejects --exempt without a file', () => {
+  const result = runCli(['lcov.info', 'junit.xml', 'src', 'badges', '.rs', '--exempt']);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /Usage:/);
+});
+
+test('the CLI passes every --exempt file to the completeness gate and writes both badges', () => {
+  const { lcov, sourceDir } = sourceTreeAndReport(['a.rs', 'lib.rs', 'mod.rs'], ['a.rs']);
+  const junit = writeTemp('junit.xml', '<testsuites><testcase name="one"/></testsuites>');
+  const outputDir = join(workDir, `${uniqueCounter += 1}-badges`);
+
+  const exemptBoth = runCli([lcov, junit, sourceDir, outputDir, '.rs', '--exempt', 'lib.rs', 'mod.rs']);
+  assert.equal(exemptBoth.status, 0, exemptBoth.stderr);
+  assert.deepEqual(readdirSync(outputDir).sort(), ['coverage.json', 'tests.json']);
+
+  // only the files after --exempt are exempt
+  const exemptOne = runCli([lcov, junit, sourceDir, outputDir, '.rs', '--exempt', 'lib.rs']);
+  assert.equal(exemptOne.status, 1);
+  assert.match(exemptOne.stderr, /No coverage was measured for mod\.rs/);
 });
