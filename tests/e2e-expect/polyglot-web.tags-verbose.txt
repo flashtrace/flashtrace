@@ -1,0 +1,36 @@
+✔ impl:data/aggregation#1  aggregation.sql:1  [deep-covered]
+    wanted by req:data/aggregation#1  spec.md:26
+
+✔ impl:web/markup#1  dashboard.vue:2  [deep-covered]
+    wanted by req:web/dashboard#1  spec.md:3
+✔ impl:web/widget#1  dashboard.vue:9  [deep-covered]
+    wanted by req:web/dashboard#1  spec.md:3
+✔ impl:web/theme#1  dashboard.vue:19  [deep-covered]
+    wanted by req:web/dashboard#1  spec.md:3
+
+✔ impl:web/page#1  index.html:2  [deep-covered]
+    wanted by req:web/dashboard#1  spec.md:3
+
+✔ impl:api/metrics#1  metrics.ts:1  [deep-covered]
+    wanted by req:api/metrics#1  spec.md:16
+
+✔ req:web/dashboard#1 "Web dashboard"  spec.md:3  [deep-covered]
+    needs impl:web/page#1  ✔ index.html:2
+    needs impl:web/markup#1  ✔ dashboard.vue:2
+    needs impl:web/widget#1  ✔ dashboard.vue:9
+    needs impl:web/theme#1  ✔ dashboard.vue:19
+✔ req:api/metrics#1 "Metrics API"  spec.md:16  [deep-covered]
+    needs impl:api/metrics#1  ✔ metrics.ts:1
+    needs utest:api/metrics#1  ✔ test_metrics.py:1
+✔ req:data/aggregation#1 "Metrics aggregation"  spec.md:26  [deep-covered]
+    needs impl:data/aggregation#1  ✔ aggregation.sql:1
+
+✔ utest:api/metrics#1  test_metrics.py:1  [deep-covered]
+    wanted by req:api/metrics#1  spec.md:16
+
+Summary
+  items       10  (3 from specs, 7 from code)
+  ok          10
+  defective   0
+
+ok

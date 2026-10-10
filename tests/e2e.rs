@@ -39,6 +39,18 @@ const CASES: &[(&str, &str, &[&str], i32)] = &[
     ("polyglot-web", "default", &[], 0),
     ("polyglot-web", "verbose", &["-v"], 0),
     ("polyglot-web", "tags", &["--tags", "web,data"], 0),
+    (
+        "polyglot-web",
+        "tags-verbose",
+        &["-v", "--tags", "web,data"],
+        0,
+    ),
+    (
+        "polyglot-web",
+        "tags-json",
+        &["--json", "--tags", "web,data"],
+        0,
+    ),
     ("polyglot-web", "json", &["--json"], 0),
     ("hyperglot", "default", &[], 0),
     ("hyperglot", "verbose", &["-v"], 0),
