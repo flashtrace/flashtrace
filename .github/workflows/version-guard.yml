@@ -8,7 +8,7 @@ on:
 jobs:
   guard:
     name: Block manual version changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read # checkout only; the guard just compares files locally
     steps:

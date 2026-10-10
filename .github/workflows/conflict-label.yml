@@ -22,7 +22,7 @@ concurrency:
 jobs:
   sync:
     name: Sync conflict label
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       pull-requests: write # add/remove the label on the PR
     env:
