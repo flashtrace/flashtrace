@@ -1,7 +1,8 @@
 # Example projects
 
-Each directory is a self-contained project traceable with a plain
-`flashtrace` run; its README states what it demonstrates.
+Each directory except [command-line](command-line/) is a self-contained
+project traceable with a plain `flashtrace` run; its README states what it
+demonstrates.
 
 - [basic](basic/) - the smallest complete setup: one Markdown requirement
   covered by one TypeScript item tag.
@@ -19,7 +20,9 @@ Each directory is a self-contained project traceable with a plain
   grammar.
 - [diagnostics](diagnostics/) - an intentionally defective project showing
   every defect and problem kind flashtrace reports.
+- [command-line](command-line/) - not a project: the folder the end-to-end
+  suite runs the command-line surface in (help text and usage errors).
 
 The end-to-end suite (`tests/e2e.rs`) runs every example and verifies
-its report byte-for-byte against the snapshots in [tests/e2e-expect/](../tests/e2e-expect/),
+its output byte-for-byte against the snapshots in [tests/e2e-expect/](../tests/e2e-expect/),
 so the exact output flashtrace prints for each example can be read there.
