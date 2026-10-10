@@ -72,8 +72,17 @@ jobs:
           guard Cargo.toml
           guard Cargo.lock
           guard npm/flashtrace/package.json
-          for manifest in npm/@flashtrace/*/package.json; do
-            [ -f "$manifest" ] && guard "$manifest"
+
+          # List the platform packages from git, never a glob: a glob over the
+          # PR's files misses a package the PR dropped, and an unmatched one
+          # stays a literal pattern. An empty list is a valid list.
+          platform_manifests() {
+            git ls-tree -r --name-only "$1" -- npm/@flashtrace/ \
+              | sed -n '\#^npm/@flashtrace/[^/]*/package\.json$#p'
+          }
+          # Every platform package on main must survive the PR unchanged.
+          for manifest in $(platform_manifests HEAD^1); do
+            guard "$manifest"
           done
 
       - name: Ensure the platform-package pins match the main npm package
