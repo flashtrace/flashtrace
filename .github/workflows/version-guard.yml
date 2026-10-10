@@ -73,25 +73,37 @@ jobs:
           guard Cargo.lock
           guard npm/flashtrace/package.json
 
-          # List the platform packages from git, never a glob: a glob over the
-          # PR's files misses a package the PR dropped, and an unmatched one
-          # stays a literal pattern. An empty list is a valid list.
-          platform_manifests() {
-            git ls-tree -r --name-only "$1" -- npm/@flashtrace/ \
-              | sed -n '\#^npm/@flashtrace/[^/]*/package\.json$#p'
-          }
-          # Every platform package on main must survive the PR unchanged.
-          for manifest in $(platform_manifests HEAD^1); do
-            guard "$manifest"
-          done
-          # Nor may a PR add one: a new platform package changes the release
-          # targets, so adding it is a deliberate change to this guard too.
-          base_manifests=$(platform_manifests HEAD^1)
-          for manifest in $(platform_manifests HEAD); do
-            if ! grep -qxF "$manifest" <<<"$base_manifests"; then
-              echo "::error file=$manifest::$manifest is a new platform package; adding one changes the release targets and must update this guard and the release workflow."
+          # The platform packages, written out: adding or dropping one changes
+          # the release targets, so it is a deliberate edit of this list.
+          platforms='darwin-arm64 darwin-x64 linux-arm64 linux-x64 win32-arm64 win32-x64'
+          npm_version=$(version_of npm/flashtrace/package.json < npm/flashtrace/package.json)
+          for platform in $platforms; do
+            manifest="npm/@flashtrace/$platform/package.json"
+            if git cat-file -e "HEAD^1:$manifest" 2>/dev/null; then
+              guard "$manifest"
+            elif [ ! -f "$manifest" ]; then
+              echo "::error file=$manifest::$platform is listed as a platform package, but $manifest does not exist."
+              exit 1
+            elif [ "$(version_of "$manifest" < "$manifest")" != "$npm_version" ]; then
+              # Listed in this PR: a new platform starts at the current version.
+              echo "::error file=$manifest::The new platform package $platform must start at the main npm package's version $npm_version."
               exit 1
             fi
+          done
+          # Every platform package in the PR must be listed. Read the PR's
+          # packages from git, never a glob: an unmatched glob stays a literal
+          # pattern, while an empty listing is a valid one.
+          for manifest in $(git ls-tree -r --name-only HEAD -- npm/@flashtrace/ \
+              | sed -n '\#^npm/@flashtrace/[^/]*/package\.json$#p'); do
+            platform=${manifest#npm/@flashtrace/}
+            platform=${platform%/package.json}
+            case " $platforms " in
+              *" $platform "*) ;;
+              *)
+                echo "::error file=$manifest::$platform is not a listed platform package; adding one changes the release targets and must extend the list in this guard and the release workflow."
+                exit 1
+                ;;
+            esac
           done
 
       - name: Ensure the platform-package pins match the main npm package
