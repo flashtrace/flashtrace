@@ -20,9 +20,6 @@ const bash = process.platform === 'win32'
 const githubMock = String.raw`
 gh() {
   case "$*" in
-    api\ repos/example/flashtrace/contents/?ref=main*)
-      printf 'Cargo.toml\nnpm\n'
-      ;;
     api\ repos/example/flashtrace/contents/Cargo.toml?ref=main*)
       if [ "$TEST_MANIFEST_FAILURE" = true ]; then
         echo 'manifest API failed' >&2
