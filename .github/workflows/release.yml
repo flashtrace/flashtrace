@@ -91,6 +91,35 @@ jobs:
           ref: main
           persist-credentials: false
 
+      # The bump counts up from Cargo.toml alone, so that number must be the
+      # last release: Cargo.lock and CITATION.cff carry the same version, and
+      # the newest vX.Y.Z tag - the one record no file edit or merge
+      # resolution can touch - names it too. Anything else stops the release
+      # before a version is computed from a stale or hand-edited number.
+      - name: Verify the release-owned versions agree with the latest tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          cargo_toml=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          cargo_lock=$(awk '/^name = "flashtrace"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' Cargo.lock)
+          citation=$(sed -n 's|^version: *||p' CITATION.cff | sed 's|^"\(.*\)"$|\1|')
+          # Fetched apart from the filtering, so a failed request fails the
+          # step instead of reading as "no tags".
+          tags=$(gh api --paginate "repos/$REPO/git/matching-refs/tags/v" --jq '.[].ref')
+          latest_tag=$(grep -E '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' <<< "$tags" | sed 's|^refs/tags/v||' | sort -V | tail -1)
+          echo "Cargo.toml: $cargo_toml, Cargo.lock: $cargo_lock, CITATION.cff: $citation, latest tag: v$latest_tag"
+          if [ -z "$latest_tag" ]; then
+            echo "::error::No vX.Y.Z tag to check the version against."
+            exit 1
+          fi
+          for found in "Cargo.lock:$cargo_lock" "CITATION.cff:$citation" "the latest tag:$latest_tag"; do
+            if [ "${found#*:}" != "$cargo_toml" ]; then
+              echo "::error::Cargo.toml has version ${cargo_toml}, but ${found%%:*} has ${found#*:}; bring them back in line before releasing."
+              exit 1
+            fi
+          done
+
       # main is protected by a ruleset that GITHUB_TOKEN cannot bypass; the
       # release app is on the ruleset's bypass list, so its token may push the
       # bump commit directly.
