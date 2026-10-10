@@ -49,6 +49,16 @@ const CASES: &[(&str, &str, &[&str], i32)] = &[
     ("diagnostics", "default", &[], 1),
     ("diagnostics", "verbose", &["-v"], 1),
     ("diagnostics", "json", &["--json"], 1),
+    ("command-line", "help", &["--help"], 0),
+    ("command-line", "unknown-option", &["--nope"], 2),
+    ("command-line", "missing-value", &["--format"], 2),
+    ("command-line", "invalid-value", &["--format=bogus"], 2),
+    (
+        "command-line",
+        "missing-input",
+        &["does-not-exist-anywhere"],
+        2,
+    ),
 ];
 
 fn copy_tree(from: &Path, to: &Path) {
