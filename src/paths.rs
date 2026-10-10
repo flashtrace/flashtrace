@@ -79,15 +79,23 @@ pub fn relative_to(base: &Path, target: &Path) -> PathBuf {
     relative
 }
 
-/// The spelling a report shows for a file: its path relative to the working
-/// directory, or the file itself when the two coincide.
+/// The spelling every report - text and JSON - shows for a file: its path
+/// relative to the working directory, or the file itself when the two
+/// coincide, with `/` separators on every platform.
 pub fn display_relative(base: &Path, file: &str) -> String {
     let relative = relative_to(base, Path::new(file));
-    if relative.as_os_str().is_empty() {
+    let spelling = if relative.as_os_str().is_empty() {
         file.to_string()
     } else {
         relative.to_string_lossy().into_owned()
-    }
+    };
+    with_forward_slashes(&spelling)
+}
+
+/// The path with every `\` separator spelled `/`, so a report reads the same
+/// on Windows as elsewhere.
+fn with_forward_slashes(path: &str) -> String {
+    path.replace('\\', "/")
 }
 
 #[cfg(test)]
@@ -153,6 +161,29 @@ mod tests {
             "spec.md"
         );
         assert_eq!(display_relative(Path::new("/a/b"), "/a/b"), "/a/b");
+    }
+
+    #[test]
+    fn with_forward_slashes_respells_backslash_separators() {
+        assert_eq!(
+            with_forward_slashes(r"tests\store.spec.ts"),
+            "tests/store.spec.ts"
+        );
+        assert_eq!(
+            with_forward_slashes(r"..\c-like-nested\kt.kt"),
+            "../c-like-nested/kt.kt"
+        );
+        assert_eq!(with_forward_slashes("docs/spec.md"), "docs/spec.md");
+    }
+
+    #[test]
+    fn display_relative_prints_forward_slashes() {
+        // a backslash-separated file under the base: one segment on POSIX,
+        // two on Windows - printed with `/` either way
+        assert_eq!(
+            display_relative(Path::new("/a"), r"/a/tests\store.spec.ts"),
+            "tests/store.spec.ts"
+        );
     }
 
     #[cfg(windows)]
