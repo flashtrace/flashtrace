@@ -1,7 +1,7 @@
 /*
  * End-to-end suite: runs the built CLI over the example projects under
- * examples/ and compares full stdout byte-for-byte against the snapshot files
- * in tests/e2e-expect/. Each example is copied to a fresh temp directory first,
+ * examples/ and compares full stdout and stderr byte-for-byte against the
+ * snapshot files in tests/e2e-expect/. Each example is copied to a fresh temp directory first,
  * so the run is isolated from this repository's git metadata and file
  * collection uses the deterministic walk + sort path.
  *
@@ -20,8 +20,12 @@ fn repo_path(relative: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join(relative)
 }
 
-// one CLI run per row: example directory, arguments, expected exit code; the
-// snapshot file is <example>.<variant>.txt
+// one CLI run per row: example directory, arguments, expected exit code; stdout
+// is snapshotted in <example>.<variant>.txt, and stderr in
+// <example>.<variant>.stderr.txt, which exists only when stderr is not empty
+const STDOUT_SUFFIX: &str = "txt";
+const STDERR_SUFFIX: &str = "stderr.txt";
+
 const CASES: &[(&str, &str, &[&str], i32)] = &[
     ("basic", "default", &[], 0),
     ("basic", "verbose", &["-v"], 0),
@@ -35,6 +39,18 @@ const CASES: &[(&str, &str, &[&str], i32)] = &[
     ("polyglot-web", "default", &[], 0),
     ("polyglot-web", "verbose", &["-v"], 0),
     ("polyglot-web", "tags", &["--tags", "web,data"], 0),
+    (
+        "polyglot-web",
+        "tags-verbose",
+        &["-v", "--tags", "web,data"],
+        0,
+    ),
+    (
+        "polyglot-web",
+        "tags-json",
+        &["--json", "--tags", "web,data"],
+        0,
+    ),
     ("polyglot-web", "json", &["--json"], 0),
     ("hyperglot", "default", &[], 0),
     ("hyperglot", "verbose", &["-v"], 0),
@@ -45,6 +61,16 @@ const CASES: &[(&str, &str, &[&str], i32)] = &[
     ("diagnostics", "default", &[], 1),
     ("diagnostics", "verbose", &["-v"], 1),
     ("diagnostics", "json", &["--json"], 1),
+    ("command-line", "help", &["--help"], 0),
+    ("command-line", "unknown-option", &["--nope"], 2),
+    ("command-line", "missing-value", &["--format"], 2),
+    ("command-line", "invalid-value", &["--format=bogus"], 2),
+    (
+        "command-line",
+        "missing-input",
+        &["does-not-exist-anywhere"],
+        2,
+    ),
 ];
 
 fn copy_tree(from: &Path, to: &Path) {
@@ -108,6 +134,43 @@ fn first_difference(expected: &str, actual: &str) -> String {
     "outputs are equal".to_string()
 }
 
+fn snapshot_name(example: &str, variant: &str, suffix: &str) -> String {
+    format!("{example}.{variant}.{suffix}")
+}
+
+// a missing stderr snapshot stands for empty stderr, so the update mode
+// removes the file instead of writing an empty one
+fn compare_with_snapshot(name: &str, actual: &str, update: bool, absent_means_empty: bool) {
+    let file = repo_path("tests/e2e-expect").join(name);
+    if update {
+        if absent_means_empty && actual.is_empty() {
+            if file.exists() {
+                std::fs::remove_file(&file).unwrap();
+            }
+        } else {
+            std::fs::write(&file, actual).unwrap();
+        }
+    }
+    let expected = if absent_means_empty && !file.exists() {
+        String::new()
+    } else {
+        std::fs::read_to_string(&file).unwrap()
+    };
+    if absent_means_empty {
+        assert!(
+            !file.exists() || !expected.is_empty(),
+            "{name}: empty snapshot, delete it instead"
+        );
+    }
+    assert_eq!(
+        actual,
+        expected,
+        "{name}: output does not match snapshot
+{}",
+        first_difference(&expected, actual)
+    );
+}
+
 #[test]
 fn every_example_output_matches_its_snapshot() {
     let update = std::env::var_os("FLASHTRACE_UPDATE_SNAPSHOTS").is_some_and(|value| value == "1");
@@ -118,29 +181,48 @@ fn every_example_output_matches_its_snapshot() {
             .current_dir(&copy.0)
             .output()
             .unwrap();
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert_eq!(
-            stderr, "",
-            "{example} ({variant}): unexpected stderr: {stderr}"
-        );
-        let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+        let stdout = normalize(&String::from_utf8_lossy(&output.stdout));
+        let stderr = normalize(&String::from_utf8_lossy(&output.stderr));
         assert_eq!(
             output.status.code(),
             Some(*status),
-            "{example} ({variant}): exit code mismatch, stdout:\n{stdout}"
+            "{example} ({variant}): exit code mismatch, stdout:
+{stdout}
+stderr:
+{stderr}"
         );
-
-        let actual = normalize(&stdout);
-        let file = repo_path("tests/e2e-expect").join(format!("{example}.{variant}.txt"));
-        if update {
-            std::fs::write(&file, &actual).unwrap();
-        }
-        let expected = std::fs::read_to_string(&file).unwrap();
-        assert_eq!(
-            actual,
-            expected,
-            "{example} ({variant}): output does not match snapshot\n{}",
-            first_difference(&expected, &actual)
+        compare_with_snapshot(
+            &snapshot_name(example, variant, STDOUT_SUFFIX),
+            &stdout,
+            update,
+            false,
+        );
+        compare_with_snapshot(
+            &snapshot_name(example, variant, STDERR_SUFFIX),
+            &stderr,
+            update,
+            true,
         );
     }
+}
+
+#[test]
+fn every_snapshot_belongs_to_a_case() {
+    let known: Vec<String> = CASES
+        .iter()
+        .flat_map(|(example, variant, _, _)| {
+            [STDOUT_SUFFIX, STDERR_SUFFIX].map(|suffix| snapshot_name(example, variant, suffix))
+        })
+        .collect();
+    let mut stale: Vec<String> = std::fs::read_dir(repo_path("tests/e2e-expect"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|name| !known.contains(name))
+        .collect();
+    stale.sort();
+    assert!(
+        stale.is_empty(),
+        "snapshots without a case in CASES: {}",
+        stale.join(", ")
+    );
 }
