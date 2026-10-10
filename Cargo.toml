@@ -11,7 +11,7 @@ license = "Apache-2.0"
 keywords = ["requirements", "traceability", "tracing", "coverage", "cli"]
 categories = ["command-line-utilities", "development-tools"]
 # the crate ships only its sources; examples and snapshots stay in the repository
-include = ["src/**", "build.rs", "LICENSE", "README.md"]
+include = ["/src/**", "/build.rs", "/LICENSE", "/README.md"]
 
 [dependencies]
 regex = "1"
