@@ -40,16 +40,16 @@ test('coverageColorFor lands on the boundary of each SonarCloud band', () => {
 });
 
 test('toPosixPath rewrites Windows separators and leaves posix ones alone', () => {
-  assert.equal(toPosixPath('src\\sub\\file.mjs'), 'src/sub/file.mjs');
-  assert.equal(toPosixPath('src/sub/file.mjs'), 'src/sub/file.mjs');
+  assert.equal(toPosixPath('src\\sub\\file.rs'), 'src/sub/file.rs');
+  assert.equal(toPosixPath('src/sub/file.rs'), 'src/sub/file.rs');
 });
 
 test('relativeToSourceDir strips the source prefix and rejects outsiders', () => {
-  assert.equal(relativeToSourceDir('src/analyze.mjs', 'src'), 'analyze.mjs');
-  assert.equal(relativeToSourceDir('src/nested/deep.mjs', 'src'), 'nested/deep.mjs');
-  assert.equal(relativeToSourceDir('test/analyze.test.mjs', 'src'), null);
+  assert.equal(relativeToSourceDir('src/analyze.rs', 'src'), 'analyze.rs');
+  assert.equal(relativeToSourceDir('src/nested/deep.rs', 'src'), 'nested/deep.rs');
+  assert.equal(relativeToSourceDir('tests/cli.rs', 'src'), null);
   // A sibling that merely starts with the same letters is not inside src/.
-  assert.equal(relativeToSourceDir('sources/a.mjs', 'src'), null);
+  assert.equal(relativeToSourceDir('sources/a.rs', 'src'), null);
   // absolute records (cargo-llvm-cov) anchor on the source directory
   assert.equal(relativeToSourceDir('C:\\repo\\src\\ids.rs', 'src'), 'ids.rs');
   assert.equal(relativeToSourceDir('/home/runner/repo/src/nested/deep.rs', 'src'), 'nested/deep.rs');
@@ -57,7 +57,7 @@ test('relativeToSourceDir strips the source prefix and rejects outsiders', () =>
 
 test('readLineCoverage weights each file by its size, not by its percentage', () => {
   // 1/1 in one file and 0/99 in another averages to 50% but is 1% by lines.
-  const lcov = writeTemp('cov.info', 'SF:src/a.mjs\nLF:1\nLH:1\nSF:src/b.mjs\nLF:99\nLH:0\n');
+  const lcov = writeTemp('cov.info', 'SF:src/a.rs\nLF:1\nLH:1\nSF:src/b.rs\nLF:99\nLH:0\n');
   assert.equal(readLineCoverage(lcov), 1);
 });
 
@@ -87,7 +87,7 @@ function sourceTreeAndReport(sourceFiles, measuredFiles) {
   for (const relative of sourceFiles) {
     const full = join(sourceDir, relative);
     mkdirSync(join(full, '..'), { recursive: true });
-    writeFileSync(full, 'export const x = 1;\n');
+    writeFileSync(full, 'pub fn x() {}\n');
   }
   // Each SF: is absolute, as cargo-llvm-cov writes it, and ends in the source
   // directory the guard is handed, which is what relativeToSourceDir anchors on.
@@ -98,36 +98,41 @@ function sourceTreeAndReport(sourceFiles, measuredFiles) {
 
 test('assertEverySourceFileMeasured passes when every source file was measured', () => {
   const { lcov, sourceDir } = sourceTreeAndReport(
-    ['a.mjs', 'nested/b.mjs'],
-    ['a.mjs', 'nested/b.mjs'],
+    ['a.rs', 'nested/b.rs'],
+    ['a.rs', 'nested/b.rs'],
   );
-  assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs'));
+  assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir, '.rs'));
 });
 
 test('assertEverySourceFileMeasured skips exempt files', () => {
-  const { lcov, sourceDir } = sourceTreeAndReport(['a.mjs', 'lib.mjs'], ['a.mjs']);
-  assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['lib.mjs']));
+  const { lcov, sourceDir } = sourceTreeAndReport(['a.rs', 'lib.rs'], ['a.rs']);
+  assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir, '.rs', ['lib.rs']));
   // exempting one file does not cover another
-  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['a.mjs']), /lib\.mjs/);
+  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir, '.rs', ['a.rs']), /lib\.rs/);
 });
 
 test('assertEverySourceFileMeasured rejects an exemption that names no source file', () => {
-  const { lcov, sourceDir } = sourceTreeAndReport(['a.mjs', 'lib.mjs'], ['a.mjs']);
+  const { lcov, sourceDir } = sourceTreeAndReport(['a.rs', 'lib.rs'], ['a.rs']);
   assert.throws(
-    () => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['lib.mjs', 'gone.mjs']),
-    /Exempt gone\.mjs names no \.mjs file/,
+    () => assertEverySourceFileMeasured(lcov, sourceDir, '.rs', ['lib.rs', 'gone.rs']),
+    /Exempt gone\.rs names no \.rs file/,
   );
   // a file outside the measured extension is no source file either
   writeFileSync(join(sourceDir, 'notes.txt'), 'x\n');
   assert.throws(
-    () => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['lib.mjs', 'notes.txt']),
+    () => assertEverySourceFileMeasured(lcov, sourceDir, '.rs', ['lib.rs', 'notes.txt']),
     /Exempt notes\.txt/,
   );
 });
 
+test('assertEverySourceFileMeasured ignores unmeasured files of another extension', () => {
+  const { lcov, sourceDir } = sourceTreeAndReport(['a.rs', 'notes.md', 'nested/data.json'], ['a.rs']);
+  assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir, '.rs'));
+});
+
 test('assertEverySourceFileMeasured throws and names the file no test loaded', () => {
-  const { lcov, sourceDir } = sourceTreeAndReport(['a.mjs', 'orphan.mjs'], ['a.mjs']);
-  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs'), /orphan\.mjs/);
+  const { lcov, sourceDir } = sourceTreeAndReport(['a.rs', 'orphan.rs'], ['a.rs']);
+  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir, '.rs'), /orphan\.rs/);
 });
 
 test('writeBadge writes an endpoint document with the schema version and a trailing newline', () => {
