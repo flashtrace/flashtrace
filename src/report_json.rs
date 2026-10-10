@@ -167,9 +167,9 @@ struct Locator {
 
 impl Locator {
     // the document's `file`: relative to the working directory, with forward
-    // slashes on every platform
+    // slashes on every platform - the text report's spelling, too
     fn relative(&self, file: &str) -> String {
-        display_relative(&self.cwd, file).replace('\\', "/")
+        display_relative(&self.cwd, file)
     }
 }
 
