@@ -1,8 +1,9 @@
 # Usage Guide
 
-flashtrace traces requirement coverage between Markdown specifications and
-source code. It has no runtime dependencies and runs anywhere Node.js ≥ 18 is
-available.
+flashtrace traces requirements from Markdown specifications to the source code
+that references them. It is available as a native binary with no runtime
+dependencies for Windows, Linux and macOS on x64 and ARM64. It is also
+published as an npm package for Node.js 18 or later.
 
 ## Running
 
@@ -14,6 +15,8 @@ Scans the given directories/files (default: current directory) for Markdown
 (`.md`, `.markdown`) and code files across many languages (C-family, Python,
 Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 [Code tags](code-tags.md) for the full list). Files ignored by git are excluded.
+Files are read as UTF-8, and reports count columns in characters and order
+files the same way on every platform - see [Text handling](text-handling.md).
 
 | Option | Effect |
 |---|---|

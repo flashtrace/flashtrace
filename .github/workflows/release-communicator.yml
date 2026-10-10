@@ -32,7 +32,7 @@ jobs:
     # GITHUB_TOKEN permissions only matter for the fallback below; the app
     # token carries its own scopes.
     permissions:
-      contents: read # read package.json from main via the API
+      contents: read # read Cargo.toml from main via the API
       pull-requests: write # create/update the PR comment
     env:
       # The secrets context is not allowed in if conditions (only env is), so
@@ -50,7 +50,7 @@ jobs:
         with:
           app-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-          permission-contents: read # read package.json from main via the API
+          permission-contents: read # read Cargo.toml from main via the API
           permission-pull-requests: write # create/update the PR comment
 
       - name: Upsert release comment
@@ -87,17 +87,16 @@ jobs:
             ' "$1" "$2"
           }
 
-          # Detect a missing package.json from a successful listing of main's
-          # root, so that real API failures (auth, network) still fail the job
-          # instead of being mistaken for "file missing".
-          main_files=$(gh api "repos/$REPO/contents/?ref=main" --jq '.[].name')
-          if ! grep -qxF 'package.json' <<<"$main_files"; then
-            echo 'package.json does not exist on main yet; nothing to communicate.'
-            exit 0
-          fi
-          base_version=$(gh api "repos/$REPO/contents/package.json?ref=main" --jq '.content' \
+          # Cargo.toml is the release workflow's version source. Read only
+          # main via the API: pull_request_target must never execute PR code.
+          # Missing/unreadable manifests must fail, not bypass label checks.
+          base_version=$(gh api "repos/$REPO/contents/Cargo.toml?ref=main" --jq '.content' \
             | base64 -d \
-            | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
+            | sed -n 's/^version = "\(.*\)"$/\1/p' | head -1)
+          if [[ ! "$base_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error file=Cargo.toml::Expected a major.minor.patch package version on main.'
+            exit 1
+          fi
 
           if [ -n "${EVENT_PR:-}" ]; then
             prs=$EVENT_PR

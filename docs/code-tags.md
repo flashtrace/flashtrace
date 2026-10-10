@@ -39,7 +39,7 @@ The embedded grammar follows the tag's `type`/`lang` attribute: `<script type="a
 
 ## URLs
 
-Comment markers inside URL-shaped text never open a comment, in any grammar: in `https://example.com/a--b#anchor` neither the `//` nor the `--` nor the `#` starts a comment. URL-shaped means a scheme followed by `://`; the URL extends until whitespace, a quote, a bracket or an angle bracket, so a tag written next to a URL is unaffected. Markers that *close* an already open block comment are still honoured inside a URL.
+Comment markers inside URL-shaped text never open a comment, in any grammar: in `https://example.com/a--b#anchor` neither the `//` nor the `--` nor the `#` starts a comment. URL-shaped means a scheme followed by `://`; the URL extends until whitespace (as [Text handling](text-handling.md) defines it), a quote, a bracket or an angle bracket, so a tag written next to a URL is unaffected. Markers that *close* an already open block comment are still honoured inside a URL.
 
 ## Tag forms
 

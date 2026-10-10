@@ -134,5 +134,5 @@ tags from that folder's `spec.md`. Changing a fixture also means refreshing the
 end-to-end snapshots, which pin this example's report byte-for-byte:
 
 ```sh
-FLASHTRACE_UPDATE_SNAPSHOTS=1 pnpm test
+FLASHTRACE_UPDATE_SNAPSHOTS=1 cargo test --test e2e
 ```
