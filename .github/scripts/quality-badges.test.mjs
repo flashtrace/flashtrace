@@ -105,7 +105,22 @@ test('assertEverySourceFileMeasured passes when every source file was measured',
 test('assertEverySourceFileMeasured skips exempt files', () => {
   const { lcov, sourceDir } = sourceTreeAndReport(['a.mjs', 'lib.mjs'], ['a.mjs']);
   assert.doesNotThrow(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['lib.mjs']));
-  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['other.mjs']), /lib\.mjs/);
+  // exempting one file does not cover another
+  assert.throws(() => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['a.mjs']), /lib\.mjs/);
+});
+
+test('assertEverySourceFileMeasured rejects an exemption that names no source file', () => {
+  const { lcov, sourceDir } = sourceTreeAndReport(['a.mjs', 'lib.mjs'], ['a.mjs']);
+  assert.throws(
+    () => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['lib.mjs', 'gone.mjs']),
+    /Exempt gone\.mjs names no \.mjs file/,
+  );
+  // a file outside the measured extension is no source file either
+  writeFileSync(join(sourceDir, 'notes.txt'), 'x\n');
+  assert.throws(
+    () => assertEverySourceFileMeasured(lcov, sourceDir, '.mjs', ['lib.mjs', 'notes.txt']),
+    /Exempt notes\.txt/,
+  );
 });
 
 test('assertEverySourceFileMeasured throws and names the file no test loaded', () => {

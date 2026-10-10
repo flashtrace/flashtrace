@@ -76,9 +76,21 @@ export function assertEverySourceFileMeasured(lcovPath, sourceDir, sourceExtensi
     if (relative !== null) measured.add(relative);
   }
 
-  const unmeasured = readdirSync(sourceDir, { recursive: true })
+  const sourceFiles = readdirSync(sourceDir, { recursive: true })
     .map(toPosixPath)
-    .filter((entry) => entry.endsWith(sourceExtension))
+    .filter((entry) => entry.endsWith(sourceExtension));
+
+  // An exemption naming no source file is stale - its file was renamed or
+  // removed - and would go on exempting nothing unnoticed.
+  const stale = exempt.filter((entry) => !sourceFiles.includes(entry));
+  if (stale.length > 0) {
+    throw new Error(
+      `Exempt ${stale.join(', ')} names no ${sourceExtension} file under ${sourceDir}/. `
+      + 'Drop or correct the --exempt entry.',
+    );
+  }
+
+  const unmeasured = sourceFiles
     .filter((entry) => !exempt.includes(entry))
     .filter((entry) => !measured.has(entry));
 
