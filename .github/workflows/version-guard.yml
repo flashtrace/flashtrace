@@ -38,19 +38,17 @@ jobs:
               Cargo.lock) awk '/^name = "flashtrace"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' ;;
             esac
           }
-          # A guarded file must exist, carry a version and keep main's: the
-          # release workflow bumps every one of them, so a missing file or
-          # field would otherwise surface only after merge, mid-release.
+          # A guarded file must exist on main and in the PR, carry a version
+          # and keep main's: the release workflow bumps every one of them, so
+          # a missing file or field would otherwise surface only after merge,
+          # mid-release.
           # Removing a guarded file is a change to the release setup and has
           # to update this guard alongside.
           guard() {
             file=$1
             if ! git cat-file -e "HEAD^1:$file" 2>/dev/null; then
-              # Transitional: Cargo.toml and Cargo.lock reach the repository
-              # root with the PR that ships the Rust CLI. Once that is on
-              # main, a file missing there must fail like one missing here.
-              echo "$file does not exist on the base branch; nothing to guard."
-              return 0
+              echo "::error file=$file::$file does not exist on the base branch; its version cannot be guarded."
+              exit 1
             fi
             if [ ! -f "$file" ]; then
               echo "::error file=$file::$file is release-owned and must not be removed in a PR; removing it must update this guard and the release workflow."
