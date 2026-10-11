@@ -157,15 +157,26 @@ fn canonical_layer(layer: &str) -> &str {
     if stripped.is_empty() { "0" } else { stripped }
 }
 
+// the three layers of a concrete revision in canonical form: leading zeros
+// dropped, omitted layers zero. The grammar (REV_SRC) admits at most three.
+fn canonical_layers(rev: &str) -> [&str; 3] {
+    debug_assert!(
+        rev.split('.').count() <= 3,
+        "a revision has at most three layers: {rev}"
+    );
+    let mut layers = ["0"; 3];
+    for (slot, layer) in layers.iter_mut().zip(rev.split('.')) {
+        *slot = canonical_layer(layer);
+    }
+    layers
+}
+
 /// Canonical form of a concrete revision: exactly three layers, leading zeros
 /// dropped - the SemVer identity under which 2.4, 2.4.0 and 2.04 are all
 /// 2.4.0. Not defined for wildcard revisions (a wildcard layer is no number).
 pub fn canonical_rev(rev: &str) -> String {
-    let mut layers: Vec<&str> = rev.split('.').map(canonical_layer).collect();
-    while layers.len() < 3 {
-        layers.push("0");
-    }
-    layers.join(".")
+    let [major, minor, patch] = canonical_layers(rev);
+    format!("{major}.{minor}.{patch}")
 }
 
 /// Canonical form of a concrete ID: its revision in canonical form. Exact-ID
@@ -173,8 +184,8 @@ pub fn canonical_rev(rev: &str) -> String {
 /// SemVer-equal revisions meet; the raw ID as written is kept for display.
 pub fn canonical_id(id: &str) -> String {
     let key = key_of(id);
-    let rev = canonical_rev(rev_of(id));
-    format!("{key}#{rev}")
+    let [major, minor, patch] = canonical_layers(rev_of(id));
+    format!("{key}#{major}.{minor}.{patch}")
 }
 
 // two canonical layers compared as the numbers they spell: with leading zeros
@@ -186,17 +197,14 @@ fn compare_layer(a: &str, b: &str) -> std::cmp::Ordering {
 /// Order two concrete revisions: compare their canonical three-layer forms
 /// numerically, layer by layer; SemVer-equal revisions compare equal.
 pub fn compare_rev(a: &str, b: &str) -> std::cmp::Ordering {
-    let canonical_a = canonical_rev(a);
-    let canonical_b = canonical_rev(b);
-    let mut layers_a = canonical_a.split('.');
-    let mut layers_b = canonical_b.split('.');
-    for _ in 0..3 {
-        let ordering = compare_layer(layers_a.next().unwrap(), layers_b.next().unwrap());
-        if ordering != std::cmp::Ordering::Equal {
-            return ordering;
-        }
-    }
-    std::cmp::Ordering::Equal
+    let layers_a = canonical_layers(a);
+    let layers_b = canonical_layers(b);
+    layers_a
+        .iter()
+        .zip(&layers_b)
+        .map(|(layer_a, layer_b)| compare_layer(layer_a, layer_b))
+        .find(|ordering| ordering.is_ne())
+        .unwrap_or(std::cmp::Ordering::Equal)
 }
 
 fn is_wildcard_layer(layer: &str) -> bool {
@@ -216,19 +224,19 @@ pub fn is_wildcard_rev(rev: &str) -> bool {
 /// match every revision). Each wildcard layer matches any number; numeric
 /// layers must be numerically equal.
 pub fn rev_matches(pattern: &str, concrete: &str) -> bool {
-    let mut pattern_layers: Vec<&str> = pattern.split('.').collect();
-    while pattern_layers.len() < 3 {
-        let last_is_wildcard = is_wildcard_layer(pattern_layers.last().unwrap());
-        pattern_layers.push(if last_is_wildcard { "x" } else { "0" });
-    }
-    let concrete_rev = canonical_rev(concrete);
-    let mut concrete_layers = concrete_rev.split('.');
-    for pattern_layer in pattern_layers {
-        let concrete_layer = concrete_layers.next().unwrap();
-        if is_wildcard_layer(pattern_layer) {
-            continue;
-        }
-        if canonical_layer(pattern_layer) != concrete_layer {
+    let mut given_layers = pattern.split('.');
+    let mut last_given = "0";
+    for concrete_layer in canonical_layers(concrete) {
+        // past the given layers, a trailing wildcard extends and a number pads with zero
+        let pattern_layer = match given_layers.next() {
+            Some(layer) => {
+                last_given = layer;
+                layer
+            }
+            None if is_wildcard_layer(last_given) => "x",
+            None => "0",
+        };
+        if !is_wildcard_layer(pattern_layer) && canonical_layer(pattern_layer) != concrete_layer {
             return false;
         }
     }
