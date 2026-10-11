@@ -1192,6 +1192,21 @@ mod tests {
     }
 
     #[test]
+    fn near_miss_forwarding_and_definition_lines_are_plain_text() {
+        let (items, problems, forwards) = parse(&[
+            "a --> b",
+            "[req:a#1 -> dsn:b#1]",
+            "`[req:a#1 --> dsn:b]`",
+            "`req:a`",
+            "`req:a#1` trailing text",
+            "``",
+        ]);
+        assert_eq!(items.len(), 0);
+        assert_eq!(problems.len(), 0);
+        assert_eq!(forwards.len(), 0);
+    }
+
+    #[test]
     fn needs_from_a_table_column_among_irrelevant_columns_ids_bare_or_backticked() {
         let (items, problems, _) = parse(&[
             "`req:a#1`",
