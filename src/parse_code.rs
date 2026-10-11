@@ -1406,6 +1406,40 @@ mod tests {
         assert_eq!(forwards.len(), 0);
     }
 
+    // Each line's comment text is built afresh: a tag in one line's comment
+    // must not leak into the code at the same offsets of a later, shorter or
+    // comment-free line.
+    #[test]
+    fn a_tag_in_one_lines_comment_never_carries_over_into_the_next_lines_code() {
+        let (items, problems, forwards) = parse(
+            "src.ts",
+            &[
+                "// [impl:a#1] [req:x#1 --> dsn:y#1]",
+                "   [impl:b#1] [req:z#1 --> dsn:w#1]",
+                "x",
+                "// [>>req:c#1]",
+            ],
+        );
+        assert_eq!(ids(&items), ["impl:a#1"]);
+        assert_eq!(items[0].needs, ["req:c#1"]);
+        assert_eq!(problems.len(), 0);
+        assert_eq!(forwards, [forward("req:x#1", "dsn:y#1", "src.ts", 1, 15)]);
+    }
+
+    #[test]
+    fn bracketed_comment_text_that_is_no_tag_yields_nothing() {
+        let (items, problems, forwards) = parse(
+            "src.ts",
+            &[
+                "// see [the docs] and [req] and [impl:a] -- [x --> y]",
+                "// arrays[0] --> next",
+            ],
+        );
+        assert_eq!(items.len(), 0);
+        assert_eq!(problems.len(), 0);
+        assert_eq!(forwards.len(), 0);
+    }
+
     #[test]
     fn vue_supports_html_comments() {
         let (items, _, _) = parse(
