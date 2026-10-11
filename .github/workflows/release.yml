@@ -7,7 +7,9 @@ name: Release
 # fork-controlled event (githubactions:S7631). A push to main carries only
 # reviewed, merged content, so the run always has the repository's full
 # context - regardless of where the PR came from. The gate job recovers the
-# release label from the PR whose merge produced the pushed commit.
+# release labels of every PR merged into main since the last release tag, and
+# the highest of them sets the bump: a PR merged while an earlier run waited
+# or built ships in one release with it, at the higher level of the two.
 #
 # The version is compiled into the binary, so the bump comes first: the bump
 # job commits and tags the new version locally, the build matrix builds and
@@ -21,9 +23,10 @@ on:
       - main
 
 # Serialize releases so two quickly merged PRs cannot race on the version bump.
-# queue: max keeps every waiting run: with the default, a group holds a single
-# pending run, and the next push to main would cancel it along with its PR's
-# release label.
+# queue: max keeps every waiting run, one per merge: with the default, a group
+# holds a single pending run, and the next push to main would cancel it. No
+# label would be lost - the run kept counts every merge since the last tag -
+# but each merge keeps a run of its own that shows what became of it.
 concurrency:
   group: release
   cancel-in-progress: false
@@ -31,32 +34,68 @@ concurrency:
 
 jobs:
   gate:
-    name: Read release label of the merged PR
+    name: Read release labels since the last release
     runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: read
     outputs:
       level: ${{ steps.bump.outputs.level }}
+      sha: ${{ steps.bump.outputs.sha }}
     steps:
+      # Full history and tags for the range below; git only - this job runs
+      # no repository code.
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Determine bump level
         id: bump
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
         run: |
-          # The PR whose merge produced this commit. A push with no such PR
-          # (e.g. the version bump commit this workflow itself pushes) yields
-          # no labels, so the release is skipped.
-          labels=$(gh api "repos/$REPO/commits/$SHA/pulls" \
-            --jq '[.[] | select(.merge_commit_sha == env.SHA) | .labels[].name] | join(" ")')
+          # The tip of main, resolved once: the bump releases exactly this
+          # commit, so every merge counted here ships, and every merge that
+          # ships was counted.
+          sha=$(git rev-parse HEAD)
+          tag=$(git describe --tags --abbrev=0 --match 'v*' "$sha")
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+          # A tag whose release never went public (still a draft, or never
+          # created) is finished by re-running the failed jobs of the run that
+          # bumped it - not skipped over by a run that finds nothing left to
+          # release, nor buried under the next release. The endpoint knows
+          # published releases only.
+          if ! gh api "repos/$REPO/releases/tags/${tag}" --silent 2> "$RUNNER_TEMP/release-error"; then
+            if ! grep -q "HTTP 404" "$RUNNER_TEMP/release-error"; then
+              cat "$RUNNER_TEMP/release-error" >&2
+              exit 1
+            fi
+            echo "::error::${tag} is not finished; use \"Re-run failed jobs\" on the run that bumped it."
+            exit 1
+          fi
+
+          # Every PR merged since the last release, whichever run its merge
+          # triggered: queued runs serialize, so a run that finds its merge
+          # already released by an earlier one finds an empty range. The
+          # highest label wins; release:none and unlabelled PRs count as
+          # nothing, as do pushes that are no merge (the release commits).
+          labels=""
+          for merge in $(git rev-list --first-parent --merges "${tag}..${sha}"); do
+            labels+=" "$(MERGE=$merge gh api "repos/$REPO/commits/$merge/pulls" \
+              --jq '[.[] | select(.merge_commit_sha == env.MERGE) | .labels[].name] | join(" ")')
+          done
           level=""
           case " $labels " in
             *" release:major "*) level=major ;;
             *" release:minor "*) level=minor ;;
             *" release:patch "*) level=patch ;;
           esac
+          echo "Merges since ${tag}: level \"${level}\""
           echo "level=$level" >> "$GITHUB_OUTPUT"
 
   # The version arithmetic and every file edit are plain shell, each edit
@@ -76,37 +115,17 @@ jobs:
       parent: ${{ steps.version.outputs.parent }}
       commit: ${{ steps.version.outputs.commit }}
     steps:
-      # "Re-run all jobs" once this run's release commit reached main would
-      # release the merge a second time. Before that - a build that failed
-      # for real - re-running all jobs is the recovery: merge the fix, then
-      # re-run, and the bump releases the tip of main, fix included, under
-      # the very version that failed (Cargo.toml on main never moved).
-      - name: Refuse to release this merge twice
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-        run: |
-          # The API rather than git log: the depth-1 checkout has no history.
-          # A release commit among the commits main gained since this merge
-          # already shipped it - this run's or a later one's.
-          released=$(gh api "repos/$REPO/compare/$SHA...main" \
-            --jq '[.commits[].commit.message | split("\n")[0] | select(startswith("release: v"))] | first // empty')
-          if [ -n "$released" ]; then
-            echo "::error::This merge already shipped as ${released#release: } - use \"Re-run failed jobs\" to finish that release."
-            exit 1
-          fi
-
-      # The tip of main, not github.sha: if another PR merged while this run
-      # was queued, the release ships that newer - still reviewed and merged -
-      # content under this run's label alone. That PR's own run then finds it
-      # released and stops, so its label goes unused: a release:major merged
-      # behind a release:patch ships as a patch. Merge labelled PRs one
-      # release at a time.
-      - name: Checkout main
+      # The commit the gate counted the labels for, never main: a PR merged
+      # since would ship here uncounted, and its own run would then find
+      # nothing left to release. Whatever merged since is released by its own
+      # queued run. A build that failed for real is recovered by merging the
+      # fix and re-running all jobs: the gate counts afresh, and the bump
+      # releases the new tip, fix included, under the very version that
+      # failed (Cargo.toml on main never moved).
+      - name: Checkout the counted commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ needs.gate.outputs.sha }}
           persist-credentials: false
 
       # Only for the app's identity: the commit is authored here, but pushed
@@ -133,7 +152,8 @@ jobs:
           bot_id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)
           git config user.name "${APP_SLUG}[bot]"
           git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
-          # The tip the builds check out and the release commit's parent.
+          # The counted commit: what the builds check out, and the release
+          # commit's parent.
           echo "parent=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
           # The package version is the one in the lines "[package]", 'name =
@@ -421,14 +441,18 @@ jobs:
   # main's ruleset follows the release app, not the token's permissions, so
   # the token carries only what the push needs.
   #
-  # Should main move on during the builds, nothing is pushed and the run
-  # fails: re-run all jobs, and the bump releases the new tip of main.
+  # Should main move on during the builds, nothing is pushed and this run
+  # ends without a release: the push that moved main queued a run of its own,
+  # whose gate counts every merge since the last tag - this run's included -
+  # and releases them together under the highest label among them.
   push:
     name: Push release commit and tag
     needs: [bump, build]
     runs-on: ubuntu-26.04
     permissions:
       contents: read # the push uses the app token, not GITHUB_TOKEN
+    outputs:
+      pushed: ${{ steps.push.outputs.pushed }}
     steps:
       - name: Checkout main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -453,6 +477,7 @@ jobs:
       # --atomic: main and the tag land together or not at all, so a tag on
       # the repository always means main has its commit.
       - name: Push the release commit and tag
+        id: push
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           REPO: ${{ github.repository }}
@@ -473,16 +498,21 @@ jobs:
               exit 1
             fi
             echo "${tag} is already pushed, together with main; skipping."
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           # A merge landed during the builds. The release commit only
           # fast-forwards from the commit it was built on: merged into main it
           # would leave a merge commit, rebased onto it a commit no build
-          # checked out.
+          # checked out. Nothing is lost: the run of the push that moved main
+          # releases this run's merges along with its own.
+          moved_on() {
+            echo "::notice::main moved on during the builds (built on ${PARENT}, main is at $1); nothing was pushed. The run of the newer push releases everything since the last tag, at the highest label among it."
+          }
           if [ "$main" != "$PARENT" ]; then
-            echo "::error::main moved on during the builds (built on ${PARENT}, main is at ${main}); nothing was pushed. Re-run all jobs to release the new tip of main."
-            exit 1
+            moved_on "$main"
+            exit 0
           fi
 
           # Outside refs/tags, so a tag of this name the checkout may know
@@ -495,9 +525,17 @@ jobs:
           fi
 
           # A merge landing between the checkout and here is rejected as
-          # non-fast-forward, before anything was published: re-run all jobs,
-          # as above.
-          git push --atomic "$remote" "${COMMIT}:refs/heads/main" "refs/release/${tag}:refs/tags/${tag}"
+          # non-fast-forward, before anything was published: the same case
+          # as above. Any other failure stays one.
+          if ! git push --atomic "$remote" "${COMMIT}:refs/heads/main" "refs/release/${tag}:refs/tags/${tag}"; then
+            main=$(git ls-remote "$remote" refs/heads/main | awk '{ print $1 }')
+            if [ -n "$main" ] && [ "$main" != "$PARENT" ]; then
+              moved_on "$main"
+              exit 0
+            fi
+            exit 1
+          fi
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
   # This job holds the release credentials (id-token for npm and crates.io
   # trusted publishing, the app key for the GitHub Release) and in exchange
@@ -514,6 +552,8 @@ jobs:
   release:
     name: Publish release, npm packages and crate
     needs: [bump, push]
+    # Not when main moved on: the newer run releases instead.
+    if: needs.push.outputs.pushed == 'true'
     runs-on: ubuntu-26.04
     permissions:
       contents: read # the GitHub Release uses the app token below, not GITHUB_TOKEN
