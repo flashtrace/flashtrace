@@ -402,9 +402,18 @@ fn consume_line(
 // (so `<!-- <script> -->` never opens a script region), but a region *exit*
 // is a hard boundary that ends the region even mid-comment, the way a browser
 // terminates a raw-text element at the first `</script>`.
-fn comment_text(line: &str, state: &mut ScanState, grammar: Grammar) -> String {
+//
+// The text is built in `buffer`, which the caller reuses across lines; every
+// call overwrites it completely, so nothing of an earlier line survives.
+fn comment_text<'buffer>(
+    line: &str,
+    state: &mut ScanState,
+    grammar: Grammar,
+    buffer: &'buffer mut Vec<u8>,
+) -> &'buffer str {
     let spans = url_spans(line);
-    let mut buffer = vec![b' '; line.len()];
+    buffer.clear();
+    buffer.resize(line.len(), b' ');
     let mut keep = |from: usize, to: usize| {
         buffer[from..to].copy_from_slice(&line.as_bytes()[from..to]);
     };
@@ -457,7 +466,7 @@ fn comment_text(line: &str, state: &mut ScanState, grammar: Grammar) -> String {
             }
         }
     }
-    String::from_utf8(buffer).expect("kept ranges end on character boundaries")
+    std::str::from_utf8(buffer).expect("kept ranges end on character boundaries")
 }
 
 // Attach one need tag to its anchor item. The explicit form [<source-id> >> ...]
@@ -529,6 +538,10 @@ fn collect_tags(
     items: &mut Vec<Item>,
     problems: &mut Vec<Problem>,
 ) {
+    // captures_iter allocates before it searches; most comments hold no tag
+    if !TAG_RE.is_match(comment) {
+        return;
+    }
     for m in TAG_RE.captures_iter(comment) {
         // comment is position-preserving, so the tag's `[` sits at its source
         // offset; the column converts through the original line
@@ -571,21 +584,17 @@ pub fn parse_code(
         region: None,
     };
 
+    let mut comment_buffer = Vec::new();
     for (i, line) in lines.iter().enumerate() {
-        let comment = comment_text(line, &mut state, grammar);
-        for m in FORWARD_RE.captures_iter(&comment) {
-            let character = character_column(line, m.get(0).unwrap().start());
-            forwards.push(make_forward(&m, 1, file, i + 1, character));
+        let comment = comment_text(line, &mut state, grammar, &mut comment_buffer);
+        // captures_iter allocates before it searches; most comments hold no forwarding
+        if FORWARD_RE.is_match(comment) {
+            for m in FORWARD_RE.captures_iter(comment) {
+                let character = character_column(line, m.get(0).unwrap().start());
+                forwards.push(make_forward(&m, 1, file, i + 1, character));
+            }
         }
-        collect_tags(
-            &comment,
-            line,
-            file,
-            i + 1,
-            &mut state,
-            &mut items,
-            problems,
-        );
+        collect_tags(comment, line, file, i + 1, &mut state, &mut items, problems);
     }
     items
 }
