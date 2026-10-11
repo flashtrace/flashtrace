@@ -106,10 +106,19 @@ impl Resolver {
 
     /// the defined canonical IDs satisfying a (possibly wildcard) reference
     pub fn matches_of(&self, reference: &str) -> Vec<&String> {
+        self.matching_ids(reference).collect()
+    }
+
+    /// matches_of without collecting, for callers that only walk or test it
+    fn matching_ids<'resolver>(
+        &'resolver self,
+        reference: &str,
+    ) -> impl Iterator<Item = &'resolver String> {
         self.ids_by_key
             .get(key_of(reference))
-            .map(|ids| ids.iter().filter(|id| id_matches(reference, id)).collect())
-            .unwrap_or_default()
+            .into_iter()
+            .flatten()
+            .filter(move |id| id_matches(reference, id))
     }
 }
 
@@ -135,7 +144,7 @@ pub fn build_resolver(items: &[Item]) -> Resolver {
     let mut wanted_by: HashMap<usize, Vec<usize>> = HashMap::new();
     for (index, item) in items.iter().enumerate() {
         for need in &item.needs {
-            for id in resolver.matches_of(need) {
+            for id in resolver.matching_ids(need) {
                 for provider in resolver.group(id).unwrap() {
                     let wanting = wanted_by.entry(*provider).or_default();
                     if !wanting.contains(&index) {
@@ -450,7 +459,7 @@ fn check_item_references(
         }
         None => {
             for need in &item.needs {
-                if resolver.matches_of(need).is_empty() {
+                if resolver.matching_ids(need).next().is_none() {
                     defects.push(revisions.with_revisions(uncovered_need(need)));
                 }
             }
@@ -499,7 +508,7 @@ fn mark_deep_coverage(
         }
         memo.insert(id.to_string(), true); // cycle guard
         let Some(group) = resolver.group(id) else {
-            memo.insert(id.to_string(), false);
+            *memo.get_mut(id).unwrap() = false;
             return false;
         };
         let ok = match forward_targets.get(id) {
@@ -522,7 +531,8 @@ fn mark_deep_coverage(
                 ok
             }
         };
-        memo.insert(id.to_string(), ok);
+        // the guard entry is never removed, so the verdict overwrites it in place
+        *memo.get_mut(id).unwrap() = ok;
         ok
     }
 
@@ -533,9 +543,8 @@ fn mark_deep_coverage(
         resolver: &Resolver,
         forward_targets: &OrderedMap<(String, usize)>,
     ) -> bool {
-        let matches: Vec<String> = resolver.matches_of(need).into_iter().cloned().collect();
-        matches
-            .iter()
+        resolver
+            .matching_ids(need)
             .any(|id| deep(id, memo, items, resolver, forward_targets))
     }
 
