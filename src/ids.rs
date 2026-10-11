@@ -356,6 +356,14 @@ mod tests {
     }
 
     #[test]
+    fn canonical_rev_keeps_an_all_zero_layer_as_one_zero() {
+        assert_eq!(canonical_rev("0"), "0.0.0");
+        assert_eq!(canonical_rev("000"), "0.0.0");
+        assert_eq!(canonical_rev("1.00.0"), "1.0.0");
+        assert_eq!(canonical_rev("0.0.007"), "0.0.7");
+    }
+
+    #[test]
     fn canonical_id_canonicalizes_only_the_revision() {
         assert_eq!(canonical_id("req:auth/login#2.4"), "req:auth/login#2.4.0");
     }
@@ -366,6 +374,24 @@ mod tests {
         assert!(rev_matches("3.7.0", "3.7"));
         assert!(rev_matches("1", "1.0.0"));
         assert!(!rev_matches("3.7", "3.7.1"));
+    }
+
+    #[test]
+    fn rev_matches_compares_layers_numerically_on_both_sides() {
+        assert!(rev_matches("02.04", "2.4.0"));
+        assert!(rev_matches("2.4", "002.0004"));
+        assert!(rev_matches("0", "0.0.0"));
+        assert!(!rev_matches("2.3", "2.30"));
+        assert!(!rev_matches("2.30", "2.3"));
+        assert!(!rev_matches("1.0.0", "1.0.1"));
+    }
+
+    #[test]
+    fn numeric_layers_before_a_wildcard_compare_numerically() {
+        assert!(rev_matches("02.x", "2.4"));
+        assert!(rev_matches("2.03.*", "2.3.9"));
+        assert!(!rev_matches("2.3.x", "2.30.1"));
+        assert!(!rev_matches("0.x", "1"));
     }
 
     #[test]
@@ -403,6 +429,24 @@ mod tests {
         assert_eq!(compare_rev("2.4", "2.4.0"), Ordering::Equal);
         assert_eq!(compare_rev("2.9", "2.10"), Ordering::Less);
         assert_eq!(compare_rev("2.4.1", "2.4"), Ordering::Greater);
+    }
+
+    #[test]
+    fn compare_rev_ignores_leading_zeros_and_compares_numbers_not_text() {
+        assert_eq!(compare_rev("02", "2.0.0"), Ordering::Equal);
+        assert_eq!(compare_rev("2.010", "2.9"), Ordering::Greater);
+        assert_eq!(compare_rev("10", "9.9.9"), Ordering::Greater);
+        assert_eq!(compare_rev("0.0.1", "0"), Ordering::Greater);
+        assert_eq!(compare_rev("1.2.3", "1.2.4"), Ordering::Less);
+    }
+
+    #[test]
+    fn id_matches_requires_the_same_key_and_a_matching_revision() {
+        assert!(id_matches("req:auth/login#2.x", "req:auth/login#2.4.0"));
+        assert!(id_matches("req:auth/login#2.4", "req:auth/login#2.4.0"));
+        assert!(!id_matches("req:auth/login#2.x", "req:auth/logout#2.4.0"));
+        assert!(!id_matches("req:auth/login#2.x", "dsn:auth/login#2.4.0"));
+        assert!(!id_matches("req:auth/login#3", "req:auth/login#2.4.0"));
     }
 
     #[test]
