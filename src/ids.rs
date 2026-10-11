@@ -78,6 +78,21 @@ pub fn forward_src() -> String {
     format!(r"\[\s*{id}\s*-->\s*{id}\s*\]")
 }
 
+/// `re.captures(haystack)` for a pattern most haystacks do not match: the
+/// parsers try such patterns on nearly every line. Regex::captures allocates
+/// its capture slots before searching, a match test allocates nothing, so a
+/// line without a match costs no allocation and a line with one searches twice.
+pub fn matching_captures<'haystack>(
+    re: &Regex,
+    haystack: &'haystack str,
+) -> Option<Captures<'haystack>> {
+    if re.is_match(haystack) {
+        re.captures(haystack)
+    } else {
+        None
+    }
+}
+
 pub fn make_id(id_type: &str, group: Option<&str>, name: &str, rev: &str) -> String {
     match group {
         Some(group) => format!("{id_type}:{group}/{name}#{rev}"),
