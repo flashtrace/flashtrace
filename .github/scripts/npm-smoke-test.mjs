@@ -103,10 +103,11 @@ function installOffline(projectDir, tarballs, extraArgs = []) {
   npm(['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', ...extraArgs, ...tarballs], projectDir);
 }
 
-// The same normalization tests/e2e.rs applies: Windows prints backslash
-// paths, and the JSON report's version field bumps every release.
+// The same normalization tests/e2e.rs applies: the JSON report's version field
+// bumps every release, so pin it to a placeholder. Paths stay as printed:
+// every platform must spell them with `/`.
 function normalize(output) {
-  return output.replaceAll('\\', '/').replace(/^( {2}"flashtrace": ")[^"]*"/m, '$1<version>"');
+  return output.replace(/^( {2}"flashtrace": ")[^"]*"/m, '$1<version>"');
 }
 
 function readSnapshot(name) {
