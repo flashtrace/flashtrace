@@ -23,6 +23,10 @@ From [spec.md](spec.md):
   which fall back to their own (empty) needs.
 - forwarding from a nonexistent item - a forwarding names req:ghost#1 as its
   source, which is defined nowhere.
+- description under the ID next to a Description keyword - req:iota#1 has
+  both; the keyword wins, and the ignored text under the ID is reported.
+- repeated Description keyword - req:kappa#1 states its description twice;
+  the first keyword counts, and the second is reported and ignored.
 
 From the code files:
 
