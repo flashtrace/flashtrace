@@ -32,12 +32,14 @@
     • unwanted: no item needs impl:omega#1
 
 ⚠ need tag [>>utest:orphan#1] has no preceding item tag in this file  orphan-need.ts:1
+⚠ item req:iota#1 has a description under its ID and a Description keyword; the keyword wins and the text under the ID is ignored  spec.md:103
+⚠ item req:kappa#1 has more than one Description keyword; only the first counts and this one is ignored  spec.md:114
 ⚠ forwarding from req:ghost#1, which does not exist  spec.md:97
 
 Summary
-  items       14  (12 from specs, 2 from code)
-  ok          3  (2 deep-covered, 1 only shallow-covered)
+  items       16  (14 from specs, 2 from code)
+  ok          5  (4 deep-covered, 1 only shallow-covered)
   defective   11
-  problems    2
+  problems    4
 
 not ok
