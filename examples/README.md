@@ -10,6 +10,9 @@ Each directory is a self-contained project traceable with a plain
 - [multiplicity](multiplicity/) - one item needing several items of the same
   type, told apart by their group path, written in full and in short form and
   demanded from the code side too.
+- [advanced](advanced/) - every Markdown keyword in every form it accepts:
+  inline, bullet-list and table entries, a repeated list keyword, and a
+  description under the ID or stated with the `Description` keyword.
 - [revisions-and-forwarding](revisions-and-forwarding/) - exact multi-layer
   revisions, wildcard needs and a forwarding chain.
 - [polyglot-web](polyglot-web/) - keyword tables, tag filtering and code tags
