@@ -95,7 +95,8 @@ pub fn display_relative(base: &Path, file: &str) -> String {
 /// The path with every `\` separator spelled `/`, so a report reads the same
 /// on Windows as elsewhere.
 fn with_forward_slashes(path: &str) -> String {
-    path.replace('\\', "/")
+    // only Windows separates with `\`; elsewhere it is a legal file-name character
+    path.replace(std::path::MAIN_SEPARATOR, "/")
 }
 
 #[cfg(test)]
@@ -164,25 +165,33 @@ mod tests {
     }
 
     #[test]
-    fn with_forward_slashes_respells_backslash_separators() {
-        assert_eq!(
-            with_forward_slashes(r"tests\store.spec.ts"),
-            "tests/store.spec.ts"
-        );
-        assert_eq!(
-            with_forward_slashes(r"..\c-like-nested\kt.kt"),
-            "../c-like-nested/kt.kt"
-        );
+    fn with_forward_slashes_respells_only_the_platform_separator() {
         assert_eq!(with_forward_slashes("docs/spec.md"), "docs/spec.md");
+        if cfg!(windows) {
+            assert_eq!(
+                with_forward_slashes(r"..\c-like-nested\kt.kt"),
+                "../c-like-nested/kt.kt"
+            );
+        } else {
+            assert_eq!(
+                with_forward_slashes(r"tests\store.spec.ts"),
+                r"tests\store.spec.ts"
+            );
+        }
     }
 
     #[test]
     fn display_relative_prints_forward_slashes() {
-        // a backslash-separated file under the base: one segment on POSIX,
-        // two on Windows - printed with `/` either way
+        // two segments on Windows, printed with `/`; on POSIX one segment
+        // whose name holds a backslash, printed as it is
+        let expected = if cfg!(windows) {
+            "tests/store.spec.ts"
+        } else {
+            r"tests\store.spec.ts"
+        };
         assert_eq!(
             display_relative(Path::new("/a"), r"/a/tests\store.spec.ts"),
-            "tests/store.spec.ts"
+            expected
         );
     }
 
