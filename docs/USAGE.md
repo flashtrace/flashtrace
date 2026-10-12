@@ -68,7 +68,8 @@ Tags: security
 ```
 
 - **Title** - the heading directly above the ID (only blank lines in between).
-- **Description** - the lines following the ID, up to the next blank line.
+- **Description** - the lines following the ID, up to the next blank line, or
+  explicitly the text of a `Description:` keyword, which takes priority.
 - **Needs / Covers / Tags** - inline comma-separated or as a bullet list on the
   following lines. A Needs or Covers entry is a full ID or a short form (`impl`,
   `impl:name`, `impl#2`) whose omitted `[group/]name` and revision are taken
