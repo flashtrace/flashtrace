@@ -1,0 +1,40 @@
+✔ utest:checkout/cart#1  cart.test.ts:1  [deep-covered]
+    wanted by req:checkout/cart#1  spec.md:14
+
+✔ impl:checkout/cart#1  cart.ts:1  [deep-covered]
+    wanted by req:checkout/cart#1  spec.md:14
+
+✔ impl:checkout/history#1  history.ts:1  [deep-covered]
+    wanted by req:checkout/history#1  spec.md:45
+
+✔ impl:checkout/payment#1  payment.ts:1  [deep-covered]
+    wanted by req:checkout/payment#1  spec.md:27
+
+✔ feat:checkout#1 "Checkout feature"  spec.md:3  [deep-covered]
+    needs req:checkout/cart#1  ✔ spec.md:14
+    needs req:checkout/payment#1  ✔ spec.md:27
+    needs req:checkout/receipt#1  ✔ spec.md:35
+    needs req:checkout/history#1  ✔ spec.md:45
+✔ req:checkout/cart#1 "Cart totals"  spec.md:14  [deep-covered]
+    needs impl:checkout/cart#1  ✔ cart.ts:1
+    needs utest:checkout/cart#1  ✔ cart.test.ts:1
+    covers feat:checkout#1  ✔ spec.md:3
+    wanted by feat:checkout#1  spec.md:3
+✔ req:checkout/payment#1 "Single charge"  spec.md:27  [deep-covered]
+    needs impl:checkout/payment#1  ✔ payment.ts:1
+    covers feat:checkout#1  ✔ spec.md:3
+    wanted by feat:checkout#1  spec.md:3
+✔ req:checkout/receipt#1 "Receipt"  spec.md:35  [deep-covered]
+    covers feat:checkout#1  ✔ spec.md:3
+    wanted by feat:checkout#1  spec.md:3
+✔ req:checkout/history#1 "Order history"  spec.md:45  [deep-covered]
+    needs impl:checkout/history#1  ✔ history.ts:1
+    covers feat:checkout#1  ✔ spec.md:3
+    wanted by feat:checkout#1  spec.md:3
+
+Summary
+  items       9  (5 from specs, 4 from code)
+  ok          9
+  defective   0
+
+ok
