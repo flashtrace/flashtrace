@@ -5,7 +5,10 @@
  *     either ATX (#...) or setext (a paragraph underlined with === / ---; the
  *     whole paragraph folds into the title, as in CommonMark).
  *   - Description: the lines following the ID (one blank line directly under the
- *     ID is allowed) up to the next blank line.
+ *     ID is allowed) up to the next blank line - or explicitly a "Description:"
+ *     keyword anywhere in the body, whose text wins over those lines. Text
+ *     under the ID next to the keyword, and every further "Description:", is
+ *     ignored and reported.
  *   - Keywords "Needs:", "Covers:", "Tags:" - inline comma-separated, as a
  *     bullet list on the following lines, or as a table column whose header
  *     cell is the bare keyword name. A Needs or Covers entry is a reference:
@@ -32,7 +35,7 @@ use regex::{Captures, Regex};
 
 use crate::defects::Problem;
 use crate::ids::{Forward, Item, Origin, forward_src, id_src, make_forward, make_id, new_item};
-use crate::spec_items::{Entry, KEYWORDS, apply_keyword, is_keyword};
+use crate::spec_items::{DESCRIPTION_KEYWORD, Entry, KEYWORDS, apply_keyword, is_keyword};
 
 static DEFINITION_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^\s*`{}`\s*$", id_src())).unwrap());
@@ -53,6 +56,8 @@ static THEMATIC_BREAK_RE: LazyLock<Regex> =
 // need no regex escaping.
 static KEYWORD_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(&format!(r"^({}):\s*((?:\S.*)?)$", KEYWORDS.join("|"))).unwrap());
+static DESCRIPTION_KEYWORD_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(&format!(r"^{DESCRIPTION_KEYWORD}:\s*((?:\S.*)?)$")).unwrap());
 static BULLET_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*[-*+]\s+(\S(?:.*\S)?)\s*$").unwrap());
 static DELIMITER_CELL_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new("^:?-+:?$").unwrap());
@@ -474,6 +479,77 @@ struct Document<'a> {
     opens_heading: &'a [bool],
 }
 
+// what a prose line inside an item body is, by where it sits
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Prose {
+    // the description under the ID
+    UnderId,
+    // the text of the item's first Description keyword
+    DescriptionKeyword,
+    // the text of a further Description keyword, ignored
+    RepeatedDescriptionKeyword,
+    // informative text after a description or keyword, ignored
+    Informative,
+}
+
+// how far an item body's description has been read
+struct DescriptionScan {
+    // what the next prose line is
+    prose: Prose,
+    // index of the first line of the description under the ID, if any
+    under_id_start: Option<usize>,
+    // whether a Description keyword has stated the description yet
+    from_keyword: bool,
+}
+
+// A Description keyword starts the item's description: the first one
+// replaces whatever text sat under the ID - reported, as its author may have
+// meant it to belong to the description - and every further one is
+// reported and ignored. Returns whether `lines[j]` was such a keyword.
+fn take_description_keyword(
+    lines: &[&str],
+    j: usize,
+    scan: &mut DescriptionScan,
+    item: &mut Item,
+    file: &str,
+    problems: &mut Vec<Problem>,
+) -> bool {
+    let Some(m) = DESCRIPTION_KEYWORD_RE.captures(lines[j]) else {
+        return false;
+    };
+    let item_id = &item.id;
+    if scan.from_keyword {
+        problems.push(Problem {
+            file: file.to_string(),
+            line: j + 1,
+            character: first_non_blank_column(lines[j]),
+            message: format!(
+                "item {item_id} has more than one {DESCRIPTION_KEYWORD} keyword; only the first counts and this one is ignored"
+            ),
+        });
+        scan.prose = Prose::RepeatedDescriptionKeyword;
+        return true;
+    }
+    if let Some(under_id_start) = scan.under_id_start {
+        problems.push(Problem {
+            file: file.to_string(),
+            line: under_id_start + 1,
+            character: first_non_blank_column(lines[under_id_start]),
+            message: format!(
+                "item {item_id} has a description under its ID and a {DESCRIPTION_KEYWORD} keyword; the keyword wins and the text under the ID is ignored"
+            ),
+        });
+    }
+    scan.from_keyword = true;
+    scan.prose = Prose::DescriptionKeyword;
+    item.description.clear();
+    let inline = m.get(1).unwrap().as_str().trim();
+    if !inline.is_empty() {
+        item.description.push(inline.to_string());
+    }
+    true
+}
+
 // consume the item's body (description and keyword lines) starting at
 // `start`; returns the index of the first line after the item
 fn parse_item_body(
@@ -482,6 +558,7 @@ fn parse_item_body(
     item: &mut Item,
     file: &str,
     forwards: &mut Vec<Forward>,
+    problems: &mut Vec<Problem>,
 ) -> usize {
     let Document {
         lines,
@@ -489,10 +566,16 @@ fn parse_item_body(
         opens_heading,
     } = *document;
     let mut j = start;
-    let mut description_done = false;
+    let mut scan = DescriptionScan {
+        prose: Prose::UnderId,
+        under_id_start: None,
+        from_keyword: false,
+    };
     while j < lines.len() && !is_boundary(lines, in_table, opens_heading, j) {
         let line = lines[j];
-        if take_forward(line, file, j, forwards) {
+        if take_forward(line, file, j, forwards)
+            || take_description_keyword(lines, j, &mut scan, item, file, problems)
+        {
             j += 1;
             continue;
         }
@@ -503,7 +586,7 @@ fn parse_item_body(
             take_keyword_table(lines, in_table, j, item, file)
         };
         if let Some(m) = keyword_match {
-            description_done = true;
+            scan.prose = Prose::Informative;
             let keyword = m.get(1).unwrap().as_str().to_string();
             let (entries, consumed) = keyword_entries(lines, j, m.get(2).unwrap().range());
             let item_id = &item.id;
@@ -511,17 +594,24 @@ fn parse_item_body(
             apply_keyword(item, &keyword, &entries, file, &source);
             j = consumed;
         } else if let Some(table_end) = table_end {
-            description_done = true;
+            scan.prose = Prose::Informative;
             j = table_end;
         } else if line.trim().is_empty() {
-            if !item.description.is_empty() {
-                description_done = true;
+            // a blank line directly under the ID (before the description) is
+            // allowed; any other blank line ends the description
+            if scan.prose != Prose::UnderId || scan.under_id_start.is_some() {
+                scan.prose = Prose::Informative;
             }
-            // a blank line directly under the ID (before the description) is allowed
-        } else if !description_done {
-            item.description.push(line.trim().to_string());
+        } else {
+            match scan.prose {
+                Prose::UnderId => {
+                    scan.under_id_start.get_or_insert(j);
+                    item.description.push(line.trim().to_string());
+                }
+                Prose::DescriptionKeyword => item.description.push(line.trim().to_string()),
+                Prose::RepeatedDescriptionKeyword | Prose::Informative => {}
+            }
         }
-        // anything after the description's terminating blank line is informative text
         j += 1;
     }
     j
@@ -586,7 +676,7 @@ pub fn parse_markdown(
             first_non_blank_column(lines[i]),
         );
         item.title = title_above(&lines, &in_table, i);
-        i = parse_item_body(&document, i + 1, &mut item, file, forwards);
+        i = parse_item_body(&document, i + 1, &mut item, file, forwards, problems);
         items.push(item);
     }
     items
@@ -1705,5 +1795,241 @@ mod tests {
         let location = defect.location.as_ref().unwrap();
         assert_eq!(location.line, 5);
         assert_eq!(location.character, 3);
+    }
+
+    // The Description keyword may be the first line under the ID; its text
+    // starts after the colon and runs on to the next blank line.
+    #[test]
+    fn a_description_keyword_directly_under_the_id_states_the_description() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "",
+            "Description:   The first line,  ",
+            "  and a second one.",
+            "",
+            "Informative text after the blank line.",
+        ]);
+        assert!(problems.is_empty());
+        assert_eq!(
+            items[0].description,
+            ["The first line,", "and a second one."]
+        );
+    }
+
+    #[test]
+    fn a_bare_description_keyword_starts_the_description_on_the_line_below() {
+        let (items, problems, _) = parse(&["`req:a#1`", "Description:", "The text.", "More text."]);
+        assert!(problems.is_empty());
+        assert_eq!(items[0].description, ["The text.", "More text."]);
+    }
+
+    // An ID followed by keyword lines rather than prose has no description
+    // under it, so a Description keyword further down is its description.
+    #[test]
+    fn a_description_keyword_after_other_keywords_states_the_description() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "",
+            "Needs: impl",
+            "",
+            "Tags: draft",
+            "Description: Stated after the keywords.",
+        ]);
+        assert!(problems.is_empty());
+        assert_eq!(items[0].description, ["Stated after the keywords."]);
+        assert_eq!(items[0].needs, ["impl:a#1"]);
+        assert_eq!(items[0].tags, ["draft"]);
+    }
+
+    // The keyword's text ends where a description under the ID ends: a
+    // keyword line or a keyword table directly below closes it.
+    #[test]
+    fn a_keyword_line_ends_the_text_of_a_description_keyword() {
+        let (items, _, _) = parse(&[
+            "`req:a#1`",
+            "Description: The text.",
+            "Needs: impl",
+            "Not description anymore.",
+        ]);
+        assert_eq!(items[0].description, ["The text."]);
+        assert_eq!(items[0].needs, ["impl:a#1"]);
+    }
+
+    #[test]
+    fn a_keyword_table_ends_the_text_of_a_description_keyword() {
+        let (items, _, _) = parse(&[
+            "`req:a#1`",
+            "Description: The text.",
+            "| Needs |",
+            "|---|",
+            "| impl:a#1 |",
+            "Not description anymore.",
+        ]);
+        assert_eq!(items[0].description, ["The text."]);
+        assert_eq!(items[0].needs, ["impl:a#1"]);
+    }
+
+    #[test]
+    fn a_definition_boundary_ends_the_text_of_a_description_keyword() {
+        let (items, _, _) = parse(&["`req:a#1`", "Description: The text.", "# Next", "`req:b#1`"]);
+        assert_eq!(items[0].description, ["The text."]);
+        assert_eq!(items[1].title.as_deref(), Some("Next"));
+    }
+
+    #[test]
+    fn a_forwarding_line_inside_a_description_keyword_is_not_description() {
+        let (items, _, forwards) = parse(&[
+            "`req:a#1`",
+            "Description: The text.",
+            "[req:a#1 --> dsn:b#1]",
+            "Still the text.",
+        ]);
+        assert_eq!(items[0].description, ["The text.", "Still the text."]);
+        assert_eq!(forwards, [forward("req:a#1", "dsn:b#1", 3, 1)]);
+    }
+
+    // The keyword wins over the text under the ID; that text is reported
+    // where it starts, as its author may have meant it to be the description.
+    #[test]
+    fn a_description_under_the_id_next_to_a_description_keyword_is_reported() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "",
+            "  Text under the ID,",
+            "spanning two lines.",
+            "Description: The stated text.",
+        ]);
+        assert_eq!(items[0].description, ["The stated text."]);
+        assert_eq!(problems.len(), 1);
+        assert_eq!(
+            problems[0],
+            Problem {
+                file: "spec.md".to_string(),
+                line: 3,
+                character: 3,
+                message: "item req:a#1 has a description under its ID and a Description keyword; the keyword wins and the text under the ID is ignored".to_string(),
+            }
+        );
+    }
+
+    // A blank line or another keyword between the text under the ID and the
+    // Description keyword changes nothing: the text still sat where the
+    // description lives.
+    #[test]
+    fn a_description_under_the_id_conflicts_with_a_description_keyword_further_down() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "Text under the ID.",
+            "",
+            "Needs: impl",
+            "Description: The stated text.",
+        ]);
+        assert_eq!(items[0].description, ["The stated text."]);
+        assert_eq!(problems.len(), 1);
+        assert_eq!(problems[0].line, 2);
+        assert!(problems[0].message.contains("a description under its ID"));
+    }
+
+    // Informative text follows a description that has ended; it is not where
+    // the description lives, so it never conflicts with the keyword.
+    #[test]
+    fn informative_text_after_a_description_keyword_is_not_reported() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "Description: The stated text.",
+            "",
+            "Informative text.",
+        ]);
+        assert!(problems.is_empty());
+        assert_eq!(items[0].description, ["The stated text."]);
+    }
+
+    // A description is one text: only the first keyword counts, and every
+    // further one is reported at its own line and ignored with its text.
+    #[test]
+    fn every_further_description_keyword_is_reported_and_ignored() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "Description: The first.",
+            "",
+            "Description: The second,",
+            "with a continuation.",
+            "",
+            "Description: The third.",
+        ]);
+        assert_eq!(items[0].description, ["The first."]);
+        assert_eq!(problems.len(), 2);
+        assert_eq!(
+            problems[0],
+            Problem {
+                file: "spec.md".to_string(),
+                line: 4,
+                character: 1,
+                message: "item req:a#1 has more than one Description keyword; only the first counts and this one is ignored".to_string(),
+            }
+        );
+        assert_eq!(problems[1].line, 7);
+    }
+
+    // The Description keyword belongs to its own item: the next item's
+    // keyword is that item's first, not a repetition.
+    #[test]
+    fn a_description_keyword_counts_per_item() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "Description: Of a.",
+            "",
+            "`req:b#1`",
+            "Description: Of b.",
+        ]);
+        assert!(problems.is_empty());
+        assert_eq!(items[0].description, ["Of a."]);
+        assert_eq!(items[1].description, ["Of b."]);
+    }
+
+    // Like the list keywords, the keyword is case-sensitive and starts its
+    // line; anything else is prose.
+    #[test]
+    fn a_misspelled_or_indented_description_keyword_is_prose() {
+        let (items, problems, _) =
+            parse(&["`req:a#1`", "description: lower", " Description: indented"]);
+        assert!(problems.is_empty());
+        assert_eq!(
+            items[0].description,
+            ["description: lower", "Description: indented"]
+        );
+    }
+
+    // A description cannot come from a keyword table: a Description column is
+    // ignored like any other non-keyword column.
+    #[test]
+    fn a_description_column_in_a_keyword_table_is_ignored() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "",
+            "| Needs | Description |",
+            "|---|---|",
+            "| impl:a#1 | Not a description. |",
+        ]);
+        assert!(problems.is_empty());
+        assert!(items[0].description.is_empty());
+        assert_eq!(items[0].needs, ["impl:a#1"]);
+    }
+
+    // A list keyword may repeat; its occurrences merge into one list.
+    #[test]
+    fn a_repeated_list_keyword_merges_its_entries() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "",
+            "Needs: impl",
+            "Tags: one",
+            "Needs:",
+            "- utest",
+            "Tags: two",
+        ]);
+        assert!(problems.is_empty());
+        assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
+        assert_eq!(items[0].tags, ["one", "two"]);
     }
 }

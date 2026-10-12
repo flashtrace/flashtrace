@@ -31,7 +31,7 @@ pub fn spec_parser_for(ext: &str) -> Option<SpecParser> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::spec_items::{KEYWORDS, is_keyword};
+    use crate::spec_items::{DESCRIPTION_KEYWORD, KEYWORDS, is_keyword};
     use regex::Regex;
 
     // The dispatcher and the extension set are two views of one map, so they
@@ -70,10 +70,10 @@ mod tests {
         }
     }
 
-    // parse_markdown.rs interpolates KEYWORDS into a regex alternation
-    // unescaped, so this invariant is what keeps that safe. If a future
-    // keyword needs a metacharacter, escape at the interpolation site rather
-    // than loosen this.
+    // parse_markdown.rs interpolates KEYWORDS and DESCRIPTION_KEYWORD into
+    // regexes unescaped, so this invariant is what keeps that safe. If a
+    // future keyword needs a metacharacter, escape at the interpolation site
+    // rather than loosen this.
     #[test]
     fn every_keyword_is_a_regex_safe_bare_word() {
         let metacharacter = Regex::new(r"[\\^$.*+?()\[\]{}|]").unwrap();
@@ -81,5 +81,6 @@ mod tests {
             assert!(!metacharacter.is_match(keyword), "keyword \"{keyword}\"");
             assert!(is_keyword(keyword));
         }
+        assert!(!metacharacter.is_match(DESCRIPTION_KEYWORD));
     }
 }
