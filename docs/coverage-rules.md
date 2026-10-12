@@ -15,4 +15,4 @@
 | unwanted   | Coverage nobody asked for: a `Covers` entry whose target does not need the coverer's ID, or a code item whose ID is neither needed by any item nor a forwarding target. |
 | duplicate  | The same ID - revisions compared SemVer-equal, so `#2.4` and `#2.4.0` collide - is defined more than once, or more than one forwarding is declared for the same source ID. |
 | cyclic     | The item's forwarding sits on a cycle; it is voided and the item falls back to its own `Needs`. |
-| problem    | A condition with no item to attach it to, e.g. a `[>>…]` tag with no preceding item tag or a forwarding from a non-existent item. |
+| problem    | A condition outside any item's coverage verdict, e.g. a `[>>…]` tag with no preceding item tag, a forwarding from a non-existent item, or an item description stated twice (see [Explicit descriptions](markdown-items.md#explicit-descriptions)). |

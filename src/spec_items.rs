@@ -5,7 +5,8 @@
  * item: Tags are taken verbatim, Needs and Covers are parsed as references
  * against the item stating them. How a format finds those entries - a
  * Markdown keyword line, a bullet list, a table column - stays in that
- * format's parser.
+ * format's parser. `DESCRIPTION_KEYWORD` names the one keyword outside that
+ * vocabulary: it states an item's single description, not a list of entries.
  */
 
 use crate::defects::{Location, invalid_reference};
@@ -14,6 +15,11 @@ use crate::ids::{Item, parse_cover_entry, parse_need_entry};
 // Bare words only: the Markdown parser interpolates these into a regex
 // alternation unescaped, so a keyword must carry no regex metacharacters.
 pub const KEYWORDS: [&str; 3] = ["Needs", "Covers", "Tags"];
+
+// The keyword stating an item's description explicitly. Its text is one
+// description rather than entries to merge, so it stays out of KEYWORDS - and
+// with that out of keyword tables. A bare word, like the list keywords.
+pub const DESCRIPTION_KEYWORD: &str = "Description";
 
 /// is a piece of text one of the keywords, exactly?
 pub fn is_keyword(text: &str) -> bool {
@@ -84,6 +90,13 @@ mod tests {
 
     fn item() -> Item {
         new_item("req:owner#1", Origin::Spec, "f.md", 1, 1)
+    }
+
+    // A description is one text, not a list: it must never be routed through
+    // the list machinery or head a keyword table column.
+    #[test]
+    fn the_description_keyword_is_not_a_list_keyword() {
+        assert!(!is_keyword(DESCRIPTION_KEYWORD));
     }
 
     // KEYWORDS is the vocabulary, but apply_keyword still spells out each
