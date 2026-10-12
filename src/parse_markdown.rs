@@ -466,17 +466,28 @@ fn take_keyword_table(
     Some(j)
 }
 
+// a file's lines together with the document-wide scans over them, which an
+// item body is read against
+struct Document<'a> {
+    lines: &'a [&'a str],
+    in_table: &'a [bool],
+    opens_heading: &'a [bool],
+}
+
 // consume the item's body (description and keyword lines) starting at
 // `start`; returns the index of the first line after the item
 fn parse_item_body(
-    lines: &[&str],
-    in_table: &[bool],
-    opens_heading: &[bool],
+    document: &Document<'_>,
     start: usize,
     item: &mut Item,
     file: &str,
     forwards: &mut Vec<Forward>,
 ) -> usize {
+    let Document {
+        lines,
+        in_table,
+        opens_heading,
+    } = *document;
     let mut j = start;
     let mut description_done = false;
     while j < lines.len() && !is_boundary(lines, in_table, opens_heading, j) {
@@ -525,6 +536,11 @@ pub fn parse_markdown(
     let lines: Vec<&str> = text.lines().collect();
     let in_table = scan_tables(&lines, file, problems);
     let opens_heading = scan_setext_headings(&lines, &in_table);
+    let document = Document {
+        lines: &lines,
+        in_table: &in_table,
+        opens_heading: &opens_heading,
+    };
     let mut items = Vec::new();
 
     let mut i = 0;
@@ -570,15 +586,7 @@ pub fn parse_markdown(
             first_non_blank_column(lines[i]),
         );
         item.title = title_above(&lines, &in_table, i);
-        i = parse_item_body(
-            &lines,
-            &in_table,
-            &opens_heading,
-            i + 1,
-            &mut item,
-            file,
-            forwards,
-        );
+        i = parse_item_body(&document, i + 1, &mut item, file, forwards);
         items.push(item);
     }
     items
