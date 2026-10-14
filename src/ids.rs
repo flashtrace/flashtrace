@@ -343,78 +343,165 @@ mod tests {
     use super::*;
     use std::cmp::Ordering;
 
+    const WILDCARD_REVS: [&str; 6] = ["x", "*", "2.x", "2.*", "2.3.x", "2.3.*"];
+
     #[test]
     fn canonical_rev_pads_omitted_layers_with_zeros() {
-        assert_eq!(canonical_rev("2"), "2.0.0");
-        assert_eq!(canonical_rev("2.4"), "2.4.0");
-        assert_eq!(canonical_rev("2.4.1"), "2.4.1");
+        // given
+        let cases = [("2", "2.0.0"), ("2.4", "2.4.0"), ("2.4.1", "2.4.1")];
+
+        for (rev, expected) in cases {
+            // when
+            let canonical = canonical_rev(rev);
+
+            // then
+            assert_eq!(canonical, expected, "{rev}");
+        }
     }
 
     #[test]
     fn canonical_rev_drops_leading_zeros_per_layer() {
-        assert_eq!(canonical_rev("02.04.010"), "2.4.10");
+        // given
+        let rev = "02.04.010";
+
+        // when
+        let canonical = canonical_rev(rev);
+
+        // then
+        assert_eq!(canonical, "2.4.10");
     }
 
     #[test]
     fn canonical_id_canonicalizes_only_the_revision() {
-        assert_eq!(canonical_id("req:auth/login#2.4"), "req:auth/login#2.4.0");
+        // given
+        let id = "req:auth/login#2.4";
+
+        // when
+        let canonical = canonical_id(id);
+
+        // then
+        assert_eq!(canonical, "req:auth/login#2.4.0");
     }
 
     #[test]
     fn rev_matches_treats_semver_equal_revisions_as_equal() {
-        assert!(rev_matches("3.7", "3.7.0"));
-        assert!(rev_matches("3.7.0", "3.7"));
-        assert!(rev_matches("1", "1.0.0"));
-        assert!(!rev_matches("3.7", "3.7.1"));
+        // given
+        let cases = [
+            ("3.7", "3.7.0", true),
+            ("3.7.0", "3.7", true),
+            ("1", "1.0.0", true),
+            ("3.7", "3.7.1", false),
+        ];
+
+        for (pattern, rev, expected) in cases {
+            // when
+            let matches = rev_matches(pattern, rev);
+
+            // then
+            assert_eq!(matches, expected, "{pattern} ~ {rev}");
+        }
     }
 
     #[test]
     fn a_trailing_wildcard_extends_over_the_deeper_layers() {
-        assert!(rev_matches("2.x", "2"));
-        assert!(rev_matches("2.x", "2.4"));
-        assert!(rev_matches("2.x", "2.4.1"));
-        assert!(!rev_matches("2.x", "3.0"));
-        assert!(rev_matches("2.3.x", "2.3.7"));
-        assert!(rev_matches("2.3.x", "2.3"));
-        assert!(!rev_matches("2.3.x", "2.4.0"));
+        // given
+        let cases = [
+            ("2.x", "2", true),
+            ("2.x", "2.4", true),
+            ("2.x", "2.4.1", true),
+            ("2.x", "3.0", false),
+            ("2.3.x", "2.3.7", true),
+            ("2.3.x", "2.3", true),
+            ("2.3.x", "2.4.0", false),
+        ];
+
+        for (pattern, rev, expected) in cases {
+            // when
+            let matches = rev_matches(pattern, rev);
+
+            // then
+            assert_eq!(matches, expected, "{pattern} ~ {rev}");
+        }
     }
 
     #[test]
     fn x_and_its_alias_star_match_every_revision() {
+        // given
+        let mut cases = Vec::new();
         for pattern in ["x", "*"] {
-            assert!(rev_matches(pattern, "2"));
-            assert!(rev_matches(pattern, "4.1"));
-            assert!(rev_matches(pattern, "3.0.9"));
+            for rev in ["2", "4.1", "3.0.9"] {
+                cases.push((pattern, rev, true));
+            }
         }
-        assert!(rev_matches("5.*", "5.9.2"));
-        assert!(!rev_matches("5.*", "6"));
+        cases.push(("5.*", "5.9.2", true));
+        cases.push(("5.*", "6", false));
+
+        for (pattern, rev, expected) in cases {
+            // when
+            let matches = rev_matches(pattern, rev);
+
+            // then
+            assert_eq!(matches, expected, "{pattern} ~ {rev}");
+        }
     }
 
     #[test]
     fn is_wildcard_rev_recognizes_x_and_star_layers() {
-        assert!(is_wildcard_rev("2.x"));
-        assert!(is_wildcard_rev("2.*"));
-        assert!(is_wildcard_rev("*"));
-        assert!(!is_wildcard_rev("2.4.0"));
+        // given
+        let cases = [("2.x", true), ("2.*", true), ("*", true), ("2.4.0", false)];
+
+        for (rev, expected) in cases {
+            // when
+            let is_wildcard = is_wildcard_rev(rev);
+
+            // then
+            assert_eq!(is_wildcard, expected, "{rev}");
+        }
     }
 
     #[test]
     fn compare_rev_orders_semver_equal_revisions_as_equal() {
-        assert_eq!(compare_rev("2.4", "2.4.0"), Ordering::Equal);
-        assert_eq!(compare_rev("2.9", "2.10"), Ordering::Less);
-        assert_eq!(compare_rev("2.4.1", "2.4"), Ordering::Greater);
+        // given
+        let cases = [
+            ("2.4", "2.4.0", Ordering::Equal),
+            ("2.9", "2.10", Ordering::Less),
+            ("2.4.1", "2.4", Ordering::Greater),
+        ];
+
+        for (a, b, expected) in cases {
+            // when
+            let ordering = compare_rev(a, b);
+
+            // then
+            assert_eq!(ordering, expected, "{a} <> {b}");
+        }
     }
 
     #[test]
-    fn parse_need_entry_accepts_the_wildcard_shapes_parse_cover_entry_none() {
-        for rev in ["x", "*", "2.x", "2.*", "2.3.x", "2.3.*"] {
-            let reference = format!("impl:a#{rev}");
-            assert_eq!(
-                parse_need_entry(&reference, "req:owner#1").as_deref(),
-                Some(reference.as_str()),
-                "{rev}"
-            );
-            assert_eq!(parse_cover_entry(&reference, "req:owner#1"), None, "{rev}");
+    fn parse_need_entry_accepts_the_wildcard_shapes() {
+        // given
+        let references = WILDCARD_REVS.map(|rev| format!("impl:a#{rev}"));
+
+        for reference in references {
+            // when
+            let parsed = parse_need_entry(&reference, "req:owner#1");
+
+            // then
+            assert_eq!(parsed.as_deref(), Some(reference.as_str()));
+        }
+    }
+
+    #[test]
+    fn parse_cover_entry_rejects_the_wildcard_shapes() {
+        // given
+        let references = WILDCARD_REVS.map(|rev| format!("impl:a#{rev}"));
+
+        for reference in references {
+            // when
+            let parsed = parse_cover_entry(&reference, "req:owner#1");
+
+            // then
+            assert_eq!(parsed, None, "{reference}");
         }
     }
 
@@ -424,43 +511,56 @@ mod tests {
     // revisions again
     #[test]
     fn the_dropped_multi_wildcard_shapes_are_no_revisions() {
-        for rev in ["2.x.y", "x.y", "x.y.z", "2.x.x", "x.2"] {
-            assert_eq!(
-                parse_need_entry(&format!("impl:a#{rev}"), "req:owner#1"),
-                None,
-                "{rev}"
-            );
+        // given
+        let revs = ["2.x.y", "x.y", "x.y.z", "2.x.x", "x.2"];
+
+        for rev in revs {
+            // when
+            let parsed = parse_need_entry(&format!("impl:a#{rev}"), "req:owner#1");
+
+            // then
+            assert_eq!(parsed, None, "{rev}");
         }
     }
 
     #[test]
     fn references_complete_from_the_stating_item() {
-        assert_eq!(
-            parse_need_entry("impl:auth/login#2", "req:owner#1").as_deref(),
-            Some("impl:auth/login#2")
-        );
-        assert_eq!(
-            parse_need_entry("impl:auth/login", "req:auth/owner#3").as_deref(),
-            Some("impl:auth/login#3")
-        );
-        assert_eq!(
-            parse_need_entry("impl#2", "req:auth/owner#1").as_deref(),
-            Some("impl:auth/owner#2")
-        );
-        assert_eq!(
-            parse_need_entry("impl", "req:auth/owner#1.2").as_deref(),
-            Some("impl:auth/owner#1.2")
-        );
-        assert_eq!(
-            parse_need_entry("`impl#2`", "req:owner#1").as_deref(),
-            Some("impl:owner#2")
-        );
-        assert_eq!(parse_need_entry("not an id", "req:owner#1"), None);
+        // given
+        let cases = [
+            (
+                "impl:auth/login#2",
+                "req:owner#1",
+                Some("impl:auth/login#2"),
+            ),
+            (
+                "impl:auth/login",
+                "req:auth/owner#3",
+                Some("impl:auth/login#3"),
+            ),
+            ("impl#2", "req:auth/owner#1", Some("impl:auth/owner#2")),
+            ("impl", "req:auth/owner#1.2", Some("impl:auth/owner#1.2")),
+            ("`impl#2`", "req:owner#1", Some("impl:owner#2")),
+            ("not an id", "req:owner#1", None),
+        ];
+
+        for (entry, owner, expected) in cases {
+            // when
+            let parsed = parse_need_entry(entry, owner);
+
+            // then
+            assert_eq!(parsed.as_deref(), expected, "{entry} stated by {owner}");
+        }
     }
 
     #[test]
     fn new_item_derives_key_revision_and_canonical_id() {
-        let item = new_item("req:auth/login#2.4", Origin::Spec, "spec.md", 3, 1);
+        // given
+        let id = "req:auth/login#2.4";
+
+        // when
+        let item = new_item(id, Origin::Spec, "spec.md", 3, 1);
+
+        // then
         assert_eq!(item.key, "req:auth/login");
         assert_eq!(item.revision, "2.4");
         assert_eq!(item.canonical_id, "req:auth/login#2.4.0");
@@ -471,9 +571,14 @@ mod tests {
 
     #[test]
     fn make_forward_reads_both_ids_off_a_forwarding_match() {
+        // given
         let forward_re = Regex::new(&forward_src()).unwrap();
         let m = forward_re.captures("[ req:auth/a#1 --> dsn:b#2 ]").unwrap();
+
+        // when
         let forward = make_forward(&m, 1, "spec.md", 7, 3);
+
+        // then
         assert_eq!(forward.from, "req:auth/a#1");
         assert_eq!(forward.to, "dsn:b#2");
         assert_eq!((forward.line, forward.character), (7, 3));
