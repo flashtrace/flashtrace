@@ -322,20 +322,42 @@ mod tests {
     }
 
     #[test]
-    fn help_and_version_stop_the_parser_where_they_stand() {
-        for flag in ["--help", "-h"] {
+    fn help_stops_the_parser_where_it_stands() {
+        // given
+        let flags = ["--help", "-h"];
+
+        for flag in flags {
+            // when
             let command = parse_args(&args(&[flag, "--frobnicate"])).unwrap();
+
+            // then
             assert!(matches!(command, Command::Help), "{flag}");
         }
-        for flag in ["--version", "-V"] {
+    }
+
+    #[test]
+    fn version_stops_the_parser_where_it_stands() {
+        // given
+        let flags = ["--version", "-V"];
+
+        for flag in flags {
+            // when
             let command = parse_args(&args(&[flag, "--frobnicate"])).unwrap();
+
+            // then
             assert!(matches!(command, Command::Version), "{flag}");
         }
     }
 
     #[test]
     fn defaults_to_the_current_directory_and_the_text_format() {
-        let options = run_options(&args(&[]));
+        // given
+        let argv = args(&[]);
+
+        // when
+        let options = run_options(&argv);
+
+        // then
         assert_eq!(options.dirs, ["."]);
         assert_eq!(options.format, Format::Text);
         assert!(!options.verbose);
@@ -344,26 +366,50 @@ mod tests {
 
     #[test]
     fn positional_arguments_become_input_paths() {
-        let options = run_options(&args(&["docs", "src"]));
+        // given
+        let argv = args(&["docs", "src"]);
+
+        // when
+        let options = run_options(&argv);
+
+        // then
         assert_eq!(options.dirs, ["docs", "src"]);
     }
 
     #[test]
     fn the_tag_filter_splits_trims_and_drops_empty_segments() {
-        let options = run_options(&args(&["--tags", "Auth , _,,B,"]));
+        // given
+        let argv = args(&["--tags", "Auth , _,,B,"]);
+
+        // when
+        let options = run_options(&argv);
+
+        // then
         assert_eq!(options.tags.unwrap(), ["Auth", "_", "B"]);
     }
 
     #[test]
     fn an_equals_attached_value_splits_at_the_first_equals_only() {
-        let options = run_options(&args(&["--tags=a=b"]));
+        // given
+        let argv = args(&["--tags=a=b"]);
+
+        // when
+        let options = run_options(&argv);
+
+        // then
         assert_eq!(options.tags.unwrap(), ["a=b"]);
     }
 
     #[test]
     fn an_empty_value_is_missing_in_either_spelling() {
-        for list in [vec!["--tags="], vec!["--tags"], vec!["--format"]] {
+        // given
+        let lists = [vec!["--tags="], vec!["--tags"], vec!["--format"]];
+
+        for list in lists {
+            // when
             let error = parse_args(&args(&list)).unwrap_err();
+
+            // then
             assert!(
                 error.0.starts_with("missing value for "),
                 "{list:?}: {error}"
@@ -373,6 +419,7 @@ mod tests {
 
     #[test]
     fn selecting_a_setting_twice_names_the_first_spelling() {
+        // given
         let cases: [(&[&str], &str); 5] = [
             (
                 &["-t", "a", "-t", "b"],
@@ -395,32 +442,60 @@ mod tests {
                 "the report format is already selected by -f",
             ),
         ];
+
         for (list, expected) in cases {
+            // when
             let error = parse_args(&args(list)).unwrap_err();
+
+            // then
             assert_eq!(error.0, expected, "{list:?}");
         }
     }
 
     #[test]
     fn a_valueless_option_rejects_an_equals_attached_value() {
-        let error = parse_args(&args(&["--verbose=1"])).unwrap_err();
-        assert_eq!(error.0, "option --verbose does not take a value");
-        let error = parse_args(&args(&["--json=pretty"])).unwrap_err();
-        assert_eq!(error.0, "option --json does not take a value");
+        // given
+        let cases = [
+            ("--verbose=1", "option --verbose does not take a value"),
+            ("--json=pretty", "option --json does not take a value"),
+        ];
+
+        for (argument, expected) in cases {
+            // when
+            let error = parse_args(&args(&[argument])).unwrap_err();
+
+            // then
+            assert_eq!(error.0, expected, "{argument}");
+        }
     }
 
     #[test]
     fn unknown_options_are_reported_by_name_without_the_value() {
-        let error = parse_args(&args(&["--frobnicate=x"])).unwrap_err();
-        assert_eq!(error.0, "unknown option: --frobnicate");
-        // short options never carry "=", so the whole token is unknown
-        let error = parse_args(&args(&["-t=a,b"])).unwrap_err();
-        assert_eq!(error.0, "unknown option: -t=a,b");
+        // given
+        let cases = [
+            ("--frobnicate=x", "unknown option: --frobnicate"),
+            // short options never carry "=", so the whole token is unknown
+            ("-t=a,b", "unknown option: -t=a,b"),
+        ];
+
+        for (argument, expected) in cases {
+            // when
+            let error = parse_args(&args(&[argument])).unwrap_err();
+
+            // then
+            assert_eq!(error.0, expected, "{argument}");
+        }
     }
 
     #[test]
     fn an_unknown_format_names_the_selecting_spelling() {
-        let error = parse_args(&args(&["-f", "yaml"])).unwrap_err();
+        // given
+        let argv = args(&["-f", "yaml"]);
+
+        // when
+        let error = parse_args(&argv).unwrap_err();
+
+        // then
         assert_eq!(
             error.0,
             "invalid value for -f: \"yaml\" (expected \"text\" or \"json\")"
@@ -429,12 +504,18 @@ mod tests {
 
     #[test]
     fn verbose_is_rejected_for_the_json_format_whichever_spelling_selects_it() {
-        for list in [
+        // given
+        let lists = [
             vec!["--json", "-v"],
             vec!["-v", "--json"],
             vec!["-f", "json", "--verbose"],
-        ] {
+        ];
+
+        for list in lists {
+            // when
             let error = parse_args(&args(&list)).unwrap_err();
+
+            // then
             assert_eq!(
                 error.0, "-v/--verbose applies to the text format only",
                 "{list:?}"
@@ -444,13 +525,19 @@ mod tests {
 
     #[test]
     fn the_format_may_still_be_selected_once_in_any_spelling() {
-        for list in [
+        // given
+        let lists = [
             vec!["--json"],
             vec!["-f", "json"],
             vec!["--format", "json"],
             vec!["--format=json"],
-        ] {
+        ];
+
+        for list in lists {
+            // when
             let options = run_options(&args(&list));
+
+            // then
             assert_eq!(options.format, Format::Json, "{list:?}");
         }
     }
