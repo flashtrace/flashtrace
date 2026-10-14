@@ -411,7 +411,14 @@ mod tests {
 
     #[test]
     fn document_envelope_ordering_and_a_resolved_need() {
-        let document = build(&["`req:a#1`", "", "Needs: impl:a#1"], &["// [impl:a#1]"]);
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]"];
+
+        // when
+        let document = build(&md, &code);
+
+        // then
         assert_eq!(document.schema_version, 0);
         assert_eq!(document.flashtrace, "9.9.9");
         assert!(document.ok);
@@ -454,10 +461,14 @@ mod tests {
 
     #[test]
     fn a_wildcard_need_resolves_to_every_match_in_ascending_revision_order() {
-        let document = build(
-            &["`req:a#1`", "", "Needs: impl:a#2.x"],
-            &["// [impl:a#2.10]", "// [impl:a#2.2]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2.x"];
+        let code = ["// [impl:a#2.10]", "// [impl:a#2.2]"];
+
+        // when
+        let document = build(&md, &code);
+
+        // then
         assert_eq!(
             item_of(&document, "req:a#1").needs,
             [NeedDocument {
@@ -469,7 +480,14 @@ mod tests {
 
     #[test]
     fn an_uncovered_need_is_a_defect_carrying_the_revision_mismatch_data() {
-        let document = build(&["`req:a#1`", "", "Needs: impl:a#2"], &["// [impl:a#1]"]);
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2"];
+        let code = ["// [impl:a#1]"];
+
+        // when
+        let document = build(&md, &code);
+
+        // then
         let defect = &item_of(&document, "req:a#1").defects[0];
         assert_eq!(defect.kind, "uncovered-need");
         assert_eq!(defect.reference, "impl:a#2");
@@ -483,28 +501,41 @@ mod tests {
                 .contains("revision mismatch: existing revision(s) of impl:a: 1")
         );
         assert_eq!(item_of(&document, "req:a#1").status, "defective");
-        // existingRevisions sits before message, per the documented key order
+    }
+
+    #[test]
+    fn existing_revisions_serialize_before_the_message() {
+        // given
+        let document = build(&["`req:a#1`", "", "Needs: impl:a#2"], &["// [impl:a#1]"]);
+
+        // when
         let serialized = serialize_report_document(&document);
+
+        // then
+        // existingRevisions sits before message, per the documented key order
         let revisions_at = serialized.find("\"existingRevisions\"").unwrap();
         assert!(serialized[revisions_at..].contains("\"message\""));
     }
 
     #[test]
     fn covers_entries_are_classified_valid_unwanted_or_orphaned() {
-        let document = build(
-            &[
-                "`req:cover#1`",
-                "",
-                "Covers: req:wants#1, req:nowant#1, req:gone#1",
-                "",
-                "`req:wants#1`",
-                "",
-                "Needs: req:cover#1",
-                "",
-                "`req:nowant#1`",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:cover#1`",
+            "",
+            "Covers: req:wants#1, req:nowant#1, req:gone#1",
+            "",
+            "`req:wants#1`",
+            "",
+            "Needs: req:cover#1",
+            "",
+            "`req:nowant#1`",
+        ];
+
+        // when
+        let document = build(&md, &[]);
+
+        // then
         let cover = item_of(&document, "req:cover#1");
         let statuses: Vec<(&str, &str)> = cover
             .covers
@@ -526,28 +557,32 @@ mod tests {
 
     #[test]
     fn defective_and_deep_covered_are_independent_of_each_other() {
-        let document = build(
-            &[
-                "`feat:x#1`",
-                "",
-                "`req:clean#1`",
-                "",
-                "Needs: impl:a#1",
-                "",
-                "Covers: feat:x#1",
-                "",
-                "`req:broken#1`",
-                "",
-                "Needs: dsn:z#1",
-                "",
-                "Covers: feat:x#1",
-                "",
-                "`dsn:z#1`",
-                "",
-                "Needs: impl:gone#1",
-            ],
-            &["// [impl:a#1]"],
-        );
+        // given
+        let md = [
+            "`feat:x#1`",
+            "",
+            "`req:clean#1`",
+            "",
+            "Needs: impl:a#1",
+            "",
+            "Covers: feat:x#1",
+            "",
+            "`req:broken#1`",
+            "",
+            "Needs: dsn:z#1",
+            "",
+            "Covers: feat:x#1",
+            "",
+            "`dsn:z#1`",
+            "",
+            "Needs: impl:gone#1",
+        ];
+        let code = ["// [impl:a#1]"];
+
+        // when
+        let document = build(&md, &code);
+
+        // then
         let clean = item_of(&document, "req:clean#1");
         let broken = item_of(&document, "req:broken#1");
         assert_eq!(clean.status, broken.status, "status collapses the two");
@@ -560,10 +595,14 @@ mod tests {
 
     #[test]
     fn defective_agrees_with_the_defects_array_on_every_item() {
-        let document = build(
-            &["`req:a#1`", "", "Needs: impl:gone#1", "", "`req:b#1`"],
-            &["// [impl:stray#1]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:gone#1", "", "`req:b#1`"];
+        let code = ["// [impl:stray#1]"];
+
+        // when
+        let document = build(&md, &code);
+
+        // then
         for item in &document.items {
             assert_eq!(
                 item.defective,
@@ -576,22 +615,25 @@ mod tests {
 
     #[test]
     fn a_valid_cover_stays_valid_on_an_item_that_is_defective_for_another_reason() {
+        // given
         // cover status is read off the defects, so an unrelated defect on the
         // same item must not colour it
-        let document = build(
-            &[
-                "`req:wants#1`",
-                "",
-                "Needs: req:a#1",
-                "",
-                "`req:a#1`",
-                "",
-                "Covers: req:wants#1, req:gone#1",
-                "",
-                "Needs: impl:missing#1",
-            ],
-            &[],
-        );
+        let md = [
+            "`req:wants#1`",
+            "",
+            "Needs: req:a#1",
+            "",
+            "`req:a#1`",
+            "",
+            "Covers: req:wants#1, req:gone#1",
+            "",
+            "Needs: impl:missing#1",
+        ];
+
+        // when
+        let document = build(&md, &[]);
+
+        // then
         let item = item_of(&document, "req:a#1");
         let statuses: Vec<(&str, &str)> = item
             .covers
@@ -609,21 +651,24 @@ mod tests {
 
     #[test]
     fn status_distinguishes_deep_covered_shallow_covered_and_defective() {
-        let document = build(
-            &[
-                "`req:top#1`",
-                "",
-                "Needs: req:mid#1",
-                "",
-                "`req:mid#1`",
-                "",
-                "Needs: impl:missing#1",
-                "",
-                "`req:leaf#1`",
-            ],
-            &[],
-        );
+        // given
         // the chain below req:top#1 is broken
+        let md = [
+            "`req:top#1`",
+            "",
+            "Needs: req:mid#1",
+            "",
+            "`req:mid#1`",
+            "",
+            "Needs: impl:missing#1",
+            "",
+            "`req:leaf#1`",
+        ];
+
+        // when
+        let document = build(&md, &[]);
+
+        // then
         assert_eq!(item_of(&document, "req:top#1").status, "shallow-covered");
         assert_eq!(item_of(&document, "req:mid#1").status, "defective");
         assert_eq!(item_of(&document, "req:leaf#1").status, "deep-covered");
@@ -631,21 +676,24 @@ mod tests {
 
     #[test]
     fn a_forwarding_source_still_has_its_covers_classified() {
+        // given
         // forwarding excuses the source's needs but not its covers
-        let document = build(
-            &[
-                "`req:legacy#1`",
-                "",
-                "Covers: req:nowant#1",
-                "",
-                "`req:nowant#1`",
-                "",
-                "`dsn:b#1`",
-                "",
-                "`[req:legacy#1 --> dsn:b#1]`",
-            ],
-            &[],
-        );
+        let md = [
+            "`req:legacy#1`",
+            "",
+            "Covers: req:nowant#1",
+            "",
+            "`req:nowant#1`",
+            "",
+            "`dsn:b#1`",
+            "",
+            "`[req:legacy#1 --> dsn:b#1]`",
+        ];
+
+        // when
+        let document = build(&md, &[]);
+
+        // then
         let covers = &item_of(&document, "req:legacy#1").covers;
         assert_eq!(covers.len(), 1);
         assert_eq!(covers[0].reference, "req:nowant#1");
@@ -654,18 +702,22 @@ mod tests {
 
     #[test]
     fn forwards_and_wanted_by_record_the_reverse_edges() {
-        let document = build(
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: impl:a#1",
-                "",
-                "`req:legacy#1`",
-                "",
-                "`[req:legacy#1 --> req:a#1]`",
-            ],
-            &["// [impl:a#1]"],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "Needs: impl:a#1",
+            "",
+            "`req:legacy#1`",
+            "",
+            "`[req:legacy#1 --> req:a#1]`",
+        ];
+        let code = ["// [impl:a#1]"];
+
+        // when
+        let document = build(&md, &code);
+
+        // then
         assert_eq!(document.forwards.len(), 1);
         let forward = &document.forwards[0];
         assert_eq!(
@@ -711,25 +763,28 @@ mod tests {
 
     #[test]
     fn forwards_record_every_void_reason_and_mirror_forwards_to() {
-        let document = build(
-            &[
-                "`req:dup#1`",
-                "",
-                "`dsn:b#1`",
-                "",
-                "`dsn:c#1`",
-                "",
-                "`[req:dup#1 --> dsn:b#1]`",
-                "`[req:dup#1 --> dsn:c#1]`",
-                "",
-                "`req:eta#1`",
-                "",
-                "`[req:eta#1 --> req:eta#1]`",
-                "",
-                "`[req:ghost#1 --> dsn:b#1]`",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:dup#1`",
+            "",
+            "`dsn:b#1`",
+            "",
+            "`dsn:c#1`",
+            "",
+            "`[req:dup#1 --> dsn:b#1]`",
+            "`[req:dup#1 --> dsn:c#1]`",
+            "",
+            "`req:eta#1`",
+            "",
+            "`[req:eta#1 --> req:eta#1]`",
+            "",
+            "`[req:ghost#1 --> dsn:b#1]`",
+        ];
+
+        // when
+        let document = build(&md, &[]);
+
+        // then
         let reason = |from: &str, to: &str| {
             document
                 .forwards
@@ -762,7 +817,13 @@ mod tests {
 
     #[test]
     fn a_forwarding_to_a_missing_target_contributes_no_forwarded_from_anywhere() {
-        let document = build(&["`req:a#1`", "", "`[req:a#1 --> dsn:gone#1]`"], &[]);
+        // given
+        let md = ["`req:a#1`", "", "`[req:a#1 --> dsn:gone#1]`"];
+
+        // when
+        let document = build(&md, &[]);
+
+        // then
         assert_eq!(
             item_of(&document, "req:a#1").forwards_to.as_deref(),
             Some("dsn:gone#1")
@@ -774,7 +835,13 @@ mod tests {
 
     #[test]
     fn problems_are_reported_with_location_and_fail_the_run_without_any_defect() {
-        let document = build(&[], &["// [>>utest:a#1]"]);
+        // given
+        let code = ["// [>>utest:a#1]"];
+
+        // when
+        let document = build(&[], &code);
+
+        // then
         assert!(!document.ok);
         assert_eq!(
             document.problems,
@@ -792,6 +859,7 @@ mod tests {
 
     #[test]
     fn building_the_document_twice_over_the_same_items_yields_the_same_bytes() {
+        // given
         let mut problems = Vec::new();
         let mut forwards = Vec::new();
         let mut items = parse_markdown(
@@ -817,8 +885,11 @@ mod tests {
         ));
         analyze(&mut items, &mut forwards, &mut problems);
 
+        // when
         let first = build_report_document(&items, &forwards, &problems, Path::new(""), "9.9.9");
         let second = build_report_document(&items, &forwards, &problems, Path::new(""), "9.9.9");
+
+        // then
         assert_eq!(
             serialize_report_document(&first),
             serialize_report_document(&second)
@@ -834,6 +905,7 @@ mod tests {
 
     #[test]
     fn items_forwards_and_problems_are_sorted_by_file_line_character() {
+        // given
         let mut problems = Vec::new();
         let mut forwards = Vec::new();
         let mut items = parse_markdown(
@@ -866,8 +938,11 @@ mod tests {
         items.reverse();
         forwards.reverse();
         problems.reverse();
+
+        // when
         let document = build_report_document(&items, &forwards, &problems, Path::new(""), "9.9.9");
 
+        // then
         // file first, then line - not id
         let item_locations: Vec<(&str, &str, usize)> = document
             .items
@@ -906,8 +981,13 @@ mod tests {
     // `": "` separators and the documented key order
     #[test]
     fn serialization_keeps_the_documented_key_order_and_indentation() {
+        // given
         let document = build(&["`req:a#1`", "", "Needs: impl:a#1"], &["// [impl:a#1]"]);
+
+        // when
         let serialized = serialize_report_document(&document);
+
+        // then
         let expected_head = concat!(
             "{\n  \"schemaVersion\": 0,\n  \"flashtrace\": \"9.9.9\",\n",
             "  \"ok\": true,\n  \"items\": ["
@@ -945,6 +1025,7 @@ mod tests {
     // everything else - non-ASCII, U+2028/29, astral - raw
     #[test]
     fn string_escaping_is_the_json_minimum_with_non_ascii_raw() {
+        // given
         let mut subject = String::new();
         for code in 0x00u32..=0x20 {
             subject.push(char::from_u32(code).unwrap());
@@ -964,6 +1045,11 @@ mod tests {
         expected.push(' ');
         expected.push_str("\\\"\\\\\u{e9}\u{2713}\u{fffd}\u{2028}\u{2029}\u{1f600}");
         expected.push('"');
-        assert_eq!(serde_json::to_string(&subject).unwrap(), expected);
+
+        // when
+        let serialized = serde_json::to_string(&subject).unwrap();
+
+        // then
+        assert_eq!(serialized, expected);
     }
 }
