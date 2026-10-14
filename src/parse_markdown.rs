@@ -611,7 +611,8 @@ mod tests {
 
     #[test]
     fn full_item_title_description_needs_covers_tags() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "### Login requires a valid session token",
             "`req:auth/login#1`",
             "",
@@ -626,7 +627,12 @@ mod tests {
             "- feat:auth#1",
             "",
             "Tags: Auth, Security",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 1);
         let item = &items[0];
@@ -654,13 +660,25 @@ mod tests {
 
     #[test]
     fn title_survives_blank_lines_between_heading_and_id() {
-        let (items, _, _) = parse(&["# The title", "", "", "`req:a#1`"]);
+        // given
+        let lines = ["# The title", "", "", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title.as_deref(), Some("The title"));
     }
 
     #[test]
     fn non_blank_text_between_heading_and_id_means_no_title() {
-        let (items, _, _) = parse(&["# The title", "some other text", "`req:a#1`"]);
+        // given
+        let lines = ["# The title", "some other text", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title, None);
     }
 
@@ -668,25 +686,49 @@ mod tests {
     // or `-` (level 2) is the item's title, just like an ATX `#` heading.
     #[test]
     fn setext_level_1_heading_is_recognized_as_the_title() {
-        let (items, _, _) = parse(&["Title level 1", "=============", "`req:a#1`"]);
+        // given
+        let lines = ["Title level 1", "=============", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title.as_deref(), Some("Title level 1"));
     }
 
     #[test]
     fn setext_level_2_heading_is_recognized_as_the_title() {
-        let (items, _, _) = parse(&["Title level 2", "-------------", "`req:a#1`"]);
+        // given
+        let lines = ["Title level 2", "-------------", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title.as_deref(), Some("Title level 2"));
     }
 
     #[test]
     fn a_setext_underline_may_carry_trailing_whitespace_and_three_leading_spaces() {
-        let (items, _, _) = parse(&["The title", "   ===   ", "`req:a#1`"]);
+        // given
+        let lines = ["The title", "   ===   ", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title.as_deref(), Some("The title"));
     }
 
     #[test]
     fn setext_title_survives_blank_lines_between_the_underline_and_the_id() {
-        let (items, _, _) = parse(&["The title", "=========", "", "", "`req:a#1`"]);
+        // given
+        let lines = ["The title", "=========", "", "", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title.as_deref(), Some("The title"));
     }
 
@@ -695,7 +737,13 @@ mod tests {
     // heading.
     #[test]
     fn a_thematic_break_after_a_blank_line_is_not_a_setext_heading() {
-        let (items, _, _) = parse(&["Some intro paragraph", "", "---", "", "`req:a#1`"]);
+        // given
+        let lines = ["Some intro paragraph", "", "---", "", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title, None);
     }
 
@@ -704,14 +752,26 @@ mod tests {
     // swallowed as a row.
     #[test]
     fn a_table_delimiter_row_is_not_mistaken_for_a_setext_heading() {
-        let (items, _, _) = parse(&["| Feature | Owner |", "| --- | --- |", "", "`req:a#1`"]);
+        // given
+        let lines = ["| Feature | Owner |", "| --- | --- |", "", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title, None);
     }
 
     // A run of `-` directly below a bullet ends the list; it is not a heading.
     #[test]
     fn a_bullet_list_above_a_run_of_dashes_is_not_a_setext_heading() {
-        let (items, _, _) = parse(&["- item one", "- item two", "---", "`req:a#1`"]);
+        // given
+        let lines = ["- item one", "- item two", "---", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title, None);
     }
 
@@ -720,14 +780,20 @@ mod tests {
     // heading titles the next.
     #[test]
     fn a_blank_line_separates_the_description_from_a_following_setext_heading() {
-        let (items, _, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "Description of a.",
             "",
             "Next Title",
             "==========",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].description, ["Description of a."]);
         assert_eq!(items[1].title.as_deref(), Some("Next Title"));
@@ -739,7 +805,8 @@ mod tests {
     // the description.
     #[test]
     fn setext_titles_are_multi_line_and_keep_every_folded_line_to_themselves() {
-        let (items, _, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "First title line without trailing spaces.",
@@ -749,7 +816,12 @@ mod tests {
             " Fifth title line with space in the beginning.",
             "======================",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 2);
         assert!(items[0].description.is_empty());
         assert_eq!(
@@ -769,7 +841,13 @@ mod tests {
     // folded - with the rest of the run - into the following item's title.
     #[test]
     fn an_id_line_glued_above_a_setext_heading_is_heading_text_flagged_and_creating_no_item() {
-        let (items, problems, _) = parse(&["`req:a#1`", "Some title", "==========", "`req:b#1`"]);
+        // given
+        let lines = ["`req:a#1`", "Some title", "==========", "`req:b#1`"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "req:b#1");
         assert_eq!(items[0].title.as_deref(), Some("`req:a#1` Some title"));
@@ -784,7 +862,13 @@ mod tests {
     // the whole heading. It is reported and defines no item.
     #[test]
     fn an_id_line_directly_above_a_setext_underline_is_the_heading_itself_flagged() {
-        let (items, problems, _) = parse(&["`req:a#1`", "==========", "`req:b#1`"]);
+        // given
+        let lines = ["`req:a#1`", "==========", "`req:b#1`"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "req:b#1");
         assert_eq!(items[0].title.as_deref(), Some("`req:a#1`"));
@@ -801,7 +885,13 @@ mod tests {
     // items.
     #[test]
     fn every_id_line_folded_into_a_setext_heading_is_flagged() {
-        let (items, problems, _) = parse(&["`req:a#1`", "`req:b#1`", "==========", "`req:c#1`"]);
+        // given
+        let lines = ["`req:a#1`", "`req:b#1`", "==========", "`req:c#1`"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "req:c#1");
         assert_eq!(problems.len(), 2);
@@ -822,8 +912,13 @@ mod tests {
     // stays an item.
     #[test]
     fn a_blank_line_below_an_id_keeps_it_a_definition_even_when_a_setext_heading_follows() {
-        let (items, problems, _) =
-            parse(&["`req:a#1`", "", "Some title", "==========", "`req:b#1`"]);
+        // given
+        let lines = ["`req:a#1`", "", "Some title", "==========", "`req:b#1`"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].id, "req:a#1");
@@ -834,14 +929,20 @@ mod tests {
     // heading, so it must neither terminate the body nor split off a new item.
     #[test]
     fn a_thematic_break_inside_a_body_does_not_terminate_it_or_split_the_item() {
-        let (items, _, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "Description of a.",
             "",
             "---",
             "",
             "More prose that is not a new item.",
-        ]);
+        ];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].description, ["Description of a."]);
     }
@@ -850,7 +951,13 @@ mod tests {
     // its keyword - exactly as `# Covers: ...` is a heading, not a keyword.
     #[test]
     fn a_keyword_line_above_a_setext_underline_serves_the_title_its_keyword_ignored() {
-        let (items, _, _) = parse(&["`req:a#1`", "", "Covers: req:x#1", "---", "`req:b#1`"]);
+        // given
+        let lines = ["`req:a#1`", "", "Covers: req:x#1", "---", "`req:b#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 2);
         assert!(items[0].covers.is_empty());
         assert_eq!(items[1].title.as_deref(), Some("Covers: req:x#1"));
@@ -860,8 +967,13 @@ mod tests {
     // either.
     #[test]
     fn a_forwarding_line_above_a_setext_underline_serves_the_title_its_forward_ignored() {
-        let (items, _, forwards) =
-            parse(&["`req:a#1`", "", "[req:a#1 --> dsn:b#1]", "---", "`req:b#1`"]);
+        // given
+        let lines = ["`req:a#1`", "", "[req:a#1 --> dsn:b#1]", "---", "`req:b#1`"];
+
+        // when
+        let (items, _, forwards) = parse(&lines);
+
+        // then
         assert_eq!(forwards.len(), 0);
         assert_eq!(items[1].title.as_deref(), Some("[req:a#1 --> dsn:b#1]"));
     }
@@ -870,7 +982,8 @@ mod tests {
     // that ends at an underline belongs to the title, not to the keyword list.
     #[test]
     fn a_keyword_line_folded_into_a_multi_line_setext_title_is_ignored_for_its_keyword() {
-        let (items, _, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "Description of a.",
             "",
@@ -878,7 +991,12 @@ mod tests {
             "Second title line",
             "=================",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 2);
         assert!(items[0].covers.is_empty());
         assert_eq!(items[0].description, ["Description of a."]);
@@ -893,7 +1011,13 @@ mod tests {
     // pipe in its text. Only membership in an actual table rules a line out.
     #[test]
     fn a_pipe_carrying_paragraph_above_an_underline_is_a_setext_title() {
-        let (items, problems, _) = parse(&["Login | Logout", "==============", "`req:a#1`"]);
+        // given
+        let lines = ["Login | Logout", "==============", "`req:a#1`"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].title.as_deref(), Some("Login | Logout"));
     }
@@ -902,14 +1026,20 @@ mod tests {
     // setext heading, so it terminates the body like any other heading.
     #[test]
     fn a_pipe_carrying_line_above_an_underline_terminates_the_body_and_titles_the_next_item() {
-        let (items, _, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "Description of a.",
             "",
             "Login | Logout",
             "==============",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].description, ["Description of a."]);
         assert_eq!(items[1].title.as_deref(), Some("Login | Logout"));
@@ -919,7 +1049,13 @@ mod tests {
     // in the title.
     #[test]
     fn an_atx_heading_may_carry_a_pipe_and_still_titles_the_item() {
-        let (items, _, _) = parse(&["## Login | Logout", "`req:a#1`"]);
+        // given
+        let lines = ["## Login | Logout", "`req:a#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].title.as_deref(), Some("Login | Logout"));
     }
 
@@ -928,13 +1064,19 @@ mod tests {
     #[test]
     fn needs_as_bullet_list_with_every_marker_ids_bare_or_backticked() {
         for marker in ["-", "*", "+"] {
-            let (items, problems, _) = parse(&[
+            // given
+            let lines = [
                 "`req:a#1`",
                 "",
                 "Needs:",
                 &format!("{marker} `impl:a#1`"),
                 &format!("{marker} utest:a#1"),
-            ]);
+            ];
+
+            // when
+            let (items, problems, _) = parse(&lines);
+
+            // then
             assert_eq!(problems.len(), 0, "marker {marker}");
             assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"], "marker {marker}");
         }
@@ -942,7 +1084,13 @@ mod tests {
 
     #[test]
     fn inline_comma_separated_needs_ids_bare_or_backticked() {
-        let (items, problems, _) = parse(&["`req:a#1`", "", "Needs: `impl:a#1`, utest:a#1"]);
+        // given
+        let lines = ["`req:a#1`", "", "Needs: `impl:a#1`, utest:a#1"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
     }
@@ -952,13 +1100,19 @@ mod tests {
     #[test]
     fn covers_as_bullet_list_with_every_marker_ids_bare_or_backticked() {
         for marker in ["-", "*", "+"] {
-            let (items, problems, _) = parse(&[
+            // given
+            let lines = [
                 "`req:a#1`",
                 "",
                 "Covers:",
                 &format!("{marker} `feat:a#1`"),
                 &format!("{marker} feat:b#1"),
-            ]);
+            ];
+
+            // when
+            let (items, problems, _) = parse(&lines);
+
+            // then
             assert_eq!(problems.len(), 0, "marker {marker}");
             assert_eq!(items[0].covers, ["feat:a#1", "feat:b#1"], "marker {marker}");
         }
@@ -966,14 +1120,26 @@ mod tests {
 
     #[test]
     fn inline_comma_separated_covers_ids_bare_or_backticked() {
-        let (items, problems, _) = parse(&["`req:a#1`", "", "Covers: `feat:a#1`, feat:b#1"]);
+        // given
+        let lines = ["`req:a#1`", "", "Covers: `feat:a#1`, feat:b#1"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].covers, ["feat:a#1", "feat:b#1"]);
     }
 
     #[test]
     fn invalid_id_in_a_needs_list_is_a_defect_on_the_item() {
-        let (items, problems, _) = parse(&["`req:a#1`", "", "Needs: not/valid, impl:ok#1"]);
+        // given
+        let lines = ["`req:a#1`", "", "Needs: not/valid, impl:ok#1"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].needs, ["impl:ok#1"]);
         assert_eq!(problems.len(), 0);
         let defect = &items[0].defects[0];
@@ -988,13 +1154,19 @@ mod tests {
 
     #[test]
     fn a_wildcard_revision_is_accepted_in_needs_but_not_in_covers() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "Needs: impl:a#2.x, impl:b#2.3.x, impl:c#2.*, impl:d#x",
             "",
             "Covers: feat:x#1.x",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(
             items[0].needs,
             ["impl:a#2.x", "impl:b#2.3.x", "impl:c#2.*", "impl:d#x"]
@@ -1012,7 +1184,13 @@ mod tests {
 
     #[test]
     fn a_wildcard_layer_is_only_valid_as_the_last_layer() {
-        let (items, _, _) = parse(&["`req:a#1`", "", "Needs: impl:a#2.x.y"]);
+        // given
+        let lines = ["`req:a#1`", "", "Needs: impl:a#2.x.y"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert!(items[0].needs.is_empty());
         let defect = &items[0].defects[0];
         assert_eq!(defect.kind, "invalid-reference");
@@ -1025,13 +1203,25 @@ mod tests {
 
     #[test]
     fn a_wildcard_revision_is_not_accepted_in_an_item_definition() {
-        let (items, _, _) = parse(&["`req:a#2.x`", "`req:b#*`"]);
+        // given
+        let lines = ["`req:a#2.x`", "`req:b#*`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_short_form_takes_the_group_name_from_the_item_when_only_the_revision_is_written() {
-        let (items, problems, _) = parse(&["`req:auth/login#1`", "", "Needs: impl#2, `utest#2.x`"]);
+        // given
+        let lines = ["`req:auth/login#1`", "", "Needs: impl#2, `utest#2.x`"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(
             items[0].needs,
@@ -1041,11 +1231,17 @@ mod tests {
 
     #[test]
     fn a_short_form_takes_the_revision_from_the_item_when_only_a_name_is_written() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:auth/login#3`",
             "",
             "Needs: impl, impl:other, dsn:auth/audit",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         // impl -> name and revision both taken; impl:other / dsn:auth/audit
         // -> revision taken
@@ -1057,28 +1253,45 @@ mod tests {
 
     #[test]
     fn a_bare_type_takes_both_the_name_and_the_revision_from_an_ungrouped_item() {
-        let (items, problems, _) = parse(&["`req:a#1`", "", "Needs: impl"]);
+        // given
+        let lines = ["`req:a#1`", "", "Needs: impl"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1"]);
     }
 
     #[test]
     fn a_short_form_need_in_a_table_column_is_completed_like_an_inline_entry() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:auth/login#1`",
             "",
             "| Needs   |",
             "|---------|",
             "| impl    |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:auth/login#1"]);
     }
 
     #[test]
     fn a_short_form_covers_entry_is_completed_from_the_item_like_a_needs_entry() {
-        let (items, problems, _) =
-            parse(&["`impl:auth/login#2`", "", "Covers: feat, req:auth#1, dsn#2"]);
+        // given
+        let lines = ["`impl:auth/login#2`", "", "Covers: feat, req:auth#1, dsn#2"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         // feat -> name and revision taken; req:auth#1 -> full; dsn#2 -> name taken
         assert_eq!(
@@ -1089,7 +1302,13 @@ mod tests {
 
     #[test]
     fn a_wildcard_revision_is_rejected_in_a_short_form_covers_entry() {
-        let (items, problems, _) = parse(&["`impl:auth/login#1`", "", "Covers: feat#2.x"]);
+        // given
+        let lines = ["`impl:auth/login#1`", "", "Covers: feat#2.x"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert!(items[0].covers.is_empty());
         assert_eq!(problems.len(), 0);
         let defect = &items[0].defects[0];
@@ -1103,14 +1322,20 @@ mod tests {
 
     #[test]
     fn an_item_definition_ends_at_the_next_id_line_or_heading() {
-        let (items, _, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "Needs: impl:a#1",
             "`req:b#1`",
             "",
             "# Later heading",
             "Needs: impl:stray#1",
-        ]);
+        ];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].needs, ["impl:a#1"]);
         assert!(items[1].needs.is_empty());
@@ -1118,7 +1343,13 @@ mod tests {
 
     #[test]
     fn revisions_may_carry_up_to_three_semver_style_layers() {
-        let (items, problems, _) = parse(&["`req:a#1`", "", "`req:b#2.4`", "", "`req:c#2.4.0`"]);
+        // given
+        let lines = ["`req:a#1`", "", "`req:b#2.4`", "", "`req:c#2.4.0`"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         let ids: Vec<&str> = items.iter().map(|item| item.id.as_str()).collect();
         assert_eq!(ids, ["req:a#1", "req:b#2.4", "req:c#2.4.0"]);
@@ -1129,36 +1360,66 @@ mod tests {
 
     #[test]
     fn a_fourth_revision_layer_is_not_a_valid_id_definition() {
-        let (items, _, _) = parse(&["`req:a#1.2.3.4`"]);
+        // given
+        let lines = ["`req:a#1.2.3.4`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_revision_with_a_pre_release_appendix_is_not_a_valid_id_definition() {
-        let (items, _, _) = parse(&["`req:a#1.0.0-rc.1`"]);
+        // given
+        let lines = ["`req:a#1.0.0-rc.1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn group_paths_may_be_nested_arbitrarily_deep() {
-        let (items, _, _) = parse(&["`req:auth/session/login#1`"]);
+        // given
+        let lines = ["`req:auth/session/login#1`"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].id, "req:auth/session/login#1");
         assert_eq!(items[0].key, "req:auth/session/login");
     }
 
     #[test]
     fn a_line_that_is_not_only_an_id_does_not_define_an_item() {
-        let (items, _, _) = parse(&["The ID `req:a#1` mentioned in prose is not a definition."]);
+        // given
+        let lines = ["The ID `req:a#1` mentioned in prose is not a definition."];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn standalone_forwarding_line_plain_or_backticked_spaces_optional() {
-        let (items, _, forwards) = parse(&[
+        // given
+        let lines = [
             "[req:login#1 --> dsn:auth#2]",
             "",
             "`[req:logout#1-->dsn:auth#2]`",
-        ]);
+        ];
+
+        // when
+        let (items, _, forwards) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 0);
         assert_eq!(
             forwards,
@@ -1171,13 +1432,19 @@ mod tests {
 
     #[test]
     fn a_forwarding_line_inside_an_item_body_is_not_description() {
-        let (items, _, forwards) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "The description.",
             "[req:a#1 --> dsn:b#1]",
             "Still the description.",
-        ]);
+        ];
+
+        // when
+        let (items, _, forwards) = parse(&lines);
+
+        // then
         assert_eq!(
             items[0].description,
             ["The description.", "Still the description."]
@@ -1187,34 +1454,52 @@ mod tests {
 
     #[test]
     fn a_forwarding_mentioned_in_prose_is_not_recognized() {
-        let (_, _, forwards) = parse(&["The tag [req:a#1 --> dsn:b#1] in prose does not forward."]);
+        // given
+        let lines = ["The tag [req:a#1 --> dsn:b#1] in prose does not forward."];
+
+        // when
+        let (_, _, forwards) = parse(&lines);
+
+        // then
         assert_eq!(forwards.len(), 0);
     }
 
     #[test]
     fn needs_from_a_table_column_among_irrelevant_columns_ids_bare_or_backticked() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Feature | Needs | Owner |",
             "|---|---|---|",
             "| Login | `impl:a#1` | Alice |",
             "| Logout | utest:a#1 | Bob |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
     }
 
     #[test]
     fn one_table_may_feed_needs_covers_and_tags_columns_at_once() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs | Covers | Tags |",
             "| :--- | ----: | :-: |",
             "| impl:a#1 | feat:a#1 | Auth |",
             "| utest:a#1 | | Security |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
         assert_eq!(items[0].covers, ["feat:a#1"]);
@@ -1223,7 +1508,8 @@ mod tests {
 
     #[test]
     fn empty_and_missing_keyword_cells_are_skipped() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Feature | Needs |",
@@ -1231,21 +1517,32 @@ mod tests {
             "| Login | impl:a#1 |",
             "| Empty cell | |",
             "| Row too short |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1"]);
     }
 
     #[test]
     fn invalid_id_in_a_table_cell_is_a_defect_carrying_the_row_line() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs |",
             "|---|",
             "| impl:ok#1 |",
             "| not/valid |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].needs, ["impl:ok#1"]);
         assert_eq!(problems.len(), 0);
         let defect = &items[0].defects[0];
@@ -1260,13 +1557,19 @@ mod tests {
 
     #[test]
     fn a_wildcard_revision_is_accepted_in_a_needs_column_but_not_in_a_covers_column() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs | Covers |",
             "|---|---|",
             "| impl:a#2.x | feat:x#1.x |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].needs, ["impl:a#2.x"]);
         assert!(items[0].covers.is_empty());
         assert_eq!(problems.len(), 0);
@@ -1281,20 +1584,32 @@ mod tests {
 
     #[test]
     fn a_table_without_a_keyword_header_cell_stays_plain_text() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Feature | Owner |",
             "|---|---|",
             "| Login | impl:a#1 |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert!(items[0].needs.is_empty());
     }
 
     #[test]
     fn a_keyword_header_row_without_a_delimiter_row_is_not_a_table() {
-        let (items, problems, _) = parse(&["`req:a#1`", "", "| Needs |", "| impl:a#1 |"]);
+        // given
+        let lines = ["`req:a#1`", "", "| Needs |", "| impl:a#1 |"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert!(items[0].needs.is_empty());
     }
@@ -1303,14 +1618,20 @@ mod tests {
     // recognize them as well - only at least one pipe per row is required.
     #[test]
     fn keyword_table_without_leading_and_trailing_pipes() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "Feature | Needs | Owner",
             "--- | --- | ---",
             "Login | impl:a#1 | Alice",
             "Logout | utest:a#1 | Bob",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
     }
@@ -1319,7 +1640,8 @@ mod tests {
     // becomes the next item's title.
     #[test]
     fn a_keyword_table_ends_at_a_setext_heading_directly_below_it() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs |",
@@ -1328,7 +1650,12 @@ mod tests {
             "Next Title",
             "==========",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].needs, ["impl:a#1"]);
@@ -1341,7 +1668,8 @@ mod tests {
     // is swallowed the same way - a row of the item above, not a definition.
     #[test]
     fn an_underline_directly_under_a_table_is_a_row_filling_the_first_column_not_a_heading() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs |",
@@ -1350,7 +1678,12 @@ mod tests {
             "| impl:b#1 |",
             "===========",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         let defect = &items[0].defects[0];
         assert_eq!(defect.kind, "invalid-reference");
@@ -1368,7 +1701,8 @@ mod tests {
     // the keyword column) and no underline (the row above stays a row).
     #[test]
     fn a_thematic_break_directly_under_a_table_ends_it() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs | Covers |",
@@ -1376,7 +1710,12 @@ mod tests {
             "| impl:a#1 | feat:a#1 |",
             "---",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].id, "req:a#1");
@@ -1391,7 +1730,8 @@ mod tests {
     // nothing.
     #[test]
     fn a_row_shaped_line_below_a_thematic_break_is_not_part_of_the_table() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Feature | Needs |",
@@ -1399,7 +1739,12 @@ mod tests {
             "| Login | impl:a#1 |",
             "---",
             "| Logout | impl:b#1 |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1"]);
     }
@@ -1409,7 +1754,8 @@ mod tests {
     // table continues past it.
     #[test]
     fn a_dash_run_too_short_for_a_thematic_break_is_swallowed_as_a_row() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs |",
@@ -1417,7 +1763,12 @@ mod tests {
             "| impl:a#1 |",
             "--",
             "| impl:b#1 |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         let defect = &items[0].defects[0];
         assert_eq!(defect.kind, "invalid-reference");
@@ -1434,7 +1785,8 @@ mod tests {
     // blank line ends the table, keeping the ID below a definition.
     #[test]
     fn a_swallowed_underline_is_silent_when_the_first_column_is_not_a_keyword_column() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Feature | Needs |",
@@ -1443,7 +1795,12 @@ mod tests {
             "=================",
             "",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1"]);
         assert_eq!(items[1].title, None);
@@ -1453,7 +1810,8 @@ mod tests {
     // belong to the table and contribute their entries.
     #[test]
     fn a_table_continues_past_a_swallowed_underline() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Feature | Needs |",
@@ -1461,7 +1819,12 @@ mod tests {
             "| Login | impl:a#1 |",
             "===",
             "| Logout | impl:b#1 |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1", "impl:b#1"]);
     }
@@ -1472,7 +1835,8 @@ mod tests {
     // underline below is a row too.
     #[test]
     fn a_pipe_carrying_line_under_a_table_is_a_row_even_when_underlined() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs |",
@@ -1482,7 +1846,12 @@ mod tests {
             "=============",
             "",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         // Both `Next | Title` and the `====` run are rows of the table, not a
         // setext heading, so their first column is read as a Needs cell.
         // `Next` is a valid type on its own, so it completes to the
@@ -1506,7 +1875,8 @@ mod tests {
     // makes it a title nor terminates anything.
     #[test]
     fn an_informative_table_row_above_an_underline_is_not_a_heading() {
-        let (items, _, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "Description of a.",
             "",
@@ -1516,7 +1886,12 @@ mod tests {
             "=================",
             "",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].description, ["Description of a."]);
         assert_eq!(items[1].title, None);
@@ -1527,7 +1902,13 @@ mod tests {
     // informative.
     #[test]
     fn an_item_defined_inside_a_table_cell_is_flagged_and_creates_no_item() {
-        let (items, problems, _) = parse(&["| ID | Owner |", "|---|---|", "| `req:x#1` | Alice |"]);
+        // given
+        let lines = ["| ID | Owner |", "|---|---|", "| `req:x#1` | Alice |"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 0);
         assert_eq!(problems.len(), 1);
         assert_eq!(problems[0].line, 3);
@@ -1540,8 +1921,13 @@ mod tests {
     // there is an entry, never a flagged definition attempt.
     #[test]
     fn a_backticked_id_in_a_keyword_column_is_an_entry_not_a_flagged_definition() {
-        let (items, problems, _) =
-            parse(&["`req:a#1`", "", "| Needs |", "|---|", "| `impl:a#1` |"]);
+        // given
+        let lines = ["`req:a#1`", "", "| Needs |", "|---|", "| `impl:a#1` |"];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["impl:a#1"]);
     }
@@ -1549,13 +1935,19 @@ mod tests {
     // The flag also fires in the non-keyword columns of a keyword table.
     #[test]
     fn a_definition_shaped_cell_outside_the_keyword_columns_is_flagged() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Feature | Needs |",
             "|---|---|",
             "| `req:x#1` | impl:a#1 |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 1);
         assert!(
             problems[0]
@@ -1572,14 +1964,20 @@ mod tests {
     // flagged.
     #[test]
     fn an_id_line_directly_under_a_table_is_a_swallowed_row_not_a_definition() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Feature | Needs |",
             "|---|---|",
             "| Login | impl:a#1 |",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["impl:a#1"]);
         assert_eq!(problems.len(), 1);
@@ -1590,7 +1988,8 @@ mod tests {
 
     #[test]
     fn a_pipe_bearing_heading_ends_the_table_like_any_block_element() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "Needs |",
@@ -1598,7 +1997,12 @@ mod tests {
             "impl:a#1 |",
             "## Next | chapter",
             "`req:b#1`",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].needs, ["impl:a#1"]);
@@ -1608,20 +2012,27 @@ mod tests {
     // plain text; the tracer must agree with the rendered document.
     #[test]
     fn a_delimiter_row_with_a_mismatched_cell_count_is_not_a_table() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| A | Needs |",
             "|---|",
             "| x | impl:a#1 |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert!(items[0].needs.is_empty());
     }
 
     #[test]
     fn a_keyword_table_terminates_the_description_like_a_keyword_line() {
-        let (items, _, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "The description.",
@@ -1629,7 +2040,12 @@ mod tests {
             "|---|",
             "| impl:a#1 |",
             "Not description anymore.",
-        ]);
+        ];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         assert_eq!(items[0].description, ["The description."]);
         assert_eq!(items[0].needs, ["impl:a#1"]);
     }
@@ -1640,7 +2056,13 @@ mod tests {
 
     #[test]
     fn an_item_and_a_forwarding_record_the_column_of_their_construct() {
-        let (items, _, forwards) = parse(&["  `req:a#1`", "", "   [req:a#1 --> dsn:b#1]"]);
+        // given
+        let lines = ["  `req:a#1`", "", "   [req:a#1 --> dsn:b#1]"];
+
+        // when
+        let (items, _, forwards) = parse(&lines);
+
+        // then
         assert_eq!(items[0].line, 1);
         assert_eq!(items[0].character, 3); // the backtick, past two spaces
         assert_eq!(forwards, [forward("req:a#1", "dsn:b#1", 3, 4)]);
@@ -1648,7 +2070,13 @@ mod tests {
 
     #[test]
     fn a_setext_heading_item_definition_problem_points_at_the_id_backtick() {
-        let (_, problems, _) = parse(&["  `req:a#1`", "========="]);
+        // given
+        let lines = ["  `req:a#1`", "========="];
+
+        // when
+        let (_, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 1);
         assert!(
             problems[0]
@@ -1661,7 +2089,13 @@ mod tests {
 
     #[test]
     fn a_table_cell_item_definition_problem_points_at_the_cell_backtick() {
-        let (_, problems, _) = parse(&["| Col |", "|---|", "| `req:x#1` |"]);
+        // given
+        let lines = ["| Col |", "|---|", "| `req:x#1` |"];
+
+        // when
+        let (_, problems, _) = parse(&lines);
+
+        // then
         assert_eq!(problems.len(), 1);
         assert!(problems[0].message.contains("defined inside a table"));
         assert_eq!(problems[0].line, 3);
@@ -1670,7 +2104,13 @@ mod tests {
 
     #[test]
     fn an_invalid_inline_needs_entry_is_flagged_at_the_entry_column() {
-        let (items, _, _) = parse(&["`req:a#1`", "", "Needs: impl:ok#1, not/valid"]);
+        // given
+        let lines = ["`req:a#1`", "", "Needs: impl:ok#1, not/valid"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         let defect = &items[0].defects[0];
         assert!(defect.message.contains("\"not/valid\""));
         let location = defect.location.as_ref().unwrap();
@@ -1681,7 +2121,13 @@ mod tests {
 
     #[test]
     fn an_invalid_bullet_needs_entry_is_flagged_at_its_own_line_and_column() {
-        let (items, _, _) = parse(&["`req:a#1`", "", "Needs:", "  - not/valid"]);
+        // given
+        let lines = ["`req:a#1`", "", "Needs:", "  - not/valid"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         let defect = &items[0].defects[0];
         assert!(defect.message.contains("\"not/valid\""));
         let location = defect.location.as_ref().unwrap();
@@ -1691,7 +2137,13 @@ mod tests {
 
     #[test]
     fn an_invalid_needs_column_cell_is_flagged_at_the_cell_column() {
-        let (items, _, _) = parse(&["`req:a#1`", "", "| Needs |", "|---|", "| not/valid |"]);
+        // given
+        let lines = ["`req:a#1`", "", "| Needs |", "|---|", "| not/valid |"];
+
+        // when
+        let (items, _, _) = parse(&lines);
+
+        // then
         let defect = &items[0].defects[0];
         assert!(defect.message.contains("\"not/valid\" in the Needs column"));
         let location = defect.location.as_ref().unwrap();
