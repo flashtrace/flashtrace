@@ -217,39 +217,60 @@ mod tests {
     // plain-text and JSON reports carry it verbatim
     #[test]
     fn every_factory_words_its_message_as_expected() {
-        // when
-        let messages = [
-            invalid_reference("x y", "the Needs list", example_location()).message,
-            uncovered_need("impl:a#1").message,
-            uncovered_forward("dsn:a#1").message,
-            orphaned_cover("feat:a#1").message,
-            unwanted_cover("feat:a#1", "req:b#1").message,
-            unwanted_item("impl:a#1").message,
-            duplicate_id("req:a#1", 2).message,
-            duplicate_forwarding("req:a#1", 2, example_location()).message,
-            cyclic_forwarding(
-                "dsn:b#1",
-                "req:a#1 --> dsn:b#1 --> req:a#1",
-                example_location(),
-            )
-            .message,
+        // given
+        type Factory = fn() -> Defect;
+        let cases: [(Factory, &str); 9] = [
+            (
+                || invalid_reference("x y", "the Needs list", example_location()),
+                "invalid: \"x y\" in the Needs list is not a valid ID and is ignored",
+            ),
+            (
+                || uncovered_need("impl:a#1"),
+                "uncovered: needs impl:a#1, which does not exist",
+            ),
+            (
+                || uncovered_forward("dsn:a#1"),
+                "uncovered: forwards to dsn:a#1, which does not exist",
+            ),
+            (
+                || orphaned_cover("feat:a#1"),
+                "orphaned: covers feat:a#1, which does not exist",
+            ),
+            (
+                || unwanted_cover("feat:a#1", "req:b#1"),
+                "unwanted: covers feat:a#1, but feat:a#1 does not need req:b#1",
+            ),
+            (
+                || unwanted_item("impl:a#1"),
+                "unwanted: no item needs impl:a#1",
+            ),
+            (
+                || duplicate_id("req:a#1", 2),
+                "duplicate: ID req:a#1 is defined 2 times",
+            ),
+            (
+                || duplicate_forwarding("req:a#1", 2, example_location()),
+                "duplicate: forwarding for req:a#1 is declared 2 times",
+            ),
+            (
+                || {
+                    cyclic_forwarding(
+                        "dsn:b#1",
+                        "req:a#1 --> dsn:b#1 --> req:a#1",
+                        example_location(),
+                    )
+                },
+                "cyclic: forwards to dsn:b#1, closing the cycle req:a#1 --> dsn:b#1 --> req:a#1, so the forwarding has no effect",
+            ),
         ];
 
-        // then
-        assert_eq!(
-            messages,
-            [
-                "invalid: \"x y\" in the Needs list is not a valid ID and is ignored",
-                "uncovered: needs impl:a#1, which does not exist",
-                "uncovered: forwards to dsn:a#1, which does not exist",
-                "orphaned: covers feat:a#1, which does not exist",
-                "unwanted: covers feat:a#1, but feat:a#1 does not need req:b#1",
-                "unwanted: no item needs impl:a#1",
-                "duplicate: ID req:a#1 is defined 2 times",
-                "duplicate: forwarding for req:a#1 is declared 2 times",
-                "cyclic: forwards to dsn:b#1, closing the cycle req:a#1 --> dsn:b#1 --> req:a#1, so the forwarding has no effect",
-            ]
-        );
+        for (factory, expected) in cases {
+            // when
+            let defect = factory();
+
+            // then
+            assert_eq!(defect.message, expected);
+        }
     }
 
     #[test]
