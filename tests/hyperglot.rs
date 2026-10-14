@@ -139,14 +139,19 @@ fn where_of(fixture: &Fixture) -> String {
 
 #[test]
 fn every_known_code_extension_has_a_fixture() {
+    // given
     let fixtures = collect_fixtures();
     let by_extension = by_extension(&fixtures);
+
+    // when
     let mut missing: Vec<&str> = CODE_EXT
         .iter()
         .copied()
         .filter(|ext| !by_extension.contains_key(ext))
         .collect();
     missing.sort();
+
+    // then
     assert!(
         missing.is_empty(),
         "extensions flashtrace scans with no fixture in examples/hyperglot: {}. \
@@ -158,14 +163,19 @@ fn every_known_code_extension_has_a_fixture() {
 
 #[test]
 fn every_fixture_covers_a_known_code_extension() {
+    // given
     let fixtures = collect_fixtures();
     let known: HashSet<&str> = CODE_EXT.iter().copied().collect();
+
+    // when
     let mut stray: Vec<String> = fixtures
         .iter()
         .filter(|fixture| !known.contains(fixture.ext.as_str()))
         .map(where_of)
         .collect();
     stray.sort();
+
+    // then
     assert!(
         stray.is_empty(),
         "fixtures for extensions flashtrace does not scan: {}",
@@ -174,8 +184,11 @@ fn every_fixture_covers_a_known_code_extension() {
 }
 
 #[test]
-fn each_extension_has_exactly_one_fixture_named_after_it() {
+fn each_extension_has_exactly_one_fixture() {
+    // given
     let fixtures = collect_fixtures();
+
+    // when
     let mut counts: HashMap<&str, usize> = HashMap::new();
     for fixture in &fixtures {
         *counts.entry(fixture.ext.as_str()).or_insert(0) += 1;
@@ -186,12 +199,21 @@ fn each_extension_has_exactly_one_fixture_named_after_it() {
         .map(|(ext, _)| *ext)
         .collect();
     duplicated.sort();
+
+    // then
     assert!(
         duplicated.is_empty(),
         "extensions with more than one fixture: {}",
         duplicated.join(", ")
     );
+}
 
+#[test]
+fn each_fixture_is_named_after_its_extension() {
+    // given
+    let fixtures = collect_fixtures();
+
+    // when
     let mut misnamed: Vec<String> = fixtures
         .iter()
         .filter(|fixture| {
@@ -205,6 +227,8 @@ fn each_extension_has_exactly_one_fixture_named_after_it() {
         })
         .collect();
     misnamed.sort();
+
+    // then
     assert!(
         misnamed.is_empty(),
         "fixtures not named after their extension: {}",
@@ -214,30 +238,33 @@ fn each_extension_has_exactly_one_fixture_named_after_it() {
 
 #[test]
 fn extensions_are_grouped_by_shared_grammar_not_by_similarity() {
+    // given
     let fixtures = collect_fixtures();
     let by_extension = by_extension(&fixtures);
-    // grammar identity -> the folder it was first seen in
-    let mut folder_of: HashMap<usize, Option<String>> = HashMap::new();
     let mut sorted_ext: Vec<&str> = CODE_EXT.to_vec();
     sorted_ext.sort();
+
+    // when
+    // grammar identity -> the folder it was first seen in
+    let mut folder_of: HashMap<usize, Option<String>> = HashMap::new();
+    let mut misplaced: Vec<String> = Vec::new();
     for ext in sorted_ext {
         let Some(fixture) = by_extension.get(ext) else {
-            continue; // reported by the first test
+            continue; // reported by every_known_code_extension_has_a_fixture
         };
         let grammar = grammar_for(ext).unwrap();
         match folder_of.get(&grammar.identity()) {
             None => {
                 folder_of.insert(grammar.identity(), fixture.folder.clone());
             }
-            Some(seen) => {
-                assert_eq!(
-                    &fixture.folder,
-                    seen,
+            Some(seen) if *seen != fixture.folder => {
+                misplaced.push(format!(
                     "{ext} resolves to the same grammar as the {}/ fixtures but sits in {}/",
                     seen.clone().unwrap_or_default(),
                     fixture.folder.clone().unwrap_or_default()
-                );
+                ));
             }
+            Some(_) => {}
         }
     }
     // distinct grammars must not share a folder either, so a folder means one grammar
@@ -249,6 +276,9 @@ fn extensions_are_grouped_by_shared_grammar_not_by_similarity() {
         .map(|(_, folder)| (*folder).clone().unwrap_or_default())
         .collect();
     shared.sort();
+
+    // then
+    assert!(misplaced.is_empty(), "{}", misplaced.join("; "));
     assert!(
         shared.is_empty(),
         "folders holding more than one grammar: {}",
@@ -256,43 +286,63 @@ fn extensions_are_grouped_by_shared_grammar_not_by_similarity() {
     );
 }
 
+// The fixtures of known extensions with their grammars; the others are
+// reported by every_fixture_covers_a_known_code_extension.
+fn known_fixtures(fixtures: &[Fixture]) -> Vec<(&Fixture, Grammar)> {
+    by_extension(fixtures)
+        .into_iter()
+        .filter_map(|(ext, fixture)| grammar_for(ext).map(|grammar| (fixture, grammar)))
+        .collect()
+}
+
 #[test]
-fn each_fixture_writes_every_marker_and_defines_an_item_per_comment_form() {
+fn each_fixture_writes_every_marker_its_grammar_defines() {
+    // given
     let fixtures = collect_fixtures();
-    let known: HashSet<&str> = CODE_EXT.iter().copied().collect();
-    let mut short = Vec::new();
+
+    // when
     let mut unwritten = Vec::new();
-    for (ext, fixture) in by_extension(&fixtures) {
-        if !known.contains(ext) {
-            continue; // reported by the second test
-        }
-        let grammar = grammar_for(ext).unwrap();
-        let location = where_of(fixture);
-
-        let required = tags_required_by(grammar);
-        let mut problems = Vec::new();
-        let mut forwards = Vec::new();
-        let found = parse_code(&fixture.name, &fixture.text, &mut problems, &mut forwards).len();
-        if found < required {
-            short.push(format!("{location}: {found} of {required}"));
-        }
-
+    for (fixture, grammar) in known_fixtures(&fixtures) {
         let missing: Vec<&str> = markers_of(grammar)
             .into_iter()
             .filter(|marker| !fixture.text.contains(marker))
             .collect();
         if !missing.is_empty() {
+            let location = where_of(fixture);
             let markers = missing.join(" ");
             unwritten.push(format!("{location}: {markers}"));
         }
     }
     unwritten.sort();
+
+    // then
     assert!(
         unwritten.is_empty(),
         "fixtures never writing a marker their grammar defines: {}",
         unwritten.join("; ")
     );
+}
+
+#[test]
+fn each_fixture_defines_an_item_per_comment_form() {
+    // given
+    let fixtures = collect_fixtures();
+
+    // when
+    let mut short = Vec::new();
+    for (fixture, grammar) in known_fixtures(&fixtures) {
+        let required = tags_required_by(grammar);
+        let mut problems = Vec::new();
+        let mut forwards = Vec::new();
+        let found = parse_code(&fixture.name, &fixture.text, &mut problems, &mut forwards).len();
+        if found < required {
+            let location = where_of(fixture);
+            short.push(format!("{location}: {found} of {required}"));
+        }
+    }
     short.sort();
+
+    // then
     assert!(
         short.is_empty(),
         "fixtures defining fewer items than their grammar has comment forms \
