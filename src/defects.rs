@@ -179,7 +179,7 @@ mod tests {
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
     }
 
-    fn location() -> Location {
+    fn example_location() -> Location {
         Location {
             file: "f.md".to_string(),
             line: 2,
@@ -219,15 +219,20 @@ mod tests {
     fn every_factory_words_its_message_as_expected() {
         // when
         let messages = [
-            invalid_reference("x y", "the Needs list", location()).message,
+            invalid_reference("x y", "the Needs list", example_location()).message,
             uncovered_need("impl:a#1").message,
             uncovered_forward("dsn:a#1").message,
             orphaned_cover("feat:a#1").message,
             unwanted_cover("feat:a#1", "req:b#1").message,
             unwanted_item("impl:a#1").message,
             duplicate_id("req:a#1", 2).message,
-            duplicate_forwarding("req:a#1", 2, location()).message,
-            cyclic_forwarding("dsn:b#1", "req:a#1 --> dsn:b#1 --> req:a#1", location()).message,
+            duplicate_forwarding("req:a#1", 2, example_location()).message,
+            cyclic_forwarding(
+                "dsn:b#1",
+                "req:a#1 --> dsn:b#1 --> req:a#1",
+                example_location(),
+            )
+            .message,
         ];
 
         // then
@@ -250,7 +255,7 @@ mod tests {
     #[test]
     fn only_the_located_factories_carry_a_location() {
         // given
-        let location = location();
+        let location = example_location();
 
         // when
         let located = [
