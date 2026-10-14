@@ -1442,10 +1442,9 @@ mod tests {
     #[test]
     fn summarize_counts_in_the_documents_key_order() {
         // given
-        let (items, problems) = run_all(
-            &["`req:a#1`", "", "Needs: impl:a#1"],
-            &["// [impl:a#1]", "// [impl:stray#1]"],
-        );
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]", "// [impl:stray#1]"];
+        let (items, problems) = run_all(&md, &code);
 
         // when
         let summary = summarize(&items, &problems);
@@ -1469,7 +1468,9 @@ mod tests {
     #[test]
     fn is_clean_matches_a_summary_without_defects_or_problems() {
         // given
-        let (items, problems) = run_all(&["`req:a#1`", "", "Needs: impl:a#1"], &["// [impl:a#1]"]);
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]"];
+        let (items, problems) = run_all(&md, &code);
         let summary = summarize(&items, &problems);
 
         // when
@@ -1482,10 +1483,9 @@ mod tests {
     #[test]
     fn status_of_decides_the_one_label_both_reports_render() {
         // given
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#1"],
-            &["// [impl:a#1]", "// [impl:stray#1]"],
-        );
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]", "// [impl:stray#1]"];
+        let items = run(&md, &code);
 
         // when
         let covered = status_of(by_id(&items, "req:a#1"));

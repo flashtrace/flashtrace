@@ -506,7 +506,9 @@ mod tests {
     #[test]
     fn existing_revisions_serialize_before_the_message() {
         // given
-        let document = build(&["`req:a#1`", "", "Needs: impl:a#2"], &["// [impl:a#1]"]);
+        let md = ["`req:a#1`", "", "Needs: impl:a#2"];
+        let code = ["// [impl:a#1]"];
+        let document = build(&md, &code);
 
         // when
         let serialized = serialize_report_document(&document);
@@ -860,26 +862,23 @@ mod tests {
     #[test]
     fn building_the_document_twice_over_the_same_items_yields_the_same_bytes() {
         // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "Needs: impl:a#2.x",
+            "",
+            "`req:b#1`",
+            "",
+            "Needs: impl:a#2.x",
+        ];
+        let code = ["// [impl:a#2.10]", "// [impl:a#2.2]"];
         let mut problems = Vec::new();
         let mut forwards = Vec::new();
-        let mut items = parse_markdown(
-            "docs/spec.md",
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: impl:a#2.x",
-                "",
-                "`req:b#1`",
-                "",
-                "Needs: impl:a#2.x",
-            ]
-            .join("\n"),
-            &mut problems,
-            &mut forwards,
-        );
+        let mut items =
+            parse_markdown("docs/spec.md", &md.join("\n"), &mut problems, &mut forwards);
         items.extend(parse_code(
             "src/impl.js",
-            &["// [impl:a#2.10]", "// [impl:a#2.2]"].join("\n"),
+            &code.join("\n"),
             &mut problems,
             &mut forwards,
         ));
@@ -906,29 +905,26 @@ mod tests {
     #[test]
     fn items_forwards_and_problems_are_sorted_by_file_line_character() {
         // given
+        let md = [
+            "`req:b#1`",
+            "",
+            "`req:a#1`",
+            "",
+            "`dsn:x#1`",
+            "",
+            "`dsn:y#1`",
+            "",
+            "`[req:b#1 --> dsn:x#1]`",
+            "`[req:a#1 --> dsn:y#1]`",
+        ];
+        let code = ["// [>>utest:a#1] [>>utest:b#1]", "// [impl:c#1]"];
         let mut problems = Vec::new();
         let mut forwards = Vec::new();
-        let mut items = parse_markdown(
-            "docs/spec.md",
-            &[
-                "`req:b#1`",
-                "",
-                "`req:a#1`",
-                "",
-                "`dsn:x#1`",
-                "",
-                "`dsn:y#1`",
-                "",
-                "`[req:b#1 --> dsn:x#1]`",
-                "`[req:a#1 --> dsn:y#1]`",
-            ]
-            .join("\n"),
-            &mut problems,
-            &mut forwards,
-        );
+        let mut items =
+            parse_markdown("docs/spec.md", &md.join("\n"), &mut problems, &mut forwards);
         items.extend(parse_code(
             "src/impl.js",
-            &["// [>>utest:a#1] [>>utest:b#1]", "// [impl:c#1]"].join("\n"),
+            &code.join("\n"),
             &mut problems,
             &mut forwards,
         ));
@@ -982,7 +978,9 @@ mod tests {
     #[test]
     fn serialization_keeps_the_documented_key_order_and_indentation() {
         // given
-        let document = build(&["`req:a#1`", "", "Needs: impl:a#1"], &["// [impl:a#1]"]);
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]"];
+        let document = build(&md, &code);
 
         // when
         let serialized = serialize_report_document(&document);
