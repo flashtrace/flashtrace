@@ -179,21 +179,37 @@ mod tests {
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
     }
 
+    fn location() -> Location {
+        Location {
+            file: "f.md".to_string(),
+            line: 2,
+            character: 3,
+        }
+    }
+
     #[test]
     fn the_schema_lists_exactly_the_kinds_the_code_can_raise() {
+        // given
         let schema = schema();
+
+        // when
         let listed: Vec<&str> = schema["$defs"]["defect"]["properties"]["kind"]["enum"]
             .as_array()
             .unwrap()
             .iter()
             .map(|kind| kind.as_str().unwrap())
             .collect();
+
+        // then
         assert_eq!(listed, DEFECT_KINDS);
     }
 
     #[test]
     fn no_kind_is_spelled_twice() {
+        // when
         let unique: std::collections::HashSet<&str> = DEFECT_KINDS.into_iter().collect();
+
+        // then
         assert_eq!(unique.len(), DEFECT_KINDS.len());
     }
 
@@ -201,79 +217,67 @@ mod tests {
     // plain-text and JSON reports carry it verbatim
     #[test]
     fn every_factory_words_its_message_as_expected() {
-        let location = || Location {
-            file: "f.md".to_string(),
-            line: 2,
-            character: 3,
-        };
-        assert_eq!(
+        // when
+        let messages = [
             invalid_reference("x y", "the Needs list", location()).message,
-            "invalid: \"x y\" in the Needs list is not a valid ID and is ignored"
-        );
-        assert_eq!(
             uncovered_need("impl:a#1").message,
-            "uncovered: needs impl:a#1, which does not exist"
-        );
-        assert_eq!(
             uncovered_forward("dsn:a#1").message,
-            "uncovered: forwards to dsn:a#1, which does not exist"
-        );
-        assert_eq!(
             orphaned_cover("feat:a#1").message,
-            "orphaned: covers feat:a#1, which does not exist"
-        );
-        assert_eq!(
             unwanted_cover("feat:a#1", "req:b#1").message,
-            "unwanted: covers feat:a#1, but feat:a#1 does not need req:b#1"
-        );
-        assert_eq!(
             unwanted_item("impl:a#1").message,
-            "unwanted: no item needs impl:a#1"
-        );
-        assert_eq!(
             duplicate_id("req:a#1", 2).message,
-            "duplicate: ID req:a#1 is defined 2 times"
-        );
-        assert_eq!(
             duplicate_forwarding("req:a#1", 2, location()).message,
-            "duplicate: forwarding for req:a#1 is declared 2 times"
-        );
-        assert_eq!(
             cyclic_forwarding("dsn:b#1", "req:a#1 --> dsn:b#1 --> req:a#1", location()).message,
-            "cyclic: forwards to dsn:b#1, closing the cycle req:a#1 --> dsn:b#1 --> req:a#1, so the forwarding has no effect"
+        ];
+
+        // then
+        assert_eq!(
+            messages,
+            [
+                "invalid: \"x y\" in the Needs list is not a valid ID and is ignored",
+                "uncovered: needs impl:a#1, which does not exist",
+                "uncovered: forwards to dsn:a#1, which does not exist",
+                "orphaned: covers feat:a#1, which does not exist",
+                "unwanted: covers feat:a#1, but feat:a#1 does not need req:b#1",
+                "unwanted: no item needs impl:a#1",
+                "duplicate: ID req:a#1 is defined 2 times",
+                "duplicate: forwarding for req:a#1 is declared 2 times",
+                "cyclic: forwards to dsn:b#1, closing the cycle req:a#1 --> dsn:b#1 --> req:a#1, so the forwarding has no effect",
+            ]
         );
     }
 
     #[test]
     fn only_the_located_factories_carry_a_location() {
-        let location = Location {
-            file: "f.md".to_string(),
-            line: 2,
-            character: 3,
-        };
-        assert_eq!(
-            invalid_reference("x", "s", location.clone())
-                .location
-                .as_ref(),
-            Some(&location)
-        );
-        assert_eq!(
-            duplicate_forwarding("a", 2, location.clone())
-                .location
-                .as_ref(),
-            Some(&location)
-        );
-        assert_eq!(
-            cyclic_forwarding("a", "c", location.clone())
-                .location
-                .as_ref(),
-            Some(&location)
-        );
-        assert_eq!(uncovered_need("a").location, None);
-        assert_eq!(uncovered_forward("a").location, None);
-        assert_eq!(orphaned_cover("a").location, None);
-        assert_eq!(unwanted_cover("a", "b").location, None);
-        assert_eq!(unwanted_item("a").location, None);
-        assert_eq!(duplicate_id("a", 2).location, None);
+        // given
+        let location = location();
+
+        // when
+        let located = [
+            invalid_reference("x", "s", location.clone()),
+            duplicate_forwarding("a", 2, location.clone()),
+            cyclic_forwarding("a", "c", location.clone()),
+        ];
+        let unlocated = [
+            uncovered_need("a"),
+            uncovered_forward("a"),
+            orphaned_cover("a"),
+            unwanted_cover("a", "b"),
+            unwanted_item("a"),
+            duplicate_id("a", 2),
+        ];
+
+        // then
+        for defect in &located {
+            assert_eq!(
+                defect.location.as_ref(),
+                Some(&location),
+                "{}",
+                defect.message
+            );
+        }
+        for defect in &unlocated {
+            assert_eq!(defect.location, None, "{}", defect.message);
+        }
     }
 }
