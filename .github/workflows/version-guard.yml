@@ -128,6 +128,31 @@ jobs:
             }
           '
 
+      - name: Ensure the release-owned versions agree with each other
+        run: |
+          # The steps above block changing a version; this one checks the
+          # versions still name one release, since the bump counts up from
+          # Cargo.toml alone. The npm manifests stay out until the first
+          # release writes the version into them: until then they hold 0.0.0.
+          # Cargo.toml's package version, read as the release workflow bumps it.
+          cargo_toml=$(awk '{ sub(/\r$/, "") }
+            prev2 == "[package]" && prev1 == "name = \"flashtrace\"" && /^version = "[^"]*"$/ { found++; version = substr($0, 12, length($0) - 12) }
+            { prev2 = prev1; prev1 = $0 }
+            END { if (found == 1) print version }' Cargo.toml)
+          cargo_lock=$(awk '/^name = "flashtrace"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' Cargo.lock)
+          citation=$(sed -n 's|^version: *||p' CITATION.cff | sed 's|^"\(.*\)"$|\1|')
+          echo "Cargo.toml: $cargo_toml, Cargo.lock: $cargo_lock, CITATION.cff: $citation"
+          if [ -z "$cargo_toml" ]; then
+            echo '::error file=Cargo.toml::No version found in Cargo.toml.'
+            exit 1
+          fi
+          for found in "Cargo.lock:$cargo_lock" "CITATION.cff:$citation"; do
+            if [ "${found#*:}" != "$cargo_toml" ]; then
+              echo "::error file=${found%%:*}::Cargo.toml has version ${cargo_toml}, but ${found%%:*} has ${found#*:}. The release workflow keeps them in sync; restore the released version."
+              exit 1
+            fi
+          done
+
       - name: Ensure CITATION.cff release fields are unchanged
         run: |
           # Same rule as the version guard above (HEAD^1 is already verified):
