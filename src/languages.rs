@@ -394,62 +394,82 @@ mod tests {
 
     #[test]
     fn code_ext_and_the_grammar_table_are_two_views_of_one_map() {
+        // when
+        let unresolved: Vec<&str> = CODE_EXT
+            .iter()
+            .copied()
+            .filter(|ext| grammar_for(ext).is_none())
+            .collect();
+
+        // then
         assert_eq!(CODE_EXT.len(), BY_EXT.len());
-        for ext in CODE_EXT.iter() {
-            assert!(grammar_for(ext).is_some(), "{ext}");
-        }
-        assert!(grammar_for("md").is_none());
-        assert!(grammar_for("unknown").is_none());
-        assert!(grammar_for("").is_none());
+        assert!(unresolved.is_empty(), "{unresolved:?}");
+    }
+
+    #[test]
+    fn grammar_for_resolves_nothing_outside_the_code_extensions() {
+        // given
         // the table speaks Path::extension's dotless spelling only
-        assert!(grammar_for(".ts").is_none());
+        let extensions = ["md", "unknown", "", ".ts"];
+
+        for ext in extensions {
+            // when
+            let grammar = grammar_for(ext);
+
+            // then
+            assert!(grammar.is_none(), "{ext}");
+        }
     }
 
     #[test]
     fn no_extension_is_listed_twice() {
+        // when
         let unique: std::collections::HashSet<&str> = CODE_EXT.iter().copied().collect();
+
+        // then
         assert_eq!(unique.len(), CODE_EXT.len());
     }
 
     #[test]
     fn script_grammar_resolves_from_the_opening_tag() {
-        assert!(std::ptr::eq(script_grammar("<script>"), &C_LIKE));
-        assert!(std::ptr::eq(
-            script_grammar("<script setup lang=\"ts\">"),
-            &C_LIKE
-        ));
-        assert!(std::ptr::eq(
-            script_grammar("<script type=\"application/json\">"),
-            &NONE
-        ));
-        assert!(std::ptr::eq(
-            script_grammar("<script type=\"importmap\">"),
-            &NONE
-        ));
-        assert!(std::ptr::eq(
-            script_grammar("<script type=\"text/x-template\">"),
-            &XML
-        ));
-        assert!(std::ptr::eq(
-            script_grammar("<script lang=\"coffee\">"),
-            &COFFEE
-        ));
-        // the leading-whitespace guard: data-type is not type
-        assert!(std::ptr::eq(
-            script_grammar("<script data-type=\"json\">"),
-            &C_LIKE
-        ));
+        // given
+        let cases: [(&str, &Leaf); 7] = [
+            ("<script>", &C_LIKE),
+            ("<script setup lang=\"ts\">", &C_LIKE),
+            ("<script type=\"application/json\">", &NONE),
+            ("<script type=\"importmap\">", &NONE),
+            ("<script type=\"text/x-template\">", &XML),
+            ("<script lang=\"coffee\">", &COFFEE),
+            // the leading-whitespace guard: data-type is not type
+            ("<script data-type=\"json\">", &C_LIKE),
+        ];
+
+        for (tag, expected) in cases {
+            // when
+            let grammar = script_grammar(tag);
+
+            // then
+            assert!(std::ptr::eq(grammar, expected), "{tag}");
+        }
     }
 
     #[test]
     fn style_grammar_resolves_from_the_opening_tag() {
-        assert!(std::ptr::eq(style_grammar("<style>"), &CSS));
-        assert!(std::ptr::eq(style_grammar("<style scoped>"), &CSS));
+        // given
+        let mut cases: Vec<(String, &Leaf)> = vec![
+            ("<style>".to_string(), &CSS),
+            ("<style scoped>".to_string(), &CSS),
+        ];
         for lang in ["scss", "sass", "less", "stylus", "styl"] {
-            assert!(
-                std::ptr::eq(style_grammar(&format!("<style lang=\"{lang}\">")), &C_LIKE),
-                "{lang}"
-            );
+            cases.push((format!("<style lang=\"{lang}\">"), &C_LIKE));
+        }
+
+        for (tag, expected) in cases {
+            // when
+            let grammar = style_grammar(&tag);
+
+            // then
+            assert!(std::ptr::eq(grammar, expected), "{tag}");
         }
     }
 }
