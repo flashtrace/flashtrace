@@ -86,34 +86,57 @@ mod tests {
         new_item("req:owner#1", Origin::Spec, "f.md", 1, 1)
     }
 
+    fn entry(value: &str, line: usize, character: usize) -> Entry {
+        Entry {
+            value: value.to_string(),
+            line,
+            character,
+        }
+    }
+
     // KEYWORDS is the vocabulary, but apply_keyword still spells out each
     // keyword's behaviour; a keyword the vocabulary admits but no handler
     // routes must not slip in.
     #[test]
     fn apply_keyword_handles_every_keyword_in_the_vocabulary() {
+        // given
         // dispatch happens before any entry is read, so empty entries
         // suffice: an unhandled keyword panics without needing valid IDs
+        let entries: &[Entry] = &[];
+
         for keyword in KEYWORDS {
-            apply_keyword(&mut item(), keyword, &[], "f.md", "test");
+            // when
+            apply_keyword(&mut item(), keyword, entries, "f.md", "test");
+
+            // then
+            // reaching this point means the keyword did not panic
         }
     }
 
     #[test]
     #[should_panic(expected = "no handling for keyword \"Blocks\"")]
     fn apply_keyword_panics_on_a_keyword_it_has_no_handling_for() {
+        // given
         // a word outside KEYWORDS must fail loudly, never fall through to Covers
-        apply_keyword(&mut item(), "Blocks", &[], "f.md", "test");
+        let keyword = "Blocks";
+
+        // when
+        apply_keyword(&mut item(), keyword, &[], "f.md", "test");
+
+        // then
+        // the should_panic attribute asserts the panic message
     }
 
     #[test]
     fn tags_entries_are_taken_verbatim() {
+        // given
         let mut item = item();
-        let entry = Entry {
-            value: "draft".to_string(),
-            line: 1,
-            character: 1,
-        };
+        let entry = entry("draft", 1, 1);
+
+        // when
         apply_keyword(&mut item, "Tags", &[entry], "f.md", "test");
+
+        // then
         assert_eq!(item.tags, ["draft"]);
     }
 
@@ -121,26 +144,28 @@ mod tests {
     // that looks like an invalid ID must still be stored, never flagged.
     #[test]
     fn tags_take_a_value_verbatim_without_validating_it_as_an_id() {
+        // given
         let mut item = item();
-        let entry = Entry {
-            value: "not an id".to_string(),
-            line: 1,
-            character: 1,
-        };
+        let entry = entry("not an id", 1, 1);
+
+        // when
         apply_keyword(&mut item, "Tags", &[entry], "f.md", "test");
+
+        // then
         assert_eq!(item.tags, ["not an id"]);
         assert!(item.defects.is_empty());
     }
 
     #[test]
     fn needs_and_covers_flag_an_invalid_entry_at_its_own_position() {
+        // given
         let mut item = item();
-        let entry = Entry {
-            value: "not an id".to_string(),
-            line: 4,
-            character: 9,
-        };
+        let entry = entry("not an id", 4, 9);
+
+        // when
         apply_keyword(&mut item, "Needs", &[entry], "f.md", "the Needs list");
+
+        // then
         assert!(item.needs.is_empty());
         assert_eq!(item.defects.len(), 1);
         assert_eq!(item.defects[0].kind, "invalid-reference");
@@ -150,29 +175,16 @@ mod tests {
 
     #[test]
     fn needs_and_covers_complete_against_the_stating_item() {
+        // given
         let mut item = item();
-        apply_keyword(
-            &mut item,
-            "Needs",
-            &[Entry {
-                value: "impl#2".to_string(),
-                line: 2,
-                character: 1,
-            }],
-            "f.md",
-            "test",
-        );
-        apply_keyword(
-            &mut item,
-            "Covers",
-            &[Entry {
-                value: "feat".to_string(),
-                line: 3,
-                character: 1,
-            }],
-            "f.md",
-            "test",
-        );
+        let need = entry("impl#2", 2, 1);
+        let cover = entry("feat", 3, 1);
+
+        // when
+        apply_keyword(&mut item, "Needs", &[need], "f.md", "test");
+        apply_keyword(&mut item, "Covers", &[cover], "f.md", "test");
+
+        // then
         assert_eq!(item.needs, ["impl:owner#2"]);
         assert_eq!(item.covers, ["feat:owner#1"]);
     }

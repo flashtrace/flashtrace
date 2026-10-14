@@ -607,14 +607,17 @@ mod tests {
 
     #[test]
     fn line_comment_item_tag_with_attached_need_tag() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &[
-                "// [impl:auth/login#1]",
-                "// [>>utest:auth/login#1]",
-                "export function login() {}",
-            ],
-        );
+        // given
+        let lines = [
+            "// [impl:auth/login#1]",
+            "// [>>utest:auth/login#1]",
+            "export function login() {}",
+        ];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:auth/login#1");
@@ -625,7 +628,13 @@ mod tests {
 
     #[test]
     fn need_tag_without_a_preceding_item_tag_is_a_problem() {
-        let (items, problems, _) = parse("src.ts", &["// [>>utest:a#1]"]);
+        // given
+        let lines = ["// [>>utest:a#1]"];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
         assert_eq!(problems.len(), 1);
         assert!(problems[0].message.contains("no preceding item tag"));
@@ -633,18 +642,21 @@ mod tests {
 
     #[test]
     fn explicit_need_tag_attaches_to_the_named_item_not_the_nearest_one() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &[
-                "// [impl:some-name#1]",
-                "function fn() {",
-                "  // [impl:in-between-link#1]",
-                "  const x = 1;",
-                "  // [impl:some-name#1>>impl:anotherFunc#1]",
-                "  anotherFunc();",
-                "}",
-            ],
-        );
+        // given
+        let lines = [
+            "// [impl:some-name#1]",
+            "function fn() {",
+            "  // [impl:in-between-link#1]",
+            "  const x = 1;",
+            "  // [impl:some-name#1>>impl:anotherFunc#1]",
+            "  anotherFunc();",
+            "}",
+        ];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].needs, ["impl:anotherFunc#1"]);
@@ -653,23 +665,31 @@ mod tests {
 
     #[test]
     fn explicit_need_tag_allows_spaces_around_the_attachment_arrow() {
-        let (items, problems, _) =
-            parse("src.ts", &["// [impl:a#1]", "// [ impl:a#1 >> utest:a#1 ]"]);
+        // given
+        let lines = ["// [impl:a#1]", "// [ impl:a#1 >> utest:a#1 ]"];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["utest:a#1"]);
     }
 
     #[test]
     fn explicit_need_tag_does_not_move_the_anchor_for_later_implicit_tags() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &[
-                "// [impl:a#1]",
-                "// [impl:b#1]",
-                "// [impl:a#1>>utest:a#1]",
-                "// [>>utest:b#1]",
-            ],
-        );
+        // given
+        let lines = [
+            "// [impl:a#1]",
+            "// [impl:b#1]",
+            "// [impl:a#1>>utest:a#1]",
+            "// [>>utest:b#1]",
+        ];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["utest:a#1"]);
         assert_eq!(items[1].needs, ["utest:b#1"]);
@@ -677,10 +697,13 @@ mod tests {
 
     #[test]
     fn explicit_need_tag_without_a_matching_preceding_item_tag_is_a_problem() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &["// [impl:a#1]", "// [impl:other#1>>utest:other#1]"],
-        );
+        // given
+        let lines = ["// [impl:a#1]", "// [impl:other#1>>utest:other#1]"];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert!(items[0].needs.is_empty());
         assert_eq!(problems.len(), 1);
@@ -693,16 +716,19 @@ mod tests {
 
     #[test]
     fn a_need_tag_may_reference_a_wildcard_revision() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &[
-                "// [impl:a#1]",
-                "// [>>utest:a#2.x]",
-                "// [impl:a#1 >> utest:b#2.3.x]",
-                "// [>>utest:c#*]",
-                "// [impl:a#1 >> utest:d#x]",
-            ],
-        );
+        // given
+        let lines = [
+            "// [impl:a#1]",
+            "// [>>utest:a#2.x]",
+            "// [impl:a#1 >> utest:b#2.3.x]",
+            "// [>>utest:c#*]",
+            "// [impl:a#1 >> utest:d#x]",
+        ];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(
             items[0].needs,
@@ -712,31 +738,43 @@ mod tests {
 
     #[test]
     fn an_explicit_need_tag_may_spell_its_anchor_with_a_semver_equal_revision() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &["// [impl:a#1]", "// [impl:a#1.0.0 >> utest:a#2]"],
-        );
+        // given
+        let lines = ["// [impl:a#1]", "// [impl:a#1.0.0 >> utest:a#2]"];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["utest:a#2"]);
     }
 
     #[test]
     fn a_wildcard_revision_is_not_accepted_in_an_item_tag() {
-        let (items, _, _) = parse("src.ts", &["// [impl:a#2.x]"]);
+        // given
+        let lines = ["// [impl:a#2.x]"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_short_form_need_target_takes_name_and_revision_from_the_anchor_item() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &[
-                "// [impl:auth/login#2]",
-                "// [>>utest]",
-                "// [>>utest#3]",
-                "// [>>dsn:auth/audit]",
-            ],
-        );
+        // given
+        let lines = [
+            "// [impl:auth/login#2]",
+            "// [>>utest]",
+            "// [>>utest#3]",
+            "// [>>dsn:auth/audit]",
+        ];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         // utest -> both taken; utest#3 -> name taken; dsn:auth/audit ->
         // revision taken
@@ -752,15 +790,18 @@ mod tests {
 
     #[test]
     fn an_explicit_short_form_need_target_is_completed_from_the_named_source_item() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &[
-                "// [impl:a#1]",
-                "// [impl:b#1]",
-                "// [impl:a#1 >> utest#2.x]",
-                "// [impl:b#1 >> utest]",
-            ],
-        );
+        // given
+        let lines = [
+            "// [impl:a#1]",
+            "// [impl:b#1]",
+            "// [impl:a#1 >> utest#2.x]",
+            "// [impl:b#1 >> utest]",
+        ];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items[0].needs, ["utest:a#2.x"]);
         assert_eq!(items[1].needs, ["utest:b#1"]);
@@ -768,7 +809,13 @@ mod tests {
 
     #[test]
     fn a_short_form_need_tag_without_a_preceding_item_tag_is_a_problem() {
-        let (items, problems, _) = parse("src.ts", &["// [>>utest]"]);
+        // given
+        let lines = ["// [>>utest]"];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
         assert_eq!(problems.len(), 1);
         assert!(
@@ -780,113 +827,164 @@ mod tests {
 
     #[test]
     fn a_short_form_reference_is_not_accepted_in_an_item_tag() {
-        let (items, problems, _) = parse("src.ts", &["// [impl#1]", "// [impl]"]);
+        // given
+        let lines = ["// [impl#1]", "// [impl]"];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
         assert_eq!(problems.len(), 0);
     }
 
     #[test]
     fn tags_outside_comments_are_ignored() {
-        let (items, _, _) = parse("src.ts", &["const s = \"[impl:a#1]\";"]);
+        // given
+        let lines = ["const s = \"[impl:a#1]\";"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_double_slash_inside_a_url_does_not_open_a_comment_a_later_real_one_does() {
-        let (items, _, _) = parse(
-            "src.ts",
-            &[
-                "const docs = \"https://example.com/specs\"; // [impl:real#1]",
-                "const api = \"https://example.com/api\"; register(\"[impl:phantom#1]\");",
-            ],
-        );
+        // given
+        let lines = [
+            "const docs = \"https://example.com/specs\"; // [impl:real#1]",
+            "const api = \"https://example.com/api\"; register(\"[impl:phantom#1]\");",
+        ];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:real#1"]);
     }
 
     #[test]
     fn a_hash_fragment_in_a_url_does_not_open_a_comment() {
-        let (items, _, _) = parse(
-            "app.py",
-            &["link = \"https://example.com/docs#setup [impl:phantom#1]\"  # [impl:real#1]"],
-        );
+        // given
+        let lines = ["link = \"https://example.com/docs#setup [impl:phantom#1]\"  # [impl:real#1]"];
+
+        // when
+        let (items, _, _) = parse("app.py", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:real#1"]);
     }
 
     #[test]
     fn a_dash_dash_in_a_url_path_does_not_open_a_comment() {
-        let (items, _, _) = parse(
-            "schema.sql",
-            &["INSERT INTO links VALUES ('https://example.com/a--b'); -- [impl:real#1]"],
-        );
+        // given
+        let lines = ["INSERT INTO links VALUES ('https://example.com/a--b'); -- [impl:real#1]"];
+
+        // when
+        let (items, _, _) = parse("schema.sql", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:real#1"]);
     }
 
     #[test]
     fn a_block_opener_inside_a_url_does_not_open_a_block_comment() {
-        let (items, _, _) = parse(
-            "src.ts",
-            &[
-                "const glob = \"https://example.com/*/index\";",
-                "const s = \"[impl:phantom#1]\";",
-            ],
-        );
+        // given
+        let lines = [
+            "const glob = \"https://example.com/*/index\";",
+            "const s = \"[impl:phantom#1]\";",
+        ];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_url_in_an_embedded_script_string_does_not_define_a_phantom_item() {
-        let (items, _, _) = parse(
-            "page.html",
-            &[
-                "<script>",
-                "const u = \"https://cdn.example.com/lib.js\"; run(\"[impl:phantom#1]\");",
-                "</script>",
-            ],
-        );
+        // given
+        let lines = [
+            "<script>",
+            "const u = \"https://cdn.example.com/lib.js\"; run(\"[impl:phantom#1]\");",
+            "</script>",
+        ];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_url_inside_a_comment_does_not_hide_a_tag_after_it() {
-        let (items, _, _) = parse("src.ts", &["// see https://example.com/spec [impl:real#1]"]);
+        // given
+        let lines = ["// see https://example.com/spec [impl:real#1]"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:real#1"]);
     }
 
     #[test]
     fn a_comment_opener_glued_to_a_scheme_shaped_token_is_missed_known_limitation() {
-        let (items, _, _) = parse("src.ts", &["const x = 1; note://[impl:missed#1]"]);
+        // given
+        let lines = ["const x = 1; note://[impl:missed#1]"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_block_closer_inside_a_url_still_closes_an_open_block_comment() {
+        // given
         // Block *closers* are honoured inside URLs (unlike openers): the `*/`
         // in the URL ends the block, so the following line is scanned as
         // code, not comment.
-        let (items, _, _) = parse(
-            "src.ts",
-            &[
-                "/* see https://example.com/a*/b",
-                "const s = \"[impl:phantom#1]\";",
-            ],
-        );
+        let lines = [
+            "/* see https://example.com/a*/b",
+            "const s = \"[impl:phantom#1]\";",
+        ];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn markers_in_multiple_urls_on_one_line_are_all_skipped_a_trailing_real_comment_opens() {
-        let (items, _, _) = parse(
-            "src.ts",
-            &[
-                "const a = \"https://x.example/p\"; const b = \"https://y.example/q\"; // [impl:real#1]",
-            ],
-        );
+        // given
+        let lines = [
+            "const a = \"https://x.example/p\"; const b = \"https://y.example/q\"; // [impl:real#1]",
+        ];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:real#1"]);
     }
 
     #[test]
     fn multi_line_block_comment_one_tag_per_line() {
-        let (items, _, _) = parse("src.ts", &["/*", " [impl:a#1]", " [>>utest:a#1]", "*/"]);
+        // given
+        let lines = ["/*", " [impl:a#1]", " [>>utest:a#1]", "*/"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].line, 2);
         assert_eq!(items[0].needs, ["utest:a#1"]);
@@ -894,29 +992,41 @@ mod tests {
 
     #[test]
     fn multiple_tags_in_one_comment_line() {
-        let (items, _, _) = parse("src.ts", &["// [impl:a#1] [>>utest:a#1]"]);
+        // given
+        let lines = ["// [impl:a#1] [>>utest:a#1]"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:a#1"]);
     }
 
     #[test]
     fn non_nesting_block_comment_closes_at_the_first_closer() {
-        let (items, _, _) = parse(
-            "src.ts",
-            &["/* [impl:a#1] /* still-comment */ [impl:code-not-tag#1] */"],
-        );
+        // given
+        let lines = ["/* [impl:a#1] /* still-comment */ [impl:code-not-tag#1] */"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:a#1"]);
     }
 
     #[test]
     fn nested_block_comments_close_only_at_the_matching_closer() {
-        let (items, _, _) = parse(
-            "lib.rs",
-            &[
-                "/* [impl:outer#1] /* [impl:inner#1] */ [impl:still#1] */",
-                "let x = \"[impl:code-not-tag#1]\";",
-            ],
-        );
+        // given
+        let lines = [
+            "/* [impl:outer#1] /* [impl:inner#1] */ [impl:still#1] */",
+            "let x = \"[impl:code-not-tag#1]\";",
+        ];
+
+        // when
+        let (items, _, _) = parse("lib.rs", &lines);
+
+        // then
         assert_eq!(
             ids(&items),
             ["impl:outer#1", "impl:inner#1", "impl:still#1"]
@@ -925,17 +1035,20 @@ mod tests {
 
     #[test]
     fn nested_block_comment_spanning_multiple_lines() {
-        let (items, _, _) = parse(
-            "View.swift",
-            &[
-                "/* [impl:a#1]",
-                "   /* nested",
-                "   [impl:b#1] */",
-                "   [impl:c#1]",
-                "*/",
-                "let d = 1 // [impl:e#1]",
-            ],
-        );
+        // given
+        let lines = [
+            "/* [impl:a#1]",
+            "   /* nested",
+            "   [impl:b#1] */",
+            "   [impl:c#1]",
+            "*/",
+            "let d = 1 // [impl:e#1]",
+        ];
+
+        // when
+        let (items, _, _) = parse("View.swift", &lines);
+
+        // then
         assert_eq!(
             ids(&items),
             ["impl:a#1", "impl:b#1", "impl:c#1", "impl:e#1"]
@@ -944,40 +1057,55 @@ mod tests {
 
     #[test]
     fn sql_uses_dash_dash_comments_and_does_not_honour_double_slash() {
-        let (items, _, _) = parse(
-            "schema.sql",
-            &["-- [impl:db/schema#1]", "SELECT '// [impl:not-a-tag#1]';"],
-        );
+        // given
+        let lines = ["-- [impl:db/schema#1]", "SELECT '// [impl:not-a-tag#1]';"];
+
+        // when
+        let (items, _, _) = parse("schema.sql", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:db/schema#1"]);
     }
 
     #[test]
     fn hash_comment_languages_recognise_hash_tags() {
-        let (items, _, _) = parse(
-            "app.py",
-            &[
-                "# [impl:app/main#1]",
-                "x = \"// [impl:not-a-tag#1]\"  # not a comment tag context",
-            ],
-        );
+        // given
+        let lines = [
+            "# [impl:app/main#1]",
+            "x = \"// [impl:not-a-tag#1]\"  # not a comment tag context",
+        ];
+
+        // when
+        let (items, _, _) = parse("app.py", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:app/main#1"]);
     }
 
     #[test]
     fn c_like_extras_use_both_comment_forms() {
-        let (items, _, _) = parse(
-            "main.go",
-            &["// [impl:svc/run#1]", "/* [>>utest:svc/run#1] */"],
-        );
+        // given
+        let lines = ["// [impl:svc/run#1]", "/* [>>utest:svc/run#1] */"];
+
+        // when
+        let (items, _, _) = parse("main.go", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:svc/run#1"]);
     }
 
     #[test]
     fn c_like_extras_groovy_solidity_cxx_use_both_comment_forms() {
-        for file in ["build.gradle", "app.groovy", "Token.sol", "engine.cxx"] {
-            let (items, problems, _) =
-                parse(file, &["// [impl:x/run#1]", "/* [>>utest:x/run#1] */"]);
+        // given
+        let files = ["build.gradle", "app.groovy", "Token.sol", "engine.cxx"];
+        let lines = ["// [impl:x/run#1]", "/* [>>utest:x/run#1] */"];
+
+        for file in files {
+            // when
+            let (items, problems, _) = parse(file, &lines);
+
+            // then
             assert_eq!(problems.len(), 0, "{file}");
             assert_eq!(items.len(), 1, "{file}");
             assert_eq!(items[0].needs, ["utest:x/run#1"], "{file}");
@@ -986,14 +1114,17 @@ mod tests {
 
     #[test]
     fn php_accepts_both_line_comment_forms_and_blocks() {
-        let (items, _, _) = parse(
-            "index.php",
-            &[
-                "// [impl:php/a#1]",
-                "# [impl:php/b#1]",
-                "/* [impl:php/c#1] */",
-            ],
-        );
+        // given
+        let lines = [
+            "// [impl:php/a#1]",
+            "# [impl:php/b#1]",
+            "/* [impl:php/c#1] */",
+        ];
+
+        // when
+        let (items, _, _) = parse("index.php", &lines);
+
+        // then
         assert_eq!(
             ids(&items),
             ["impl:php/a#1", "impl:php/b#1", "impl:php/c#1"]
@@ -1002,11 +1133,15 @@ mod tests {
 
     #[test]
     fn hash_comment_extras_crystal_gdscript_awk_recognise_hash_tags() {
-        for file in ["app.cr", "player.gd", "report.awk"] {
-            let (items, problems, _) = parse(
-                file,
-                &["# [impl:app/main#1]", "x = \"// [impl:not-a-tag#1]\""],
-            );
+        // given
+        let files = ["app.cr", "player.gd", "report.awk"];
+        let lines = ["# [impl:app/main#1]", "x = \"// [impl:not-a-tag#1]\""];
+
+        for file in files {
+            // when
+            let (items, problems, _) = parse(file, &lines);
+
+            // then
             assert_eq!(problems.len(), 0, "{file}");
             assert_eq!(ids(&items), ["impl:app/main#1"], "{file}");
         }
@@ -1014,29 +1149,35 @@ mod tests {
 
     #[test]
     fn cmake_uses_hash_line_and_bracket_block_comments() {
-        let (items, _, _) = parse(
-            "build.cmake",
-            &["# [impl:cmake/mod#1]", "#[[ [>>utest:cmake/mod#1] ]]"],
-        );
+        // given
+        let lines = ["# [impl:cmake/mod#1]", "#[[ [>>utest:cmake/mod#1] ]]"];
+
+        // when
+        let (items, _, _) = parse("build.cmake", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:cmake/mod#1"]);
     }
 
     #[test]
     fn cmake_bracket_block_comment_opens_and_spans_multiple_lines() {
+        // given
         // #[[ shares its prefix with the # line marker; the block opener must
         // win the tie, otherwise the block never opens and the inner tags are
         // missed.
-        let (items, _, _) = parse(
-            "build.cmake",
-            &[
-                "#[[",
-                "  [impl:cmake/block#1]",
-                "  [>>utest:cmake/block#1]",
-                "]]",
-                "add_executable(app main.c)",
-            ],
-        );
+        let lines = [
+            "#[[",
+            "  [impl:cmake/block#1]",
+            "  [>>utest:cmake/block#1]",
+            "]]",
+            "add_executable(app main.c)",
+        ];
+
+        // when
+        let (items, _, _) = parse("build.cmake", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:cmake/block#1");
         assert_eq!(items[0].needs, ["utest:cmake/block#1"]);
@@ -1044,29 +1185,35 @@ mod tests {
 
     #[test]
     fn lua_uses_dash_line_and_bracket_block_comments() {
-        let (items, _, _) = parse(
-            "mod.lua",
-            &["-- [impl:lua/mod#1]", "--[[ [>>utest:lua/mod#1] ]]"],
-        );
+        // given
+        let lines = ["-- [impl:lua/mod#1]", "--[[ [>>utest:lua/mod#1] ]]"];
+
+        // when
+        let (items, _, _) = parse("mod.lua", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:lua/mod#1"]);
     }
 
     #[test]
     fn lua_bracket_block_comment_opens_and_spans_multiple_lines() {
+        // given
         // --[[ shares its prefix with the -- line marker; the block opener
         // must win the tie, otherwise the block never opens and the inner
         // tags are missed.
-        let (items, _, _) = parse(
-            "mod.lua",
-            &[
-                "--[[",
-                "  [impl:lua/block#1]",
-                "  [>>utest:lua/block#1]",
-                "]]",
-                "print(\"done\")",
-            ],
-        );
+        let lines = [
+            "--[[",
+            "  [impl:lua/block#1]",
+            "  [>>utest:lua/block#1]",
+            "]]",
+            "print(\"done\")",
+        ];
+
+        // when
+        let (items, _, _) = parse("mod.lua", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:lua/block#1");
         assert_eq!(items[0].needs, ["utest:lua/block#1"]);
@@ -1074,29 +1221,35 @@ mod tests {
 
     #[test]
     fn coffeescript_uses_hash_line_and_triple_hash_block_comments() {
-        let (items, _, _) = parse(
-            "app.coffee",
-            &["# [impl:cs/app#1]", "### [>>utest:cs/app#1] ###"],
-        );
+        // given
+        let lines = ["# [impl:cs/app#1]", "### [>>utest:cs/app#1] ###"];
+
+        // when
+        let (items, _, _) = parse("app.coffee", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:cs/app#1"]);
     }
 
     #[test]
     fn coffeescript_triple_hash_block_comment_opens_and_spans_multiple_lines() {
+        // given
         // ### shares its prefix with the # line marker; the block opener must
         // win the tie, otherwise the block never opens and the inner tags are
         // missed.
-        let (items, _, _) = parse(
-            "app.coffee",
-            &[
-                "###",
-                "  [impl:cs/block#1]",
-                "  [>>utest:cs/block#1]",
-                "###",
-                "run()",
-            ],
-        );
+        let lines = [
+            "###",
+            "  [impl:cs/block#1]",
+            "  [>>utest:cs/block#1]",
+            "###",
+            "run()",
+        ];
+
+        // when
+        let (items, _, _) = parse("app.coffee", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:cs/block#1");
         assert_eq!(items[0].needs, ["utest:cs/block#1"]);
@@ -1104,57 +1257,69 @@ mod tests {
 
     #[test]
     fn coffeescript_quadruple_hash_heading_is_a_line_comment_not_a_block_opener() {
+        // given
         // The language opens a block on ### only when no further # follows,
         // so this heading must not open one and leave the code below scanned
         // as comment text.
-        let (items, _, _) = parse(
-            "app.coffee",
-            &["#### Section", "[impl:cs/heading#1]", "run()"],
-        );
+        let lines = ["#### Section", "[impl:cs/heading#1]", "run()"];
+
+        // when
+        let (items, _, _) = parse("app.coffee", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn coffeescript_hash_divider_is_a_line_comment_not_a_block_opener() {
-        let (items, _, _) = parse(
-            "app.coffee",
-            &[
-                "# [impl:cs/divider#1]",
-                "##########",
-                "### [>>utest:cs/divider#1] ###",
-            ],
-        );
+        // given
+        let lines = [
+            "# [impl:cs/divider#1]",
+            "##########",
+            "### [>>utest:cs/divider#1] ###",
+        ];
+
+        // when
+        let (items, _, _) = parse("app.coffee", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:cs/divider#1"]);
     }
 
     #[test]
     fn julia_uses_hash_line_and_hash_equals_block_comments_which_nest() {
-        let (items, _, _) = parse(
-            "mod.jl",
-            &[
-                "# [impl:jl/mod#1]",
-                "#= outer #= inner =# [>>utest:jl/mod#1] =#",
-            ],
-        );
+        // given
+        let lines = [
+            "# [impl:jl/mod#1]",
+            "#= outer #= inner =# [>>utest:jl/mod#1] =#",
+        ];
+
+        // when
+        let (items, _, _) = parse("mod.jl", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:jl/mod#1"]);
     }
 
     #[test]
     fn julia_block_comment_opens_and_spans_multiple_lines() {
+        // given
         // #= shares its prefix with the # line marker; the block opener must
         // win the tie for the block to open.
-        let (items, _, _) = parse(
-            "mod.jl",
-            &[
-                "#=",
-                "  [impl:jl/block#1]",
-                "  [>>utest:jl/block#1]",
-                "=#",
-                "x = 1",
-            ],
-        );
+        let lines = [
+            "#=",
+            "  [impl:jl/block#1]",
+            "  [>>utest:jl/block#1]",
+            "=#",
+            "x = 1",
+        ];
+
+        // when
+        let (items, _, _) = parse("mod.jl", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:jl/block#1");
         assert_eq!(items[0].needs, ["utest:jl/block#1"]);
@@ -1162,45 +1327,54 @@ mod tests {
 
     #[test]
     fn nim_uses_hash_line_and_bracket_block_comments_which_nest() {
-        let (items, _, _) = parse(
-            "mod.nim",
-            &[
-                "# [impl:nim/mod#1]",
-                "#[ outer #[ inner ]# [>>utest:nim/mod#1] ]#",
-            ],
-        );
+        // given
+        let lines = [
+            "# [impl:nim/mod#1]",
+            "#[ outer #[ inner ]# [>>utest:nim/mod#1] ]#",
+        ];
+
+        // when
+        let (items, _, _) = parse("mod.nim", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:nim/mod#1"]);
     }
 
     #[test]
     fn nim_doc_block_comments_are_recognized_and_nest() {
-        let (items, _, _) = parse(
-            "mod.nim",
-            &[
-                "# [impl:nim/doc#1]",
-                "##[ outer ##[ inner ]## [>>utest:nim/doc#1] ]##",
-            ],
-        );
+        // given
+        let lines = [
+            "# [impl:nim/doc#1]",
+            "##[ outer ##[ inner ]## [>>utest:nim/doc#1] ]##",
+        ];
+
+        // when
+        let (items, _, _) = parse("mod.nim", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:nim/doc#1"]);
     }
 
     #[test]
     fn nim_doc_block_opens_and_spans_multiple_lines() {
+        // given
         // ##[ shares a prefix with both the # line marker and the #[ opener;
         // the longest match at the tie must win for the doc block to open as
         // one.
-        let (items, _, _) = parse(
-            "mod.nim",
-            &[
-                "##[",
-                "  [impl:nim/docblock#1]",
-                "  [>>utest:nim/docblock#1]",
-                "]##",
-                "x = 1",
-            ],
-        );
+        let lines = [
+            "##[",
+            "  [impl:nim/docblock#1]",
+            "  [>>utest:nim/docblock#1]",
+            "]##",
+            "x = 1",
+        ];
+
+        // when
+        let (items, _, _) = parse("mod.nim", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:nim/docblock#1");
         assert_eq!(items[0].needs, ["utest:nim/docblock#1"]);
@@ -1208,29 +1382,35 @@ mod tests {
 
     #[test]
     fn scheme_uses_semicolon_line_and_hash_pipe_block_comments_which_nest() {
-        let (items, _, _) = parse(
-            "lib.scm",
-            &[
-                "; [impl:scm/lib#1]",
-                "#| outer #| inner |# [>>utest:scm/lib#1] |#",
-            ],
-        );
+        // given
+        let lines = [
+            "; [impl:scm/lib#1]",
+            "#| outer #| inner |# [>>utest:scm/lib#1] |#",
+        ];
+
+        // when
+        let (items, _, _) = parse("lib.scm", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:scm/lib#1"]);
     }
 
     #[test]
     fn scheme_block_comment_opens_and_spans_multiple_lines() {
-        let (items, _, _) = parse(
-            "lib.scm",
-            &[
-                "#|",
-                "  [impl:scm/block#1]",
-                "  [>>utest:scm/block#1]",
-                "|#",
-                "(run)",
-            ],
-        );
+        // given
+        let lines = [
+            "#|",
+            "  [impl:scm/block#1]",
+            "  [>>utest:scm/block#1]",
+            "|#",
+            "(run)",
+        ];
+
+        // when
+        let (items, _, _) = parse("lib.scm", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:scm/block#1");
         assert_eq!(items[0].needs, ["utest:scm/block#1"]);
@@ -1238,87 +1418,130 @@ mod tests {
 
     #[test]
     fn racket_shares_the_scheme_grammar() {
-        let (items, _, _) = parse(
-            "lib.rkt",
-            &["; [impl:rkt/lib#1]", "#| [>>utest:rkt/lib#1] |#"],
-        );
+        // given
+        let lines = ["; [impl:rkt/lib#1]", "#| [>>utest:rkt/lib#1] |#"];
+
+        // when
+        let (items, _, _) = parse("lib.rkt", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:rkt/lib#1"]);
     }
 
     #[test]
     fn guile_chez_shares_the_scheme_grammar() {
-        let (items, _, _) = parse("lib.ss", &["; [impl:ss/lib#1]", "#| [>>utest:ss/lib#1] |#"]);
+        // given
+        let lines = ["; [impl:ss/lib#1]", "#| [>>utest:ss/lib#1] |#"];
+
+        // when
+        let (items, _, _) = parse("lib.ss", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:ss/lib#1"]);
     }
 
     #[test]
     fn powershell_uses_hash_line_and_angle_hash_block_comments() {
-        let (items, _, _) = parse(
-            "deploy.ps1",
-            &["# [impl:ops/deploy#1]", "<# [>>utest:ops/deploy#1] #>"],
-        );
+        // given
+        let lines = ["# [impl:ops/deploy#1]", "<# [>>utest:ops/deploy#1] #>"];
+
+        // when
+        let (items, _, _) = parse("deploy.ps1", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:ops/deploy#1"]);
     }
 
     #[test]
     fn css_honours_blocks_but_not_line_comments() {
-        let (items, _, _) = parse(
-            "theme.css",
-            &["/* [impl:ui/theme#1] */", "// [impl:not-a-tag#1]"],
-        );
+        // given
+        let lines = ["/* [impl:ui/theme#1] */", "// [impl:not-a-tag#1]"];
+
+        // when
+        let (items, _, _) = parse("theme.css", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:ui/theme#1"]);
     }
 
     #[test]
     fn semicolon_comment_languages_recognise_semicolon_tags() {
-        let (items, _, _) = parse("core.clj", &["; [impl:app/core#1]"]);
+        // given
+        let lines = ["; [impl:app/core#1]"];
+
+        // when
+        let (items, _, _) = parse("core.clj", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:app/core#1"]);
     }
 
     #[test]
     fn percent_comment_languages_recognise_percent_tags() {
-        let (items, _, _) = parse("mod.erl", &["% [impl:erl/mod#1]"]);
+        // given
+        let lines = ["% [impl:erl/mod#1]"];
+
+        // when
+        let (items, _, _) = parse("mod.erl", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:erl/mod#1"]);
     }
 
     #[test]
     fn ocaml_uses_parenthesis_star_block_comments() {
-        let (items, _, _) = parse("m.ml", &["(* [impl:ml/m#1] [>>utest:ml/m#1] *)"]);
+        // given
+        let lines = ["(* [impl:ml/m#1] [>>utest:ml/m#1] *)"];
+
+        // when
+        let (items, _, _) = parse("m.ml", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:ml/m#1"]);
     }
 
     #[test]
     fn ocaml_block_comments_nest() {
-        let (items, _, _) = parse(
-            "m.ml",
-            &["(* outer (* inner *) [impl:ml/still#1] *)", "let x = 1"],
-        );
+        // given
+        let lines = ["(* outer (* inner *) [impl:ml/still#1] *)", "let x = 1"];
+
+        // when
+        let (items, _, _) = parse("m.ml", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:ml/still#1"]);
     }
 
     #[test]
     fn haskell_block_comments_nest() {
-        let (items, _, _) = parse(
-            "M.hs",
-            &["{- outer {- inner -} [impl:hs/still#1] -}", "x = 1"],
-        );
+        // given
+        let lines = ["{- outer {- inner -} [impl:hs/still#1] -}", "x = 1"];
+
+        // when
+        let (items, _, _) = parse("M.hs", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:hs/still#1"]);
     }
 
     #[test]
     fn elm_and_purescript_share_the_haskell_grammar() {
-        for file in ["Main.elm", "Main.purs"] {
-            let (items, problems, _) = parse(
-                file,
-                &[
-                    "-- [impl:m/main#1]",
-                    "{- outer {- inner -} [>>utest:m/main#1] -}",
-                ],
-            );
+        // given
+        let files = ["Main.elm", "Main.purs"];
+        let lines = [
+            "-- [impl:m/main#1]",
+            "{- outer {- inner -} [>>utest:m/main#1] -}",
+        ];
+
+        for file in files {
+            // when
+            let (items, problems, _) = parse(file, &lines);
+
+            // then
             assert_eq!(problems.len(), 0, "{file}");
             assert_eq!(items.len(), 1, "{file}");
             assert_eq!(items[0].needs, ["utest:m/main#1"], "{file}");
@@ -1327,35 +1550,50 @@ mod tests {
 
     #[test]
     fn pascal_parenthesis_star_does_not_nest() {
-        let (items, _, _) = parse(
-            "u.pas",
-            &["(* outer (* inner *) [impl:p/code-not-tag#1] *)"],
-        );
+        // given
+        let lines = ["(* outer (* inner *) [impl:p/code-not-tag#1] *)"];
+
+        // when
+        let (items, _, _) = parse("u.pas", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn pascal_recognises_both_block_comment_pairs() {
-        let (items, _, _) = parse(
-            "u.pas",
-            &["{ [impl:p/a#1] }", "(* [impl:p/b#1] *)", "// [impl:p/c#1]"],
-        );
+        // given
+        let lines = ["{ [impl:p/a#1] }", "(* [impl:p/b#1] *)", "// [impl:p/c#1]"];
+
+        // when
+        let (items, _, _) = parse("u.pas", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:p/a#1", "impl:p/b#1", "impl:p/c#1"]);
     }
 
     #[test]
     fn pascal_parenthesis_star_block_comment_spans_multiple_lines() {
-        let (items, _, _) = parse("u.pas", &["(* [impl:p/a#1]", "   [>>utest:p/a#1] *)"]);
+        // given
+        let lines = ["(* [impl:p/a#1]", "   [>>utest:p/a#1] *)"];
+
+        // when
+        let (items, _, _) = parse("u.pas", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:p/a#1"]);
     }
 
     #[test]
     fn hcl_honours_all_three_comment_forms() {
-        let (items, _, _) = parse(
-            "main.tf",
-            &["# [impl:tf/a#1]", "// [impl:tf/b#1]", "/* [impl:tf/c#1] */"],
-        );
+        // given
+        let lines = ["# [impl:tf/a#1]", "// [impl:tf/b#1]", "/* [impl:tf/c#1] */"];
+
+        // when
+        let (items, _, _) = parse("main.tf", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:tf/a#1", "impl:tf/b#1", "impl:tf/c#1"]);
     }
 
@@ -1373,13 +1611,16 @@ mod tests {
 
     #[test]
     fn forwarding_tag_in_a_comment_spaces_around_the_arrow_optional() {
-        let (items, problems, forwards) = parse(
-            "src.ts",
-            &[
-                "// [req:login#1 --> dsn:auth#2]",
-                "// [req:logout#1-->dsn:auth#2]",
-            ],
-        );
+        // given
+        let lines = [
+            "// [req:login#1 --> dsn:auth#2]",
+            "// [req:logout#1-->dsn:auth#2]",
+        ];
+
+        // when
+        let (items, problems, forwards) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 0); // a forwarding tag defines no item
         assert_eq!(
@@ -1393,8 +1634,13 @@ mod tests {
 
     #[test]
     fn a_forwarding_tag_does_not_anchor_subsequent_need_tags() {
-        let (items, problems, _) =
-            parse("src.ts", &["// [req:a#1 --> dsn:b#1]", "// [>>utest:a#1]"]);
+        // given
+        let lines = ["// [req:a#1 --> dsn:b#1]", "// [>>utest:a#1]"];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
         assert_eq!(problems.len(), 1);
         assert!(problems[0].message.contains("no preceding item tag"));
@@ -1402,16 +1648,25 @@ mod tests {
 
     #[test]
     fn forwarding_tags_outside_comments_are_ignored() {
-        let (_, _, forwards) = parse("src.ts", &["const s = \"[req:a#1 --> dsn:b#1]\";"]);
+        // given
+        let lines = ["const s = \"[req:a#1 --> dsn:b#1]\";"];
+
+        // when
+        let (_, _, forwards) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(forwards.len(), 0);
     }
 
     #[test]
     fn vue_supports_html_comments() {
-        let (items, _, _) = parse(
-            "Button.vue",
-            &["<template>", "  <!-- [impl:ui/button#1] -->", "</template>"],
-        );
+        // given
+        let lines = ["<template>", "  <!-- [impl:ui/button#1] -->", "</template>"];
+
+        // when
+        let (items, _, _) = parse("Button.vue", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:ui/button#1");
         assert_eq!(items[0].line, 2);
@@ -1419,32 +1674,38 @@ mod tests {
 
     #[test]
     fn vue_template_does_not_treat_double_slash_as_a_comment() {
-        let (items, _, _) = parse(
-            "Link.vue",
-            &[
-                "<template>",
-                "  <a href=\"https://example.com/[impl:not-a-tag#1]\">x</a>",
-                "</template>",
-            ],
-        );
+        // given
+        let lines = [
+            "<template>",
+            "  <a href=\"https://example.com/[impl:not-a-tag#1]\">x</a>",
+            "</template>",
+        ];
+
+        // when
+        let (items, _, _) = parse("Link.vue", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn vue_script_uses_js_comments_style_uses_css_comments() {
-        let (items, _, _) = parse(
-            "Button.vue",
-            &[
-                "<template><button>ok</button></template>",
-                "<script setup lang=\"ts\">",
-                "// [impl:ui/button#1]",
-                "// [>>utest:ui/button#1]",
-                "</script>",
-                "<style scoped>",
-                "/* [impl:ui/button-style#1] */",
-                "</style>",
-            ],
-        );
+        // given
+        let lines = [
+            "<template><button>ok</button></template>",
+            "<script setup lang=\"ts\">",
+            "// [impl:ui/button#1]",
+            "// [>>utest:ui/button#1]",
+            "</script>",
+            "<style scoped>",
+            "/* [impl:ui/button-style#1] */",
+            "</style>",
+        ];
+
+        // when
+        let (items, _, _) = parse("Button.vue", &lines);
+
+        // then
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].id, "impl:ui/button#1");
         assert_eq!(items[0].needs, ["utest:ui/button#1"]);
@@ -1453,39 +1714,48 @@ mod tests {
 
     #[test]
     fn vue_style_does_not_treat_double_slash_as_a_comment() {
-        let (items, _, _) = parse(
-            "Button.vue",
-            &[
-                "<style>",
-                ".x { background: url(//cdn/[impl:not-a-tag#1].png); }",
-                "</style>",
-            ],
-        );
+        // given
+        let lines = [
+            "<style>",
+            ".x { background: url(//cdn/[impl:not-a-tag#1].png); }",
+            "</style>",
+        ];
+
+        // when
+        let (items, _, _) = parse("Button.vue", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn an_html_comment_containing_a_script_tag_does_not_open_a_script_region() {
-        let (items, _, _) = parse(
-            "page.html",
-            &[
-                "<!-- <script> [impl:page/head#1] -->",
-                "<p>// [impl:not-a-tag#1]</p>",
-            ],
-        );
+        // given
+        let lines = [
+            "<!-- <script> [impl:page/head#1] -->",
+            "<p>// [impl:not-a-tag#1]</p>",
+        ];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:page/head#1"]);
     }
 
     #[test]
     fn plain_html_files_scan_markup_script_and_style_regions() {
-        let (items, _, _) = parse(
-            "index.html",
-            &[
-                "<!-- [impl:web/page#1] -->",
-                "<script>// [impl:web/script#1]</script>",
-                "<style>/* [impl:web/style#1] */</style>",
-            ],
-        );
+        // given
+        let lines = [
+            "<!-- [impl:web/page#1] -->",
+            "<script>// [impl:web/script#1]</script>",
+            "<style>/* [impl:web/style#1] */</style>",
+        ];
+
+        // when
+        let (items, _, _) = parse("index.html", &lines);
+
+        // then
         assert_eq!(
             ids(&items),
             ["impl:web/page#1", "impl:web/script#1", "impl:web/style#1"]
@@ -1494,116 +1764,143 @@ mod tests {
 
     #[test]
     fn a_line_comment_before_the_script_end_does_not_swallow_the_region_exit() {
-        let (items, _, _) = parse(
-            "page.html",
-            &["<script>// setup</script>", "<p>// [impl:phantom#1]</p>"],
-        );
+        // given
+        let lines = ["<script>// setup</script>", "<p>// [impl:phantom#1]</p>"];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn an_unclosed_block_comment_before_the_script_end_still_ends_the_region() {
-        let (items, _, _) = parse(
-            "page.html",
-            &["<script>/* note </script>", "<p>// [impl:phantom#1]</p>"],
-        );
+        // given
+        let lines = ["<script>/* note </script>", "<p>// [impl:phantom#1]</p>"];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_tag_before_the_script_end_on_the_same_line_is_still_captured() {
-        let (items, _, _) = parse(
-            "page.html",
-            &[
-                "<script>// [impl:web/inline#1]</script>",
-                "<p>plain markup</p>",
-            ],
-        );
+        // given
+        let lines = [
+            "<script>// [impl:web/inline#1]</script>",
+            "<p>plain markup</p>",
+        ];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:web/inline#1"]);
     }
 
     #[test]
     fn a_json_script_is_scanned_without_comments() {
-        let (items, _, _) = parse(
-            "page.html",
-            &[
-                "<script type=\"application/json\">",
-                "{ \"url\": \"//cdn.example.com/[impl:phantom#1].js\" }",
-                "</script>",
-            ],
-        );
+        // given
+        let lines = [
+            "<script type=\"application/json\">",
+            "{ \"url\": \"//cdn.example.com/[impl:phantom#1].js\" }",
+            "</script>",
+        ];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn a_template_script_is_scanned_as_html_markup() {
-        let (items, _, _) = parse(
-            "page.html",
-            &[
-                "<script type=\"text/x-template\">",
-                "  <!-- [impl:ui/tpl#1] -->",
-                "  <a href=\"//x/[impl:not-a-tag#1]\">go</a>",
-                "</script>",
-            ],
-        );
+        // given
+        let lines = [
+            "<script type=\"text/x-template\">",
+            "  <!-- [impl:ui/tpl#1] -->",
+            "  <a href=\"//x/[impl:not-a-tag#1]\">go</a>",
+            "</script>",
+        ];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:ui/tpl#1"]);
     }
 
     #[test]
     fn a_coffee_script_uses_hash_line_and_triple_hash_block_comments() {
-        let (items, _, _) = parse(
-            "page.html",
-            &[
-                "<script lang=\"coffee\">",
-                "# [impl:web/coffee#1]",
-                "###",
-                "  [>>utest:web/coffee#1]",
-                "###",
-                "</script>",
-            ],
-        );
+        // given
+        let lines = [
+            "<script lang=\"coffee\">",
+            "# [impl:web/coffee#1]",
+            "###",
+            "  [>>utest:web/coffee#1]",
+            "###",
+            "</script>",
+        ];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].needs, ["utest:web/coffee#1"]);
     }
 
     #[test]
     fn a_coffee_script_treats_a_quadruple_hash_as_a_line_comment() {
-        let (items, _, _) = parse(
-            "page.html",
-            &[
-                "<script lang=\"coffee\">",
-                "#### Section",
-                "[impl:web/heading#1]",
-                "</script>",
-            ],
-        );
+        // given
+        let lines = [
+            "<script lang=\"coffee\">",
+            "#### Section",
+            "[impl:web/heading#1]",
+            "</script>",
+        ];
+
+        // when
+        let (items, _, _) = parse("page.html", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
     #[test]
     fn an_scss_style_honours_line_comments() {
-        let (items, _, _) = parse(
-            "Button.vue",
-            &[
-                "<style lang=\"scss\">",
-                "// [impl:ui/scss#1]",
-                ".x { color: red; } /* [impl:ui/scss-block#1] */",
-                "</style>",
-            ],
-        );
+        // given
+        let lines = [
+            "<style lang=\"scss\">",
+            "// [impl:ui/scss#1]",
+            ".x { color: red; } /* [impl:ui/scss-block#1] */",
+            "</style>",
+        ];
+
+        // when
+        let (items, _, _) = parse("Button.vue", &lines);
+
+        // then
         assert_eq!(ids(&items), ["impl:ui/scss#1", "impl:ui/scss-block#1"]);
     }
 
     #[test]
     fn a_plain_style_still_treats_double_slash_as_not_a_comment() {
-        let (items, _, _) = parse(
-            "Button.vue",
-            &[
-                "<style>",
-                ".x { background: url(//cdn/[impl:not-a-tag#1].png); }",
-                "</style>",
-            ],
-        );
+        // given
+        let lines = [
+            "<style>",
+            ".x { background: url(//cdn/[impl:not-a-tag#1].png); }",
+            "</style>",
+        ];
+
+        // when
+        let (items, _, _) = parse("Button.vue", &lines);
+
+        // then
         assert_eq!(items.len(), 0);
     }
 
@@ -1613,17 +1910,26 @@ mod tests {
 
     #[test]
     fn a_code_item_tag_records_the_column_of_its_opening_bracket() {
-        let (items, _, _) = parse("src.ts", &["    // [impl:a#1]"]);
+        // given
+        let lines = ["    // [impl:a#1]"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items[0].line, 1);
         assert_eq!(items[0].character, 8); // the '[' past "    // "
     }
 
     #[test]
     fn a_trailing_line_comment_on_real_code_records_the_tag_column() {
-        let (items, problems, _) = parse(
-            "src.ts",
-            &["let variable = someFunctionReturningSomeValue(); // [impl:variable#1]"],
-        );
+        // given
+        let lines = ["let variable = someFunctionReturningSomeValue(); // [impl:variable#1]"];
+
+        // when
+        let (items, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 0);
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:variable#1");
@@ -1635,13 +1941,25 @@ mod tests {
 
     #[test]
     fn a_code_item_tag_inside_a_block_comment_carries_its_bracket_column() {
-        let (items, _, _) = parse("src.ts", &["/* [impl:b#1] */"]);
+        // given
+        let lines = ["/* [impl:b#1] */"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(items[0].character, 4); // the '[' past "/* "
     }
 
     #[test]
     fn an_orphan_need_tag_problem_points_at_its_bracket_column() {
-        let (_, problems, _) = parse("src.ts", &["  // [>>utest:a#1]"]);
+        // given
+        let lines = ["  // [>>utest:a#1]"];
+
+        // when
+        let (_, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 1);
         assert!(problems[0].message.contains("no preceding item tag"));
         assert_eq!(problems[0].character, 6); // the '[' past "  // "
@@ -1649,7 +1967,13 @@ mod tests {
 
     #[test]
     fn an_unanchored_explicit_need_tag_problem_points_at_its_bracket_column() {
-        let (_, problems, _) = parse("src.ts", &["// [impl:x#1 >> utest:a#1]"]);
+        // given
+        let lines = ["// [impl:x#1 >> utest:a#1]"];
+
+        // when
+        let (_, problems, _) = parse("src.ts", &lines);
+
+        // then
         assert_eq!(problems.len(), 1);
         assert!(
             problems[0]
@@ -1663,7 +1987,13 @@ mod tests {
     // four, yet each is one column
     #[test]
     fn columns_after_non_ascii_text_count_characters() {
-        let (items, _, _) = parse("src.ts", &["const \u{E9} = 1; // \u{1D54F} [impl:a#1]"]);
+        // given
+        let lines = ["const \u{E9} = 1; // \u{1D54F} [impl:a#1]"];
+
+        // when
+        let (items, _, _) = parse("src.ts", &lines);
+
+        // then
         // the bracket is the 19th character of the line
         assert_eq!(items[0].character, 19);
     }

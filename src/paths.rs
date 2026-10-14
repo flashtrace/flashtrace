@@ -96,75 +96,156 @@ mod tests {
 
     #[test]
     fn extension_of_is_lowercased_and_dotless() {
-        assert_eq!(extension_of("file.ts"), "ts");
-        assert_eq!(extension_of("file.TS"), "ts");
-        assert_eq!(extension_of("archive.tar.gz"), "gz");
-        assert_eq!(extension_of("dir/sub/file.md"), "md");
+        // given
+        let cases = [
+            ("file.ts", "ts"),
+            ("file.TS", "ts"),
+            ("archive.tar.gz", "gz"),
+            ("dir/sub/file.md", "md"),
+        ];
+
+        for (file, expected) in cases {
+            // when
+            let ext = extension_of(file);
+
+            // then
+            assert_eq!(ext, expected, "{file}");
+        }
     }
 
     #[test]
     fn extension_of_is_empty_without_one() {
-        assert_eq!(extension_of("file"), "");
-        assert_eq!(extension_of(".gitignore"), "");
-        assert_eq!(extension_of("dir.x/file"), "");
-        assert_eq!(extension_of(""), "");
+        // given
+        let files = ["file", ".gitignore", "dir.x/file", ""];
+
+        for file in files {
+            // when
+            let ext = extension_of(file);
+
+            // then
+            assert_eq!(ext, "", "{file}");
+        }
     }
 
     #[test]
     fn normalize_resolves_dot_and_parent_segments() {
-        assert_eq!(normalize(Path::new("/a/b/../c")), Path::new("/a/c"));
-        assert_eq!(normalize(Path::new("/a/./b//c/")), Path::new("/a/b/c"));
-        assert_eq!(normalize(Path::new("/a/b/../../..")), Path::new("/"));
-        // a parent segment at the root has nothing to pop and is dropped
-        assert_eq!(normalize(Path::new("/../a")), Path::new("/a"));
+        // given
+        let cases = [
+            ("/a/b/../c", "/a/c"),
+            ("/a/./b//c/", "/a/b/c"),
+            ("/a/b/../../..", "/"),
+            // a parent segment at the root has nothing to pop and is dropped
+            ("/../a", "/a"),
+        ];
+
+        for (path, expected) in cases {
+            // when
+            let normalized = normalize(Path::new(path));
+
+            // then
+            assert_eq!(normalized, Path::new(expected), "{path}");
+        }
     }
 
     #[test]
     fn absolute_normalized_anchors_at_the_working_directory() {
+        // given
         let cwd = std::env::current_dir().unwrap();
-        assert_eq!(absolute_normalized(Path::new("")).unwrap(), cwd);
-        assert_eq!(absolute_normalized(Path::new(".")).unwrap(), cwd);
-        assert_eq!(
-            absolute_normalized(Path::new("sub/../x")).unwrap(),
-            cwd.join("x")
-        );
-        assert_eq!(
-            absolute_normalized(Path::new("..")).unwrap(),
-            cwd.parent().unwrap()
-        );
+        let cases = [
+            ("", cwd.clone()),
+            (".", cwd.clone()),
+            ("sub/../x", cwd.join("x")),
+            ("..", cwd.parent().unwrap().to_path_buf()),
+        ];
+
+        for (path, expected) in cases {
+            // when
+            let absolute = absolute_normalized(Path::new(path)).unwrap();
+
+            // then
+            assert_eq!(absolute, expected, "{path:?}");
+        }
     }
 
     #[test]
     fn relative_to_walks_from_the_base_to_the_target() {
-        let relative = |base: &str, target: &str| relative_to(Path::new(base), Path::new(target));
-        assert_eq!(relative("/a/b", "/a/b/c"), Path::new("c"));
-        assert_eq!(relative("/a/b", "/a/b/c/d"), Path::new("c/d"));
-        assert_eq!(relative("/a/b/c", "/a/b"), Path::new(".."));
-        assert_eq!(relative("/a/b", "/a/x/y"), Path::new("../x/y"));
-        assert_eq!(relative("/a/b", "/a/b"), Path::new(""));
-        // a shared name prefix is no shared segment
-        assert_eq!(relative("/ab", "/abc"), Path::new("../abc"));
+        // given
+        let cases = [
+            ("/a/b", "/a/b/c", "c"),
+            ("/a/b", "/a/b/c/d", "c/d"),
+            ("/a/b/c", "/a/b", ".."),
+            ("/a/b", "/a/x/y", "../x/y"),
+            ("/a/b", "/a/b", ""),
+            // a shared name prefix is no shared segment
+            ("/ab", "/abc", "../abc"),
+        ];
+
+        for (base, target, expected) in cases {
+            // when
+            let relative = relative_to(Path::new(base), Path::new(target));
+
+            // then
+            assert_eq!(relative, Path::new(expected), "{base} -> {target}");
+        }
+    }
+
+    #[test]
+    fn display_relative_shows_a_file_relative_to_the_base() {
+        // given
+        let base = Path::new("/a/b");
+
+        // when
+        let displayed = display_relative(base, "/a/b/spec.md");
+
+        // then
+        assert_eq!(displayed, "spec.md");
     }
 
     #[test]
     fn display_relative_falls_back_to_the_file_itself_when_equal() {
-        assert_eq!(
-            display_relative(Path::new("/a/b"), "/a/b/spec.md"),
-            "spec.md"
-        );
-        assert_eq!(display_relative(Path::new("/a/b"), "/a/b"), "/a/b");
+        // given
+        let base = Path::new("/a/b");
+
+        // when
+        let displayed = display_relative(base, "/a/b");
+
+        // then
+        assert_eq!(displayed, "/a/b");
     }
 
     #[cfg(windows)]
     #[test]
-    fn windows_prefixes_are_kept_and_never_crossed() {
-        assert_eq!(normalize(Path::new(r"C:\a\..\b")), Path::new(r"C:\b"));
-        assert_eq!(
-            normalize(Path::new(r"\\server\share\x\..")),
-            Path::new(r"\\server\share")
-        );
-        let relative = |base: &str, target: &str| relative_to(Path::new(base), Path::new(target));
-        assert_eq!(relative(r"C:\a\b", r"C:\a\c"), Path::new(r"..\c"));
-        assert_eq!(relative(r"C:\a", r"D:\a\b"), Path::new(r"D:\a\b"));
+    fn windows_prefixes_are_kept_by_normalize() {
+        // given
+        let cases = [
+            (r"C:\a\..\b", r"C:\b"),
+            (r"\\server\share\x\..", r"\\server\share"),
+        ];
+
+        for (path, expected) in cases {
+            // when
+            let normalized = normalize(Path::new(path));
+
+            // then
+            assert_eq!(normalized, Path::new(expected), "{path}");
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_prefixes_are_never_crossed_by_relative_to() {
+        // given
+        let cases = [
+            (r"C:\a\b", r"C:\a\c", r"..\c"),
+            (r"C:\a", r"D:\a\b", r"D:\a\b"),
+        ];
+
+        for (base, target, expected) in cases {
+            // when
+            let relative = relative_to(Path::new(base), Path::new(target));
+
+            // then
+            assert_eq!(relative, Path::new(expected), "{base} -> {target}");
+        }
     }
 }
