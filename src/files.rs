@@ -140,10 +140,36 @@ pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
 mod tests {
     use super::*;
 
+    // a throwaway directory of empty files, removed again when dropped; it
+    // lies outside any repository, so collection takes the directory walk
+    struct Fixture(PathBuf);
+
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn with_files(name: &str, files: &[&str]) -> Fixture {
+        let process_id = std::process::id();
+        let dir = std::env::temp_dir().join(format!("flashtrace-files-{name}-{process_id}"));
+        let _ = std::fs::remove_dir_all(&dir);
+        for file in files {
+            let path = dir.join(file);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, "").unwrap();
+        }
+        Fixture(dir)
+    }
+
+    fn collect(dir: &Path) -> Vec<String> {
+        collect_files(&[dir.to_string_lossy().into_owned()]).unwrap()
+    }
+
     #[test]
     fn collect_files_takes_a_single_file_verbatim_and_rejects_a_missing_path() {
-        let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic/spec.md");
-        let collected = collect_files(&[manifest.to_string()]).unwrap();
+        let fixture = with_files("single", &["spec.md", "login.ts"]);
+        let collected = collect(&fixture.0.join("spec.md"));
         assert_eq!(collected.len(), 1);
         assert!(collected[0].ends_with("spec.md"));
 
@@ -153,27 +179,43 @@ mod tests {
 
     #[test]
     fn collect_files_filters_to_known_extensions_and_sorts_in_code_point_order() {
-        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic");
-        let collected = collect_files(&[example.to_string()]).unwrap();
-        // examples/basic holds spec.md, login.ts and a README the filter drops
-        let names: Vec<&str> = collected
+        // B before a and z before ø hold in code-point order only, not under
+        // case folding or a locale collation
+        let fixture = with_files(
+            "filter-sort",
+            &[
+                "z.ts",
+                "a.md",
+                "notes.txt",
+                "ø.ts",
+                "B.md",
+                "LICENSE",
+                "sub/c.rs",
+            ],
+        );
+        let base = absolute_normalized(&fixture.0).unwrap();
+        let relative: Vec<String> = collect(&fixture.0)
             .iter()
-            .map(|file| file.rsplit(['/', '\\']).next().unwrap())
+            .map(|file| {
+                let path = Path::new(file).strip_prefix(&base).unwrap();
+                path.to_string_lossy().replace('\\', "/")
+            })
             .collect();
-        assert!(names.contains(&"spec.md"));
-        assert!(names.contains(&"login.ts"));
-        let mut sorted = collected.clone();
-        sorted.sort();
-        assert_eq!(collected, sorted);
+        assert_eq!(relative, ["B.md", "a.md", "sub/c.rs", "z.ts", "ø.ts"]);
     }
 
     #[test]
     fn collected_paths_are_absolute_and_normalized() {
-        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/./basic");
-        let collected = collect_files(&[example.to_string()]).unwrap();
+        let fixture = with_files("normalized", &["spec.md", "sub/login.ts"]);
+        let collected = collect(&fixture.0.join("sub/.././."));
+        assert_eq!(collected.len(), 2);
         for file in &collected {
             assert!(Path::new(file).is_absolute(), "{file}");
-            assert!(!file.contains("/./") && !file.contains("/../"), "{file}");
+            let slashed = file.replace('\\', "/");
+            assert!(
+                !slashed.contains("/./") && !slashed.contains("/../"),
+                "{file}"
+            );
         }
     }
 }
