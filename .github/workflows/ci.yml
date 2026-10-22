@@ -142,6 +142,13 @@ jobs:
   npm-packages:
     name: npm launcher packages
     runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node: 22
+          - node: 24
+          - node: 26
     permissions:
       contents: read # checkout only; the checks run locally
     steps:
@@ -151,7 +158,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
 
       - name: Parse the launcher
         run: node --check npm/flashtrace/bin/flashtrace.js
@@ -224,6 +231,69 @@ jobs:
           rm -rf npm/flashtrace/node_modules
           echo "exit $status"
           test "$status" = 143
+
+  # Share one build across the Node versions so the installed-package checks
+  # exercise the same binary on each runtime.
+  npm-smoke-build:
+    name: Build the npm smoke-test binary
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read # checkout only; the build runs locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Add the target
+        run: rustup target add x86_64-unknown-linux-musl
+
+      - name: Install the musl C compiler
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends musl-tools
+
+      - name: Build the binary
+        run: cargo build --locked --target x86_64-unknown-linux-musl
+
+      - name: Upload the binary
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-smoke-binary
+          path: target/x86_64-unknown-linux-musl/debug/flashtrace
+          if-no-files-found: error
+          retention-days: 1
+
+  npm-smoke:
+    name: npm smoke test on Node ${{ matrix.node }}
+    needs: npm-smoke-build
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node: 22
+          - node: 24
+          - node: 26
+    permissions:
+      contents: read # checkout only; the smoke test runs locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Download the binary
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-smoke-binary
+          path: target/x86_64-unknown-linux-musl/debug
+
+      # Artifact downloads do not preserve executable permissions.
+      - name: Make the binary executable
+        run: chmod +x target/x86_64-unknown-linux-musl/debug/flashtrace
+
+      - name: Smoke-test the npm packages with the built binary
+        run: node .github/scripts/npm-smoke-test.mjs "target/x86_64-unknown-linux-musl/debug/flashtrace"
 
   coverage:
     name: Coverage
