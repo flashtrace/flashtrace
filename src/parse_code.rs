@@ -53,8 +53,9 @@ static FORWARD_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&forward_src())
 // The scheme repetition is bounded so a long run of scheme-valid characters
 // with no :// cannot force super-linear backtracking; 63 clears every real
 // scheme (RFC 3986 and reverse-DNS custom schemes stay well under it).
+// The capture contains the URL text after the scheme prefix.
 static URL_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"[A-Za-z][A-Za-z0-9+.-]{0,63}://[^\s"'`<>\[\]]*"#).unwrap());
+    LazyLock::new(|| Regex::new(r#"[A-Za-z][A-Za-z0-9+.-]{0,63}://([^\s"'`<>\[\]]*)"#).unwrap());
 
 // the 1-based column of a byte offset into a line, counted in characters
 // (Unicode scalar values)
@@ -66,10 +67,12 @@ fn character_column(line: &str, byte_offset: usize) -> usize {
 struct UrlSpan {
     start: usize,
     end: usize,
+    scheme_only: bool,
 }
 
 // spans of URL-shaped text in a line, in order. Comment *openers* inside a
-// span are ignored (see marker_index), so the `//`, `#`, `--` or `/*` of e.g.
+// span are ignored except for a scheme-only span immediately before a complete
+// annotation (see marker_index), so the `//`, `#`, `--` or `/*` of e.g.
 // `https://example.com/a--b#anchor` cannot open a phantom comment. Block
 // *closers* are still honoured inside URLs: skipping a closer could leave a
 // block comment open far past its real end, which is worse than the phantom
@@ -79,17 +82,21 @@ fn url_spans(line: &str) -> Vec<UrlSpan> {
         return Vec::new();
     }
     URL_RE
-        .find_iter(line)
-        .map(|m| UrlSpan {
-            start: m.start(),
-            end: m.end(),
+        .captures_iter(line)
+        .map(|captures| {
+            let url = captures.get(0).unwrap();
+            UrlSpan {
+                start: url.start(),
+                end: url.end(),
+                scheme_only: captures.get(1).unwrap().as_str().is_empty(),
+            }
         })
         .collect()
 }
 
-// first index of `marker` at or after pos that lies outside every URL span,
-// or None. Spans are in ascending order and the index only moves forward, so
-// a single pass over the spans suffices.
+// first index of `marker` at or after pos outside every URL span, or the
+// scheme's own marker directly before a complete annotation. Spans are in
+// ascending order and the index only moves forward, so a single pass suffices.
 fn marker_index(line: &str, marker: &str, pos: usize, spans: &[UrlSpan]) -> Option<usize> {
     let find_from = |from: usize| {
         line.get(from..)
@@ -100,6 +107,17 @@ fn marker_index(line: &str, marker: &str, pos: usize, spans: &[UrlSpan]) -> Opti
         match idx {
             None => break,
             Some(found) if found < span.start => break,
+            Some(found)
+                if span.scheme_only
+                    && found + marker.len() == span.end
+                    && [&*TAG_RE, &*FORWARD_RE].iter().any(|pattern| {
+                        pattern
+                            .find_at(line, span.end)
+                            .is_some_and(|m| m.start() == span.end)
+                    }) =>
+            {
+                break;
+            }
             Some(found) if found < span.end => idx = find_from(span.end),
             Some(_) => {}
         }
@@ -853,8 +871,59 @@ mod tests {
     }
 
     #[test]
-    fn a_comment_opener_glued_to_a_scheme_shaped_token_is_missed_known_limitation() {
+    fn a_comment_opener_glued_to_a_scheme_shaped_token_is_recognized() {
         let (items, _, _) = parse("src.ts", &["const x = 1; note://[impl:missed#1]"]);
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, "impl:missed#1");
+        assert_eq!(items[0].line, 1);
+        assert_eq!(items[0].character, 21);
+    }
+
+    #[test]
+    fn a_comment_opener_glued_to_a_custom_scheme_is_recognized() {
+        let (items, _, _) = parse("src.ts", &["x-scheme+1.0://[impl:a#1]"]);
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, "impl:a#1");
+        assert_eq!(items[0].line, 1);
+        assert_eq!(items[0].character, 16);
+    }
+
+    #[test]
+    fn a_bracketed_ipv6_url_does_not_open_a_comment() {
+        let (items, _, _) = parse("src.ts", &["http://[::1]:8080/"]);
+        assert_eq!(items.len(), 0);
+    }
+
+    #[test]
+    fn a_tag_after_an_ipv6_authority_does_not_open_a_comment() {
+        let (items, _, _) = parse("src.ts", &["http://[::1]:8080/[impl:phantom#1]"]);
+        assert_eq!(items.len(), 0);
+    }
+
+    #[test]
+    fn a_tag_after_a_url_path_in_a_string_does_not_open_a_comment() {
+        let (items, _, _) = parse(
+            "src.ts",
+            &["fetch(\"https://example.com/api[impl:phantom#1]\")"],
+        );
+        assert_eq!(items.len(), 0);
+    }
+
+    #[test]
+    fn a_block_opener_at_a_url_path_end_does_not_open_a_comment() {
+        let (items, _, _) = parse(
+            "src.ts",
+            &["fetch(\"https://example.com/api/*[impl:phantom#1]\")"],
+        );
+        assert_eq!(items.len(), 0);
+    }
+
+    #[test]
+    fn a_hash_at_a_url_fragment_start_does_not_open_a_comment() {
+        let (items, _, _) = parse(
+            "app.py",
+            &["x = \"https://example.com/path#[impl:phantom#1]\""],
+        );
         assert_eq!(items.len(), 0);
     }
 
@@ -1389,6 +1458,15 @@ mod tests {
                 forward("req:logout#1", "dsn:auth#2", "src.ts", 2, 4),
             ]
         );
+    }
+
+    #[test]
+    fn a_forwarding_tag_glued_to_a_scheme_shaped_token_is_recognized() {
+        let (items, problems, forwards) =
+            parse("src.ts", &["const x = note://[req:a#1 --> dsn:b#1];"]);
+        assert_eq!(problems.len(), 0);
+        assert_eq!(items.len(), 0);
+        assert_eq!(forwards, [forward("req:a#1", "dsn:b#1", "src.ts", 1, 18)]);
     }
 
     #[test]
