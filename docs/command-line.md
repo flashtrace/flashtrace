@@ -11,6 +11,8 @@ Options:
                            tags; add "_" to also include untagged items
   -f, --format <format>    report format: "text" (default) or "json"; --json
                            is shorthand for --format json
+      --impact <ref>       query reverse dependencies of an item ID or bare key;
+                           text format only, cannot be combined with -v
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones; text format only
   -V, --version            print the version number
@@ -18,8 +20,10 @@ Options:
 
 Long options also accept "="-attached values, e.g. --tags=a,b.
 The report format and the tag filter may each be selected only once.
+The impact reference may be selected only once.
 
 Exit codes: 0 clean, 1 defects or problems found, 2 usage error
+With --impact: 0 ref exists, 1 no item matches, 2 usage error
 ```
 
 Long options also accept `=`-attached values, e.g. `--tags=a,b`; values containing spaces must be shell-quoted (`--tags="a , b"`).
@@ -58,3 +62,61 @@ Below its status line, an item shows its role-appropriate trace edges:
 ✔ impl:login#2.4  login.ts:1  [deep-covered]
     wanted by req:login#1  spec.md:2
 ```
+
+## Impact query
+
+`--impact <ref>` replaces the coverage report with a reverse dependency query.
+Use a full item ID (`--impact impl:auth/login#2.4`) for one revision, or a bare
+key (`--impact impl:auth/login`) for every defined revision of that item.
+Concrete revisions follow the same SemVer equality as reference resolution.
+Long options accept attached values here too: `--impact=impl:auth/login`.
+The impact reference may be selected only once. A wildcard query or an
+incomplete key is a usage error.
+
+Input paths and `--tags` work as for the coverage report. The query uses the
+items left after filtering. Impact is a text report; combining it with
+`-v`/`--verbose` or the JSON format is a usage error.
+
+An item directly depends on the target when it **needs** a reference the target
+satisfies, **covers** the target, or **forwards to** the target. Needs include
+both Markdown `Needs` and code `>>` tags; forwarding uses the effective target
+selected by analysis. The query follows all these relations in reverse to find
+transitive dependents. Traversal is cycle-safe: the target is excluded from its
+own impact set, and each dependent is listed once even when several paths
+reach it. Multiple direct edges on an item are all shown beneath that item.
+
+Every direct edge carries a bump classification:
+
+- **exact** — names the revision itself; breaks on bump or removal.
+- **tolerant** — a wildcard need that another existing matching revision also
+  satisfies; survives removal of this revision. The other matches are listed.
+- **wildcard-last** — a wildcard need whose only matching revision is the
+  target; breaks on bump or removal, but a same-pattern replacement heals it.
+
+Transitive items carry a `via <id>` explanation naming the preceding item on a
+shortest reverse dependency path, without an edge classification. Each queried
+revision has its own block, in ascending revision order; direct and transitive
+items are ordered by file and source location. The report uses the verbose
+report's IDs, titles, locations and arrows, with the same terminal colors and
+`NO_COLOR` behavior. Wildcard needs show the full resolved ID in `(→ <id>)`.
+
+```
+impact of impl:auth/login#2.4  login.ts:3  (2 direct, 1 transitive)
+
+  direct
+    req:auth/login#1 "Login"  spec.md:12
+        needs impl:auth/login#2.x (→ impl:auth/login#2.4)  tolerant (also matched by #2.5)
+    test:auth/login#3  login.test.ts:7
+        covers impl:auth/login#2.4  exact — breaks on bump
+  transitive
+    req:auth#1 "Authentication"  spec.md:2  via req:auth/login#1
+```
+
+A defined item with no dependents prints `no items depend on <id>` to stdout.
+An unmatched query prints `no item matches <ref>` to stderr, with the usual
+revision-mismatch hint if other revisions of the key exist.
+
+Impact is a query: exit `0` means the reference exists, including empty impact
+and projects with coverage defects or parse problems; exit `1` means no item
+matches; exit `2` means a usage error (including unreadable input). The coverage
+summary and its `ok` / `not ok` footer are replaced by the impact report.

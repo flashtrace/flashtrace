@@ -44,6 +44,452 @@ fn stderr(output: &Output) -> String {
 }
 
 #[test]
+fn impact_exact_need_is_a_direct_dependency() {
+    let project = with_project(
+        "impact-need",
+        &[
+            (
+                "spec.md",
+                &["# Login", "`req:login#1`", "", "Needs: impl:login#2.4"],
+            ),
+            ("login.ts", &["// [impl:login#2.4]"]),
+        ],
+    );
+    let result = run(&project, &["--impact", "impl:login#2.4"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(stderr(&result), "");
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:1  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    req:login#1 \"Login\"  spec.md:2\n",
+            "        needs impl:login#2.4  exact — breaks on bump\n"
+        )
+    );
+}
+
+#[test]
+fn impact_wildcard_classification_changes_only_with_another_matching_revision() {
+    for (name, revisions, expected) in [
+        (
+            "impact-last",
+            vec!["// [impl:login#2.4]"],
+            "        needs impl:login#2.x (→ impl:login#2.4)  wildcard-last — breaks on bump; same-pattern replacement heals it",
+        ),
+        (
+            "impact-tolerant",
+            vec!["// [impl:login#2.4]", "// [impl:login#2.5]"],
+            "        needs impl:login#2.x (→ impl:login#2.4)  tolerant (also matched by #2.5)",
+        ),
+    ] {
+        let project = with_project(
+            name,
+            &[
+                ("spec.md", &["`req:login#1`", "", "Needs: impl:login#2.x"]),
+                ("login.ts", &revisions),
+            ],
+        );
+        let result = run(&project, &["--impact", "impl:login#2.4"]);
+        assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+        assert_eq!(stderr(&result), "");
+        let text = stdout(&result);
+        let edges: Vec<&str> = text
+            .lines()
+            .filter(|line| line.starts_with("        "))
+            .collect();
+        assert_eq!(edges, [expected]);
+    }
+}
+
+#[test]
+fn impact_wildcard_counts_canonical_revisions_instead_of_definitions() {
+    for (name, revisions, expected) in [
+        (
+            "impact-duplicate-last",
+            vec!["// [impl:login#2.4]", "// [impl:login#02.04.0]"],
+            "        needs impl:login#2.x (→ impl:login#2.4)  wildcard-last — breaks on bump; same-pattern replacement heals it",
+        ),
+        (
+            "impact-duplicate-tolerant",
+            vec![
+                "// [impl:login#2.4]",
+                "// [impl:login#02.04.0]",
+                "// [impl:login#2.5]",
+            ],
+            "        needs impl:login#2.x (→ impl:login#2.4)  tolerant (also matched by #2.5)",
+        ),
+    ] {
+        let project = with_project(
+            name,
+            &[
+                ("spec.md", &["`req:login#1`", "", "Needs: impl:login#2.x"]),
+                ("login.ts", &revisions),
+            ],
+        );
+        let result = run(&project, &["--impact", "impl:login#2.4"]);
+        assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+        assert_eq!(stderr(&result), "");
+        assert_eq!(
+            stdout(&result),
+            format!(
+                "impact of impl:login#2.4  login.ts:1  (1 direct, 0 transitive)\n\n  direct\n    req:login#1  spec.md:1\n{expected}\n"
+            )
+        );
+    }
+}
+
+#[test]
+fn impact_cover_is_a_direct_dependency_even_when_coverage_is_defective() {
+    let project = with_project(
+        "impact-cover",
+        &[
+            ("spec.md", &["`req:login#1`", "", "Covers: impl:login#2.4"]),
+            ("login.ts", &["// [impl:login#2.4]"]),
+        ],
+    );
+    let result = run(&project, &["--impact", "impl:login#2.4"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(stderr(&result), "");
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:1  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    req:login#1  spec.md:1\n",
+            "        covers impl:login#2.4  exact — breaks on bump\n"
+        )
+    );
+}
+
+#[test]
+fn impact_forward_is_a_direct_dependency() {
+    let project = with_project(
+        "impact-forward",
+        &[
+            (
+                "spec.md",
+                &["`req:login#1`", "", "`[req:login#1 --> impl:login#2.4]`"],
+            ),
+            ("login.ts", &["// [impl:login#2.4]"]),
+        ],
+    );
+    let result = run(&project, &["--impact", "impl:login#2.4"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(stderr(&result), "");
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:1  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    req:login#1  spec.md:1\n",
+            "        → impl:login#2.4  exact — breaks on bump\n"
+        )
+    );
+}
+
+#[test]
+fn impact_code_need_uses_the_same_resolution_as_spec_needs() {
+    let project = with_project(
+        "impact-code-need",
+        &[(
+            "login.ts",
+            &[
+                "// [impl:login#2.4]",
+                "// [test:login#1] [>>impl:login#2.4]",
+            ],
+        )],
+    );
+    let result = run(&project, &["--impact", "impl:login#2.4"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:1  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    test:login#1  login.ts:2\n",
+            "        needs impl:login#2.4  exact — breaks on bump\n"
+        )
+    );
+}
+
+#[test]
+fn impact_transitive_closure_is_cycle_safe_and_lists_each_item_once() {
+    let project = with_project(
+        "impact-cycle",
+        &[
+            (
+                "spec.md",
+                &[
+                    "`req:direct#1`",
+                    "",
+                    "Needs: impl:login#2.4",
+                    "",
+                    "`req:middle#1`",
+                    "",
+                    "Covers: req:direct#1",
+                    "",
+                    "`req:top#1`",
+                    "",
+                    "`[req:top#1 --> req:middle#1]`",
+                ],
+            ),
+            ("login.ts", &["// [impl:login#2.4] [>>req:top#1]"]),
+        ],
+    );
+    let result = run(&project, &["--impact", "impl:login#2.4"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(stderr(&result), "");
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:1  (1 direct, 2 transitive)\n\n",
+            "  direct\n",
+            "    req:direct#1  spec.md:1\n",
+            "        needs impl:login#2.4  exact — breaks on bump\n",
+            "  transitive\n",
+            "    req:middle#1  spec.md:5  via req:direct#1\n",
+            "    req:top#1  spec.md:9  via req:middle#1\n"
+        )
+    );
+}
+
+#[test]
+fn impact_shortest_path_predecessor_wins_in_a_cycle_with_unequal_paths() {
+    let project = with_project(
+        "impact-shortest-path-cycle",
+        &[(
+            "graph.ts",
+            &[
+                "// [impl:login#2.4] [>>req:z#1]",
+                "// [req:a#1] [>>impl:login#2.4]",
+                "// [req:b#1] [>>impl:login#2.4]",
+                "// [req:c#1] [>>req:b#1]",
+                "// [req:z#1] [>>req:a#1] [>>req:c#1]",
+            ],
+        )],
+    );
+    let result = run(&project, &["--impact", "impl:login#2.4"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(stderr(&result), "");
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  graph.ts:1  (2 direct, 2 transitive)\n\n",
+            "  direct\n",
+            "    req:a#1  graph.ts:2\n",
+            "        needs impl:login#2.4  exact — breaks on bump\n",
+            "    req:b#1  graph.ts:3\n",
+            "        needs impl:login#2.4  exact — breaks on bump\n",
+            "  transitive\n",
+            "    req:c#1  graph.ts:4  via req:b#1\n",
+            "    req:z#1  graph.ts:5  via req:a#1\n"
+        )
+    );
+}
+
+#[test]
+fn impact_multiple_direct_edges_count_the_dependent_once() {
+    let project = with_project(
+        "impact-multiple-edges",
+        &[
+            (
+                "spec.md",
+                &[
+                    "`req:login#1`",
+                    "",
+                    "Needs: impl:login#2.4",
+                    "",
+                    "Covers: impl:login#2.4",
+                ],
+            ),
+            ("login.ts", &["// [impl:login#2.4]"]),
+        ],
+    );
+    let result = run(&project, &["--impact", "impl:login#2.4"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:1  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    req:login#1  spec.md:1\n",
+            "        needs impl:login#2.4  exact — breaks on bump\n",
+            "        covers impl:login#2.4  exact — breaks on bump\n"
+        )
+    );
+}
+
+#[test]
+fn impact_bare_key_queries_every_revision_in_revision_order() {
+    let project = with_project(
+        "impact-key",
+        &[
+            ("spec.md", &["`req:login#1`", "", "Needs: impl:login#2.x"]),
+            ("login.ts", &["// [impl:login#2.10]", "// [impl:login#2.4]"]),
+        ],
+    );
+    let result = run(&project, &["--impact=impl:login"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(stderr(&result), "");
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:2  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    req:login#1  spec.md:1\n",
+            "        needs impl:login#2.x (→ impl:login#2.4)  tolerant (also matched by #2.10)\n\n",
+            "impact of impl:login#2.10  login.ts:1  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    req:login#1  spec.md:1\n",
+            "        needs impl:login#2.x (→ impl:login#2.10)  tolerant (also matched by #2.4)\n"
+        )
+    );
+}
+
+#[test]
+fn impact_exact_queries_and_edges_honor_semver_equality() {
+    let project = with_project(
+        "impact-semver",
+        &[
+            ("spec.md", &["`req:login#1`", "", "Needs: impl:login#2.4.0"]),
+            ("login.ts", &["// [impl:login#2.4]"]),
+        ],
+    );
+    let result = run(&project, &["--impact", "impl:login#02.04.0"]);
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:1  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    req:login#1  spec.md:1\n",
+            "        needs impl:login#2.4.0 (→ impl:login#2.4)  exact — breaks on bump\n"
+        )
+    );
+}
+
+#[test]
+fn impact_empty_and_unmatched_have_distinct_messages_and_exit_codes() {
+    let project = with_project("impact-empty", &[("login.ts", &["// [impl:login#2.4]"])]);
+    let empty = run(&project, &["--impact", "impl:login#2.4"]);
+    assert_eq!(empty.status.code(), Some(0));
+    assert_eq!(stdout(&empty), "no items depend on impl:login#2.4\n");
+    assert_eq!(stderr(&empty), "");
+    for reference in ["impl:missing", "impl:missing#1"] {
+        let unmatched = run(&project, &["--impact", reference]);
+        assert_eq!(unmatched.status.code(), Some(1));
+        assert_eq!(stdout(&unmatched), "");
+        assert_eq!(stderr(&unmatched), format!("no item matches {reference}\n"));
+    }
+    let mismatch = run(&project, &["--impact", "impl:login#3"]);
+    assert_eq!(mismatch.status.code(), Some(1));
+    assert_eq!(stdout(&mismatch), "");
+    assert_eq!(
+        stderr(&mismatch),
+        "no item matches impl:login#3 (revision mismatch: existing revision(s) of impl:login: 2.4)\n"
+    );
+}
+
+#[test]
+fn impact_honors_tags_and_explicit_input_files() {
+    let project = with_project(
+        "impact-tags",
+        &[
+            (
+                "spec.md",
+                &[
+                    "`req:keep#1`",
+                    "",
+                    "Needs: impl:login#2.4",
+                    "Tags: Auth",
+                    "",
+                    "`req:omit#1`",
+                    "",
+                    "Needs: impl:login#2.4",
+                    "Tags: Other",
+                ],
+            ),
+            ("login.ts", &["// [impl:login#2.4]"]),
+        ],
+    );
+    let result = run(
+        &project,
+        &[
+            "--impact",
+            "impl:login#2.4",
+            "--tags=Auth",
+            "spec.md",
+            "login.ts",
+        ],
+    );
+    assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
+    assert_eq!(
+        stdout(&result),
+        concat!(
+            "impact of impl:login#2.4  login.ts:1  (1 direct, 0 transitive)\n\n",
+            "  direct\n",
+            "    req:keep#1  spec.md:1\n",
+            "        needs impl:login#2.4  exact — breaks on bump\n"
+        )
+    );
+    let excluded = run(&project, &["--impact", "req:omit", "--tags=Auth"]);
+    assert_eq!(excluded.status.code(), Some(1));
+    assert_eq!(stderr(&excluded), "no item matches req:omit\n");
+    let single_file = run(&project, &["--impact", "impl:login", "login.ts"]);
+    assert_eq!(single_file.status.code(), Some(0));
+    assert_eq!(stdout(&single_file), "no items depend on impl:login#2.4\n");
+}
+
+#[test]
+fn impact_usage_errors_reject_invalid_refs_verbose_and_json() {
+    let project = with_project("impact-usage", &[]);
+    for (args, expected) in [
+        (vec!["--impact"], "missing value for --impact"),
+        (vec!["--impact="], "missing value for --impact"),
+        (vec!["--impact", "impl"], "invalid value for --impact"),
+        (vec!["--impact", "impl#1"], "invalid value for --impact"),
+        (
+            vec!["--impact", "impl:login#2.x"],
+            "invalid value for --impact",
+        ),
+        (
+            vec!["--impact", "impl:login#"],
+            "invalid value for --impact",
+        ),
+        (
+            vec!["--impact", "impl:login#1", "-v"],
+            "--impact cannot be combined with -v/--verbose",
+        ),
+        (
+            vec!["--verbose", "--impact=impl:login"],
+            "--impact cannot be combined with -v/--verbose",
+        ),
+        (
+            vec!["--impact=impl:login", "--json"],
+            "--impact applies to the text format only",
+        ),
+        (
+            vec!["--format=json", "--impact=impl:login"],
+            "--impact applies to the text format only",
+        ),
+        (
+            vec!["--impact=impl:login", "--impact=impl:other"],
+            "the impact reference is already selected by --impact",
+        ),
+    ] {
+        let result = run(&project, &args);
+        assert_eq!(result.status.code(), Some(2), "{args:?}");
+        assert_eq!(stdout(&result), "", "{args:?}");
+        assert!(
+            stderr(&result).starts_with(&format!("error: {expected}")),
+            "{args:?}: {}",
+            stderr(&result)
+        );
+    }
+}
+
+#[test]
 fn clean_project_exit_0_and_final_ok() {
     let project = with_project(
         "clean",

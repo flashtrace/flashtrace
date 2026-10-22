@@ -19,11 +19,11 @@ use std::process::ExitCode;
 use crate::analyze::analyze;
 use crate::errors::UsageError;
 use crate::files::collect_files;
-use crate::ids::{Forward, Item};
+use crate::ids::{COVER_REF_RE, Forward, Item};
 use crate::parse_code::parse_code;
 use crate::parse_spec::spec_parser_for;
 use crate::paths::extension_of;
-use crate::report::report;
+use crate::report::{report, report_impact};
 use crate::report_json::report_json;
 
 const HELP: &str = "Usage: flashtrace [options] [directory-or-file ...]
@@ -36,6 +36,8 @@ Options:
                            tags; add \"_\" to also include untagged items
   -f, --format <format>    report format: \"text\" (default) or \"json\"; --json
                            is shorthand for --format json
+      --impact <ref>       query reverse dependencies of an item ID or bare key;
+                           text format only, cannot be combined with -v
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones; text format only
   -V, --version            print the version number
@@ -43,8 +45,10 @@ Options:
 
 Long options also accept \"=\"-attached values, e.g. --tags=a,b.
 The report format and the tag filter may each be selected only once.
+The impact reference may be selected only once.
 
-Exit codes: 0 clean, 1 defects or problems found, 2 usage error";
+Exit codes: 0 clean, 1 defects or problems found, 2 usage error
+With --impact: 0 ref exists, 1 no item matches, 2 usage error";
 
 // --help and --version write fixed text: one line-terminated write, flushed
 // so the text is out before the exit code is returned
@@ -66,6 +70,7 @@ struct Options {
     dirs: Vec<String>,
     tags: Option<Vec<String>>,
     verbose: bool,
+    impact: Option<String>,
     format: Format,
     // A setting is selected at most once, whichever spelling does it.
     // Rejecting a second selection outright - rather than letting the last
@@ -152,6 +157,7 @@ fn parse_args(argv: &[String]) -> Result<Command, UsageError> {
         dirs: Vec::new(),
         tags: None,
         verbose: false,
+        impact: None,
         format: Format::Text,
         selected_by: HashMap::new(),
     };
@@ -176,7 +182,7 @@ fn parse_args(argv: &[String]) -> Result<Command, UsageError> {
                 reject_value(raw, inline)?;
                 select_format(&mut options, raw, Format::Json)?;
             }
-            "--format" | "--tags" => {
+            "--format" | "--tags" | "--impact" => {
                 let value = match inline {
                     Some(inline) => inline.to_string(),
                     None => {
@@ -190,6 +196,17 @@ fn parse_args(argv: &[String]) -> Result<Command, UsageError> {
                 if name == "--format" {
                     let format = report_format(raw, &value)?;
                     select_format(&mut options, raw, format)?;
+                } else if name == "--impact" {
+                    if !COVER_REF_RE
+                        .captures(&value)
+                        .is_some_and(|captures| captures.get(2).is_some())
+                    {
+                        return Err(UsageError(format!(
+                            "invalid value for {raw}: \"{value}\" (expected a full item ID or bare key)"
+                        )));
+                    }
+                    select_once(&mut options, raw, "impact", "the impact reference")?;
+                    options.impact = Some(value);
                 } else {
                     select_once(&mut options, raw, "tags", "the tag filter")?;
                     options.tags = Some(
@@ -210,6 +227,18 @@ fn parse_args(argv: &[String]) -> Result<Command, UsageError> {
             }
         }
         i += 1;
+    }
+    if options.impact.is_some() {
+        if options.verbose {
+            return Err(UsageError(
+                "--impact cannot be combined with -v/--verbose".to_string(),
+            ));
+        }
+        if options.format != Format::Text {
+            return Err(UsageError(
+                "--impact applies to the text format only".to_string(),
+            ));
+        }
     }
     // -v selects which items the plain-text report lists; the JSON document
     // always carries them all, leaving it nothing to act on
@@ -260,6 +289,9 @@ fn main_flow(options: &Options) -> Result<bool, UsageError> {
 
     analyze(&mut items, &mut forwards, &mut problems);
     let cwd = std::env::current_dir().expect("the process has a working directory");
+    if let Some(reference) = &options.impact {
+        return Ok(report_impact(&items, reference, &cwd));
+    }
     let clean = match options.format {
         Format::Json => report_json(
             &items,
