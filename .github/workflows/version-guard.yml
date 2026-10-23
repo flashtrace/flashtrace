@@ -132,8 +132,8 @@ jobs:
         run: |
           # The steps above block changing a version; this one checks the
           # versions still name one release, since the bump counts up from
-          # Cargo.toml alone. The npm manifests stay out until the first
-          # release writes the version into them: until then they hold 0.0.0.
+          # Cargo.toml alone. The optionalDependencies pins follow through the
+          # step above, which ties them to the main npm package's version.
           # Cargo.toml's package version, read as the release workflow bumps it.
           cargo_toml=$(awk '{ sub(/\r$/, "") }
             prev2 == "[package]" && prev1 == "name = \"flashtrace\"" && /^version = "[^"]*"$/ { found++; version = substr($0, 12, length($0) - 12) }
@@ -141,12 +141,21 @@ jobs:
             END { if (found == 1) print version }' Cargo.toml)
           cargo_lock=$(awk '/^name = "flashtrace"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' Cargo.lock)
           citation=$(sed -n 's|^version: *||p' CITATION.cff | sed 's|^"\(.*\)"$|\1|')
-          echo "Cargo.toml: $cargo_toml, Cargo.lock: $cargo_lock, CITATION.cff: $citation"
+          versions=("Cargo.lock:$cargo_lock" "CITATION.cff:$citation")
+          # The first step has checked the platform list, so the glob matches
+          # exactly the listed packages.
+          for manifest in npm/flashtrace/package.json npm/@flashtrace/*/package.json; do
+            versions+=("$manifest:$(node -p "require('./$manifest').version ?? ''")")
+          done
+          echo "Cargo.toml: $cargo_toml"
+          for found in "${versions[@]}"; do
+            echo "${found%%:*}: ${found#*:}"
+          done
           if [ -z "$cargo_toml" ]; then
             echo '::error file=Cargo.toml::No version found in Cargo.toml.'
             exit 1
           fi
-          for found in "Cargo.lock:$cargo_lock" "CITATION.cff:$citation"; do
+          for found in "${versions[@]}"; do
             if [ "${found#*:}" != "$cargo_toml" ]; then
               echo "::error file=${found%%:*}::Cargo.toml has version ${cargo_toml}, but ${found%%:*} has ${found#*:}. The release workflow keeps them in sync; restore the released version."
               exit 1

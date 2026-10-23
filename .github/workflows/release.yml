@@ -110,8 +110,8 @@ jobs:
           persist-credentials: false
 
       # The bump counts up from Cargo.toml alone, so that number must be the
-      # last release: Cargo.lock and CITATION.cff carry the same version, and
-      # the newest vX.Y.Z tag - the one record no file edit or merge
+      # last release: Cargo.lock, CITATION.cff and the npm manifests carry the
+      # same version, and the newest vX.Y.Z tag - the one record no file edit or merge
       # resolution can touch - names it too. Anything else stops the release
       # before a version is computed from a stale or hand-edited number.
       - name: Verify the release-owned versions agree with the latest tag
@@ -130,12 +130,21 @@ jobs:
           # step instead of reading as "no tags".
           tags=$(gh api --paginate "repos/$REPO/git/matching-refs/tags/v" --jq '.[].ref')
           latest_tag=$(grep -E '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' <<< "$tags" | sed 's|^refs/tags/v||' | sort -V | tail -1)
-          echo "Cargo.toml: $cargo_toml, Cargo.lock: $cargo_lock, CITATION.cff: $citation, latest tag: v$latest_tag"
+          versions=("Cargo.lock:$cargo_lock" "CITATION.cff:$citation")
+          # Each package's own version, read as the bump below verifies it.
+          for manifest in npm/flashtrace/package.json npm/@flashtrace/*/package.json; do
+            versions+=("$manifest:$(node -p "require('./$manifest').version")")
+          done
+          versions+=("the latest tag:$latest_tag")
+          echo "Cargo.toml: $cargo_toml"
+          for found in "${versions[@]}"; do
+            echo "${found%%:*}: ${found#*:}"
+          done
           if [ -z "$latest_tag" ]; then
             echo "::error::No vX.Y.Z tag to check the version against."
             exit 1
           fi
-          for found in "Cargo.lock:$cargo_lock" "CITATION.cff:$citation" "the latest tag:$latest_tag"; do
+          for found in "${versions[@]}"; do
             if [ "${found#*:}" != "$cargo_toml" ]; then
               echo "::error::Cargo.toml has version ${cargo_toml}, but ${found%%:*} has ${found#*:}; bring them back in line before releasing."
               exit 1
