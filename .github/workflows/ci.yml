@@ -81,8 +81,30 @@ jobs:
       - name: Add the target
         run: rustup target add ${{ matrix.target }}
 
+      # musl-gcc for mimalloc, the musl targets' allocator (see main.rs) and
+      # their one piece of C; the release build installs it the same way
+      - name: Install the musl C compiler
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends musl-tools
+
       - name: Test on the target
         run: cargo test --locked --target ${{ matrix.target }}
+
+      # The musl binaries must stay static: one linked dynamically still
+      # passes every test here, but cannot start on a glibc system, which has
+      # no musl loader. C dependencies such as mimalloc are what could change
+      # that. The release checks the binary it ships the same way.
+      - name: Check the binary is statically linked
+        if: contains(matrix.target, 'musl')
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          linkage=$(file --brief "target/$TARGET/debug/flashtrace")
+          echo "$linkage"
+          if ! grep -q static <<< "$linkage"; then
+            echo "::error::the $TARGET binary is not statically linked"
+            exit 1
+          fi
 
       # Cargo.toml's include list decides what ships; a build script missing
       # from it is dropped from the crate without an error, and crates.io

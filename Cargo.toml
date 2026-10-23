@@ -1,6 +1,6 @@
 [package]
 name = "flashtrace"
-version = "0.13.2"
+version = "0.13.3"
 edition = "2024"
 rust-version = "1.88.0"
 description = "Lightning-fast, reference-based requirement tracing that works anywhere."
@@ -17,6 +17,11 @@ include = ["/src/**", "/build.rs", "/LICENSE", "/README.md"]
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# the allocator of the musl (Linux) binaries, see main.rs; other targets keep
+# their system allocator
+[target.'cfg(target_env = "musl")'.dependencies]
+mimalloc = "0.1"
 
 [dev-dependencies]
 jsonschema = { version = "0.58.5", default-features = false }

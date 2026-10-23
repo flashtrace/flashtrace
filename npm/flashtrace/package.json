@@ -1,6 +1,6 @@
 {
   "name": "flashtrace",
-  "version": "0.13.2",
+  "version": "0.13.3",
   "description": "Lightning-fast, reference-based requirement tracing that works anywhere.",
   "license": "Apache-2.0",
   "repository": {
@@ -30,11 +30,11 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@flashtrace/darwin-arm64": "0.13.2",
-    "@flashtrace/darwin-x64": "0.13.2",
-    "@flashtrace/linux-arm64": "0.13.2",
-    "@flashtrace/linux-x64": "0.13.2",
-    "@flashtrace/win32-arm64": "0.13.2",
-    "@flashtrace/win32-x64": "0.13.2"
+    "@flashtrace/darwin-arm64": "0.13.3",
+    "@flashtrace/darwin-x64": "0.13.3",
+    "@flashtrace/linux-arm64": "0.13.3",
+    "@flashtrace/linux-x64": "0.13.3",
+    "@flashtrace/win32-arm64": "0.13.3",
+    "@flashtrace/win32-x64": "0.13.3"
   }
 }

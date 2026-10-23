@@ -4,3 +4,19 @@
 # Read more: https://github.com/ChrisDenton/static_vcruntime#details
 [target.'cfg(all(windows, target_env = "msvc"))']
 rustflags = ["-C", "target-feature=+crt-static"]
+
+# The musl targets compile one piece of C, mimalloc (their allocator, see
+# main.rs), through the cc crate in libmimalloc-sys's build script, which reads
+# these variables. Cargo sets them for every build in this repository - CI,
+# the release and local ones alike - but never over a value the environment
+# already holds, so a cross toolchain can still bring its own compiler.
+[env]
+# musl-gcc comes with musl-tools. Named explicitly, so cc never falls back to
+# the host's glibc compiler, and a build without it fails rather than
+# compiling against glibc's headers.
+CC_x86_64_unknown_linux_musl = "musl-gcc"
+CC_aarch64_unknown_linux_musl = "musl-gcc"
+# rustc compiles for baseline x86-64, gcc for whatever its build defaults to
+# (Ubuntu's amd64v3 images may default higher); pin the C to rustc's baseline
+# so the static binary keeps running on CPUs without AVX2.
+CFLAGS_x86_64_unknown_linux_musl = "-march=x86-64"

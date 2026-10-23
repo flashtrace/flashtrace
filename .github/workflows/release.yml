@@ -309,10 +309,9 @@ jobs:
       # ci.yml, whose tests run the same targets on the same images
       matrix:
         include:
-          # No musl-tools: the musl targets bring their own libc and startup
-          # files and link with the runner's toolchain. musl-gcc would only
-          # compile C code, and no dependency builds any (no cc crate in
-          # Cargo.lock).
+          # The musl targets bring their own libc and startup files and link
+          # with the runner's toolchain; musl-tools adds musl-gcc for the one
+          # piece of C, mimalloc (their allocator, see main.rs).
           - target: x86_64-unknown-linux-musl
             runner: ubuntu-26.04
           - target: aarch64-unknown-linux-musl
@@ -360,6 +359,11 @@ jobs:
         shell: bash
         run: rustup target add ${{ matrix.target }}
 
+      - name: Install the musl C compiler
+        if: contains(matrix.target, 'musl')
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends musl-tools
+
       - name: Test on the target
         shell: bash
         run: cargo test --locked --target ${{ matrix.target }}
@@ -367,6 +371,21 @@ jobs:
       - name: Build the release binary
         shell: bash
         run: cargo build --release --locked --target ${{ matrix.target }}
+
+      # A musl binary linked dynamically cannot start on a glibc system; see
+      # the matching check in ci.yml
+      - name: Check the binary is statically linked
+        if: contains(matrix.target, 'musl')
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          linkage=$(file --brief "target/$TARGET/release/flashtrace")
+          echo "$linkage"
+          if ! grep -q static <<< "$linkage"; then
+            echo "::error::the $TARGET binary is not statically linked"
+            exit 1
+          fi
 
       # Archived here, where the file mode still exists: upload-artifact does
       # not preserve the executable bit, a tar does. Each archive holds one

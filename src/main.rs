@@ -8,6 +8,13 @@
 
 use std::process::ExitCode;
 
+// The Linux binaries are built for musl, whose allocator serializes all
+// threads on one lock and is slower than glibc's even on a single thread;
+// mimalloc brings them to glibc speed and lets parallel work scale.
+#[cfg(target_env = "musl")]
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn main() -> ExitCode {
     flashtrace::cli::run_cli()
 }
