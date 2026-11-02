@@ -278,7 +278,11 @@ fn extensions_are_grouped_by_shared_grammar_not_by_similarity() {
     shared.sort();
 
     // then
-    assert!(misplaced.is_empty(), "{}", misplaced.join("; "));
+    assert!(
+        misplaced.is_empty(),
+        "extensions outside their grammar's folder: {}",
+        misplaced.join("; ")
+    );
     assert!(
         shared.is_empty(),
         "folders holding more than one grammar: {}",
