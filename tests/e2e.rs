@@ -81,7 +81,7 @@ fn temp_copy(example: &str) -> TempCopy {
 // `flashtrace` version is provenance only and bumps every release, so pin it
 // to a placeholder rather than re-snapshot on each bump.
 static VERSION_FIELD_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"(?m)^(  "flashtrace": ")[^"]*""#).unwrap());
+    LazyLock::new(|| Regex::new(r#"(?m)^( {2}"flashtrace": ")[^"]*""#).unwrap());
 
 fn normalize(output: &str) -> String {
     VERSION_FIELD_RE
