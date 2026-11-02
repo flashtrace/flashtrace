@@ -110,10 +110,12 @@ fn first_difference(expected: &str, actual: &str) -> String {
 
 #[test]
 fn every_example_output_matches_its_snapshot() {
+    // With this env variable set, the run rewrites the snapshots (instead of hand-writing them):
+    // they may only ever be regenerated if functionalities change intentionally - then be
+    // reviewed carefully
+    let update = std::env::var_os("FLASHTRACE_UPDATE_SNAPSHOTS").is_some_and(|value| value == "1");
     for (example, variant, args, status) in CASES {
         // given
-        let update =
-            std::env::var_os("FLASHTRACE_UPDATE_SNAPSHOTS").is_some_and(|value| value == "1");
         let copy = temp_copy(example);
         let file = repo_path("tests/e2e-expect").join(format!("{example}.{variant}.txt"));
 
@@ -123,23 +125,23 @@ fn every_example_output_matches_its_snapshot() {
             .current_dir(&copy.0)
             .output()
             .unwrap();
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-        let actual = normalize(&stdout);
-        if update {
-            std::fs::write(&file, &actual).unwrap();
-        }
 
         // then
+        let stderr = String::from_utf8_lossy(&output.stderr);
         assert_eq!(
             stderr, "",
             "{example} ({variant}): unexpected stderr: {stderr}"
         );
+        let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
         assert_eq!(
             output.status.code(),
             Some(*status),
             "{example} ({variant}): exit code mismatch, stdout:\n{stdout}"
         );
+        let actual = normalize(&stdout);
+        if update {
+            std::fs::write(&file, &actual).unwrap();
+        }
         let expected = std::fs::read_to_string(&file).unwrap();
         assert_eq!(
             actual,
