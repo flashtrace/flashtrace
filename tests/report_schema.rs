@@ -609,7 +609,13 @@ fn build_everything() -> Value {
 
 #[test]
 fn the_reference_document_matches_the_schema_and_its_invariants() {
-    let errors = document_errors(&build_everything());
+    // given
+    let document = build_everything();
+
+    // when
+    let errors = document_errors(&document);
+
+    // then
     assert!(
         errors.is_empty(),
         "reference document:\n  {}",
@@ -638,7 +644,10 @@ fn assert_reaches_every_listed(reached: HashSet<String>, schema_path: &[&str]) {
 
 #[test]
 fn the_reference_document_reaches_every_defect_kind() {
+    // given
     let document = build_everything();
+
+    // when
     let kinds = items_of(&document)
         .iter()
         .flat_map(|item| {
@@ -649,12 +658,17 @@ fn the_reference_document_reaches_every_defect_kind() {
                 .map(|defect| string_of(&defect["kind"]))
         })
         .collect();
+
+    // then
     assert_reaches_every_listed(kinds, &["$defs", "defect", "properties", "kind", "enum"]);
 }
 
 #[test]
 fn the_reference_document_reaches_every_void_reason() {
+    // given
     let document = build_everything();
+
+    // when
     let reasons = document["forwards"]
         .as_array()
         .unwrap()
@@ -662,6 +676,8 @@ fn the_reference_document_reaches_every_void_reason() {
         .filter(|forward| !forward["effective"].as_bool().unwrap())
         .map(|forward| string_of(&forward["voidedBy"]))
         .collect();
+
+    // then
     assert_reaches_every_listed(
         reasons,
         &["$defs", "forward", "properties", "voidedBy", "enum"],
@@ -670,17 +686,25 @@ fn the_reference_document_reaches_every_void_reason() {
 
 #[test]
 fn the_reference_document_reaches_every_item_status() {
+    // given
     let document = build_everything();
+
+    // when
     let statuses = items_of(&document)
         .iter()
         .map(|item| string_of(&item["status"]))
         .collect();
+
+    // then
     assert_reaches_every_listed(statuses, &["$defs", "item", "properties", "status", "enum"]);
 }
 
 #[test]
 fn the_reference_document_reaches_every_cover_status() {
+    // given
     let document = build_everything();
+
+    // when
     let statuses = items_of(&document)
         .iter()
         .flat_map(|item| {
@@ -691,6 +715,8 @@ fn the_reference_document_reaches_every_cover_status() {
                 .map(|cover| string_of(&cover["status"]))
         })
         .collect();
+
+    // then
     assert_reaches_every_listed(
         statuses,
         &["$defs", "cover", "properties", "status", "enum"],
@@ -699,17 +725,25 @@ fn the_reference_document_reaches_every_cover_status() {
 
 #[test]
 fn the_reference_document_reaches_every_origin() {
+    // given
     let document = build_everything();
+
+    // when
     let origins = items_of(&document)
         .iter()
         .map(|item| string_of(&item["origin"]))
         .collect();
+
+    // then
     assert_reaches_every_listed(origins, &["$defs", "item", "properties", "origin", "enum"]);
 }
 
 #[test]
 fn the_reference_document_reaches_a_problem() {
+    // when
     let document = build_everything();
+
+    // then
     assert!(
         !document["problems"].as_array().unwrap().is_empty(),
         "no problem reached"
@@ -718,8 +752,7 @@ fn the_reference_document_reaches_a_problem() {
 
 #[test]
 fn every_committed_json_snapshot_matches_the_schema_and_its_invariants() {
-    // every snapshot is checked before the test fails, so one run names all
-    // the broken ones
+    // given
     let mut names: Vec<String> = std::fs::read_dir(repo_path("tests/e2e-expect"))
         .unwrap()
         .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
@@ -727,6 +760,10 @@ fn every_committed_json_snapshot_matches_the_schema_and_its_invariants() {
         .collect();
     names.sort();
     assert!(!names.is_empty(), "no JSON snapshots found to check");
+
+    // when
+    // every snapshot is checked before the test fails, so one run names all
+    // the broken ones
     let mut errors = Vec::new();
     for name in &names {
         let text = std::fs::read_to_string(repo_path("tests/e2e-expect").join(name)).unwrap();
@@ -736,11 +773,14 @@ fn every_committed_json_snapshot_matches_the_schema_and_its_invariants() {
         };
         errors.extend(found.into_iter().map(|error| format!("{name}: {error}")));
     }
+
+    // then
     assert!(errors.is_empty(), "snapshots:\n  {}", errors.join("\n  "));
 }
 
 #[test]
 fn the_documented_fields_walk_follows_only_the_matching_one_of_branch() {
+    // given
     // two object shapes: a value of one shape must not be held to the other
     let schema = serde_json::json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -758,47 +798,57 @@ fn the_documented_fields_walk_follows_only_the_matching_one_of_branch() {
         },
         "oneOf": [{ "$ref": "#/$defs/byName" }, { "$ref": "#/$defs/byNumber" }]
     });
-    let walk = |value: Value| {
+    let cases: [(Value, Vec<&str>); 3] = [
+        (serde_json::json!({ "name": "a" }), vec![]),
+        (serde_json::json!({ "number": 1 }), vec![]),
+        // an undocumented field still fails inside the branch the value matches
+        (
+            serde_json::json!({ "name": "a", "extra": true }),
+            vec!["(root): undocumented field \"extra\""],
+        ),
+    ];
+
+    for (value, expected) in cases {
+        // when
         let mut undocumented = Vec::new();
         collect_undocumented_fields(&value, &schema, &schema, "", &mut undocumented);
-        undocumented
-    };
-    assert_eq!(
-        walk(serde_json::json!({ "name": "a" })),
-        Vec::<String>::new()
-    );
-    assert_eq!(
-        walk(serde_json::json!({ "number": 1 })),
-        Vec::<String>::new()
-    );
-    // an undocumented field still fails inside the branch the value matches
-    assert_eq!(
-        walk(serde_json::json!({ "name": "a", "extra": true })),
-        ["(root): undocumented field \"extra\""]
-    );
+
+        // then
+        assert_eq!(undocumented, expected, "{value}");
+    }
 }
 
 #[test]
 fn the_schema_uses_only_keywords_the_undocumented_fields_walk_follows() {
+    // given
+    let schema = schema();
+
+    // when
     let mut found = Vec::new();
-    unknown_keywords(&schema(), "", &mut found);
+    unknown_keywords(&schema, "", &mut found);
+
+    // then
     assert_eq!(
         found,
         Vec::<String>::new(),
         "the walk passes over these; teach it the keywords before the schema uses them"
     );
+}
 
-    // and the check notices both ways a schema can outgrow the walk
+#[test]
+fn the_keyword_check_notices_both_ways_a_schema_can_outgrow_the_walk() {
+    // given
+    let schema = serde_json::json!({
+        "properties": { "a": { "allOf": [] } },
+        "items": { "$ref": "#/$defs/b", "properties": {} }
+    });
+
+    // when
     let mut found = Vec::new();
-    unknown_keywords(
-        &serde_json::json!({
-            "properties": { "a": { "allOf": [] } },
-            "items": { "$ref": "#/$defs/b", "properties": {} }
-        }),
-        "",
-        &mut found,
-    );
+    unknown_keywords(&schema, "", &mut found);
     found.sort();
+
+    // then
     assert_eq!(
         found,
         ["/items/properties (beside $ref)", "/properties/a/allOf"]
