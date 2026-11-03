@@ -78,13 +78,14 @@ jobs:
           }
 
           bump() {
+            local version=$1 level=$2
             node -e '
               const [major, minor, patch] = process.argv[1].split(".").map(Number);
               const level = process.argv[2];
               if (level === "major") console.log(`${major + 1}.0.0`);
               else if (level === "minor") console.log(`${major}.${minor + 1}.0`);
               else console.log(`${major}.${minor}.${patch + 1}`);
-            ' "$1" "$2"
+            ' "$version" "$level"
           }
 
           # Cargo.toml is the release workflow's version source. Read only
