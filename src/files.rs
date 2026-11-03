@@ -25,7 +25,7 @@ const GIT_LOCATIONS: &[&str] = if cfg!(windows) {
 };
 
 pub fn find_git() -> Option<&'static str> {
-    static GIT_BIN: OnceLock<Option<&'static str>> = OnceLock::new();
+    static GIT_BIN: OnceLock<Option<&str>> = OnceLock::new();
     *GIT_BIN.get_or_init(|| {
         GIT_LOCATIONS
             .iter()
