@@ -18,8 +18,10 @@ A column is 1-based and counts characters - Unicode scalar values - from the sta
 
 ## Ordering
 
-Wherever a report orders by text, it compares Unicode code points one by one - no locale, no case folding - so `B.md` comes before `a.md`. A file is compared by its path relative to the working directory, with `/` as the separator, so files appear in the same order on every platform. Revisions are the exception: they order numerically (see [Revisions](revisions.md)).
+Wherever a report orders by text, it compares Unicode code points one by one - no locale, no case folding - so `B.md` comes before `a.md`. A file is compared by its path relative to the working directory, with `/` as the separator - the spelling every report prints (see [Paths](#paths)) - so files appear in the same order on every platform. Revisions are the exception: they order numerically (see [Revisions](revisions.md)).
 
 ## Paths
 
 Input paths are made absolute and normalized lexically (`.` and `..` segments, separators), then compared exactly and case-sensitively. See [Known limitations](known-limitations.md) for what this means on a case-insensitive file system.
+
+Every file path in a report, plain-text or [JSON](json-report.md), is printed relative to the working directory with `/` as the separator on every platform, Windows included: `tests/store.spec.ts:1`, never `tests\store.spec.ts:1`. Paths echoed back verbatim from the command line, such as the argument in `input path does not exist: <path>`, keep the spelling they were typed in.

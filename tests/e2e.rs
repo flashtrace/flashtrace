@@ -76,16 +76,15 @@ fn temp_copy(example: &str) -> TempCopy {
     TempCopy(dir)
 }
 
-// Windows runs print backslash paths (e.g. tests\store.test.ts); normalize so
-// both platforms assert against the same snapshot files. The JSON report's
-// `flashtrace` version is provenance only and bumps every release, so pin it
-// to a placeholder rather than re-snapshot on each bump.
+// The JSON report's `flashtrace` version is provenance only and bumps every
+// release, so pin it to a placeholder rather than re-snapshot on each bump.
+// Paths stay as printed: every platform must spell them with `/`.
 static VERSION_FIELD_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"(?m)^(  "flashtrace": ")[^"]*""#).unwrap());
 
 fn normalize(output: &str) -> String {
     VERSION_FIELD_RE
-        .replace(&output.replace('\\', "/"), "${1}<version>\"")
+        .replace(output, "${1}<version>\"")
         .into_owned()
 }
 
