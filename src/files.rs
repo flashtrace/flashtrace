@@ -141,21 +141,45 @@ mod tests {
     use super::*;
 
     #[test]
-    fn collect_files_takes_a_single_file_verbatim_and_rejects_a_missing_path() {
+    fn collect_files_takes_a_single_file_verbatim() {
+        // given
         let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic/spec.md");
+
+        // when
         let collected = collect_files(&[manifest.to_string()]).unwrap();
+
+        // then
         assert_eq!(collected.len(), 1);
         assert!(collected[0].ends_with("spec.md"));
+    }
 
-        let missing = collect_files(&["definitely-not-here-1234".to_string()]);
-        assert!(missing.unwrap_err().0.contains("input path does not exist"));
+    #[test]
+    fn collect_files_rejects_a_missing_path() {
+        // given
+        let missing = "definitely-not-here-1234".to_string();
+
+        // when
+        let collected = collect_files(&[missing]);
+
+        // then
+        assert!(
+            collected
+                .unwrap_err()
+                .0
+                .contains("input path does not exist")
+        );
     }
 
     #[test]
     fn collect_files_filters_to_known_extensions_and_sorts_in_code_point_order() {
-        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic");
-        let collected = collect_files(&[example.to_string()]).unwrap();
+        // given
         // examples/basic holds spec.md, login.ts and a README the filter drops
+        let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic");
+
+        // when
+        let collected = collect_files(&[example.to_string()]).unwrap();
+
+        // then
         let names: Vec<&str> = collected
             .iter()
             .map(|file| file.rsplit(['/', '\\']).next().unwrap())
@@ -169,8 +193,13 @@ mod tests {
 
     #[test]
     fn collected_paths_are_absolute_and_normalized() {
+        // given
         let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/./basic");
+
+        // when
         let collected = collect_files(&[example.to_string()]).unwrap();
+
+        // then
         for file in &collected {
             assert!(Path::new(file).is_absolute(), "{file}");
             assert!(!file.contains("/./") && !file.contains("/../"), "{file}");
