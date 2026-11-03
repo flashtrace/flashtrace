@@ -348,6 +348,7 @@ mod tests {
     #[test]
     fn canonical_rev_pads_omitted_layers_with_zeros() {
         // given
+        // (rev, expected)
         let cases = [("2", "2.0.0"), ("2.4", "2.4.0"), ("2.4.1", "2.4.1")];
 
         for (rev, expected) in cases {
@@ -386,6 +387,7 @@ mod tests {
     #[test]
     fn rev_matches_treats_semver_equal_revisions_as_equal() {
         // given
+        // (pattern, rev, expected)
         let cases = [
             ("3.7", "3.7.0", true),
             ("3.7.0", "3.7", true),
@@ -405,6 +407,7 @@ mod tests {
     #[test]
     fn a_trailing_wildcard_extends_over_the_deeper_layers() {
         // given
+        // (pattern, rev, expected)
         let cases = [
             ("2.x", "2", true),
             ("2.x", "2.4", true),
@@ -427,6 +430,7 @@ mod tests {
     #[test]
     fn x_and_its_alias_star_match_every_revision() {
         // given
+        // (pattern, rev, expected)
         let mut cases = Vec::new();
         for pattern in ["x", "*"] {
             for rev in ["2", "4.1", "3.0.9"] {
@@ -448,6 +452,7 @@ mod tests {
     #[test]
     fn is_wildcard_rev_recognizes_x_and_star_layers() {
         // given
+        // (rev, expected)
         let cases = [("2.x", true), ("2.*", true), ("*", true), ("2.4.0", false)];
 
         for (rev, expected) in cases {
@@ -462,6 +467,7 @@ mod tests {
     #[test]
     fn compare_rev_orders_semver_equal_revisions_as_equal() {
         // given
+        // (a, b, expected)
         let cases = [
             ("2.4", "2.4.0", Ordering::Equal),
             ("2.9", "2.10", Ordering::Less),
@@ -526,6 +532,7 @@ mod tests {
     #[test]
     fn references_complete_from_the_stating_item() {
         // given
+        // (entry, owner, expected)
         let cases = [
             (
                 "impl:auth/login#2",
