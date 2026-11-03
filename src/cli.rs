@@ -422,6 +422,7 @@ mod tests {
     #[test]
     fn selecting_a_setting_twice_names_the_first_spelling() {
         // given
+        // (list, expected)
         let cases: [(&[&str], &str); 5] = [
             (
                 &["-t", "a", "-t", "b"],
@@ -457,6 +458,7 @@ mod tests {
     #[test]
     fn a_valueless_option_rejects_an_equals_attached_value() {
         // given
+        // (argument, expected)
         let cases = [
             ("--verbose=1", "option --verbose does not take a value"),
             ("--json=pretty", "option --json does not take a value"),
@@ -474,6 +476,7 @@ mod tests {
     #[test]
     fn unknown_options_are_reported_by_name_without_the_value() {
         // given
+        // (argument, expected)
         let cases = [
             ("--frobnicate=x", "unknown option: --frobnicate"),
             // short options never carry "=", so the whole token is unknown

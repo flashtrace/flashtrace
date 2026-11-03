@@ -433,6 +433,7 @@ mod tests {
     #[test]
     fn script_grammar_resolves_from_the_opening_tag() {
         // given
+        // (tag, expected)
         let cases: [(&str, &Leaf); 7] = [
             ("<script>", &C_LIKE),
             ("<script setup lang=\"ts\">", &C_LIKE),
@@ -456,6 +457,7 @@ mod tests {
     #[test]
     fn style_grammar_resolves_from_the_opening_tag() {
         // given
+        // (tag, expected)
         let mut cases: Vec<(String, &Leaf)> = vec![
             ("<style>".to_string(), &CSS),
             ("<style scoped>".to_string(), &CSS),
