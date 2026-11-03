@@ -1,0 +1,58 @@
+version: 2
+
+# One pull request per dependency, so every bump is a single commit that can be
+# reviewed, reverted and bisected on its own. Commit types, and the branch
+# prefixes that mirror them, follow the repository's conventional commits:
+# whatever changes the build is "build", whatever only changes the pipeline is
+# "ci".
+#
+# No labels: a merge without a release:* label releases nothing, so the bumps
+# ship with the next labelled release. Relabel a pull request to release:patch
+# to ship a fix (a security update, say) right away.
+#
+# npm is deliberately left out: the only npm dependencies are the
+# @flashtrace/* platform packages, which the release workflow bumps.
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    # Crates of the lockfile only, too: they end up in the binary just the same
+    allow:
+      - dependency-type: all
+    # Keep a requirement such as regex = "1" as it is while it admits the new
+    # version: the published crate must not demand more of its consumers than
+    # it needs, and the lockfile pins the build anyway.
+    versioning-strategy: increase-if-necessary
+    # A new major has more time to surface problems before it is proposed
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    # "build(deps): ..." for runtime and build crates, "build(deps-dev): ..."
+    # for dev crates
+    commit-message:
+      prefix: build
+      include: scope
+    pull-request-branch-name:
+      prefix: build
+    labels: []
+
+  - package-ecosystem: rust-toolchain
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+    pull-request-branch-name:
+      prefix: build
+    labels: []
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    pull-request-branch-name:
+      prefix: ci
+    labels: []
