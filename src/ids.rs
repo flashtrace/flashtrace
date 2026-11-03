@@ -467,19 +467,19 @@ mod tests {
     #[test]
     fn compare_rev_orders_semver_equal_revisions_as_equal() {
         // given
-        // (a, b, expected)
+        // (left, right, expected)
         let cases = [
             ("2.4", "2.4.0", Ordering::Equal),
             ("2.9", "2.10", Ordering::Less),
             ("2.4.1", "2.4", Ordering::Greater),
         ];
 
-        for (a, b, expected) in cases {
+        for (left, right, expected) in cases {
             // when
-            let ordering = compare_rev(a, b);
+            let ordering = compare_rev(left, right);
 
             // then
-            assert_eq!(ordering, expected, "{a} <> {b}");
+            assert_eq!(ordering, expected, "{left} <> {right}");
         }
     }
 
