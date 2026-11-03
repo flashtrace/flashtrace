@@ -144,7 +144,8 @@ jobs:
           # Read the field's value with the surrounding quotes stripped, so
           # requoting a line is not reported as a version change.
           field() {
-            sed -n "s|^$2: *||p" "$1" | sed 's|^"\(.*\)"$|\1|'
+            local path=$1 key=$2
+            sed -n "s|^$key: *||p" "$path" | sed 's|^"\(.*\)"$|\1|'
           }
           git show HEAD^1:CITATION.cff > "$RUNNER_TEMP/base.cff"
           # Only these two fields are release-owned; authors, keywords and the
