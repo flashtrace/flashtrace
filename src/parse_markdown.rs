@@ -31,7 +31,9 @@ use std::sync::LazyLock;
 use regex::{Captures, Regex};
 
 use crate::defects::Problem;
-use crate::ids::{Forward, Item, Origin, forward_src, id_src, make_forward, make_id, new_item};
+use crate::ids::{
+    Forward, Item, Origin, forward_src, id_src, make_forward, make_id, matching_captures, new_item,
+};
 use crate::spec_items::{Entry, KEYWORDS, apply_keyword, is_keyword};
 
 static DEFINITION_RE: LazyLock<Regex> =
@@ -96,9 +98,8 @@ fn first_non_blank_column(line: &str) -> usize {
 
 // a line that is only a forwarding tag pushes a forward and is otherwise skipped
 fn take_forward(line: &str, file: &str, line_index: usize, forwards: &mut Vec<Forward>) -> bool {
-    let forward = BACKTICKED_FORWARD_LINE_RE
-        .captures(line)
-        .or_else(|| BARE_FORWARD_LINE_RE.captures(line));
+    let forward = matching_captures(&BACKTICKED_FORWARD_LINE_RE, line)
+        .or_else(|| matching_captures(&BARE_FORWARD_LINE_RE, line));
     match forward {
         Some(m) => {
             forwards.push(make_forward(
@@ -394,7 +395,7 @@ fn scan_tables(lines: &[&str], file: &str, problems: &mut Vec<Problem>) -> Vec<b
                 let definition = if keyword_columns.contains(&col) {
                     None
                 } else {
-                    DEFINITION_RE.captures(cell)
+                    matching_captures(&DEFINITION_RE, cell)
                 };
                 if let Some(definition) = definition {
                     let id = captured_id(&definition);
@@ -485,7 +486,7 @@ fn parse_item_body(
             j += 1;
             continue;
         }
-        let keyword_match = KEYWORD_RE.captures(line);
+        let keyword_match = matching_captures(&KEYWORD_RE, line);
         let table_end = if keyword_match.is_some() {
             None
         } else {
@@ -540,7 +541,7 @@ pub fn parse_markdown(
         let definition = if in_table[i] {
             None
         } else {
-            DEFINITION_RE.captures(lines[i])
+            matching_captures(&DEFINITION_RE, lines[i])
         };
         let Some(definition) = definition else {
             i += 1;
@@ -1188,6 +1189,21 @@ mod tests {
     #[test]
     fn a_forwarding_mentioned_in_prose_is_not_recognized() {
         let (_, _, forwards) = parse(&["The tag [req:a#1 --> dsn:b#1] in prose does not forward."]);
+        assert_eq!(forwards.len(), 0);
+    }
+
+    #[test]
+    fn near_miss_forwarding_and_definition_lines_are_plain_text() {
+        let (items, problems, forwards) = parse(&[
+            "a --> b",
+            "[req:a#1 -> dsn:b#1]",
+            "`[req:a#1 --> dsn:b]`",
+            "`req:a`",
+            "`req:a#1` trailing text",
+            "``",
+        ]);
+        assert_eq!(items.len(), 0);
+        assert_eq!(problems.len(), 0);
         assert_eq!(forwards.len(), 0);
     }
 
