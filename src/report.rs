@@ -10,7 +10,10 @@
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
-use crate::analyze::{Resolver, build_resolver, is_clean, status_of, summarize};
+use crate::analyze::{
+    BumpImpact, DependencyEdge, DependencyKind, Resolver, RevisionsByKey, build_resolver, is_clean,
+    status_of, summarize,
+};
 use crate::defects::Problem;
 use crate::ids::{Item, Origin, canonical_id, is_wildcard_rev, rev_of};
 use crate::paths::display_relative;
@@ -94,6 +97,97 @@ impl<'run> Renderer<'run> {
     fn dim_location(&self, file: &str, line: usize) -> String {
         let path = display_relative(&self.cwd, file);
         self.style.dim(&format!("{path}:{line}"))
+    }
+
+    fn located_item(&self, item: &Item) -> String {
+        let title = match &item.title {
+            Some(title) => format!(" {}", self.style.dim(&format!("\"{title}\""))),
+            None => String::new(),
+        };
+        let id = self.style.bold(&item.id);
+        let location = self.dim_location(&item.file, item.line);
+        format!("{id}{title}  {location}")
+    }
+
+    fn impact_edge(&self, edge: &DependencyEdge, target: &Item) -> String {
+        let label = match edge.kind {
+            DependencyKind::Need => self.style.dim("needs"),
+            DependencyKind::Cover => self.style.dim("covers"),
+            DependencyKind::Forward => self.style.cyan("→"),
+        };
+        let reference = if edge.kind == DependencyKind::Need
+            && (is_wildcard_rev(rev_of(&edge.reference)) || edge.reference != target.id)
+        {
+            let arrow = self.style.dim(&format!("(→ {})", target.id));
+            format!("{} {arrow}", edge.reference)
+        } else {
+            edge.reference.clone()
+        };
+        let classification = match &edge.bump {
+            BumpImpact::Exact => self.style.red("exact — breaks on bump"),
+            BumpImpact::WildcardLast => self
+                .style
+                .yellow("wildcard-last — breaks on bump; same-pattern replacement heals it"),
+            BumpImpact::Tolerant(alternatives) => {
+                let revisions = alternatives
+                    .iter()
+                    .map(|&index| format!("#{}", self.items[index].revision))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                self.style
+                    .green(&format!("tolerant (also matched by {revisions})"))
+            }
+        };
+        format!("        {label} {reference}  {classification}")
+    }
+
+    fn render_impact(&self, canonical: &str, resolver: &Resolver, out: &mut Vec<String>) {
+        let target_index = resolver.group(canonical).unwrap()[0];
+        let target = &self.items[target_index];
+        let mut impact = resolver.impact_of(canonical);
+        if impact.direct.is_empty() {
+            out.push(format!(
+                "no items depend on {}",
+                self.style.bold(&target.id)
+            ));
+            return;
+        }
+        let location_order = |index: usize| {
+            let item = &self.items[index];
+            (&item.file, item.line, item.character)
+        };
+        impact.direct.sort_by_key(|&index| location_order(index));
+        impact
+            .transitive
+            .sort_by_key(|&(index, _)| location_order(index));
+        let id = self.style.bold(&target.id);
+        let location = self.dim_location(&target.file, target.line);
+        let counts = self.style.dim(&format!(
+            "({} direct, {} transitive)",
+            impact.direct.len(),
+            impact.transitive.len()
+        ));
+        out.push(format!("impact of {id}  {location}  {counts}"));
+        out.push(String::new());
+        out.push(self.style.bold("  direct"));
+        for dependent in impact.direct {
+            out.push(format!("    {}", self.located_item(&self.items[dependent])));
+            for edge in resolver
+                .dependents_of(target_index)
+                .iter()
+                .filter(|edge| edge.dependent == dependent)
+            {
+                out.push(self.impact_edge(edge, target));
+            }
+        }
+        if !impact.transitive.is_empty() {
+            out.push(self.style.bold("  transitive"));
+            for (index, via) in impact.transitive {
+                let item = self.located_item(&self.items[index]);
+                let via = self.style.dim(&format!("via {}", self.items[via].id));
+                out.push(format!("    {item}  {via}"));
+            }
+        }
     }
 
     // a need or forwarding edge carries this item's coverage obligation, so
@@ -244,15 +338,10 @@ impl<'run> Renderer<'run> {
                 out.push(String::new());
             }
             previous_file = Some(item.file.as_str());
-            let title = match &item.title {
-                Some(title) => format!(" {}", self.style.dim(&format!("\"{title}\""))),
-                None => String::new(),
-            };
             let mark = styled_mark(item, &self.style);
-            let id = self.style.bold(&item.id);
-            let location = self.dim_location(&item.file, item.line);
+            let located = self.located_item(item);
             let tag = styled_tag(item, &self.style);
-            out.push(format!("{mark} {id}{title}  {location}  {tag}"));
+            out.push(format!("{mark} {located}  {tag}"));
             out.extend(self.edge_lines(*index, &resolver));
             out.extend(self.defect_lines(item));
         }
@@ -264,14 +353,9 @@ impl<'run> Renderer<'run> {
     // the default report: one block per defective item only
     fn render_defective(&self, out: &mut Vec<String>) {
         for item in self.items.iter().filter(|item| !item.defects.is_empty()) {
-            let title = match &item.title {
-                Some(title) => format!(" {}", self.style.dim(&format!("\"{title}\""))),
-                None => String::new(),
-            };
             let mark = styled_mark(item, &self.style);
-            let id = self.style.bold(&item.id);
-            let location = self.dim_location(&item.file, item.line);
-            out.push(format!("{mark} {id}{title}  {location}"));
+            let located = self.located_item(item);
+            out.push(format!("{mark} {located}"));
             out.extend(self.defect_lines(item));
             out.push(String::new());
         }
@@ -313,6 +397,38 @@ impl<'run> Renderer<'run> {
         }
         out.push(String::new());
     }
+}
+
+/// Query verdict: a defined reference succeeds independently of coverage defects.
+pub fn report_impact(items: &[Item], reference: &str, cwd: &Path) -> bool {
+    let resolver = build_resolver(items);
+    let mut matches = resolver.query_matches(reference);
+    matches.sort_by(|a, b| crate::ids::compare_rev(rev_of(a), rev_of(b)));
+    if matches.is_empty() {
+        let hint = if reference.contains('#') {
+            RevisionsByKey::record(items).rev_hint(reference)
+        } else {
+            String::new()
+        };
+        let mut err = std::io::stderr().lock();
+        let _ = writeln!(err, "no item matches {reference}{hint}");
+        let _ = err.flush();
+        return false;
+    }
+    let renderer = Renderer {
+        items,
+        style: Styler::new(),
+        cwd: cwd.to_path_buf(),
+    };
+    let mut out = Vec::new();
+    for canonical in matches {
+        if !out.is_empty() {
+            out.push(String::new());
+        }
+        renderer.render_impact(canonical, &resolver, &mut out);
+    }
+    print_line(&out.join("\n"));
+    true
 }
 
 pub fn report(items: &[Item], problems: &[Problem], cwd: &Path, verbose: bool) -> bool {
