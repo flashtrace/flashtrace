@@ -219,6 +219,7 @@ mod tests {
     fn every_factory_words_its_message_as_expected() {
         // given
         type Factory = fn() -> Defect;
+        // (factory, expected)
         let cases: [(Factory, &str); 9] = [
             (
                 || invalid_reference("x y", "the Needs list", example_location()),

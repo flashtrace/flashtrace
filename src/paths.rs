@@ -97,6 +97,7 @@ mod tests {
     #[test]
     fn extension_of_is_lowercased_and_dotless() {
         // given
+        // (file, expected)
         let cases = [
             ("file.ts", "ts"),
             ("file.TS", "ts"),
@@ -130,6 +131,7 @@ mod tests {
     #[test]
     fn normalize_resolves_dot_and_parent_segments() {
         // given
+        // (path, expected)
         let cases = [
             ("/a/b/../c", "/a/c"),
             ("/a/./b//c/", "/a/b/c"),
@@ -151,6 +153,7 @@ mod tests {
     fn absolute_normalized_anchors_at_the_working_directory() {
         // given
         let cwd = std::env::current_dir().unwrap();
+        // (path, expected)
         let cases = [
             ("", cwd.clone()),
             (".", cwd.clone()),
@@ -170,6 +173,7 @@ mod tests {
     #[test]
     fn relative_to_walks_from_the_base_to_the_target() {
         // given
+        // (base, target, expected)
         let cases = [
             ("/a/b", "/a/b/c", "c"),
             ("/a/b", "/a/b/c/d", "c/d"),
@@ -217,6 +221,7 @@ mod tests {
     #[test]
     fn windows_prefixes_are_kept_by_normalize() {
         // given
+        // (path, expected)
         let cases = [
             (r"C:\a\..\b", r"C:\b"),
             (r"\\server\share\x\..", r"\\server\share"),
@@ -235,6 +240,7 @@ mod tests {
     #[test]
     fn windows_prefixes_are_never_crossed_by_relative_to() {
         // given
+        // (base, target, expected)
         let cases = [
             (r"C:\a\b", r"C:\a\c", r"..\c"),
             (r"C:\a", r"D:\a\b", r"D:\a\b"),
