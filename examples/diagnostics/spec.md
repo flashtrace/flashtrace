@@ -95,3 +95,20 @@ Forwards back to req:eta#1, closing the cycle.
 The forwarding below names a source that is defined nowhere:
 
 `[req:ghost#1 --> req:alpha#1]`
+
+# Iota requirement
+
+`req:iota#1`
+
+Described twice: this text under the ID is ignored and reported, because
+the Description keyword below wins.
+
+Description: The description the keyword states.
+
+# Kappa requirement
+
+`req:kappa#1`
+
+Description: The first Description keyword counts.
+
+Description: A second one is ignored and reported.

@@ -20,13 +20,33 @@ Tags: Auth, Security
 ```
 
 - **Title** - the heading directly above the ID line, either ATX (`#`-style) or setext (a paragraph underlined with `===` for level 1 or `---` for level 2). Only blank lines may sit between the heading and the ID; if any other text does, the item has *no* title. A setext underline counts only when a paragraph line sits directly above it, so a thematic break, a table delimiter row, or a bullet list is not read as a heading. As in CommonMark, a setext heading folds its whole paragraph into the title, and those lines belong to the title alone - they never double as the previous item's description. In a multi-line title, each line is trimmed and the lines are joined with a single space - the whitespace a renderer shows for a soft line break; a line ending in two or more spaces spells a hard line break (CommonMark) and joins with a newline instead. A pipe alone does not make a line a table row: as in GFM, a pipe-carrying paragraph above an underline is a setext heading with the pipe in its text. Only a line inside an actual table (a header row followed by a matching delimiter row) is ruled out - see below. A keyword line, a forwarding line, or an ID line folded into a setext title is heading text like any other: it serves the heading, not its usual role - a keyword or forward is ignored, exactly as `# Covers: ...` is a heading, not a keyword. An ID line so folded cannot also define an item: with no blank line below it, the ID is part of the following paragraph's heading, so the tracer reports it and creates no item. Put a blank line under the ID to keep it a standalone definition.
-- **Description** - the lines following the ID. A single blank line directly under the ID (before the description starts) is permitted. The description ends at the next blank line; everything after that is treated as informative text and skipped. A blank line holds nothing but whitespace, as [Text handling](text-handling.md) defines it.
+- **Description** - the lines following the ID, unless the item states its description with the `Description:` keyword instead (see [Explicit descriptions](#explicit-descriptions)). A single blank line directly under the ID (before the description starts) is permitted. The description ends at the next blank line, keyword line or keyword table; everything after that is treated as informative text and skipped. A blank line holds nothing but whitespace, as [Text handling](text-handling.md) defines it.
 - **Keywords** - after the description, an item may carry:
   - `Needs:` - the items required to cover this one. Because needs are explicit references, multiple needed items of the same type are possible. A need may use a [wildcard revision](revisions.md#wildcard-revisions) (e.g. `impl:auth/login#2.x`) to accept any matching downstream revision. A need may also be written **short**, dropping whatever the item stating it already fixes: the `[group/[group/]]name`, the `#<revision>`, or both are then taken from that item. Inside `req:auth/login#1`, the full ID `impl:auth/login#1` may be shortened to `impl#1` (name taken), `impl:auth/login` (revision taken), or just `impl` (both taken). Wildcard revisions work in the short form too (`impl#2.x`). Only the leading `<type>` is mandatory - so a bare type name is enough, and any plain word in a `Needs` entry is read as such a reference, not as prose.
   - `Covers:` - the items this item covers, at concrete revisions only. A `Covers` entry accepts the same short form as `Needs` (`feat`, `feat:auth`, `feat#2`), completed from this item's own `[group/]name` and revision; a wildcard revision stays rejected here.
   - `Tags:` - free-form tag names for additional grouping/filtering.
 
-  Each keyword accepts a one-line comma-separated list, a bullet list (`-`, `*`, `+`) on the immediately following lines, or a table column (see below). The inline and bullet styles must not be mixed within one keyword. IDs may optionally be wrapped in backticks.
+  Each keyword accepts a one-line comma-separated list, a bullet list (`-`, `*`, `+`) on the immediately following lines, or a table column (see below). The inline and bullet styles must not be mixed within one keyword. IDs may optionally be wrapped in backticks. A keyword may appear more than once in an item; the entries of all its occurrences are merged into one list.
+
+## Explicit descriptions
+
+Instead of the lines under its ID, an item may state its description with the `Description:` keyword:
+
+```markdown
+### Login requires a valid session token
+`req:auth/login#1`
+
+Needs: impl:auth/login#1
+Description: The system only accepts requests
+that carry a valid session token.
+Tags: Auth
+```
+
+- The description starts with the text after the colon and continues on the following lines; a bare `Description:` starts it on the line below. It ends where a description under the ID ends: at the next blank line, keyword line, keyword table or [definition boundary](#definition-boundaries). Each line is trimmed, and a forwarding line inside it is not part of it.
+- Like the other keywords, `Description:` may appear anywhere in the item's definition: as the first line under the ID, or after other keyword lines. An item whose ID is followed by keyword lines rather than prose has no description under its ID, so a `Description:` keyword further down is its description.
+- The keyword takes priority. If an item has both a description under its ID and a `Description:` keyword, the keyword's text is the description. The text under the ID is ignored and reported as a problem, located at that text, because its author may have meant it to be part of the description.
+- An item has exactly one description. Unlike `Needs:`, `Covers:` and `Tags:`, whose repeated occurrences are merged into one list, only the first `Description:` keyword counts; each further one is ignored together with its text and reported as a problem, located at that keyword.
+- A description cannot come from a keyword table: a `Description` column is not a keyword column and is ignored like any other.
 
 ## Keyword entries from tables
 

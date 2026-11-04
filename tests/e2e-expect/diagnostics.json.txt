@@ -327,6 +327,42 @@
       "wantedBy": []
     },
     {
+      "id": "req:iota#1",
+      "title": "Iota requirement",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 101,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "req:kappa#1",
+      "title": "Kappa requirement",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 110,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
       "id": "impl:delta#1",
       "title": null,
       "origin": "code",
@@ -433,15 +469,27 @@
       "line": 97,
       "character": 1,
       "message": "forwarding from req:ghost#1, which does not exist"
+    },
+    {
+      "file": "spec.md",
+      "line": 103,
+      "character": 1,
+      "message": "item req:iota#1 has a description under its ID and a Description keyword; the keyword wins and the text under the ID is ignored"
+    },
+    {
+      "file": "spec.md",
+      "line": 114,
+      "character": 1,
+      "message": "item req:kappa#1 has more than one Description keyword; only the first counts and this one is ignored"
     }
   ],
   "summary": {
-    "items": 14,
-    "specItems": 12,
+    "items": 16,
+    "specItems": 14,
     "codeItems": 2,
-    "okItems": 3,
+    "okItems": 5,
     "defectiveItems": 11,
     "shallowCoveredItems": 1,
-    "problems": 2
+    "problems": 4
   }
 }

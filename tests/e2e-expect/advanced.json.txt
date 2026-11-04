@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 0,
+  "flashtrace": "<version>",
+  "ok": true,
+  "items": [
+    {
+      "id": "utest:checkout/cart#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "cart.test.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:checkout/cart#1",
+          "file": "spec.md",
+          "line": 14,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:checkout/cart#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "cart.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:checkout/cart#1",
+          "file": "spec.md",
+          "line": 14,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:checkout/history#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "history.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:checkout/history#1",
+          "file": "spec.md",
+          "line": 45,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "impl:checkout/payment#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "file": "payment.ts",
+      "line": 1,
+      "character": 4,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:checkout/payment#1",
+          "file": "spec.md",
+          "line": 27,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "feat:checkout#1",
+      "title": "Checkout feature",
+      "origin": "spec",
+      "tags": [
+        "shop"
+      ],
+      "file": "spec.md",
+      "line": 3,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "req:checkout/cart#1",
+          "resolvedTo": [
+            "req:checkout/cart#1"
+          ]
+        },
+        {
+          "ref": "req:checkout/payment#1",
+          "resolvedTo": [
+            "req:checkout/payment#1"
+          ]
+        },
+        {
+          "ref": "req:checkout/receipt#1",
+          "resolvedTo": [
+            "req:checkout/receipt#1"
+          ]
+        },
+        {
+          "ref": "req:checkout/history#1",
+          "resolvedTo": [
+            "req:checkout/history#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": []
+    },
+    {
+      "id": "req:checkout/cart#1",
+      "title": "Cart totals",
+      "origin": "spec",
+      "tags": [
+        "shop",
+        "pricing"
+      ],
+      "file": "spec.md",
+      "line": 14,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:checkout/cart#1",
+          "resolvedTo": [
+            "impl:checkout/cart#1"
+          ]
+        },
+        {
+          "ref": "utest:checkout/cart#1",
+          "resolvedTo": [
+            "utest:checkout/cart#1"
+          ]
+        }
+      ],
+      "covers": [
+        {
+          "ref": "feat:checkout#1",
+          "status": "valid"
+        }
+      ],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:checkout#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:checkout/payment#1",
+      "title": "Single charge",
+      "origin": "spec",
+      "tags": [],
+      "file": "spec.md",
+      "line": 27,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:checkout/payment#1",
+          "resolvedTo": [
+            "impl:checkout/payment#1"
+          ]
+        }
+      ],
+      "covers": [
+        {
+          "ref": "feat:checkout#1",
+          "status": "valid"
+        }
+      ],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:checkout#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:checkout/receipt#1",
+      "title": "Receipt",
+      "origin": "spec",
+      "tags": [
+        "shop"
+      ],
+      "file": "spec.md",
+      "line": 35,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [
+        {
+          "ref": "feat:checkout#1",
+          "status": "valid"
+        }
+      ],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:checkout#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    },
+    {
+      "id": "req:checkout/history#1",
+      "title": "Order history",
+      "origin": "spec",
+      "tags": [
+        "shop",
+        "history"
+      ],
+      "file": "spec.md",
+      "line": 45,
+      "character": 1,
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:checkout/history#1",
+          "resolvedTo": [
+            "impl:checkout/history#1"
+          ]
+        }
+      ],
+      "covers": [
+        {
+          "ref": "feat:checkout#1",
+          "status": "valid"
+        }
+      ],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "feat:checkout#1",
+          "file": "spec.md",
+          "line": 3,
+          "character": 1
+        }
+      ]
+    }
+  ],
+  "forwards": [],
+  "problems": [],
+  "summary": {
+    "items": 9,
+    "specItems": 5,
+    "codeItems": 4,
+    "okItems": 9,
+    "defectiveItems": 0,
+    "shallowCoveredItems": 0,
+    "problems": 0
+  }
+}
