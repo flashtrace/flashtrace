@@ -57,8 +57,8 @@ jobs:
 
       # Trees are content-addressed, so building the measured documents onto
       # the branch tip's tree yields the tip's own tree id when nothing
-      # changed - the same "commit only when a number changed" the previous
-      # `git diff --cached --quiet` gave a working copy. Commits created with
+      # changed. Comparing the two ids therefore shows whether a number
+      # changed, and the step commits only if one did. Commits created with
       # the app's installation token are attributed to the app's bot user and
       # signed by GitHub without any author configuration.
       - name: Commit when a number changed
