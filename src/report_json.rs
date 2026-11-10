@@ -5,7 +5,7 @@
  * every forwarding declaration, all problems and the summary.
  *
  * The document is deterministic: items, forwards and problems are sorted by
- * file, then line, then character; object keys serialize in a fixed order;
+ * location - file, then line, then character; object keys serialize in a fixed order;
  * the output is two-space indented and ends with a single newline. See
  * schemas/report/v0.json for the contract and docs/json-report.md for how the
  * format is invoked and what it guarantees beyond the schema.
@@ -28,7 +28,8 @@ use crate::paths::display_relative;
 // 0 marks the format unstable; it becomes 1 with flashtrace 1.0.0
 const SCHEMA_VERSION: u64 = 0;
 
-// a source location as the document carries it. The derived order compares
+// a source location, the nested `location` object of every located record.
+// The derived order compares
 // the fields in declaration order - file (String's Ord is code-point
 // lexicographic, as str::cmp), then line, then character - which is exactly
 // the documented location order, so sorting by location is sorting by this.
@@ -42,7 +43,6 @@ pub struct LocationDocument {
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct ItemReference {
     pub id: String,
-    #[serde(flatten)]
     pub location: LocationDocument,
 }
 
@@ -61,15 +61,15 @@ pub struct CoverDocument {
     pub status: &'static str,
 }
 
-// defect record in documented key order: the location group, present exactly
-// when the defect carries a source location of its own, sits after ref;
+// defect record in documented key order: location, present exactly when the
+// defect carries a source location of its own, sits after ref;
 // existingRevisions, when present, before the message
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct DefectDocument {
     pub kind: &'static str,
     #[serde(rename = "ref")]
     pub reference: String,
-    #[serde(flatten)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<LocationDocument>,
     #[serde(rename = "existingRevisions", skip_serializing_if = "Option::is_none")]
     pub existing_revisions: Option<Vec<String>>,
@@ -82,7 +82,6 @@ pub struct ItemDocument {
     pub title: Option<String>,
     pub origin: &'static str,
     pub tags: Vec<String>,
-    #[serde(flatten)]
     pub location: LocationDocument,
     pub status: &'static str,
     pub defective: bool,
@@ -103,7 +102,6 @@ pub struct ItemDocument {
 pub struct ForwardDocument {
     pub from: String,
     pub to: String,
-    #[serde(flatten)]
     pub location: LocationDocument,
     pub effective: bool,
     #[serde(rename = "voidedBy", skip_serializing_if = "Option::is_none")]
@@ -112,7 +110,6 @@ pub struct ForwardDocument {
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct ProblemDocument {
-    #[serde(flatten)]
     pub location: LocationDocument,
     pub message: String,
 }
@@ -922,9 +919,7 @@ mod tests {
             "\"title\"",
             "\"origin\"",
             "\"tags\"",
-            "\"file\"",
-            "\"line\"",
-            "\"character\"",
+            "\"location\"",
             "\"status\"",
             "\"defective\"",
             "\"deepCovered\"",
@@ -940,6 +935,52 @@ mod tests {
             let found = serialized[position..].find(key).expect(key);
             position += found;
         }
+        // file, line and character nest inside location, in that order
+        assert!(serialized.contains(concat!(
+            "      \"tags\": [],\n",
+            "      \"location\": {\n",
+            "        \"file\": \"docs/spec.md\",\n",
+            "        \"line\": 1,\n",
+            "        \"character\": 1\n",
+            "      },\n",
+            "      \"status\": "
+        )));
+    }
+
+    // a defect nests a location exactly when it has one of its own; one
+    // anchored at its item's location carries no location key at all
+    #[test]
+    fn a_defect_carries_a_nested_location_only_when_it_has_its_own() {
+        let document = build(&["`req:a#1`", "", "Needs: not/valid, impl:gone#1"], &[]);
+        let defects = &item_of(&document, "req:a#1").defects;
+        let invalid = defects
+            .iter()
+            .find(|defect| defect.kind == "invalid-reference")
+            .unwrap();
+        assert_eq!(
+            invalid.location,
+            Some(LocationDocument {
+                file: "docs/spec.md".to_string(),
+                line: 3,
+                character: 8
+            })
+        );
+        let uncovered = defects
+            .iter()
+            .find(|defect| defect.kind == "uncovered-need")
+            .unwrap();
+        assert_eq!(uncovered.location, None);
+
+        let serialized = serialize_report_document(&document);
+        assert!(serialized.contains(concat!(
+            "          \"ref\": \"not/valid\",\n",
+            "          \"location\": {\n",
+            "            \"file\": \"docs/spec.md\",\n"
+        )));
+        assert!(serialized.contains(concat!(
+            "          \"ref\": \"impl:gone#1\",\n",
+            "          \"message\": "
+        )));
     }
 
     // the document is UTF-8 with the minimal JSON escaping: `"` and `\`

@@ -490,12 +490,13 @@ fn check_summary(errors: &mut Vec<String>, document: &Value) {
 fn check_locations(errors: &mut Vec<String>, document: &Value) {
     let items = items_of(document);
 
-    // located arrays are sorted by file, then line, then character
+    // located arrays are sorted by location: file, then line, then character
     let sort_key = |entry: &Value| -> (String, u64, u64) {
+        let location = &entry["location"];
         (
-            string_of(&entry["file"]),
-            entry["line"].as_u64().unwrap(),
-            entry["character"].as_u64().unwrap(),
+            string_of(&location["file"]),
+            location["line"].as_u64().unwrap(),
+            location["character"].as_u64().unwrap(),
         )
     };
     let mut located: Vec<(String, Vec<Value>)> = vec![
@@ -537,10 +538,11 @@ fn check_locations(errors: &mut Vec<String>, document: &Value) {
         .chain(document["forwards"].as_array().unwrap())
         .chain(document["problems"].as_array().unwrap())
     {
+        let file = &entry["location"]["file"];
         expect(
             errors,
-            !entry["file"].as_str().unwrap().contains('\\'),
-            format!("{} carries a backslash", entry["file"]),
+            !file.as_str().unwrap().contains('\\'),
+            format!("{file} carries a backslash"),
         );
     }
 }
