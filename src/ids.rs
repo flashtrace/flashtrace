@@ -300,10 +300,9 @@ pub struct Item {
     /// the SemVer-equal identity every exact-ID lookup keys on
     pub canonical_id: String,
     pub origin: Origin,
-    pub file: String,
-    pub line: usize,
-    /// 1-based column of the first character of the defining construct
-    pub character: usize,
+    /// where the defining construct starts: its 1-based column is that of
+    /// the construct's first character
+    pub location: Location,
     pub title: Option<String>,
     pub description: Vec<String>,
     pub needs: Vec<String>,
@@ -324,9 +323,11 @@ pub fn new_item(id: &str, origin: Origin, file: &str, line: usize, character: us
         revision: rev_of(id).to_string(),
         canonical_id: canonical_id(id),
         origin,
-        file: file.to_string(),
-        line,
-        character,
+        location: Location {
+            file: file.to_string(),
+            line,
+            character,
+        },
         title: None,
         description: Vec::new(),
         needs: Vec::new(),

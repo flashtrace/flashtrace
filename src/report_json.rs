@@ -219,9 +219,9 @@ pub fn build_report_document(
             .map(|&index| ItemReference {
                 id: items[index].id.clone(),
                 location: locator.locate(
-                    &items[index].file,
-                    items[index].line,
-                    items[index].character,
+                    &items[index].location.file,
+                    items[index].location.line,
+                    items[index].location.character,
                 ),
             })
             .collect();
@@ -249,7 +249,11 @@ pub fn build_report_document(
             title: item.title.clone(),
             origin: item.origin.as_str(),
             tags: item.tags.clone(),
-            location: locator.locate(&item.file, item.line, item.character),
+            location: locator.locate(
+                &item.location.file,
+                item.location.line,
+                item.location.character,
+            ),
             status: status_of(item),
             defective: !item.defects.is_empty(),
             deep_covered: item.deep_covered,

@@ -113,7 +113,7 @@ impl<'run> Renderer<'run> {
             }
             Some(target) => {
                 let mark = styled_mark(target, &self.style);
-                let location = self.dim_location(&target.file, target.line);
+                let location = self.dim_location(&target.location.file, target.location.line);
                 format!("    {arrow} {forwards_to}  {mark} {location}")
             }
         }
@@ -145,7 +145,7 @@ impl<'run> Renderer<'run> {
                 };
                 let needs_label = self.style.dim("needs");
                 let mark = styled_mark(covering, &self.style);
-                let location = self.dim_location(&covering.file, covering.line);
+                let location = self.dim_location(&covering.location.file, covering.location.line);
                 lines.push(format!("    {needs_label} {reference}  {mark} {location}"));
             }
         }
@@ -170,7 +170,7 @@ impl<'run> Renderer<'run> {
                 }
                 Some(target) => {
                     let mark = self.style.green("\u{2714}");
-                    let location = self.dim_location(&target.file, target.line);
+                    let location = self.dim_location(&target.location.file, target.location.line);
                     lines.push(format!("    {covers_label} {cover_id}  {mark} {location}"));
                 }
             }
@@ -220,7 +220,7 @@ impl<'run> Renderer<'run> {
             let wanting = &self.items[wanting];
             let wanted_by_label = self.style.dim("wanted by");
             let wanting_id = &wanting.id;
-            let location = self.dim_location(&wanting.file, wanting.line);
+            let location = self.dim_location(&wanting.location.file, wanting.location.line);
             lines.push(format!("    {wanted_by_label} {wanting_id}  {location}"));
         }
         lines
@@ -233,24 +233,30 @@ impl<'run> Renderer<'run> {
         let mut sorted: Vec<usize> = (0..self.items.len()).collect();
         sorted.sort_by(|&a, &b| {
             self.items[a]
+                .location
                 .file
-                .cmp(&self.items[b].file)
-                .then_with(|| self.items[a].line.cmp(&self.items[b].line))
+                .cmp(&self.items[b].location.file)
+                .then_with(|| {
+                    self.items[a]
+                        .location
+                        .line
+                        .cmp(&self.items[b].location.line)
+                })
         });
         let mut previous_file: Option<&str> = None;
         for index in &sorted {
             let item = &self.items[*index];
-            if previous_file.is_some() && previous_file != Some(item.file.as_str()) {
+            if previous_file.is_some() && previous_file != Some(item.location.file.as_str()) {
                 out.push(String::new());
             }
-            previous_file = Some(item.file.as_str());
+            previous_file = Some(item.location.file.as_str());
             let title = match &item.title {
                 Some(title) => format!(" {}", self.style.dim(&format!("\"{title}\""))),
                 None => String::new(),
             };
             let mark = styled_mark(item, &self.style);
             let id = self.style.bold(&item.id);
-            let location = self.dim_location(&item.file, item.line);
+            let location = self.dim_location(&item.location.file, item.location.line);
             let tag = styled_tag(item, &self.style);
             out.push(format!("{mark} {id}{title}  {location}  {tag}"));
             out.extend(self.edge_lines(*index, &resolver));
@@ -270,7 +276,7 @@ impl<'run> Renderer<'run> {
             };
             let mark = styled_mark(item, &self.style);
             let id = self.style.bold(&item.id);
-            let location = self.dim_location(&item.file, item.line);
+            let location = self.dim_location(&item.location.file, item.location.line);
             out.push(format!("{mark} {id}{title}  {location}"));
             out.extend(self.defect_lines(item));
             out.push(String::new());

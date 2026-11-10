@@ -621,7 +621,7 @@ mod tests {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:auth/login#1");
         assert_eq!(items[0].origin, Origin::Code);
-        assert_eq!(items[0].line, 1);
+        assert_eq!(items[0].location.line, 1);
         assert_eq!(items[0].needs, ["utest:auth/login#1"]);
     }
 
@@ -890,7 +890,7 @@ mod tests {
     fn multi_line_block_comment_one_tag_per_line() {
         let (items, _, _) = parse("src.ts", &["/*", " [impl:a#1]", " [>>utest:a#1]", "*/"]);
         assert_eq!(items.len(), 1);
-        assert_eq!(items[0].line, 2);
+        assert_eq!(items[0].location.line, 2);
         assert_eq!(items[0].needs, ["utest:a#1"]);
     }
 
@@ -1418,7 +1418,7 @@ mod tests {
         );
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:ui/button#1");
-        assert_eq!(items[0].line, 2);
+        assert_eq!(items[0].location.line, 2);
     }
 
     #[test]
@@ -1618,8 +1618,8 @@ mod tests {
     #[test]
     fn a_code_item_tag_records_the_column_of_its_opening_bracket() {
         let (items, _, _) = parse("src.ts", &["    // [impl:a#1]"]);
-        assert_eq!(items[0].line, 1);
-        assert_eq!(items[0].character, 8); // the '[' past "    // "
+        assert_eq!(items[0].location.line, 1);
+        assert_eq!(items[0].location.character, 8); // the '[' past "    // "
     }
 
     #[test]
@@ -1632,15 +1632,15 @@ mod tests {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].id, "impl:variable#1");
         assert_eq!(items[0].origin, Origin::Code);
-        assert_eq!(items[0].line, 1);
+        assert_eq!(items[0].location.line, 1);
         assert!(items[0].needs.is_empty());
-        assert_eq!(items[0].character, 53); // the '[' past the code and "// "
+        assert_eq!(items[0].location.character, 53); // the '[' past the code and "// "
     }
 
     #[test]
     fn a_code_item_tag_inside_a_block_comment_carries_its_bracket_column() {
         let (items, _, _) = parse("src.ts", &["/* [impl:b#1] */"]);
-        assert_eq!(items[0].character, 4); // the '[' past "/* "
+        assert_eq!(items[0].location.character, 4); // the '[' past "/* "
     }
 
     #[test]
@@ -1669,6 +1669,6 @@ mod tests {
     fn columns_after_non_ascii_text_count_characters() {
         let (items, _, _) = parse("src.ts", &["const \u{E9} = 1; // \u{1D54F} [impl:a#1]"]);
         // the bracket is the 19th character of the line
-        assert_eq!(items[0].character, 19);
+        assert_eq!(items[0].location.character, 19);
     }
 }

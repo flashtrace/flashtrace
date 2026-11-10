@@ -640,8 +640,8 @@ mod tests {
         assert_eq!(item.key, "req:auth/login");
         assert_eq!(item.revision, "1");
         assert_eq!(item.origin, Origin::Spec);
-        assert_eq!(item.file, "spec.md");
-        assert_eq!(item.line, 2);
+        assert_eq!(item.location.file, "spec.md");
+        assert_eq!(item.location.line, 2);
         assert_eq!(
             item.title.as_deref(),
             Some("Login requires a valid session token")
@@ -1647,8 +1647,8 @@ mod tests {
     #[test]
     fn an_item_and_a_forwarding_record_the_column_of_their_construct() {
         let (items, _, forwards) = parse(&["  `req:a#1`", "", "   [req:a#1 --> dsn:b#1]"]);
-        assert_eq!(items[0].line, 1);
-        assert_eq!(items[0].character, 3); // the backtick, past two spaces
+        assert_eq!(items[0].location.line, 1);
+        assert_eq!(items[0].location.character, 3); // the backtick, past two spaces
         assert_eq!(forwards, [forward("req:a#1", "dsn:b#1", 3, 4)]);
     }
 
