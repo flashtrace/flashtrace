@@ -1698,4 +1698,64 @@ mod tests {
         assert_eq!(location.line, 5);
         assert_eq!(location.character, 3);
     }
+
+    // A keyword may appear more than once in an item; the entries of all its
+    // occurrences merge into one list, in document order.
+    #[test]
+    fn a_repeated_keyword_line_merges_its_entries_in_document_order() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "",
+            "Needs: impl",
+            "Covers: feat:a#1",
+            "Tags: one",
+            "Needs:",
+            "- utest",
+            "Covers:",
+            "- feat:b#1",
+            "Tags: two, three",
+        ]);
+        assert!(problems.is_empty());
+        assert!(items[0].defects.is_empty());
+        assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
+        assert_eq!(items[0].covers, ["feat:a#1", "feat:b#1"]);
+        assert_eq!(items[0].tags, ["one", "two", "three"]);
+    }
+
+    #[test]
+    fn a_keyword_table_column_merges_with_the_same_keyword_on_a_line() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "",
+            "Needs: impl",
+            "",
+            "| Needs | Tags |",
+            "|---|---|",
+            "| utest | one |",
+            "",
+            "Tags: two",
+        ]);
+        assert!(problems.is_empty());
+        assert!(items[0].defects.is_empty());
+        assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
+        assert_eq!(items[0].tags, ["one", "two"]);
+    }
+
+    #[test]
+    fn a_keyword_column_in_two_tables_merges_its_entries() {
+        let (items, problems, _) = parse(&[
+            "`req:a#1`",
+            "",
+            "| Needs |",
+            "|---|",
+            "| impl |",
+            "",
+            "| Needs |",
+            "|---|",
+            "| utest |",
+        ]);
+        assert!(problems.is_empty());
+        assert!(items[0].defects.is_empty());
+        assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
+    }
 }
