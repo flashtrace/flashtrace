@@ -74,7 +74,7 @@ function communicate(environment = {}) {
 // pull_request_target hands secrets and a write token to the run, so the
 // workflow must never fetch or execute the PR's code.
 test('never checks out or references PR code under pull_request_target', () => {
-  assert.match(workflow, /^  pull_request_target:$/m);
+  assert.match(workflow, /^ {2}pull_request_target:$/m);
   assert.doesNotMatch(workflow, /actions\/checkout/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head|github\.head_ref/);
 });

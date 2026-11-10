@@ -261,7 +261,7 @@ impl Grammar {
     }
 }
 
-static BY_EXT: LazyLock<Vec<(&'static str, Grammar)>> = LazyLock::new(|| {
+static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
     let leaf = |ext: &'static str, leaf: &'static Leaf| (ext, Grammar::Leaf(leaf));
     let html = |ext: &'static str| (ext, Grammar::Composite(&HTML));
     vec![
@@ -377,7 +377,7 @@ static BY_EXT: LazyLock<Vec<(&'static str, Grammar)>> = LazyLock::new(|| {
 });
 
 /// every extension the scanner knows, in the table's order
-pub static CODE_EXT: LazyLock<Vec<&'static str>> =
+pub static CODE_EXT: LazyLock<Vec<&str>> =
     LazyLock::new(|| BY_EXT.iter().map(|(ext, _)| *ext).collect());
 
 /// Grammar for a lowercased extension, or None when it is not a known code file.

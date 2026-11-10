@@ -8,9 +8,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "aggregation.sql",
-      "line": 1,
-      "character": 4,
+      "location": {
+        "file": "aggregation.sql",
+        "line": 1,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -22,9 +24,11 @@
       "wantedBy": [
         {
           "id": "req:data/aggregation#1",
-          "file": "spec.md",
-          "line": 26,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 26,
+            "character": 1
+          }
         }
       ]
     },
@@ -33,9 +37,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "dashboard.vue",
-      "line": 2,
-      "character": 8,
+      "location": {
+        "file": "dashboard.vue",
+        "line": 2,
+        "character": 8
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -47,9 +53,11 @@
       "wantedBy": [
         {
           "id": "req:web/dashboard#1",
-          "file": "spec.md",
-          "line": 3,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 3,
+            "character": 1
+          }
         }
       ]
     },
@@ -58,9 +66,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "dashboard.vue",
-      "line": 9,
-      "character": 4,
+      "location": {
+        "file": "dashboard.vue",
+        "line": 9,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -72,9 +82,11 @@
       "wantedBy": [
         {
           "id": "req:web/dashboard#1",
-          "file": "spec.md",
-          "line": 3,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 3,
+            "character": 1
+          }
         }
       ]
     },
@@ -83,9 +95,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "dashboard.vue",
-      "line": 19,
-      "character": 4,
+      "location": {
+        "file": "dashboard.vue",
+        "line": 19,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -97,9 +111,11 @@
       "wantedBy": [
         {
           "id": "req:web/dashboard#1",
-          "file": "spec.md",
-          "line": 3,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 3,
+            "character": 1
+          }
         }
       ]
     },
@@ -108,9 +124,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "index.html",
-      "line": 2,
-      "character": 6,
+      "location": {
+        "file": "index.html",
+        "line": 2,
+        "character": 6
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -122,9 +140,11 @@
       "wantedBy": [
         {
           "id": "req:web/dashboard#1",
-          "file": "spec.md",
-          "line": 3,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 3,
+            "character": 1
+          }
         }
       ]
     },
@@ -133,9 +153,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "metrics.ts",
-      "line": 1,
-      "character": 4,
+      "location": {
+        "file": "metrics.ts",
+        "line": 1,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -147,9 +169,11 @@
       "wantedBy": [
         {
           "id": "req:api/metrics#1",
-          "file": "spec.md",
-          "line": 16,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 16,
+            "character": 1
+          }
         }
       ]
     },
@@ -160,9 +184,11 @@
       "tags": [
         "web"
       ],
-      "file": "spec.md",
-      "line": 3,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 3,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -206,9 +232,11 @@
         "web",
         "data"
       ],
-      "file": "spec.md",
-      "line": 16,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 16,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -239,9 +267,11 @@
       "tags": [
         "data"
       ],
-      "file": "spec.md",
-      "line": 26,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 26,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -266,9 +296,11 @@
       "tags": [
         "guide"
       ],
-      "file": "spec.md",
-      "line": 36,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 36,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -293,9 +325,11 @@
       "tags": [
         "guide"
       ],
-      "file": "spec.md",
-      "line": 46,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 46,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -307,9 +341,11 @@
       "wantedBy": [
         {
           "id": "doc:web/style-guide#1",
-          "file": "spec.md",
-          "line": 36,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 36,
+            "character": 1
+          }
         }
       ]
     },
@@ -318,9 +354,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "test_metrics.py",
-      "line": 1,
-      "character": 3,
+      "location": {
+        "file": "test_metrics.py",
+        "line": 1,
+        "character": 3
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -332,9 +370,11 @@
       "wantedBy": [
         {
           "id": "req:api/metrics#1",
-          "file": "spec.md",
-          "line": 16,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 16,
+            "character": 1
+          }
         }
       ]
     }

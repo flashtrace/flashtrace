@@ -33,15 +33,18 @@ jobs:
           # carries no version. Cargo.toml's is the one in the lines
           # "[package]", 'name = "flashtrace"', 'version = "..."', in that
           # order and adjacent, as the release workflow bumps it; anything but
-          # exactly one such block yields nothing.
+          # exactly one such block yields nothing. A file with no extractor is
+          # a guard bug, not a missing version, so it fails right away.
           version_of() {
-            case "$1" in
+            local file=$1
+            case "$file" in
               *.json) node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version ?? ""' ;;
               Cargo.toml) awk '{ sub(/\r$/, "") }
                 prev2 == "[package]" && prev1 == "name = \"flashtrace\"" && /^version = "[^"]*"$/ { found++; version = substr($0, 12, length($0) - 12) }
                 { prev2 = prev1; prev1 = $0 }
                 END { if (found == 1) print version }' ;;
               Cargo.lock) awk '/^name = "flashtrace"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' ;;
+              *) echo "::error file=$file::version_of has no extractor for $file." >&2; return 1 ;;
             esac
           }
           # A guarded file must exist on main and in the PR, carry a version
@@ -144,7 +147,8 @@ jobs:
           # Read the field's value with the surrounding quotes stripped, so
           # requoting a line is not reported as a version change.
           field() {
-            sed -n "s|^$2: *||p" "$1" | sed 's|^"\(.*\)"$|\1|'
+            local path=$1 key=$2
+            sed -n "s|^$key: *||p" "$path" | sed 's|^"\(.*\)"$|\1|'
           }
           git show HEAD^1:CITATION.cff > "$RUNNER_TEMP/base.cff"
           # Only these two fields are release-owned; authors, keywords and the

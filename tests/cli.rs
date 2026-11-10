@@ -43,6 +43,7 @@ fn stderr(output: &Output) -> String {
 
 #[test]
 fn clean_project_exit_0_and_final_ok() {
+    // given
     let project = with_project(
         "clean",
         &[
@@ -53,7 +54,11 @@ fn clean_project_exit_0_and_final_ok() {
             ("login.ts", &["// [impl:login#1]"]),
         ],
     );
+
+    // when
     let result = run(&project, &[]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     assert!(stdout(&result).trim_end().ends_with("ok"));
     assert!(!stdout(&result).contains("not ok"));
@@ -61,11 +66,16 @@ fn clean_project_exit_0_and_final_ok() {
 
 #[test]
 fn defective_project_exit_1_defect_listed_final_not_ok() {
+    // given
     let project = with_project(
         "defective",
         &[("spec.md", &["`req:login#1`", "", "Needs: impl:missing#1"])],
     );
+
+    // when
     let result = run(&project, &[]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     assert!(stdout(&result).contains("uncovered: needs impl:missing#1"));
     assert!(stdout(&result).trim_end().ends_with("not ok"));
@@ -73,25 +83,40 @@ fn defective_project_exit_1_defect_listed_final_not_ok() {
 
 #[test]
 fn parse_problems_alone_make_the_run_fail() {
+    // given
     let project = with_project("problems", &[("orphan.ts", &["// [>>utest:a#1]"])]);
+
+    // when
     let result = run(&project, &[]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     assert!(stdout(&result).contains("no preceding item tag"));
 }
 
 #[test]
 fn unknown_option_exit_2_with_message_on_stderr() {
+    // given
     let project = with_project("unknown-option", &[]);
+
+    // when
     let result = run(&project, &["--frobnicate"]);
+
+    // then
     assert_eq!(result.status.code(), Some(2));
     assert!(stderr(&result).contains("unknown option"));
 }
 
 #[test]
 fn version_prints_the_crate_version_and_exits_0() {
+    // given
     let project = with_project("version", &[]);
+
     for flag in ["--version", "-V"] {
+        // when
         let result = run(&project, &[flag]);
+
+        // then
         assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
         assert_eq!(stdout(&result).trim_end(), env!("CARGO_PKG_VERSION"));
     }
@@ -99,9 +124,14 @@ fn version_prints_the_crate_version_and_exits_0() {
 
 #[test]
 fn help_prints_usage_and_exits_0() {
+    // given
     let project = with_project("help", &[]);
+
     for flag in ["--help", "-h"] {
+        // when
         let result = run(&project, &[flag]);
+
+        // then
         assert_eq!(result.status.code(), Some(0));
         assert!(stdout(&result).starts_with("Usage: flashtrace"));
         assert!(
@@ -113,8 +143,13 @@ fn help_prints_usage_and_exits_0() {
 
 #[test]
 fn non_existent_input_path_exit_2() {
+    // given
     let project = with_project("missing-path", &[]);
+
+    // when
     let result = run(&project, &["does-not-exist"]);
+
+    // then
     assert_eq!(result.status.code(), Some(2));
     assert!(stderr(&result).contains("does not exist"));
 }
@@ -123,8 +158,9 @@ const TAGS_SPEC: &[&str] = &["# A", "`req:a#1`", "", "Tags: Auth", "", "# B", "`
 
 #[test]
 fn tags_filters_markdown_items_and_underscore_readmits_untagged_ones() {
+    // given
     let project = with_project("tags", &[("spec.md", TAGS_SPEC)]);
-    for (args, expected_items) in [
+    let cases = [
         (vec!["-t", "Auth"], "items       1"),
         (vec!["-t", "Auth,_"], "items       2"),
         (vec!["--tags=Auth"], "items       1"),
@@ -132,8 +168,13 @@ fn tags_filters_markdown_items_and_underscore_readmits_untagged_ones() {
         (vec!["--tags", "Auth , _"], "items       2"),
         (vec!["--tags=Auth , _"], "items       2"),
         (vec!["--tags=Auth,,_,"], "items       2"),
-    ] {
+    ];
+
+    for (args, expected_items) in cases {
+        // when
         let result = run(&project, &args);
+
+        // then
         assert_eq!(
             result.status.code(),
             Some(0),
@@ -150,6 +191,7 @@ fn tags_filters_markdown_items_and_underscore_readmits_untagged_ones() {
 
 #[test]
 fn tags_split_at_the_first_equals_only_keeping_equals_in_the_value() {
+    // given
     let project = with_project(
         "tags-equals",
         &[(
@@ -157,23 +199,33 @@ fn tags_split_at_the_first_equals_only_keeping_equals_in_the_value() {
             &["# A", "`req:a#1`", "", "Tags: a=b", "", "# B", "`req:b#1`"],
         )],
     );
+
+    // when
     let result = run(&project, &["--tags=a=b"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
     assert!(stdout(&result).contains("items       1"));
 }
 
 #[test]
 fn selecting_the_tag_filter_twice_is_a_usage_error_with_empty_stdout() {
+    // given
     let project = with_project("tags-twice", &[("spec.md", TAGS_SPEC)]);
     // differing, agreeing and mixed spellings alike: one rule
-    for (args, blamed) in [
+    let cases = [
         (vec!["-t", "Auth", "-t", "Other"], "-t"),
         (vec!["--tags", "Auth", "--tags", "Other"], "--tags"),
         (vec!["--tags=Auth", "--tags=Other"], "--tags"),
         (vec!["-t", "Auth", "--tags=Auth"], "-t"),
         (vec!["--tags", "Auth", "-t", "Other"], "--tags"),
-    ] {
+    ];
+
+    for (args, blamed) in cases {
+        // when
         let result = run(&project, &args);
+
+        // then
         assert_eq!(result.status.code(), Some(2), "{args:?}");
         assert_eq!(stdout(&result), "", "{args:?}");
         assert!(
@@ -184,23 +236,36 @@ fn selecting_the_tag_filter_twice_is_a_usage_error_with_empty_stdout() {
     }
 }
 
-#[test]
-fn verbose_lists_clean_items_with_needs_and_wanted_by_edges_default_omits_them() {
-    let project = with_project(
-        "verbose",
-        &[
-            (
-                "spec.md",
-                &["# Login", "`req:login#1`", "", "Needs: impl:login#1"],
-            ),
-            ("login.ts", &["// [impl:login#1]"]),
-        ],
-    );
-    let default_run = run(&project, &[]);
-    assert_eq!(default_run.status.code(), Some(0));
-    assert!(!stdout(&default_run).contains("req:login#1"));
+const CLEAN_LOGIN_PROJECT: &[(&str, &[&str])] = &[
+    (
+        "spec.md",
+        &["# Login", "`req:login#1`", "", "Needs: impl:login#1"],
+    ),
+    ("login.ts", &["// [impl:login#1]"]),
+];
 
+#[test]
+fn the_default_report_omits_clean_items() {
+    // given
+    let project = with_project("verbose-default", CLEAN_LOGIN_PROJECT);
+
+    // when
+    let result = run(&project, &[]);
+
+    // then
+    assert_eq!(result.status.code(), Some(0));
+    assert!(!stdout(&result).contains("req:login#1"));
+}
+
+#[test]
+fn verbose_lists_clean_items_with_needs_and_wanted_by_edges() {
+    // given
+    let project = with_project("verbose", CLEAN_LOGIN_PROJECT);
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     let text = stdout(&result);
     assert!(text.contains("\u{2714} req:login#1 \"Login\"  spec.md:2  [deep-covered]"));
@@ -211,6 +276,7 @@ fn verbose_lists_clean_items_with_needs_and_wanted_by_edges_default_omits_them()
 
 #[test]
 fn verbose_resolves_a_wildcard_need_and_shows_every_matched_revision() {
+    // given
     let project = with_project(
         "verbose-wildcard",
         &[
@@ -218,7 +284,11 @@ fn verbose_resolves_a_wildcard_need_and_shows_every_matched_revision() {
             ("login.ts", &["// [impl:login#2.4]", "// [impl:login#2.5]"]),
         ],
     );
+
+    // when
     let result = run(&project, &["--verbose"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     let text = stdout(&result);
     assert!(text.contains("needs impl:login#2.x (\u{2192} impl:login#2.4)  \u{2714} login.ts:1"));
@@ -238,6 +308,7 @@ const SHALLOW_CHAIN_SPEC: &[&str] = &[
 
 #[test]
 fn verbose_honors_the_tag_filter_leaving_filtered_out_items_absent() {
+    // given
     let project = with_project(
         "verbose-tags",
         &[
@@ -260,7 +331,11 @@ fn verbose_honors_the_tag_filter_leaving_filtered_out_items_absent() {
             ("a.ts", &["// [impl:a#1]"]),
         ],
     );
+
+    // when
     let result = run(&project, &["-v", "-t", "Auth"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     let text = stdout(&result);
     assert!(text.contains("\u{2714} req:a#1 \"A\"  spec.md:2  [deep-covered]"));
@@ -275,6 +350,7 @@ fn verbose_honors_the_tag_filter_leaving_filtered_out_items_absent() {
 
 #[test]
 fn verbose_renders_a_forwarding_source_as_an_arrow_edge_to_its_target() {
+    // given
     let project = with_project(
         "verbose-forwarding",
         &[(
@@ -288,7 +364,11 @@ fn verbose_renders_a_forwarding_source_as_an_arrow_edge_to_its_target() {
             ],
         )],
     );
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     let text = stdout(&result);
     assert!(text.contains("\u{2714} req:login#1  spec.md:1  [deep-covered]"));
@@ -297,11 +377,16 @@ fn verbose_renders_a_forwarding_source_as_an_arrow_edge_to_its_target() {
 
 #[test]
 fn verbose_marks_a_forwarding_to_a_nonexistent_target_as_missing() {
+    // given
     let project = with_project(
         "verbose-forwarding-missing",
         &[("spec.md", &["`req:a#1`", "", "`[req:a#1 --> dsn:gone#1]`"])],
     );
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     let text = stdout(&result);
     assert!(text.contains("\u{2718} req:a#1  spec.md:1  [defective]"));
@@ -311,6 +396,7 @@ fn verbose_marks_a_forwarding_to_a_nonexistent_target_as_missing() {
 
 #[test]
 fn verbose_shows_a_forwarding_edge_with_the_target_s_own_status_mark() {
+    // given
     // dsn:auth#2 exists but is itself shallow (its need is defective), so the
     // source is shallow and its arrow edge shows ~, not a bare check mark
     let project = with_project(
@@ -332,7 +418,11 @@ fn verbose_shows_a_forwarding_edge_with_the_target_s_own_status_mark() {
             ],
         )],
     );
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     let text = stdout(&result);
     assert!(text.contains("~ req:login#1  spec.md:1  [shallow-covered]"));
@@ -341,6 +431,7 @@ fn verbose_shows_a_forwarding_edge_with_the_target_s_own_status_mark() {
 
 #[test]
 fn verbose_shows_a_code_item_s_need_on_a_markdown_target_as_wanted_by() {
+    // given
     let project = with_project(
         "verbose-code-need",
         &[
@@ -351,7 +442,11 @@ fn verbose_shows_a_code_item_s_need_on_a_markdown_target_as_wanted_by() {
             ("login.ts", &["// [impl:a#1]", "// [>>dsn:spec#1]"]),
         ],
     );
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     assert!(stdout(&result).contains(
         "\u{2714} dsn:spec#1  spec.md:5  [deep-covered]\n    wanted by impl:a#1  login.ts:1"
@@ -360,6 +455,7 @@ fn verbose_shows_a_code_item_s_need_on_a_markdown_target_as_wanted_by() {
 
 #[test]
 fn verbose_lists_covers_edges_valid_or_missing() {
+    // given
     let project = with_project(
         "verbose-covers",
         &[
@@ -379,7 +475,11 @@ fn verbose_lists_covers_edges_valid_or_missing() {
             ("c.ts", &["// [impl:c#1]"]),
         ],
     );
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     let text = stdout(&result);
     assert!(text.contains("covers req:parent#1  \u{2714} spec.md:1"));
@@ -389,6 +489,7 @@ fn verbose_lists_covers_edges_valid_or_missing() {
 
 #[test]
 fn verbose_lists_a_forwarding_source_s_own_covers_alongside_its_arrow_edge() {
+    // given
     // forwarding excuses the source's needs but not its Covers, which stay
     // checked and still appear as edges in the verbose report
     let project = with_project(
@@ -410,7 +511,11 @@ fn verbose_lists_a_forwarding_source_s_own_covers_alongside_its_arrow_edge() {
             ],
         )],
     );
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     let text = stdout(&result);
     assert!(text.contains("\u{2192} dsn:tgt#1  \u{2714} spec.md:11"));
@@ -419,8 +524,13 @@ fn verbose_lists_a_forwarding_source_s_own_covers_alongside_its_arrow_edge() {
 
 #[test]
 fn verbose_marks_an_item_with_a_defective_downstream_chain_as_shallow_covered() {
+    // given
     let project = with_project("verbose-shallow", &[("spec.md", SHALLOW_CHAIN_SPEC)]);
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     let text = stdout(&result);
     assert!(text.contains("~ req:a#1  spec.md:1  [shallow-covered]"));
@@ -432,15 +542,25 @@ fn verbose_marks_an_item_with_a_defective_downstream_chain_as_shallow_covered() 
 
 #[test]
 fn the_summary_splits_the_ok_count_into_deep_and_shallow_covered_items() {
+    // given
     let project = with_project("summary-split", &[("spec.md", SHALLOW_CHAIN_SPEC)]);
+
+    // when
     let result = run(&project, &[]);
+
+    // then
     assert!(stdout(&result).contains("ok          1  (0 deep-covered, 1 only shallow-covered)"));
 }
 
 #[test]
 fn the_summary_omits_the_coverage_breakdown_when_no_item_is_shallow_covered() {
+    // given
     let project = with_project("summary-plain", &[("spec.md", &["`req:a#1`"])]);
+
+    // when
     let result = run(&project, &[]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     let text = stdout(&result);
     assert!(text.contains("ok          1\n"), "{text}");
@@ -449,8 +569,13 @@ fn the_summary_omits_the_coverage_breakdown_when_no_item_is_shallow_covered() {
 
 #[test]
 fn verbose_still_renders_parse_problems() {
+    // given
     let project = with_project("verbose-problems", &[("orphan.ts", &["// [>>utest:a#1]"])]);
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     let text = stdout(&result);
     let problem = text
@@ -463,11 +588,16 @@ fn verbose_still_renders_parse_problems() {
 
 #[test]
 fn verbose_keeps_defect_details_and_the_exit_code_of_a_defective_run() {
+    // given
     let project = with_project(
         "verbose-defective",
         &[("spec.md", &["`req:login#1`", "", "Needs: impl:missing#1"])],
     );
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     let text = stdout(&result);
     assert!(text.contains("\u{2718} req:login#1  spec.md:1  [defective]"));
@@ -478,6 +608,7 @@ fn verbose_keeps_defect_details_and_the_exit_code_of_a_defective_run() {
 
 #[test]
 fn verbose_groups_items_by_file_then_line_with_a_blank_line_between_files() {
+    // given
     let project = with_project(
         "verbose-groups",
         &[
@@ -485,7 +616,11 @@ fn verbose_groups_items_by_file_then_line_with_a_blank_line_between_files() {
             ("b.md", &["`req:three#1`"]),
         ],
     );
+
+    // when
     let result = run(&project, &["-v"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     let text = stdout(&result);
     let one = text.find("req:one#1").unwrap();
@@ -497,6 +632,7 @@ fn verbose_groups_items_by_file_then_line_with_a_blank_line_between_files() {
 
 #[test]
 fn git_ignored_files_are_excluded_outside_a_repository() {
+    // given
     let project = with_project(
         "gitignore",
         &[
@@ -505,7 +641,11 @@ fn git_ignored_files_are_excluded_outside_a_repository() {
             ("ignored.md", &["`req:bad#1`", "", "Needs: impl:missing#1"]),
         ],
     );
+
+    // when
     let result = run(&project, &[]);
+
+    // then
     assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
     assert!(!stdout(&result).contains("req:bad#1"));
 }
@@ -523,11 +663,16 @@ const JSON_SPEC: &[&str] = &[
 
 #[test]
 fn json_prints_the_document_and_keeps_the_exit_code() {
+    // given
     let project = with_project(
         "json",
         &[("spec.md", JSON_SPEC), ("login.ts", &["// [impl:login#1]"])],
     );
+
+    // when
     let result = run(&project, &["--json"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
     assert_eq!(stderr(&result), "");
     let text = stdout(&result);
@@ -564,8 +709,13 @@ fn json_prints_the_document_and_keeps_the_exit_code() {
 
 #[test]
 fn json_honors_the_tag_filter() {
+    // given
     let project = with_project("json-tags", &[("spec.md", TAGS_SPEC)]);
+
+    // when
     let result = run(&project, &["--json", "-t", "Auth"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
     let document: serde_json::Value = serde_json::from_str(&stdout(&result)).unwrap();
     assert_eq!(document["summary"]["items"], 1);
@@ -576,11 +726,16 @@ fn json_honors_the_tag_filter() {
 
 #[test]
 fn json_on_a_defective_project_exits_1_with_ok_false() {
+    // given
     let project = with_project(
         "json-defective",
         &[("spec.md", &["`req:login#1`", "", "Needs: impl:missing#1"])],
     );
+
+    // when
     let result = run(&project, &["--json"]);
+
+    // then
     assert_eq!(result.status.code(), Some(1));
     let document: serde_json::Value = serde_json::from_str(&stdout(&result)).unwrap();
     assert_eq!(document["ok"], serde_json::Value::Bool(false));
@@ -589,29 +744,49 @@ fn json_on_a_defective_project_exits_1_with_ok_false() {
 
 #[test]
 fn format_json_produces_the_same_document_as_the_shorthand() {
+    // given
     let project = with_project(
         "format-json",
         &[("spec.md", JSON_SPEC), ("login.ts", &["// [impl:login#1]"])],
     );
     let shorthand = run(&project, &["--json"]);
-    for args in [
+    let spellings = [
         vec!["-f", "json"],
         vec!["--format", "json"],
         vec!["--format=json"],
-    ] {
+    ];
+
+    for args in spellings {
+        // when
         let result = run(&project, &args);
+
+        // then
         assert_eq!(result.status.code(), Some(0), "{args:?}");
         assert_eq!(stdout(&result), stdout(&shorthand), "{args:?}");
     }
-    // and text is the default
+}
+
+#[test]
+fn format_text_produces_the_same_report_as_the_default() {
+    // given
+    let project = with_project(
+        "format-text",
+        &[("spec.md", JSON_SPEC), ("login.ts", &["// [impl:login#1]"])],
+    );
+    let default_run = run(&project, &[]);
+
+    // when
     let explicit = run(&project, &["-f", "text"]);
-    assert_eq!(stdout(&explicit), stdout(&run(&project, &[])));
+
+    // then
+    assert_eq!(stdout(&explicit), stdout(&default_run));
 }
 
 #[test]
 fn usage_errors_reach_stderr_with_empty_stdout() {
+    // given
     let project = with_project("usage", &[]);
-    for (args, expected) in [
+    let cases = [
         (vec!["--json=pretty"], "option --json does not take a value"),
         (
             vec!["-f", "yaml"],
@@ -634,8 +809,13 @@ fn usage_errors_reach_stderr_with_empty_stdout() {
             vec!["--json", "--json"],
             "the report format is already selected by --json",
         ),
-    ] {
+    ];
+
+    for (args, expected) in cases {
+        // when
         let result = run(&project, &args);
+
+        // then
         assert_eq!(result.status.code(), Some(2), "{args:?}");
         assert_eq!(stdout(&result), "", "{args:?}");
         assert!(
@@ -650,6 +830,7 @@ fn usage_errors_reach_stderr_with_empty_stdout() {
 // document far beyond any pipe buffer arrives whole
 #[test]
 fn a_report_larger_than_the_pipe_buffer_is_written_whole() {
+    // given
     const BIG_ITEM_COUNT: usize = 400;
     let mut spec: Vec<String> = Vec::new();
     let mut impl_lines: Vec<String> = Vec::new();
@@ -670,7 +851,11 @@ fn a_report_larger_than_the_pipe_buffer_is_written_whole() {
             ("impl.ts", impl_refs.as_slice()),
         ],
     );
+
+    // when
     let result = run(&project, &["--json"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0));
     assert!(
         result.stdout.len() > 65536,
@@ -686,13 +871,18 @@ fn a_report_larger_than_the_pipe_buffer_is_written_whole() {
 
 #[test]
 fn a_leading_byte_order_mark_is_ignored() {
+    // given
     let project = with_project("bom", &[("login.ts", &["// [impl:login#1]"])]);
     std::fs::write(
         project.0.join("spec.md"),
         b"\xEF\xBB\xBF`req:login#1`\n\nNeeds: impl:login#1\n",
     )
     .unwrap();
+
+    // when
     let result = run(&project, &["--json"]);
+
+    // then
     assert_eq!(result.status.code(), Some(0), "{}", stderr(&result));
     let document: serde_json::Value = serde_json::from_str(&stdout(&result)).unwrap();
     let item = document["items"]
@@ -702,18 +892,23 @@ fn a_leading_byte_order_mark_is_ignored() {
         .find(|item| item["id"] == "req:login#1")
         .expect("the item on the first line is defined");
     // the mark is no character of line 1: the ID's backtick is column 1
-    assert_eq!(item["line"], 1);
-    assert_eq!(item["character"], 1);
+    assert_eq!(item["location"]["line"], 1);
+    assert_eq!(item["location"]["character"], 1);
 }
 
 #[test]
 fn undecodable_bytes_are_replaced_rather_than_failing_the_run() {
+    // given
     let project = with_project(
         "invalid-utf8",
         &[("spec.md", &["`req:login#1`", "", "Needs: impl:login#1"])],
     );
     std::fs::write(project.0.join("login.ts"), b"// caf\xE9 [impl:login#1]\n").unwrap();
+
+    // when
     let result = run(&project, &[]);
+
+    // then
     assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
     assert!(stdout(&result).ends_with("ok\n"));
 }

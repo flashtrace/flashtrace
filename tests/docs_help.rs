@@ -45,12 +45,17 @@ fn help_block(markdown: &str) -> String {
 
 #[test]
 fn command_line_docs_show_the_help_text_verbatim() {
+    // given
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(DOCS_FILE);
     let markdown = std::fs::read_to_string(&path).unwrap();
+
+    // when
     let output = Command::new(env!("CARGO_BIN_EXE_flashtrace"))
         .arg("--help")
         .output()
         .unwrap();
+
+    // then
     assert!(output.status.success());
     let help = String::from_utf8(output.stdout).unwrap();
     assert_eq!(

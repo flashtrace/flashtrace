@@ -8,9 +8,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "order.spec.ts",
-      "line": 6,
-      "character": 4,
+      "location": {
+        "file": "order.spec.ts",
+        "line": 6,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -22,9 +24,11 @@
       "wantedBy": [
         {
           "id": "req:order/create#1",
-          "file": "spec.md",
-          "line": 11,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 11,
+            "character": 1
+          }
         }
       ]
     },
@@ -33,9 +37,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "order.spec.ts",
-      "line": 11,
-      "character": 4,
+      "location": {
+        "file": "order.spec.ts",
+        "line": 11,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -47,9 +53,11 @@
       "wantedBy": [
         {
           "id": "req:order/cancel#1",
-          "file": "spec.md",
-          "line": 20,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 20,
+            "character": 1
+          }
         }
       ]
     },
@@ -58,9 +66,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "repository.ts",
-      "line": 5,
-      "character": 4,
+      "location": {
+        "file": "repository.ts",
+        "line": 5,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -72,15 +82,19 @@
       "wantedBy": [
         {
           "id": "impl:order/create/route#1",
-          "file": "routes.ts",
-          "line": 3,
-          "character": 4
+          "location": {
+            "file": "routes.ts",
+            "line": 3,
+            "character": 4
+          }
         },
         {
           "id": "req:order/create#1",
-          "file": "spec.md",
-          "line": 11,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 11,
+            "character": 1
+          }
         }
       ]
     },
@@ -89,9 +103,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "repository.ts",
-      "line": 11,
-      "character": 4,
+      "location": {
+        "file": "repository.ts",
+        "line": 11,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -103,15 +119,19 @@
       "wantedBy": [
         {
           "id": "impl:order/cancel/service#1",
-          "file": "service.ts",
-          "line": 8,
-          "character": 4
+          "location": {
+            "file": "service.ts",
+            "line": 8,
+            "character": 4
+          }
         },
         {
           "id": "req:order/cancel#1",
-          "file": "spec.md",
-          "line": 20,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 20,
+            "character": 1
+          }
         }
       ]
     },
@@ -120,9 +140,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "routes.ts",
-      "line": 3,
-      "character": 4,
+      "location": {
+        "file": "routes.ts",
+        "line": 3,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -147,9 +169,11 @@
       "wantedBy": [
         {
           "id": "req:order/create#1",
-          "file": "spec.md",
-          "line": 11,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 11,
+            "character": 1
+          }
         }
       ]
     },
@@ -158,9 +182,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "routes.ts",
-      "line": 10,
-      "character": 4,
+      "location": {
+        "file": "routes.ts",
+        "line": 10,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -172,9 +198,11 @@
       "wantedBy": [
         {
           "id": "req:order/cancel#1",
-          "file": "spec.md",
-          "line": 20,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 20,
+            "character": 1
+          }
         }
       ]
     },
@@ -183,9 +211,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "service.ts",
-      "line": 3,
-      "character": 4,
+      "location": {
+        "file": "service.ts",
+        "line": 3,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -197,15 +227,19 @@
       "wantedBy": [
         {
           "id": "impl:order/create/route#1",
-          "file": "routes.ts",
-          "line": 3,
-          "character": 4
+          "location": {
+            "file": "routes.ts",
+            "line": 3,
+            "character": 4
+          }
         },
         {
           "id": "req:order/create#1",
-          "file": "spec.md",
-          "line": 11,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 11,
+            "character": 1
+          }
         }
       ]
     },
@@ -214,9 +248,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "service.ts",
-      "line": 8,
-      "character": 4,
+      "location": {
+        "file": "service.ts",
+        "line": 8,
+        "character": 4
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -235,9 +271,11 @@
       "wantedBy": [
         {
           "id": "req:order/cancel#1",
-          "file": "spec.md",
-          "line": 20,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 20,
+            "character": 1
+          }
         }
       ]
     },
@@ -246,9 +284,11 @@
       "title": "Order API",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 3,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 3,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -277,9 +317,11 @@
       "title": "Creating an order",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 11,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 11,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -321,9 +363,11 @@
       "wantedBy": [
         {
           "id": "feat:order#1",
-          "file": "spec.md",
-          "line": 3,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 3,
+            "character": 1
+          }
         }
       ]
     },
@@ -332,9 +376,11 @@
       "title": "Cancelling an order",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 20,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 20,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -376,9 +422,11 @@
       "wantedBy": [
         {
           "id": "feat:order#1",
-          "file": "spec.md",
-          "line": 3,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 3,
+            "character": 1
+          }
         }
       ]
     }

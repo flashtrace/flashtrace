@@ -19,17 +19,17 @@
       "type": "boolean"
     },
     "items": {
-      "description": "Every item regardless of status, sorted by file, line, character.",
+      "description": "Every item regardless of status, sorted by location.",
       "type": "array",
       "items": { "$ref": "#/$defs/item" }
     },
     "forwards": {
-      "description": "Every forwarding declaration, voided ones included, sorted by file, line, character.",
+      "description": "Every forwarding declaration, voided ones included, sorted by location.",
       "type": "array",
       "items": { "$ref": "#/$defs/forward" }
     },
     "problems": {
-      "description": "Parse- and analysis-level problems, sorted by file, line, character.",
+      "description": "Parse- and analysis-level problems, sorted by location.",
       "type": "array",
       "items": { "$ref": "#/$defs/problem" }
     },
@@ -40,23 +40,30 @@
       "description": "A full item ID: <type>:[<group>/...]<name>#<revision>.",
       "type": "string"
     },
-    "line": {
-      "description": "1-based source line.",
-      "type": "integer",
-      "minimum": 1
-    },
-    "character": {
-      "description": "1-based column of the first character of the construct, counted in characters (Unicode scalar values).",
-      "type": "integer",
-      "minimum": 1
-    },
-    "file": {
-      "description": "Path relative to the working directory, with forward slashes on every platform.",
-      "type": "string"
+    "location": {
+      "description": "Where a construct is declared. Located arrays sort by it: file, then line, then character.",
+      "type": "object",
+      "required": ["file", "line", "character"],
+      "properties": {
+        "file": {
+          "description": "Path relative to the working directory, with forward slashes on every platform.",
+          "type": "string"
+        },
+        "line": {
+          "description": "1-based source line.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "character": {
+          "description": "1-based column of the first character of the construct, counted in characters (Unicode scalar values).",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     },
     "item": {
       "type": "object",
-      "required": ["id", "title", "origin", "tags", "file", "line", "character", "status", "defective", "deepCovered", "needs", "covers", "forwardsTo", "forwardedFrom", "defects", "wantedBy"],
+      "required": ["id", "title", "origin", "tags", "location", "status", "defective", "deepCovered", "needs", "covers", "forwardsTo", "forwardedFrom", "defects", "wantedBy"],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "title": {
@@ -69,9 +76,7 @@
           "type": "array",
           "items": { "type": "string" }
         },
-        "file": { "$ref": "#/$defs/file" },
-        "line": { "$ref": "#/$defs/line" },
-        "character": { "$ref": "#/$defs/character" },
+        "location": { "$ref": "#/$defs/location" },
         "status": {
           "description": "The single label the reports show: defective when the item has any defect, shallow-covered when it has none but is not deep-covered, deep-covered otherwise. defective is decided first and so hides the coverage axis - read `defective` and `deepCovered` for the two independently.",
           "enum": ["deep-covered", "shallow-covered", "defective"]
@@ -99,7 +104,7 @@
           "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
         },
         "forwardedFrom": {
-          "description": "The items whose effective forwarding targets this one, sorted by file, line, character. The inverse of forwardsTo (see there), and derivable from it - carried so a consumer need not build the index itself. Together with wantedBy this is the complete set of items depending on this one: wantedBy for declared needs, forwardedFrom for redirected obligations.",
+          "description": "The items whose effective forwarding targets this one, sorted by location. The inverse of forwardsTo (see there), and derivable from it - carried so a consumer need not build the index itself. Together with wantedBy this is the complete set of items depending on this one: wantedBy for declared needs, forwardedFrom for redirected obligations.",
           "type": "array",
           "items": { "$ref": "#/$defs/itemRef" }
         },
@@ -108,7 +113,7 @@
           "items": { "$ref": "#/$defs/defect" }
         },
         "wantedBy": {
-          "description": "The items whose declared needs resolve to this item, sorted by file, line, character. The inverse of needs[].resolvedTo (see there), and derivable from it - carried so a consumer need not build the index itself. Declared needs only: an item wanted solely because a forwarding targets it has an empty wantedBy, so this is not a test for whether an item is wanted - the unwanted-item defect is, and forwardedFrom carries the forwarding side.",
+          "description": "The items whose declared needs resolve to this item, sorted by location. The inverse of needs[].resolvedTo (see there), and derivable from it - carried so a consumer need not build the index itself. Declared needs only: an item wanted solely because a forwarding targets it has an empty wantedBy, so this is not a test for whether an item is wanted - the unwanted-item defect is, and forwardedFrom carries the forwarding side.",
           "type": "array",
           "items": { "$ref": "#/$defs/itemRef" }
         }
@@ -165,17 +170,9 @@
           "description": "The ID the defect is about: the needed, covered or forwarded-to ID; for unwanted-item, duplicate-id and duplicate-forwarding, the item's own ID. For invalid-reference it is the offending entry exactly as written, which by definition is not a valid ID.",
           "type": "string"
         },
-        "file": {
-          "description": "Present together with line and character, exactly when the defect has a source location of its own, distinct from the item's: the invalid entry or the cyclic forwarding declaration. A defect without the location group is anchored at the item's own location.",
-          "$ref": "#/$defs/file"
-        },
-        "line": {
-          "description": "Present together with file and character, exactly when the defect has a source location of its own (see file).",
-          "$ref": "#/$defs/line"
-        },
-        "character": {
-          "description": "Present together with file and line, exactly when the defect has a source location of its own (see file).",
-          "$ref": "#/$defs/character"
+        "location": {
+          "description": "Present exactly when the defect has a source location of its own, distinct from the item's: the invalid entry or the cyclic forwarding declaration. A defect without location is anchored at the item's own location.",
+          "$ref": "#/$defs/location"
         },
         "message": {
           "description": "The defect worded exactly as the plain-text report words it. Offered so a consumer can present the same text; kind and ref carry the same information as data, so the message is never worth parsing and may be reworded without kind changing.",
@@ -191,23 +188,19 @@
     "itemRef": {
       "description": "A reference to another item in this document: its ID and where it is declared.",
       "type": "object",
-      "required": ["id", "file", "line", "character"],
+      "required": ["id", "location"],
       "properties": {
         "id": { "$ref": "#/$defs/id" },
-        "file": { "$ref": "#/$defs/file" },
-        "line": { "$ref": "#/$defs/line" },
-        "character": { "$ref": "#/$defs/character" }
+        "location": { "$ref": "#/$defs/location" }
       }
     },
     "forward": {
       "type": "object",
-      "required": ["from", "to", "file", "line", "character", "effective"],
+      "required": ["from", "to", "location", "effective"],
       "properties": {
         "from": { "$ref": "#/$defs/id" },
         "to": { "$ref": "#/$defs/id" },
-        "file": { "$ref": "#/$defs/file" },
-        "line": { "$ref": "#/$defs/line" },
-        "character": { "$ref": "#/$defs/character" },
+        "location": { "$ref": "#/$defs/location" },
         "effective": {
           "description": "True iff the declaration is in effect; the items' forwardsTo fields mirror exactly the effective entries.",
           "type": "boolean"
@@ -221,11 +214,9 @@
     "problem": {
       "description": "A parse- or analysis-level problem; any problem makes the run fail.",
       "type": "object",
-      "required": ["file", "line", "character", "message"],
+      "required": ["location", "message"],
       "properties": {
-        "file": { "$ref": "#/$defs/file" },
-        "line": { "$ref": "#/$defs/line" },
-        "character": { "$ref": "#/$defs/character" },
+        "location": { "$ref": "#/$defs/location" },
         "message": { "type": "string" }
       }
     },
