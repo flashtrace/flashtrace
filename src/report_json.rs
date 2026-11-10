@@ -291,7 +291,11 @@ pub fn build_report_document(
         ForwardDocument {
             from: forward.from.clone(),
             to: forward.to.clone(),
-            location: locator.locate(&forward.file, forward.line, forward.character),
+            location: locator.locate(
+                &forward.location.file,
+                forward.location.line,
+                forward.location.character,
+            ),
             effective: forward.effective,
             voided_by: if forward.effective {
                 None

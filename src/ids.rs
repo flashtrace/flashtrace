@@ -15,7 +15,7 @@ use std::sync::LazyLock;
 
 use regex::{Captures, Regex};
 
-use crate::defects::Defect;
+use crate::defects::{Defect, Location};
 
 const SEGMENT_SRC: &str = "[A-Za-z][A-Za-z0-9_.-]*";
 // concrete revision: X, X.Y or X.Y.Z (one to three numeric layers)
@@ -91,9 +91,7 @@ pub fn make_id(id_type: &str, group: Option<&str>, name: &str, rev: &str) -> Str
 pub struct Forward {
     pub from: String,
     pub to: String,
-    pub file: String,
-    pub line: usize,
-    pub character: usize,
+    pub location: Location,
     pub effective: bool,
     pub voided_by: Option<&'static str>,
 }
@@ -119,9 +117,11 @@ pub fn make_forward(
             capture(6).unwrap(),
             capture(7).unwrap(),
         ),
-        file: file.to_string(),
-        line,
-        character,
+        location: Location {
+            file: file.to_string(),
+            line,
+            character,
+        },
         effective: true,
         voided_by: None,
     }
@@ -476,6 +476,13 @@ mod tests {
         let forward = make_forward(&m, 1, "spec.md", 7, 3);
         assert_eq!(forward.from, "req:auth/a#1");
         assert_eq!(forward.to, "dsn:b#2");
-        assert_eq!((forward.line, forward.character), (7, 3));
+        assert_eq!(
+            forward.location,
+            Location {
+                file: "spec.md".to_string(),
+                line: 7,
+                character: 3,
+            }
+        );
     }
 }

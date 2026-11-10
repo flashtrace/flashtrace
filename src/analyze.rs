@@ -13,8 +13,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::defects::{
-    Defect, Location, Problem, cyclic_forwarding, duplicate_forwarding, duplicate_id,
-    orphaned_cover, uncovered_forward, uncovered_need, unwanted_cover, unwanted_item,
+    Defect, Problem, cyclic_forwarding, duplicate_forwarding, duplicate_id, orphaned_cover,
+    uncovered_forward, uncovered_need, unwanted_cover, unwanted_item,
 };
 use crate::ids::{
     Forward, Item, Origin, canonical_id, compare_rev, id_matches, is_wildcard_rev, key_of, rev_of,
@@ -275,14 +275,6 @@ impl RevisionsByKey {
     }
 }
 
-fn location_of(forward: &Forward) -> Location {
-    Location {
-        file: forward.file.clone(),
-        line: forward.line,
-        character: forward.character,
-    }
-}
-
 // void every forwarding on one detected cycle: flag the defect on each source
 // item, mark its declaration voided by the cycle, and drop it from the live map
 fn void_forwarding_cycle(
@@ -301,7 +293,7 @@ fn void_forwarding_cycle(
             items[item_index].defects.push(cyclic_forwarding(
                 &forwards[declaration_index].to,
                 chain,
-                location_of(&forwards[declaration_index]),
+                forwards[declaration_index].location.clone(),
             ));
         }
         forward_targets.remove(id);
@@ -389,7 +381,7 @@ fn build_forward_map(
                 let hint = revisions.rev_hint(source);
                 let message = format!("forwarding from {source}, which does not exist{hint}");
                 problems.push(Problem {
-                    location: location_of(&forwards[forward_index]),
+                    location: forwards[forward_index].location.clone(),
                     message,
                 });
             }
@@ -408,7 +400,7 @@ fn build_forward_map(
                 items[item_index].defects.push(duplicate_forwarding(
                     &shown,
                     group.len(),
-                    location_of(&forwards[group[0]]),
+                    forwards[group[0]].location.clone(),
                 ));
             }
         }

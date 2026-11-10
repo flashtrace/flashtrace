@@ -1365,9 +1365,11 @@ mod tests {
         Forward {
             from: from.to_string(),
             to: to.to_string(),
-            file: file.to_string(),
-            line,
-            character,
+            location: Location {
+                file: file.to_string(),
+                line,
+                character,
+            },
             effective: true,
             voided_by: None,
         }

@@ -605,9 +605,11 @@ mod tests {
         Forward {
             from: from.to_string(),
             to: to.to_string(),
-            file: "spec.md".to_string(),
-            line,
-            character,
+            location: Location {
+                file: "spec.md".to_string(),
+                line,
+                character,
+            },
             effective: true,
             voided_by: None,
         }
