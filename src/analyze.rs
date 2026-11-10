@@ -10,7 +10,7 @@
  * `OrderedMap` or an order-preserving Vec, so the reports are deterministic.
  */
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::defects::{
     Defect, Location, Problem, cyclic_forwarding, duplicate_forwarding, duplicate_id,
@@ -91,6 +91,36 @@ pub struct Resolver {
     // solely as a forwarding target has no entry here (unlike is_needed,
     // which does count forwarding demand).
     pub wanted_by: HashMap<usize, Vec<usize>>,
+    // All reverse relations, retaining the declared reference for impact's
+    // direct-edge explanation. wanted_by projects only the Need edges.
+    dependents: HashMap<usize, Vec<DependencyEdge>>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DependencyKind {
+    Need,
+    Cover,
+    Forward,
+}
+
+#[derive(Clone)]
+pub(crate) enum BumpImpact {
+    Exact,
+    Tolerant(Vec<usize>),
+    WildcardLast,
+}
+
+pub(crate) struct DependencyEdge {
+    pub dependent: usize,
+    pub kind: DependencyKind,
+    pub reference: String,
+    pub bump: BumpImpact,
+}
+
+pub(crate) struct Impact {
+    pub direct: Vec<usize>,
+    // affected item and the preceding item on its shortest reverse chain
+    pub transitive: Vec<(usize, usize)>,
 }
 
 impl Resolver {
@@ -110,6 +140,49 @@ impl Resolver {
             .get(key_of(reference))
             .map(|ids| ids.iter().filter(|id| id_matches(reference, id)).collect())
             .unwrap_or_default()
+    }
+
+    /// Impact accepts a concrete ID or all revisions of a bare key.
+    pub(crate) fn query_matches(&self, reference: &str) -> Vec<&String> {
+        if reference.contains('#') {
+            self.matches_of(reference)
+        } else {
+            self.ids_by_key
+                .get(reference)
+                .map(|ids| ids.iter().collect())
+                .unwrap_or_default()
+        }
+    }
+
+    pub(crate) fn dependents_of(&self, index: usize) -> &[DependencyEdge] {
+        self.dependents
+            .get(&index)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    /// Reverse breadth-first traversal: seed every direct dependent before
+    /// walking so a cycle cannot list the queried item or a direct item twice.
+    pub(crate) fn impact_of(&self, canonical: &str) -> Impact {
+        let targets = self.group(canonical).expect("a defined impact target");
+        let mut seen: HashSet<usize> = targets.iter().copied().collect();
+        let mut direct = Vec::new();
+        for edge in self.dependents_of(targets[0]) {
+            if seen.insert(edge.dependent) {
+                direct.push(edge.dependent);
+            }
+        }
+        let mut pending: VecDeque<usize> = direct.iter().copied().collect();
+        let mut transitive = Vec::new();
+        while let Some(via) = pending.pop_front() {
+            for edge in self.dependents_of(via) {
+                if seen.insert(edge.dependent) {
+                    transitive.push((edge.dependent, via));
+                    pending.push_back(edge.dependent);
+                }
+            }
+        }
+        Impact { direct, transitive }
     }
 }
 
@@ -131,21 +204,65 @@ pub fn build_resolver(items: &[Item]) -> Resolver {
         by_id,
         ids_by_key,
         wanted_by: HashMap::new(),
+        dependents: HashMap::new(),
     };
     let mut wanted_by: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut dependents: HashMap<usize, Vec<DependencyEdge>> = HashMap::new();
     for (index, item) in items.iter().enumerate() {
-        for need in &item.needs {
-            for id in resolver.matches_of(need) {
+        let references = item
+            .needs
+            .iter()
+            .map(|reference| (DependencyKind::Need, reference))
+            .chain(
+                item.covers
+                    .iter()
+                    .map(|reference| (DependencyKind::Cover, reference)),
+            )
+            .chain(
+                item.forwards_to
+                    .iter()
+                    .map(|reference| (DependencyKind::Forward, reference)),
+            );
+        for (kind, reference) in references {
+            let mut matches = resolver.matches_of(reference);
+            matches.sort_by(|a, b| compare_rev(rev_of(a), rev_of(b)));
+            let wildcard = kind == DependencyKind::Need && is_wildcard_rev(rev_of(reference));
+            for id in &matches {
+                let bump = if !wildcard {
+                    BumpImpact::Exact
+                } else if matches.len() == 1 {
+                    BumpImpact::WildcardLast
+                } else {
+                    BumpImpact::Tolerant(
+                        matches
+                            .iter()
+                            .filter(|other| *other != id)
+                            .map(|other| resolver.group(other).unwrap()[0])
+                            .collect(),
+                    )
+                };
                 for provider in resolver.group(id).unwrap() {
-                    let wanting = wanted_by.entry(*provider).or_default();
-                    if !wanting.contains(&index) {
-                        wanting.push(index);
+                    dependents
+                        .entry(*provider)
+                        .or_default()
+                        .push(DependencyEdge {
+                            dependent: index,
+                            kind,
+                            reference: reference.clone(),
+                            bump: bump.clone(),
+                        });
+                    if kind == DependencyKind::Need {
+                        let wanting = wanted_by.entry(*provider).or_default();
+                        if !wanting.contains(&index) {
+                            wanting.push(index);
+                        }
                     }
                 }
             }
         }
     }
     resolver.wanted_by = wanted_by;
+    resolver.dependents = dependents;
     resolver
 }
 
@@ -219,10 +336,10 @@ fn displayed_duplicate_id(written_ids: &[&str], canonical: &str) -> String {
 // the sibling revisions recorded per key, in definition order; the hint sorts
 // them SemVer-aware with a stable sort, so SemVer-equal spellings keep that
 // order
-struct RevisionsByKey(HashMap<String, Vec<String>>);
+pub(crate) struct RevisionsByKey(HashMap<String, Vec<String>>);
 
 impl RevisionsByKey {
-    fn record(items: &[Item]) -> Self {
+    pub(crate) fn record(items: &[Item]) -> Self {
         let mut revs_by_key: HashMap<String, Vec<String>> = HashMap::new();
         for item in items {
             let revs = revs_by_key.entry(item.key.clone()).or_default();
@@ -243,7 +360,7 @@ impl RevisionsByKey {
     }
 
     // string hint for a problem message (missing forwarding source)
-    fn rev_hint(&self, id: &str) -> String {
+    pub(crate) fn rev_hint(&self, id: &str) -> String {
         match self.existing_revisions_of(id) {
             Some(revs) => {
                 let key = key_of(id);
