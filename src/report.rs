@@ -11,7 +11,7 @@ use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
 use crate::analyze::{Resolver, build_resolver, is_clean, status_of, summarize};
-use crate::defects::Problem;
+use crate::defects::{Location, Problem};
 use crate::ids::{Item, Origin, canonical_id, is_wildcard_rev, rev_of};
 use crate::paths::display_relative;
 
@@ -91,8 +91,9 @@ struct Renderer<'run> {
 }
 
 impl<'run> Renderer<'run> {
-    fn dim_location(&self, file: &str, line: usize) -> String {
-        let path = display_relative(&self.cwd, file);
+    fn dim_location(&self, location: &Location) -> String {
+        let path = display_relative(&self.cwd, &location.file);
+        let line = location.line;
         self.style.dim(&format!("{path}:{line}"))
     }
 
@@ -113,7 +114,7 @@ impl<'run> Renderer<'run> {
             }
             Some(target) => {
                 let mark = styled_mark(target, &self.style);
-                let location = self.dim_location(&target.location.file, target.location.line);
+                let location = self.dim_location(&target.location);
                 format!("    {arrow} {forwards_to}  {mark} {location}")
             }
         }
@@ -145,7 +146,7 @@ impl<'run> Renderer<'run> {
                 };
                 let needs_label = self.style.dim("needs");
                 let mark = styled_mark(covering, &self.style);
-                let location = self.dim_location(&covering.location.file, covering.location.line);
+                let location = self.dim_location(&covering.location);
                 lines.push(format!("    {needs_label} {reference}  {mark} {location}"));
             }
         }
@@ -170,7 +171,7 @@ impl<'run> Renderer<'run> {
                 }
                 Some(target) => {
                     let mark = self.style.green("\u{2714}");
-                    let location = self.dim_location(&target.location.file, target.location.line);
+                    let location = self.dim_location(&target.location);
                     lines.push(format!("    {covers_label} {cover_id}  {mark} {location}"));
                 }
             }
@@ -187,7 +188,7 @@ impl<'run> Renderer<'run> {
             .map(|defect| {
                 let location = match &defect.location {
                     Some(location) => {
-                        format!("  {}", self.dim_location(&location.file, location.line))
+                        format!("  {}", self.dim_location(location))
                     }
                     None => String::new(),
                 };
@@ -220,28 +221,21 @@ impl<'run> Renderer<'run> {
             let wanting = &self.items[wanting];
             let wanted_by_label = self.style.dim("wanted by");
             let wanting_id = &wanting.id;
-            let location = self.dim_location(&wanting.location.file, wanting.location.line);
+            let location = self.dim_location(&wanting.location);
             lines.push(format!("    {wanted_by_label} {wanting_id}  {location}"));
         }
         lines
     }
 
     // full item list for --verbose: every item with status and trace edges,
-    // grouped by file, then line
+    // grouped by file, then line - deliberately not the full location order:
+    // the sort is stable, so items sharing a line keep definition order
     fn render_verbose(&self, out: &mut Vec<String>) {
         let resolver = build_resolver(self.items);
         let mut sorted: Vec<usize> = (0..self.items.len()).collect();
         sorted.sort_by(|&a, &b| {
-            self.items[a]
-                .location
-                .file
-                .cmp(&self.items[b].location.file)
-                .then_with(|| {
-                    self.items[a]
-                        .location
-                        .line
-                        .cmp(&self.items[b].location.line)
-                })
+            let (a, b) = (&self.items[a].location, &self.items[b].location);
+            (&a.file, a.line).cmp(&(&b.file, b.line))
         });
         let mut previous_file: Option<&str> = None;
         for index in &sorted {
@@ -256,7 +250,7 @@ impl<'run> Renderer<'run> {
             };
             let mark = styled_mark(item, &self.style);
             let id = self.style.bold(&item.id);
-            let location = self.dim_location(&item.location.file, item.location.line);
+            let location = self.dim_location(&item.location);
             let tag = styled_tag(item, &self.style);
             out.push(format!("{mark} {id}{title}  {location}  {tag}"));
             out.extend(self.edge_lines(*index, &resolver));
@@ -276,7 +270,7 @@ impl<'run> Renderer<'run> {
             };
             let mark = styled_mark(item, &self.style);
             let id = self.style.bold(&item.id);
-            let location = self.dim_location(&item.location.file, item.location.line);
+            let location = self.dim_location(&item.location);
             out.push(format!("{mark} {id}{title}  {location}"));
             out.extend(self.defect_lines(item));
             out.push(String::new());
@@ -339,7 +333,7 @@ pub fn report(items: &[Item], problems: &[Problem], cwd: &Path, verbose: bool) -
     for problem in problems {
         let warning = renderer.style.yellow("\u{26a0}");
         let message = &problem.message;
-        let location = renderer.dim_location(&problem.location.file, problem.location.line);
+        let location = renderer.dim_location(&problem.location);
         out.push(format!("{warning} {message}  {location}"));
     }
     if !problems.is_empty() {

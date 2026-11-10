@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::analyze::{Resolver, Summary, build_resolver, is_clean, status_of, summarize};
-use crate::defects::{Defect, Problem};
+use crate::defects::{Defect, Location, Problem};
 use crate::ids::{Forward, Item, canonical_id, compare_rev, rev_of};
 use crate::paths::display_relative;
 
@@ -172,11 +172,11 @@ impl Locator {
         display_relative(&self.cwd, file).replace('\\', "/")
     }
 
-    fn locate(&self, file: &str, line: usize, character: usize) -> LocationDocument {
+    fn locate(&self, location: &Location) -> LocationDocument {
         LocationDocument {
-            file: self.relative(file),
-            line,
-            character,
+            file: self.relative(&location.file),
+            line: location.line,
+            character: location.character,
         }
     }
 }
@@ -218,11 +218,7 @@ pub fn build_report_document(
             .iter()
             .map(|&index| ItemReference {
                 id: items[index].id.clone(),
-                location: locator.locate(
-                    &items[index].location.file,
-                    items[index].location.line,
-                    items[index].location.character,
-                ),
+                location: locator.locate(&items[index].location),
             })
             .collect();
         references.sort_by(|a, b| a.location.cmp(&b.location));
@@ -236,7 +232,7 @@ pub fn build_report_document(
             location: defect
                 .location
                 .as_ref()
-                .map(|location| locator.locate(&location.file, location.line, location.character)),
+                .map(|location| locator.locate(location)),
             existing_revisions: defect.existing_revisions.clone(),
             message: defect.message.clone(),
         }
@@ -249,11 +245,7 @@ pub fn build_report_document(
             title: item.title.clone(),
             origin: item.origin.as_str(),
             tags: item.tags.clone(),
-            location: locator.locate(
-                &item.location.file,
-                item.location.line,
-                item.location.character,
-            ),
+            location: locator.locate(&item.location),
             status: status_of(item),
             defective: !item.defects.is_empty(),
             deep_covered: item.deep_covered,
@@ -295,11 +287,7 @@ pub fn build_report_document(
         ForwardDocument {
             from: forward.from.clone(),
             to: forward.to.clone(),
-            location: locator.locate(
-                &forward.location.file,
-                forward.location.line,
-                forward.location.character,
-            ),
+            location: locator.locate(&forward.location),
             effective: forward.effective,
             voided_by: if forward.effective {
                 None
@@ -318,11 +306,7 @@ pub fn build_report_document(
     let mut problem_documents: Vec<ProblemDocument> = problems
         .iter()
         .map(|problem| ProblemDocument {
-            location: locator.locate(
-                &problem.location.file,
-                problem.location.line,
-                problem.location.character,
-            ),
+            location: locator.locate(&problem.location),
             message: problem.message.clone(),
         })
         .collect();
