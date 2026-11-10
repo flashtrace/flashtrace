@@ -26,7 +26,7 @@ Tags: Auth, Security
   - `Covers:` - the items this item covers, at concrete revisions only. A `Covers` entry accepts the same short form as `Needs` (`feat`, `feat:auth`, `feat#2`), completed from this item's own `[group/]name` and revision; a wildcard revision stays rejected here.
   - `Tags:` - free-form tag names for additional grouping/filtering.
 
-  Each keyword accepts a one-line comma-separated list, a bullet list (`-`, `*`, `+`) on the immediately following lines, or a table column (see below). The inline and bullet styles must not be mixed within one keyword. IDs may optionally be wrapped in backticks.
+  Each keyword accepts a one-line comma-separated list, a bullet list (`-`, `*`, `+`) on the immediately following lines, or a table column (see below). The inline and bullet styles must not be mixed within one keyword. IDs may optionally be wrapped in backticks. A keyword may appear more than once in an item - on several keyword lines, in several table columns, or both; the entries of all its occurrences are merged into one list, in document order.
 
 ## Keyword entries from tables
 
