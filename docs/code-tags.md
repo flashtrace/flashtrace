@@ -80,8 +80,11 @@ over `.gitignore`. These rules also apply outside Git repositories; parent rules
 can apply from above a repository root.
 
 Hidden files and directories such as `.github/` remain eligible. `.git/` metadata
-and `node_modules/` dependency directories are always excluded from traversal,
-including when supplied as directory scan roots. Directory
+is always excluded from traversal, including when supplied as a directory scan
+root. Directories on the default ignore list - currently `node_modules/`
+dependency directories - are excluded the same way at any depth, unless
+`--no-default-ignore` is given; ignore rules still apply to their contents
+then. Directory
 symlinks are not followed, and symlink entries discovered during traversal are
 not scanned. Explicit file arguments bypass ignore rules, but must still have a
 supported extension. Results are deduplicated and sorted.

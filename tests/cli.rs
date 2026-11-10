@@ -1030,6 +1030,47 @@ fn metadata_and_dependencies_are_excluded_but_hidden_content_is_scanned_and_inpu
     );
 }
 
+#[test]
+fn no_default_ignore_scans_dependency_directories_but_keeps_metadata_and_ignore_rules() {
+    let project = with_project("no-default-ignore", &[]);
+    write_project_file(&project, "repository/.gitignore", "ignored.md\n");
+    for (path, identifier) in [
+        (".git/internal.md", "metadata"),
+        ("node_modules/package/spec.md", "dependency"),
+        ("node_modules/package/ignored.md", "ignored"),
+        ("nested/node_modules/package/spec.md", "nesteddependency"),
+        ("visible.md", "visible"),
+    ] {
+        write_project_file(
+            &project,
+            &format!("repository/{path}"),
+            &format!("`req:{identifier}#1`"),
+        );
+    }
+    assert_eq!(
+        scanned_items(&isolated_scan(&project, &["--json", "--no-default-ignore"])),
+        [
+            "req:dependency#1",
+            "req:nesteddependency#1",
+            "req:visible#1"
+        ]
+    );
+    assert_eq!(
+        scanned_items(&isolated_scan(
+            &project,
+            &["--json", "--no-default-ignore", "node_modules"]
+        )),
+        ["req:dependency#1"]
+    );
+    assert!(
+        scanned_items(&isolated_scan(
+            &project,
+            &["--json", "--no-default-ignore", ".git"]
+        ))
+        .is_empty()
+    );
+}
+
 fn with_local_and_global_excludes(name: &str) -> Project {
     let project = with_project(name, &[]);
     write_project_file(&project, "repository/.git/info/exclude", "local.md\n");

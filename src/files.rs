@@ -17,17 +17,21 @@ const GIT_METADATA_DIRECTORY: &str = ".git";
 
 // Directories that hold content of no interest to a trace and are large enough
 // to slow a scan noticeably. They are skipped by name at any depth, including
-// as a scan root.
+// as a scan root, unless the caller turns the default ignores off.
 const DEFAULT_IGNORED_DIRECTORIES: &[&str] = &["node_modules"];
 
-fn is_excluded_directory(name: &std::ffi::OsStr) -> bool {
+fn is_excluded_directory(name: &std::ffi::OsStr, apply_default_ignores: bool) -> bool {
     name == GIT_METADATA_DIRECTORY
-        || DEFAULT_IGNORED_DIRECTORIES
-            .iter()
-            .any(|directory| name == *directory)
+        || (apply_default_ignores
+            && DEFAULT_IGNORED_DIRECTORIES
+                .iter()
+                .any(|directory| name == *directory))
 }
 
-pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
+pub fn collect_files(
+    dirs: &[String],
+    apply_default_ignores: bool,
+) -> Result<Vec<String>, UsageError> {
     let mut files: Vec<String> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
     let mut add = |file: PathBuf| {
@@ -46,14 +50,19 @@ pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
             add(abs);
             continue;
         }
-        if abs.file_name().is_some_and(is_excluded_directory) {
+        if abs
+            .file_name()
+            .is_some_and(|name| is_excluded_directory(name, apply_default_ignores))
+        {
             continue;
         }
         let walker = WalkBuilder::new(&abs)
             .hidden(false)
             .require_git(false)
             .follow_links(false)
-            .filter_entry(|entry| !is_excluded_directory(entry.file_name()))
+            .filter_entry(move |entry| {
+                !is_excluded_directory(entry.file_name(), apply_default_ignores)
+            })
             .build();
         // Preserve silent traversal failures for now; general diagnostics are
         // a separate change. Explicit file arguments bypass the walker above.
@@ -82,18 +91,18 @@ mod tests {
     #[test]
     fn collect_files_takes_a_single_file_verbatim_and_rejects_a_missing_path() {
         let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic/spec.md");
-        let collected = collect_files(&[manifest.to_string()]).unwrap();
+        let collected = collect_files(&[manifest.to_string()], true).unwrap();
         assert_eq!(collected.len(), 1);
         assert!(collected[0].ends_with("spec.md"));
 
-        let missing = collect_files(&["definitely-not-here-1234".to_string()]);
+        let missing = collect_files(&["definitely-not-here-1234".to_string()], true);
         assert!(missing.unwrap_err().0.contains("input path does not exist"));
     }
 
     #[test]
     fn collect_files_filters_to_known_extensions_and_sorts_in_code_point_order() {
         let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/basic");
-        let collected = collect_files(&[example.to_string()]).unwrap();
+        let collected = collect_files(&[example.to_string()], true).unwrap();
         // examples/basic holds spec.md, login.ts and a README the filter drops
         let names: Vec<&str> = collected
             .iter()
@@ -109,10 +118,23 @@ mod tests {
     #[test]
     fn collected_paths_are_absolute_and_normalized() {
         let example = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/./basic");
-        let collected = collect_files(&[example.to_string()]).unwrap();
+        let collected = collect_files(&[example.to_string()], true).unwrap();
         for file in &collected {
             assert!(Path::new(file).is_absolute(), "{file}");
             assert!(!file.contains("/./") && !file.contains("/../"), "{file}");
         }
+    }
+
+    #[test]
+    fn default_ignores_can_be_turned_off_but_git_metadata_stays_excluded() {
+        for directory in DEFAULT_IGNORED_DIRECTORIES {
+            let name = std::ffi::OsStr::new(directory);
+            assert!(is_excluded_directory(name, true), "{directory}");
+            assert!(!is_excluded_directory(name, false), "{directory}");
+        }
+        let metadata = std::ffi::OsStr::new(GIT_METADATA_DIRECTORY);
+        assert!(is_excluded_directory(metadata, true));
+        assert!(is_excluded_directory(metadata, false));
+        assert!(!is_excluded_directory(std::ffi::OsStr::new("src"), true));
     }
 }

@@ -40,6 +40,8 @@ Options:
                            is shorthand for --format json
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones; text format only
+  --no-default-ignore      also scan directories skipped by default
+                           (node_modules); .git is always skipped
   -V, --version            print the version number
   -h, --help               show this help
 
@@ -69,6 +71,7 @@ struct Options {
     tags: Option<Vec<String>>,
     verbose: bool,
     format: Format,
+    apply_default_ignores: bool,
     // A setting is selected at most once, whichever spelling does it.
     // Rejecting a second selection outright - rather than letting the last
     // one win, or comparing the two values - keeps one rule to state and to
@@ -155,6 +158,7 @@ fn parse_args(argv: &[String]) -> Result<Command, UsageError> {
         tags: None,
         verbose: false,
         format: Format::Text,
+        apply_default_ignores: true,
         selected_by: HashMap::new(),
     };
     let mut i = 0;
@@ -173,6 +177,10 @@ fn parse_args(argv: &[String]) -> Result<Command, UsageError> {
             "--verbose" => {
                 reject_value(raw, inline)?;
                 options.verbose = true;
+            }
+            "--no-default-ignore" => {
+                reject_value(raw, inline)?;
+                options.apply_default_ignores = false;
             }
             "--json" => {
                 reject_value(raw, inline)?;
@@ -235,7 +243,7 @@ fn decode(bytes: &[u8]) -> String {
 }
 
 fn main_flow(options: &Options) -> Result<bool, UsageError> {
-    let files = collect_files(&options.dirs)?;
+    let files = collect_files(&options.dirs, options.apply_default_ignores)?;
     let mut problems = Vec::new();
     let mut forwards: Vec<Forward> = Vec::new();
     let mut items: Vec<Item> = Vec::new();
@@ -342,6 +350,16 @@ mod tests {
         assert_eq!(options.format, Format::Text);
         assert!(!options.verbose);
         assert_eq!(options.tags, None);
+        assert!(options.apply_default_ignores);
+    }
+
+    #[test]
+    fn no_default_ignore_turns_the_default_ignores_off_and_takes_no_value() {
+        let options = run_options(&args(&["--no-default-ignore", "src"]));
+        assert!(!options.apply_default_ignores);
+        assert_eq!(options.dirs, ["src"]);
+        let error = parse_args(&args(&["--no-default-ignore=1"])).unwrap_err();
+        assert_eq!(error.0, "option --no-default-ignore does not take a value");
     }
 
     #[test]
