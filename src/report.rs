@@ -333,7 +333,7 @@ pub fn report(items: &[Item], problems: &[Problem], cwd: &Path, verbose: bool) -
     for problem in problems {
         let warning = renderer.style.yellow("\u{26a0}");
         let message = &problem.message;
-        let location = renderer.dim_location(&problem.file, problem.line);
+        let location = renderer.dim_location(&problem.location.file, problem.location.line);
         out.push(format!("{warning} {message}  {location}"));
     }
     if !problems.is_empty() {

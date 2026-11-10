@@ -25,7 +25,7 @@ use std::sync::LazyLock;
 
 use regex::{Captures, Regex};
 
-use crate::defects::Problem;
+use crate::defects::{Location, Problem};
 use crate::ids::{
     Forward, Item, Origin, canonical_id, forward_src, id_src, make_forward, make_id, new_item,
     ref_src, resolve_ref,
@@ -499,9 +499,11 @@ fn attach_need(
             written.push_str(rev);
         }
         problems.push(Problem {
-            file: file.to_string(),
-            line,
-            character,
+            location: Location {
+                file: file.to_string(),
+                line,
+                character,
+            },
             message: match &source {
                 Some(source) => format!(
                     "need tag [{source} >> {written}] has no preceding item tag [{source}] in this file"
@@ -1644,7 +1646,7 @@ mod tests {
         let (_, problems, _) = parse("src.ts", &["  // [>>utest:a#1]"]);
         assert_eq!(problems.len(), 1);
         assert!(problems[0].message.contains("no preceding item tag"));
-        assert_eq!(problems[0].character, 6); // the '[' past "  // "
+        assert_eq!(problems[0].location.character, 6); // the '[' past "  // "
     }
 
     #[test]
@@ -1656,7 +1658,7 @@ mod tests {
                 .message
                 .contains("no preceding item tag [impl:x#1]")
         );
-        assert_eq!(problems[0].character, 4); // the '[' past "// "
+        assert_eq!(problems[0].location.character, 4); // the '[' past "// "
     }
 
     // columns count characters, not bytes: é is two bytes and the astral 𝕏

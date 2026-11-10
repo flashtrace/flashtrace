@@ -51,9 +51,7 @@ pub struct Location {
 /// parsers and the analysis.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Problem {
-    pub file: String,
-    pub line: usize,
-    pub character: usize,
+    pub location: Location,
     pub message: String,
 }
 

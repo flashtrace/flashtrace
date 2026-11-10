@@ -389,9 +389,7 @@ fn build_forward_map(
                 let hint = revisions.rev_hint(source);
                 let message = format!("forwarding from {source}, which does not exist{hint}");
                 problems.push(Problem {
-                    file: forwards[forward_index].file.clone(),
-                    line: forwards[forward_index].line,
-                    character: forwards[forward_index].character,
+                    location: location_of(&forwards[forward_index]),
                     message,
                 });
             }
@@ -1237,8 +1235,8 @@ mod tests {
             .iter()
             .find(|problem| problem.message.contains("forwarding from req:ghost#1"))
             .unwrap();
-        assert_eq!(problem.line, 3);
-        assert_eq!(problem.character, 3); // the backtick, past two spaces
+        assert_eq!(problem.location.line, 3);
+        assert_eq!(problem.location.character, 3); // the backtick, past two spaces
     }
 
     #[test]

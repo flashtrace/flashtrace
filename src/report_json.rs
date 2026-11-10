@@ -310,7 +310,11 @@ pub fn build_report_document(
     let mut problem_documents: Vec<ProblemDocument> = problems
         .iter()
         .map(|problem| ProblemDocument {
-            location: locator.locate(&problem.file, problem.line, problem.character),
+            location: locator.locate(
+                &problem.location.file,
+                problem.location.line,
+                problem.location.character,
+            ),
             message: problem.message.clone(),
         })
         .collect();
