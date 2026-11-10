@@ -12,6 +12,21 @@ use crate::languages::CODE_EXT;
 use crate::parse_spec::SPEC_EXT;
 use crate::paths::{absolute_normalized, extension_of};
 
+// Git metadata is never content, so no option brings it into a scan.
+const GIT_METADATA_DIRECTORY: &str = ".git";
+
+// Directories that hold content of no interest to a trace and are large enough
+// to slow a scan noticeably. They are skipped by name at any depth, including
+// as a scan root.
+const DEFAULT_IGNORED_DIRECTORIES: &[&str] = &["node_modules"];
+
+fn is_excluded_directory(name: &std::ffi::OsStr) -> bool {
+    name == GIT_METADATA_DIRECTORY
+        || DEFAULT_IGNORED_DIRECTORIES
+            .iter()
+            .any(|directory| name == *directory)
+}
+
 pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
     let mut files: Vec<String> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
@@ -31,19 +46,14 @@ pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
             add(abs);
             continue;
         }
-        if abs
-            .file_name()
-            .is_some_and(|name| name == ".git" || name == "node_modules")
-        {
+        if abs.file_name().is_some_and(is_excluded_directory) {
             continue;
         }
         let walker = WalkBuilder::new(&abs)
             .hidden(false)
             .require_git(false)
             .follow_links(false)
-            .filter_entry(|entry| {
-                entry.file_name() != ".git" && entry.file_name() != "node_modules"
-            })
+            .filter_entry(|entry| !is_excluded_directory(entry.file_name()))
             .build();
         // Preserve silent traversal failures for now; general diagnostics are
         // a separate change. Explicit file arguments bypass the walker above.
