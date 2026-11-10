@@ -663,7 +663,14 @@ mod tests {
 
     #[test]
     fn a_need_satisfied_by_an_existing_item_yields_no_defects() {
-        let items = run(&["`req:a#1`", "", "Needs: impl:a#1"], &["// [impl:a#1]"]);
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -672,7 +679,14 @@ mod tests {
 
     #[test]
     fn a_missing_need_is_uncovered_with_a_revision_mismatch_hint() {
-        let items = run(&["`req:a#1`", "", "Needs: impl:a#2"], &["// [impl:a#1]"]);
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2"];
+        let code = ["// [impl:a#1]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         let message = &by_id(&items, "req:a#1").defects[0].message;
         assert!(message.starts_with("uncovered: needs impl:a#2"));
         assert!(message.contains("revision mismatch"));
@@ -681,10 +695,14 @@ mod tests {
 
     #[test]
     fn semver_equality_an_item_at_two_four_satisfies_a_need_for_two_four_zero() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#2.4.0"],
-            &["// [impl:a#2.4]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2.4.0"];
+        let code = ["// [impl:a#2.4]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -693,10 +711,14 @@ mod tests {
 
     #[test]
     fn semver_equality_an_item_at_one_zero_zero_satisfies_a_need_for_one() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#1"],
-            &["// [impl:a#1.0.0]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1.0.0]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -705,24 +727,27 @@ mod tests {
 
     #[test]
     fn semver_equality_applies_to_covers_and_forwarding_targets() {
-        let items = run(
-            &[
-                "`feat:auth#1`",
-                "",
-                "Needs: req:a#1",
-                "",
-                "`req:a#1.0`",
-                "",
-                "Covers: feat:auth#1.0.0",
-                "",
-                "`dsn:a#1`",
-                "",
-                "`req:b#1`",
-                "",
-                "[req:b#1.0 --> dsn:a#1.0.0]",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`feat:auth#1`",
+            "",
+            "Needs: req:a#1",
+            "",
+            "`req:a#1.0`",
+            "",
+            "Covers: feat:auth#1.0.0",
+            "",
+            "`dsn:a#1`",
+            "",
+            "`req:b#1`",
+            "",
+            "[req:b#1.0 --> dsn:a#1.0.0]",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty(), "{}: {:?}", item.id, item.defects);
         }
@@ -730,7 +755,13 @@ mod tests {
 
     #[test]
     fn semver_equal_spellings_of_one_id_are_duplicates_named_canonically() {
-        let items = run(&["`req:a#2.4`", "", "`req:a#2.4.0`"], &[]);
+        // given
+        let md = ["`req:a#2.4`", "", "`req:a#2.4.0`"];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         assert_eq!(items.len(), 2);
         for item in &items {
             assert!(
@@ -743,10 +774,14 @@ mod tests {
 
     #[test]
     fn an_exact_multi_layer_revision_need_is_covered() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#2.4.0"],
-            &["// [impl:a#2.4.0]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2.4.0"];
+        let code = ["// [impl:a#2.4.0]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -755,20 +790,23 @@ mod tests {
 
     #[test]
     fn revision_mismatch_hints_are_ordered_semver_aware() {
-        let items = run(
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: impl:a#9",
-                "",
-                "`impl:a#2.10`",
-                "",
-                "`impl:a#2.9`",
-                "",
-                "`impl:a#2.9.1`",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "Needs: impl:a#9",
+            "",
+            "`impl:a#2.10`",
+            "",
+            "`impl:a#2.9`",
+            "",
+            "`impl:a#2.9.1`",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         let message = &by_id(&items, "req:a#1").defects[0].message;
         assert!(
             message.contains("existing revision(s) of impl:a: 2.9, 2.9.1, 2.10"),
@@ -778,7 +816,13 @@ mod tests {
 
     #[test]
     fn covering_a_non_existent_item_is_orphaned() {
-        let items = run(&["`req:a#1`", "", "Covers: feat:x#1"], &[]);
+        // given
+        let md = ["`req:a#1`", "", "Covers: feat:x#1"];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         assert!(
             by_id(&items, "req:a#1").defects[0]
                 .message
@@ -788,10 +832,13 @@ mod tests {
 
     #[test]
     fn covering_an_item_that_does_not_need_you_is_unwanted() {
-        let items = run(
-            &["`feat:auth#1`", "", "`req:a#1`", "", "Covers: feat:auth#1"],
-            &[],
-        );
+        // given
+        let md = ["`feat:auth#1`", "", "`req:a#1`", "", "Covers: feat:auth#1"];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         assert!(
             by_id(&items, "req:a#1").defects[0]
                 .message
@@ -801,18 +848,21 @@ mod tests {
 
     #[test]
     fn a_covers_entry_matched_by_the_targets_needs_is_valid() {
-        let items = run(
-            &[
-                "`feat:auth#1`",
-                "",
-                "Needs: req:a#1",
-                "",
-                "`req:a#1`",
-                "",
-                "Covers: feat:auth#1",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`feat:auth#1`",
+            "",
+            "Needs: req:a#1",
+            "",
+            "`req:a#1`",
+            "",
+            "Covers: feat:auth#1",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -820,7 +870,13 @@ mod tests {
 
     #[test]
     fn defining_the_same_full_id_twice_flags_both_as_duplicates() {
-        let items = run(&["`req:a#1`", "", "`req:a#1`"], &[]);
+        // given
+        let md = ["`req:a#1`", "", "`req:a#1`"];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         assert_eq!(items.len(), 2);
         for item in &items {
             assert!(item.defects[0].message.starts_with("duplicate: ID req:a#1"));
@@ -829,10 +885,14 @@ mod tests {
 
     #[test]
     fn a_wildcard_need_is_satisfied_by_any_matching_concrete_item() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#2.x"],
-            &["// [impl:a#2.5]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2.x"];
+        let code = ["// [impl:a#2.5]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -841,10 +901,14 @@ mod tests {
 
     #[test]
     fn a_wildcard_extends_over_the_deeper_layers() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#2.x, impl:b#2.x"],
-            &["// [impl:a#2.5.0]", "// [impl:b#2]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2.x, impl:b#2.x"];
+        let code = ["// [impl:a#2.5.0]", "// [impl:b#2]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -853,10 +917,14 @@ mod tests {
 
     #[test]
     fn a_wildcard_still_pins_its_numeric_layers() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#2.x"],
-            &["// [impl:a#3.1]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2.x"];
+        let code = ["// [impl:a#3.1]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         assert!(
             by_id(&items, "req:a#1").defects[0]
                 .message
@@ -872,10 +940,14 @@ mod tests {
 
     #[test]
     fn a_three_layer_wildcard_pins_two_layers() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#2.3.x"],
-            &["// [impl:a#2.3.7]", "// [impl:a#2.4.0]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#2.3.x"];
+        let code = ["// [impl:a#2.3.7]", "// [impl:a#2.4.0]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         assert!(by_id(&items, "req:a#1").defects.is_empty());
         assert!(
             by_id(&items, "impl:a#2.4.0").defects[0]
@@ -886,10 +958,14 @@ mod tests {
 
     #[test]
     fn a_bare_x_matches_any_revision_star_is_an_alias_for_x() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#x, impl:b#*, impl:c#2.*"],
-            &["// [impl:a#4.1]", "// [impl:b#3.0.9]", "// [impl:c#2.7]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#x, impl:b#*, impl:c#2.*"];
+        let code = ["// [impl:a#4.1]", "// [impl:b#3.0.9]", "// [impl:c#2.7]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -898,18 +974,21 @@ mod tests {
 
     #[test]
     fn a_covers_entry_satisfies_a_wildcard_need_on_its_target() {
-        let items = run(
-            &[
-                "`feat:auth#1`",
-                "",
-                "Needs: impl:a#2.x",
-                "",
-                "`impl:a#2.5`",
-                "",
-                "Covers: feat:auth#1",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`feat:auth#1`",
+            "",
+            "Needs: impl:a#2.x",
+            "",
+            "`impl:a#2.5`",
+            "",
+            "Covers: feat:auth#1",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
         }
@@ -917,18 +996,21 @@ mod tests {
 
     #[test]
     fn a_wildcard_need_is_shallow_covered_but_not_deep_when_its_match_is_defective() {
-        let items = run(
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: dsn:b#2.x",
-                "",
-                "`dsn:b#2.5`",
-                "",
-                "Needs: impl:c#1",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "Needs: dsn:b#2.x",
+            "",
+            "`dsn:b#2.5`",
+            "",
+            "Needs: impl:c#1",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         let req_a = by_id(&items, "req:a#1");
         assert!(req_a.defects.is_empty()); // its wildcard need is matched
         assert!(!req_a.deep_covered); // but dsn:b#2.5 is itself uncovered
@@ -941,10 +1023,14 @@ mod tests {
 
     #[test]
     fn a_wildcard_need_matching_nothing_is_uncovered_with_a_revision_hint() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#9.x"],
-            &["// [impl:a#2.5]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#9.x"];
+        let code = ["// [impl:a#2.5]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         let message = &by_id(&items, "req:a#1").defects[0].message;
         assert!(message.starts_with("uncovered: needs impl:a#9.x"));
         assert!(message.contains("existing revision(s) of impl:a: 2.5"));
@@ -952,7 +1038,13 @@ mod tests {
 
     #[test]
     fn a_code_item_nobody_needs_is_unwanted() {
-        let items = run(&[], &["// [impl:stray#1]"]);
+        // given
+        let code = ["// [impl:stray#1]"];
+
+        // when
+        let items = run(&[], &code);
+
+        // then
         assert!(
             by_id(&items, "impl:stray#1").defects[0]
                 .message
@@ -962,18 +1054,21 @@ mod tests {
 
     #[test]
     fn a_defect_further_down_the_chain_breaks_deep_coverage_only() {
-        let items = run(
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: dsn:b#1",
-                "",
-                "`dsn:b#1`",
-                "",
-                "Needs: impl:c#1",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "Needs: dsn:b#1",
+            "",
+            "`dsn:b#1`",
+            "",
+            "Needs: impl:c#1",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         let req_a = by_id(&items, "req:a#1");
         assert!(req_a.defects.is_empty()); // its own need exists
         assert!(!req_a.deep_covered); // but dsn:b is itself defective
@@ -986,18 +1081,21 @@ mod tests {
 
     #[test]
     fn forwarding_excuses_the_items_own_needs_and_follows_the_target() {
-        let items = run(
-            &[
-                "`req:login#1`",
-                "",
-                "Needs: impl:login#1",
-                "",
-                "[req:login#1 --> dsn:auth#2]",
-                "",
-                "`dsn:auth#2`",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:login#1`",
+            "",
+            "Needs: impl:login#1",
+            "",
+            "[req:login#1 --> dsn:auth#2]",
+            "",
+            "`dsn:auth#2`",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         let login = by_id(&items, "req:login#1");
         assert!(login.defects.is_empty()); // impl:login#1 missing, but excused
         assert!(login.deep_covered);
@@ -1005,10 +1103,13 @@ mod tests {
 
     #[test]
     fn forwarding_to_a_missing_item_is_uncovered_with_revision_hint() {
-        let items = run(
-            &["`req:a#1`", "", "`dsn:b#1`", "", "[req:a#1 --> dsn:b#2]"],
-            &[],
-        );
+        // given
+        let md = ["`req:a#1`", "", "`dsn:b#1`", "", "[req:a#1 --> dsn:b#2]"];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         let message = &by_id(&items, "req:a#1").defects[0].message;
         assert!(message.starts_with("uncovered: forwards to dsn:b#2, which does not exist"));
         assert!(message.contains("revision mismatch"));
@@ -1016,7 +1117,13 @@ mod tests {
 
     #[test]
     fn forwarding_from_a_non_existent_item_is_a_problem() {
-        let (items, problems) = run_all(&["`dsn:b#1`", "", "[req:ghost#1 --> dsn:b#1]"], &[]);
+        // given
+        let md = ["`dsn:b#1`", "", "[req:ghost#1 --> dsn:b#1]"];
+
+        // when
+        let (items, problems) = run_all(&md, &[]);
+
+        // then
         assert_eq!(problems.len(), 1);
         assert!(
             problems[0]
@@ -1028,19 +1135,22 @@ mod tests {
 
     #[test]
     fn a_second_forwarding_for_the_same_item_is_a_duplicate_defect() {
-        let items = run(
-            &[
-                "`req:a#1`",
-                "",
-                "`dsn:b#1`",
-                "",
-                "`dsn:c#1`",
-                "",
-                "[req:a#1 --> dsn:b#1]",
-                "[req:a#1 --> dsn:c#1]",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "`dsn:b#1`",
+            "",
+            "`dsn:c#1`",
+            "",
+            "[req:a#1 --> dsn:b#1]",
+            "[req:a#1 --> dsn:c#1]",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         assert!(
             by_id(&items, "req:a#1").defects[0]
                 .message
@@ -1050,19 +1160,22 @@ mod tests {
 
     #[test]
     fn semver_equal_source_spellings_group_into_one_duplicate_forwarding() {
-        let items = run(
-            &[
-                "`req:a#1`",
-                "",
-                "`dsn:b#1`",
-                "",
-                "`dsn:c#1`",
-                "",
-                "[req:a#1 --> dsn:b#1]",
-                "[req:a#1.0 --> dsn:c#1]",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "`dsn:b#1`",
+            "",
+            "`dsn:c#1`",
+            "",
+            "[req:a#1 --> dsn:b#1]",
+            "[req:a#1.0 --> dsn:c#1]",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         let req_a = by_id(&items, "req:a#1");
         // differing SemVer-equal spellings name the duplicate canonically,
         // like a duplicate ID
@@ -1076,18 +1189,21 @@ mod tests {
 
     #[test]
     fn deep_coverage_of_a_forwarded_item_tracks_the_targets_chain() {
-        let items = run(
-            &[
-                "`req:a#1`",
-                "",
-                "[req:a#1 --> dsn:b#1]",
-                "",
-                "`dsn:b#1`",
-                "",
-                "Needs: impl:c#1",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "[req:a#1 --> dsn:b#1]",
+            "",
+            "`dsn:b#1`",
+            "",
+            "Needs: impl:c#1",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         let req_a = by_id(&items, "req:a#1");
         assert!(req_a.defects.is_empty()); // its target exists
         assert!(!req_a.deep_covered); // but the target is uncovered itself
@@ -1095,28 +1211,35 @@ mod tests {
 
     #[test]
     fn a_code_item_referenced_only_as_forwarding_target_is_not_unwanted() {
-        let items = run(
-            &["`req:a#1`", "", "[req:a#1 --> impl:b#1]"],
-            &["// [impl:b#1]"],
-        );
+        // given
+        let md = ["`req:a#1`", "", "[req:a#1 --> impl:b#1]"];
+        let code = ["// [impl:b#1]"];
+
+        // when
+        let items = run(&md, &code);
+
+        // then
         assert!(by_id(&items, "impl:b#1").defects.is_empty());
     }
 
     #[test]
     fn cyclic_forwarding_is_a_defect_on_every_cycle_member_and_has_no_effect() {
-        let (items, problems) = run_all(
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: impl:missing#1",
-                "",
-                "`req:b#1`",
-                "",
-                "[req:a#1 --> req:b#1]",
-                "[req:b#1 --> req:a#1]",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "Needs: impl:missing#1",
+            "",
+            "`req:b#1`",
+            "",
+            "[req:a#1 --> req:b#1]",
+            "[req:b#1 --> req:a#1]",
+        ];
+
+        // when
+        let (items, problems) = run_all(&md, &[]);
+
+        // then
         assert_eq!(problems.len(), 0);
         let cyclic_a = defect_of_kind(by_id(&items, "req:a#1"), "cyclic-forwarding");
         assert_eq!(cyclic_a.reference, "req:b#1");
@@ -1137,7 +1260,13 @@ mod tests {
 
     #[test]
     fn a_self_forwarding_is_a_cyclic_forwarding_defect() {
-        let (items, problems) = run_all(&["`req:a#1`", "", "[req:a#1 --> req:a#1]"], &[]);
+        // given
+        let md = ["`req:a#1`", "", "[req:a#1 --> req:a#1]"];
+
+        // when
+        let (items, problems) = run_all(&md, &[]);
+
+        // then
         assert_eq!(problems.len(), 0);
         let defect = &by_id(&items, "req:a#1").defects[0];
         assert_eq!(defect.kind, "cyclic-forwarding");
@@ -1150,19 +1279,22 @@ mod tests {
 
     #[test]
     fn a_cycle_across_semver_equal_spellings_is_found_and_shown_as_written() {
-        let (items, problems) = run_all(
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: impl:missing#1",
-                "",
-                "`req:b#1`",
-                "",
-                "[req:a#1 --> req:b#1]",
-                "[req:b#1.0 --> req:a#1.0.0]",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "Needs: impl:missing#1",
+            "",
+            "`req:b#1`",
+            "",
+            "[req:a#1 --> req:b#1]",
+            "[req:b#1.0 --> req:a#1.0.0]",
+        ];
+
+        // when
+        let (items, problems) = run_all(&md, &[]);
+
+        // then
         assert_eq!(problems.len(), 0);
         // both cycle members carry a cyclic-forwarding defect; the chain
         // names each source as its declaration wrote it (SemVer-equal
@@ -1186,19 +1318,22 @@ mod tests {
 
     #[test]
     fn an_acyclic_forwarding_chain_is_allowed() {
-        let (items, problems) = run_all(
-            &[
-                "`req:a#1`",
-                "",
-                "`dsn:b#1`",
-                "",
-                "`impl:c#1`",
-                "",
-                "[req:a#1 --> dsn:b#1]",
-                "[dsn:b#1 --> impl:c#1]",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "`dsn:b#1`",
+            "",
+            "`impl:c#1`",
+            "",
+            "[req:a#1 --> dsn:b#1]",
+            "[dsn:b#1 --> impl:c#1]",
+        ];
+
+        // when
+        let (items, problems) = run_all(&md, &[]);
+
+        // then
         assert_eq!(problems.len(), 0);
         for item in &items {
             assert!(item.defects.is_empty());
@@ -1208,18 +1343,21 @@ mod tests {
 
     #[test]
     fn cyclic_needs_do_not_hang_and_count_as_deep_covered() {
-        let items = run(
-            &[
-                "`req:a#1`",
-                "",
-                "Needs: req:b#1",
-                "",
-                "`req:b#1`",
-                "",
-                "Needs: req:a#1",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "Needs: req:b#1",
+            "",
+            "`req:b#1`",
+            "",
+            "Needs: req:a#1",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         for item in &items {
             assert!(item.defects.is_empty());
             assert!(item.deep_covered);
@@ -1232,7 +1370,13 @@ mod tests {
 
     #[test]
     fn a_forwarding_from_missing_source_problem_carries_the_declaration_column() {
-        let (_, problems) = run_all(&["`dsn:b#1`", "", "  `[req:ghost#1 --> dsn:b#1]`"], &[]);
+        // given
+        let md = ["`dsn:b#1`", "", "  `[req:ghost#1 --> dsn:b#1]`"];
+
+        // when
+        let (_, problems) = run_all(&md, &[]);
+
+        // then
         let problem = problems
             .iter()
             .find(|problem| problem.message.contains("forwarding from req:ghost#1"))
@@ -1243,19 +1387,22 @@ mod tests {
 
     #[test]
     fn a_duplicate_forwarding_defect_carries_the_first_declaration_location() {
-        let items = run(
-            &[
-                "`req:a#1`",
-                "",
-                "`dsn:b#1`",
-                "",
-                "`dsn:c#1`",
-                "",
-                "  `[req:a#1 --> dsn:b#1]`",
-                "`[req:a#1 --> dsn:c#1]`",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "`dsn:b#1`",
+            "",
+            "`dsn:c#1`",
+            "",
+            "  `[req:a#1 --> dsn:b#1]`",
+            "`[req:a#1 --> dsn:c#1]`",
+        ];
+
+        // when
+        let items = run(&md, &[]);
+
+        // then
         let duplicate = defect_of_kind(by_id(&items, "req:a#1"), "duplicate-forwarding");
         let location = duplicate.location.as_ref().unwrap();
         assert_eq!(location.file, "spec.md");
@@ -1265,18 +1412,21 @@ mod tests {
 
     #[test]
     fn a_cyclic_forwarding_defect_carries_the_declaration_location_not_the_item_location() {
-        let (items, _) = run_all(
-            &[
-                "`req:a#1`",
-                "",
-                "  `[req:a#1 --> req:b#1]`",
-                "",
-                "`req:b#1`",
-                "",
-                "`[req:b#1 --> req:a#1]`",
-            ],
-            &[],
-        );
+        // given
+        let md = [
+            "`req:a#1`",
+            "",
+            "  `[req:a#1 --> req:b#1]`",
+            "",
+            "`req:b#1`",
+            "",
+            "`[req:b#1 --> req:a#1]`",
+        ];
+
+        // when
+        let (items, _) = run_all(&md, &[]);
+
+        // then
         let cyclic_a = defect_of_kind(by_id(&items, "req:a#1"), "cyclic-forwarding");
         let location_a = cyclic_a.location.as_ref().unwrap();
         assert_eq!(location_a.file, "spec.md");
@@ -1290,12 +1440,16 @@ mod tests {
     }
 
     #[test]
-    fn summarize_counts_in_the_documents_key_order_and_is_clean_matches() {
-        let (items, problems) = run_all(
-            &["`req:a#1`", "", "Needs: impl:a#1"],
-            &["// [impl:a#1]", "// [impl:stray#1]"],
-        );
+    fn summarize_counts_in_the_documents_key_order() {
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]", "// [impl:stray#1]"];
+        let (items, problems) = run_all(&md, &code);
+
+        // when
         let summary = summarize(&items, &problems);
+
+        // then
         assert_eq!(
             summary,
             Summary {
@@ -1309,17 +1463,36 @@ mod tests {
             }
         );
         assert!(!is_clean(&summary));
-        let clean = run_all(&["`req:a#1`", "", "Needs: impl:a#1"], &["// [impl:a#1]"]);
-        assert!(is_clean(&summarize(&clean.0, &clean.1)));
+    }
+
+    #[test]
+    fn is_clean_matches_a_summary_without_defects_or_problems() {
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]"];
+        let (items, problems) = run_all(&md, &code);
+        let summary = summarize(&items, &problems);
+
+        // when
+        let clean = is_clean(&summary);
+
+        // then
+        assert!(clean);
     }
 
     #[test]
     fn status_of_decides_the_one_label_both_reports_render() {
-        let items = run(
-            &["`req:a#1`", "", "Needs: impl:a#1"],
-            &["// [impl:a#1]", "// [impl:stray#1]"],
-        );
-        assert_eq!(status_of(by_id(&items, "req:a#1")), "deep-covered");
-        assert_eq!(status_of(by_id(&items, "impl:stray#1")), "defective");
+        // given
+        let md = ["`req:a#1`", "", "Needs: impl:a#1"];
+        let code = ["// [impl:a#1]", "// [impl:stray#1]"];
+        let items = run(&md, &code);
+
+        // when
+        let covered = status_of(by_id(&items, "req:a#1"));
+        let stray = status_of(by_id(&items, "impl:stray#1"));
+
+        // then
+        assert_eq!(covered, "deep-covered");
+        assert_eq!(stray, "defective");
     }
 }
