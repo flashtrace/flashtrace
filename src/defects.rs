@@ -2,10 +2,10 @@
  * Every defect an item can carry, in one place.
  *
  * A defect is { kind, ref, message }, plus existing_revisions when the
- * revision-mismatch hint applies, plus file/line/character - all three or
- * none - when the defect has a source location of its own, distinct from the
- * item's: the invalid entry or the forwarding declaration it is about. A
- * defect without the location group is anchored at the item's own location.
+ * revision-mismatch hint applies, plus a location when the defect has a
+ * source location of its own, distinct from the item's: the invalid entry or
+ * the forwarding declaration it is about. A defect without a location is
+ * anchored at the item's own location.
  *
  * There is exactly one kind per condition, and every kind is raised from
  * exactly one place. `kind` is therefore a complete discriminator: a consumer
@@ -242,6 +242,34 @@ mod tests {
         assert_eq!(
             cyclic_forwarding("dsn:b#1", "req:a#1 --> dsn:b#1 --> req:a#1", location()).message,
             "cyclic: forwards to dsn:b#1, closing the cycle req:a#1 --> dsn:b#1 --> req:a#1, so the forwarding has no effect"
+        );
+    }
+
+    #[test]
+    fn locations_order_by_file_then_line_then_character() {
+        let at = |file: &str, line: usize, character: usize| Location {
+            file: file.to_string(),
+            line,
+            character,
+        };
+        let mut locations = vec![
+            at("b.md", 1, 1),
+            at("a.md", 2, 1),
+            at("a.md", 1, 9),
+            at("a.md", 1, 2),
+            // code-point order: an uppercase letter sorts before lowercase
+            at("B.md", 9, 9),
+        ];
+        locations.sort();
+        assert_eq!(
+            locations,
+            [
+                at("B.md", 9, 9),
+                at("a.md", 1, 2),
+                at("a.md", 1, 9),
+                at("a.md", 2, 1),
+                at("b.md", 1, 1),
+            ]
         );
     }
 
