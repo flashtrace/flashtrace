@@ -54,6 +54,13 @@ characters (Unicode scalar values), and output-visible orderings are `str::cmp`
 Write identifiers out in full - no invented shorthand.
 The only sanctioned abbreviations are listed in ABBREVIATIONS.md; use them consistently.
 
+## Test structure
+
+Every test - unit and integration - follows given-when-then: one scenario per test,
+its body split by `// given`, `// when` and `// then` comments in that order.
+Leave out `// given` when there is nothing to set up; never leave out `// when` or `// then`.
+The integration tests under tests/ follow it already; the unit tests in src/ are still being migrated.
+
 ## Your workflow
 
 Work in small chunks.
