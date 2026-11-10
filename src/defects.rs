@@ -35,8 +35,11 @@ pub const DEFECT_KINDS: [&str; 9] = [
 ];
 
 /// A source position: 1-based line and 1-based column in a file, the column
-/// counted in characters (Unicode scalar values).
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// counted in characters (Unicode scalar values). The derived order compares
+/// the fields in declaration order - file (String's Ord is code-point
+/// lexicographic, as str::cmp), then line, then character - which is exactly
+/// the documented location order.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Location {
     pub file: String,
     pub line: usize,
