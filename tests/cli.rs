@@ -1053,14 +1053,7 @@ fn local_and_global_git_excludes_apply_without_a_git_executable() {
     );
 }
 
-// The `ignore` crate expands every `~` in `core.excludesFile`, not only a
-// leading `~/`, so the runner's 8.3 temporary path (`C:/Users/RUNNER~1/...`)
-// is misread; see docs/known-limitations.md and BurntSushi/ripgrep#3592.
 #[test]
-#[cfg_attr(
-    windows,
-    ignore = "ignore crate expands a non-leading `~` in core.excludesFile (BurntSushi/ripgrep#3592)"
-)]
 fn a_configured_excludes_file_replaces_the_default_global_excludes() {
     let project = with_local_and_global_excludes("configured-ignore");
     write_project_file(&project, "configuration/custom-ignore", "keep.md\n");
