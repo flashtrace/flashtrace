@@ -72,4 +72,18 @@ Neither need form defines an item or moves the anchor of later `[>>…]` tags.
 
 ## File selection
 
-Files ignored by git are excluded from scanning (`git ls-files --cached --others --exclude-standard`; a plain directory walk skipping `.git`/`node_modules` is used outside a git repository).
+Directory scanning evaluates ignore rules directly in Rust; no Git executable is
+required or launched. It respects parent and nested `.gitignore` and `.ignore`
+files, `.git/info/exclude`, and the user's global Git ignore file (including
+`core.excludesFile` in the user's Git configuration). `.ignore` takes precedence
+over `.gitignore`. These rules also apply outside Git repositories; parent rules
+can apply from above a repository root.
+
+Hidden files and directories such as `.github/` remain eligible. `.git/` metadata
+and `node_modules/` dependency directories are always excluded from traversal,
+including when supplied as directory scan roots. Directory
+symlinks are not followed, and symlink entries discovered during traversal are
+not scanned. Explicit file arguments bypass ignore rules, but must still have a
+supported extension. Results are deduplicated and sorted.
+
+Ignored files and explicit overrides do not produce warnings.
