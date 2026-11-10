@@ -1132,7 +1132,7 @@ fn a_configured_excludes_file_replaces_the_default_global_excludes() {
     assert_eq!(scanned_items(&result), ["req:global#1"]);
 }
 
-fn with_ignored_spec_and_code_files_and_an_unsupported_file(name: &str) -> Project {
+fn with_ignored_spec_and_code_files(name: &str) -> Project {
     let project = with_project(name, &[]);
     write_project_file(&project, "repository/.gitignore", "*.md\n");
     write_project_file(&project, "repository/.ignore", "*.ts\n");
@@ -1142,19 +1142,13 @@ fn with_ignored_spec_and_code_files_and_an_unsupported_file(name: &str) -> Proje
         "`req:explicit#1`\n\nNeeds: req:code#1",
     );
     write_project_file(&project, "repository/ignored.ts", "// [req:code#1]");
-    write_project_file(
-        &project,
-        "repository/ignored.unknown",
-        "`req:unsupported#1`",
-    );
     project
 }
 
 #[test]
 fn gitignore_and_ignore_rules_exclude_files_from_a_directory_scan() {
     // given
-    let project =
-        with_ignored_spec_and_code_files_and_an_unsupported_file("explicit-ignore-directory");
+    let project = with_ignored_spec_and_code_files("explicit-ignore-directory");
 
     // when
     let result = isolated_scan(&project, &["--json"]);
@@ -1166,12 +1160,17 @@ fn gitignore_and_ignore_rules_exclude_files_from_a_directory_scan() {
 #[test]
 fn explicit_files_bypass_ignore_rules_but_still_require_supported_extensions() {
     // given
-    let project = with_ignored_spec_and_code_files_and_an_unsupported_file("explicit-ignore");
+    let project = with_ignored_spec_and_code_files("explicit-ignore");
+    write_project_file(
+        &project,
+        "repository/unsupported.unknown",
+        "`req:unsupported#1`",
+    );
 
     // when
     let result = isolated_scan(
         &project,
-        &["--json", "ignored.md", "ignored.ts", "ignored.unknown"],
+        &["--json", "ignored.md", "ignored.ts", "unsupported.unknown"],
     );
 
     // then
