@@ -15,6 +15,8 @@ Options:
                            is shorthand for --format json
   -v, --verbose            list every item with its coverage status and trace
                            edges, not only the defective ones; text format only
+  --no-default-ignore      also scan directories skipped by default
+                           (node_modules); .git is always skipped
   -V, --version            print the version number
   -h, --help               show this help
 

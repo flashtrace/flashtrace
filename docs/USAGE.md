@@ -17,7 +17,8 @@ Ruby, shell, SQL, Lua, PowerShell, CSS, HTML/XML, Vue and more - see
 [Code tags](code-tags.md) for the full list). Directory scans respect
 `.gitignore`, `.ignore`, local Git excludes and global Git ignore rules, even
 outside repositories. Hidden content remains eligible, except `.git/` metadata.
-`node_modules/` dependency directories are also automatically excluded.
+`node_modules/` dependency directories are also excluded by default;
+`--no-default-ignore` scans them too.
 Explicit file arguments bypass ignore rules. Tracked files matching ignore rules
 are excluded too; see [Known limitations](known-limitations.md) for details.
 Files are read as UTF-8, and reports count columns in characters and order
@@ -29,6 +30,7 @@ files the same way on every platform - see [Text handling](text-handling.md).
 | `-f, --format <format>` | Report format: `text` (default) or `json`. See [JSON report](json-report.md). |
 | `--json` | Shorthand for `--format json`. |
 | `-v, --verbose` | List every item with its coverage status and trace edges, not only the defective ones. Text format only. See [Command line](command-line.md). |
+| `--no-default-ignore` | Also scan directories excluded by default (`node_modules/`). `.git/` metadata stays excluded. See [Code tags](code-tags.md#file-selection). |
 | `-V, --version` | Print the version number and exit. |
 | `-h, --help` | Show help. |
 
