@@ -949,9 +949,8 @@ fn scanned_items(output: &Output) -> Vec<String> {
     identifiers
 }
 
-#[test]
-fn nested_parent_and_ignore_rules_apply_without_git() {
-    let project = with_project("nested-ignore", &[]);
+fn with_nested_ignore_rules(name: &str) -> Project {
+    let project = with_project(name, &[]);
     write_project_file(&project, ".gitignore", "parent.ts\n");
     write_project_file(
         &project,
@@ -982,20 +981,38 @@ fn nested_parent_and_ignore_rules_apply_without_git() {
         "repository/child/parent.ts",
         "// [req:excluded#1]",
     );
+    project
+}
+
+#[test]
+fn nested_parent_and_ignore_rules_apply_without_git() {
+    // given
+    let project = with_nested_ignore_rules("nested-ignore");
+
+    // when
+    let result = isolated_scan(&project, &["--json"]);
+
+    // then
     assert_eq!(
-        scanned_items(&isolated_scan(&project, &["--json"])),
+        scanned_items(&result),
         ["req:keep#1", "req:nested#1", "req:override#1"]
-    );
-    assert_eq!(
-        scanned_items(&isolated_scan(&project, &["--json", "child"])),
-        ["req:nested#1"]
     );
 }
 
 #[test]
-fn metadata_and_dependencies_are_excluded_but_hidden_content_is_scanned_and_inputs_are_deduplicated()
- {
-    let project = with_project("hidden-ignore", &[]);
+fn a_scanned_subdirectory_inherits_the_ignore_rules_of_its_parents() {
+    // given
+    let project = with_nested_ignore_rules("nested-ignore-subdirectory");
+
+    // when
+    let result = isolated_scan(&project, &["--json", "child"]);
+
+    // then
+    assert_eq!(scanned_items(&result), ["req:nested#1"]);
+}
+
+fn with_metadata_dependencies_and_hidden_content(name: &str) -> Project {
+    let project = with_project(name, &[]);
     for (path, identifier) in [
         (".git/internal.md", "metadata"),
         ("nested/.git/internal.md", "nestedmetadata"),
@@ -1011,23 +1028,52 @@ fn metadata_and_dependencies_are_excluded_but_hidden_content_is_scanned_and_inpu
             &format!("`req:{identifier}#1`"),
         );
     }
+    project
+}
+
+#[test]
+fn metadata_and_dependencies_are_excluded_but_hidden_content_is_scanned_and_inputs_are_deduplicated()
+ {
+    // given
+    let project = with_metadata_dependencies_and_hidden_content("hidden-ignore");
+
+    // when
+    let result = isolated_scan(&project, &["--json", ".", ".github", "visible.md"]);
+
+    // then
     assert_eq!(
-        scanned_items(&isolated_scan(
-            &project,
-            &["--json", ".", ".github", "visible.md"]
-        )),
+        scanned_items(&result),
         ["req:hidden#1", "req:visible#1", "req:workflow#1"]
     );
-    for directory in [".git", "node_modules", "nested/node_modules"] {
-        assert!(scanned_items(&isolated_scan(&project, &["--json", directory])).is_empty());
+}
+
+#[test]
+fn metadata_and_dependency_directories_stay_excluded_when_given_explicitly() {
+    // given
+    let project = with_metadata_dependencies_and_hidden_content("hidden-ignore-directories");
+
+    // when
+    let results: Vec<Output> = [".git", "node_modules", "nested/node_modules"]
+        .iter()
+        .map(|directory| isolated_scan(&project, &["--json", directory]))
+        .collect();
+
+    // then
+    for result in &results {
+        assert!(scanned_items(result).is_empty());
     }
-    assert_eq!(
-        scanned_items(&isolated_scan(
-            &project,
-            &["--json", "node_modules/package/spec.md"]
-        )),
-        ["req:dependency#1"]
-    );
+}
+
+#[test]
+fn an_explicit_file_inside_a_dependency_directory_is_scanned() {
+    // given
+    let project = with_metadata_dependencies_and_hidden_content("hidden-ignore-explicit-file");
+
+    // when
+    let result = isolated_scan(&project, &["--json", "node_modules/package/spec.md"]);
+
+    // then
+    assert_eq!(scanned_items(&result), ["req:dependency#1"]);
 }
 
 fn with_local_and_global_excludes(name: &str) -> Project {
@@ -1046,11 +1092,14 @@ fn with_local_and_global_excludes(name: &str) -> Project {
 
 #[test]
 fn local_and_global_git_excludes_apply_without_a_git_executable() {
+    // given
     let project = with_local_and_global_excludes("global-ignore");
-    assert_eq!(
-        scanned_items(&isolated_scan(&project, &["--json"])),
-        ["req:keep#1"]
-    );
+
+    // when
+    let result = isolated_scan(&project, &["--json"]);
+
+    // then
+    assert_eq!(scanned_items(&result), ["req:keep#1"]);
 }
 
 // The `ignore` crate expands every `~` in `core.excludesFile`, not only a
@@ -1062,6 +1111,7 @@ fn local_and_global_git_excludes_apply_without_a_git_executable() {
     ignore = "ignore crate expands a non-leading `~` in core.excludesFile (BurntSushi/ripgrep#3592)"
 )]
 fn a_configured_excludes_file_replaces_the_default_global_excludes() {
+    // given
     let project = with_local_and_global_excludes("configured-ignore");
     write_project_file(&project, "configuration/custom-ignore", "keep.md\n");
     let ignore_path = project
@@ -1074,15 +1124,16 @@ fn a_configured_excludes_file_replaces_the_default_global_excludes() {
         "configuration/.gitconfig",
         &format!("[core]\nexcludesFile = \"{ignore_path}\"\n"),
     );
-    assert_eq!(
-        scanned_items(&isolated_scan(&project, &["--json"])),
-        ["req:global#1"]
-    );
+
+    // when
+    let result = isolated_scan(&project, &["--json"]);
+
+    // then
+    assert_eq!(scanned_items(&result), ["req:global#1"]);
 }
 
-#[test]
-fn explicit_files_bypass_ignore_rules_but_still_require_supported_extensions() {
-    let project = with_project("explicit-ignore", &[]);
+fn with_ignored_files_of_every_extension(name: &str) -> Project {
+    let project = with_project(name, &[]);
     write_project_file(&project, "repository/.gitignore", "*.md\n");
     write_project_file(&project, "repository/.ignore", "*.ts\n");
     write_project_file(
@@ -1096,12 +1147,32 @@ fn explicit_files_bypass_ignore_rules_but_still_require_supported_extensions() {
         "repository/ignored.unknown",
         "`req:unsupported#1`",
     );
-    assert!(scanned_items(&isolated_scan(&project, &["--json"])).is_empty());
-    assert_eq!(
-        scanned_items(&isolated_scan(
-            &project,
-            &["--json", "ignored.md", "ignored.ts", "ignored.unknown"]
-        )),
-        ["req:code#1", "req:explicit#1"]
+    project
+}
+
+#[test]
+fn gitignore_and_ignore_rules_exclude_files_from_a_directory_scan() {
+    // given
+    let project = with_ignored_files_of_every_extension("explicit-ignore-directory");
+
+    // when
+    let result = isolated_scan(&project, &["--json"]);
+
+    // then
+    assert!(scanned_items(&result).is_empty());
+}
+
+#[test]
+fn explicit_files_bypass_ignore_rules_but_still_require_supported_extensions() {
+    // given
+    let project = with_ignored_files_of_every_extension("explicit-ignore");
+
+    // when
+    let result = isolated_scan(
+        &project,
+        &["--json", "ignored.md", "ignored.ts", "ignored.unknown"],
     );
+
+    // then
+    assert_eq!(scanned_items(&result), ["req:code#1", "req:explicit#1"]);
 }
