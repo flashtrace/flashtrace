@@ -74,3 +74,6 @@ Never bump a version manually - not in `Cargo.toml`, `Cargo.lock`, the `npm/` ma
 The CLI's output is a contract, pinned by the docs, the JSON Schema in `schemas/` and the e2e snapshots. How text is decoded, counted and ordered is specified in [Text handling](docs/text-handling.md).
 
 Write identifiers out in full; the abbreviations we do use are collected in [ABBREVIATIONS.md](ABBREVIATIONS.md).
+
+Every test - unit and integration - follows [given-when-then↗](https://martinfowler.com/bliki/GivenWhenThen.html): one scenario per test, its body split by `// given`, `// when` and `// then` comments in that order. Leave out `// given` when there is nothing to set up. Every new test follows it from the start, wherever it lives.
+The integration tests under `tests/` follow it already; the unit tests in `src/` are still being migrated ([#143↗](https://github.com/flashtrace/flashtrace/pull/143)).
