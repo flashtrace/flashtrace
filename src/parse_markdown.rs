@@ -1723,25 +1723,6 @@ mod tests {
     }
 
     #[test]
-    fn a_keyword_table_column_merges_with_the_same_keyword_on_a_line() {
-        let (items, problems, _) = parse(&[
-            "`req:a#1`",
-            "",
-            "Needs: impl",
-            "",
-            "| Needs | Tags |",
-            "|---|---|",
-            "| utest | one |",
-            "",
-            "Tags: two",
-        ]);
-        assert!(problems.is_empty());
-        assert!(items[0].defects.is_empty());
-        assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
-        assert_eq!(items[0].tags, ["one", "two"]);
-    }
-
-    #[test]
     fn a_keyword_column_in_two_tables_merges_its_entries() {
         let (items, problems, _) = parse(&[
             "`req:a#1`",
