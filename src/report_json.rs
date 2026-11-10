@@ -5,7 +5,7 @@
  * every forwarding declaration, all problems and the summary.
  *
  * The document is deterministic: items, forwards and problems are sorted by
- * file, then line, then character; object keys serialize in a fixed order;
+ * location - file, then line, then character; object keys serialize in a fixed order;
  * the output is two-space indented and ends with a single newline. See
  * schemas/report/v0.json for the contract and docs/json-report.md for how the
  * format is invoked and what it guarantees beyond the schema.
@@ -28,12 +28,22 @@ use crate::paths::display_relative;
 // 0 marks the format unstable; it becomes 1 with flashtrace 1.0.0
 const SCHEMA_VERSION: u64 = 0;
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct ItemReference {
-    pub id: String,
+// a source location, the nested `location` object of every located record.
+// The derived order compares
+// the fields in declaration order - file (String's Ord is code-point
+// lexicographic, as str::cmp), then line, then character - which is exactly
+// the documented location order, so sorting by location is sorting by this.
+#[derive(Debug, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+pub struct LocationDocument {
     pub file: String,
     pub line: usize,
     pub character: usize,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct ItemReference {
+    pub id: String,
+    pub location: LocationDocument,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -51,8 +61,8 @@ pub struct CoverDocument {
     pub status: &'static str,
 }
 
-// defect record in documented key order: the location group, present exactly
-// when the defect carries a source location of its own, sits after ref;
+// defect record in documented key order: location, present exactly when the
+// defect carries a source location of its own, sits after ref;
 // existingRevisions, when present, before the message
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct DefectDocument {
@@ -60,11 +70,7 @@ pub struct DefectDocument {
     #[serde(rename = "ref")]
     pub reference: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub file: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub line: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub character: Option<usize>,
+    pub location: Option<LocationDocument>,
     #[serde(rename = "existingRevisions", skip_serializing_if = "Option::is_none")]
     pub existing_revisions: Option<Vec<String>>,
     pub message: String,
@@ -76,9 +82,7 @@ pub struct ItemDocument {
     pub title: Option<String>,
     pub origin: &'static str,
     pub tags: Vec<String>,
-    pub file: String,
-    pub line: usize,
-    pub character: usize,
+    pub location: LocationDocument,
     pub status: &'static str,
     pub defective: bool,
     #[serde(rename = "deepCovered")]
@@ -98,9 +102,7 @@ pub struct ItemDocument {
 pub struct ForwardDocument {
     pub from: String,
     pub to: String,
-    pub file: String,
-    pub line: usize,
-    pub character: usize,
+    pub location: LocationDocument,
     pub effective: bool,
     #[serde(rename = "voidedBy", skip_serializing_if = "Option::is_none")]
     pub voided_by: Option<&'static str>,
@@ -108,9 +110,7 @@ pub struct ForwardDocument {
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub struct ProblemDocument {
-    pub file: String,
-    pub line: usize,
-    pub character: usize,
+    pub location: LocationDocument,
     pub message: String,
 }
 
@@ -171,13 +171,14 @@ impl Locator {
     fn relative(&self, file: &str) -> String {
         display_relative(&self.cwd, file).replace('\\', "/")
     }
-}
 
-// the document's location order: file (code-point order), line, character
-fn by_location(a: (&str, usize, usize), b: (&str, usize, usize)) -> std::cmp::Ordering {
-    a.0.cmp(b.0)
-        .then_with(|| a.1.cmp(&b.1))
-        .then_with(|| a.2.cmp(&b.2))
+    fn locate(&self, file: &str, line: usize, character: usize) -> LocationDocument {
+        LocationDocument {
+            file: self.relative(file),
+            line,
+            character,
+        }
+    }
 }
 
 pub fn build_report_document(
@@ -217,28 +218,25 @@ pub fn build_report_document(
             .iter()
             .map(|&index| ItemReference {
                 id: items[index].id.clone(),
-                file: locator.relative(&items[index].file),
-                line: items[index].line,
-                character: items[index].character,
+                location: locator.locate(
+                    &items[index].file,
+                    items[index].line,
+                    items[index].character,
+                ),
             })
             .collect();
-        references.sort_by(|a, b| {
-            by_location(
-                (&a.file, a.line, a.character),
-                (&b.file, b.line, b.character),
-            )
-        });
+        references.sort_by(|a, b| a.location.cmp(&b.location));
         references
     };
 
     let defect_document = |defect: &Defect| -> DefectDocument {
-        let location = defect.location.as_ref();
         DefectDocument {
             kind: defect.kind,
             reference: defect.reference.clone(),
-            file: location.map(|location| locator.relative(&location.file)),
-            line: location.map(|location| location.line),
-            character: location.map(|location| location.character),
+            location: defect
+                .location
+                .as_ref()
+                .map(|location| locator.locate(&location.file, location.line, location.character)),
             existing_revisions: defect.existing_revisions.clone(),
             message: defect.message.clone(),
         }
@@ -251,9 +249,7 @@ pub fn build_report_document(
             title: item.title.clone(),
             origin: item.origin.as_str(),
             tags: item.tags.clone(),
-            file: locator.relative(&item.file),
-            line: item.line,
-            character: item.character,
+            location: locator.locate(&item.file, item.line, item.character),
             status: status_of(item),
             defective: !item.defects.is_empty(),
             deep_covered: item.deep_covered,
@@ -295,9 +291,7 @@ pub fn build_report_document(
         ForwardDocument {
             from: forward.from.clone(),
             to: forward.to.clone(),
-            file: locator.relative(&forward.file),
-            line: forward.line,
-            character: forward.character,
+            location: locator.locate(&forward.file, forward.line, forward.character),
             effective: forward.effective,
             voided_by: if forward.effective {
                 None
@@ -309,35 +303,18 @@ pub fn build_report_document(
 
     let mut item_documents: Vec<ItemDocument> =
         items.iter().enumerate().map(item_document).collect();
-    item_documents.sort_by(|a, b| {
-        by_location(
-            (&a.file, a.line, a.character),
-            (&b.file, b.line, b.character),
-        )
-    });
+    item_documents.sort_by(|a, b| a.location.cmp(&b.location));
     let mut forward_documents: Vec<ForwardDocument> =
         forwards.iter().map(forward_document).collect();
-    forward_documents.sort_by(|a, b| {
-        by_location(
-            (&a.file, a.line, a.character),
-            (&b.file, b.line, b.character),
-        )
-    });
+    forward_documents.sort_by(|a, b| a.location.cmp(&b.location));
     let mut problem_documents: Vec<ProblemDocument> = problems
         .iter()
         .map(|problem| ProblemDocument {
-            file: locator.relative(&problem.file),
-            line: problem.line,
-            character: problem.character,
+            location: locator.locate(&problem.file, problem.line, problem.character),
             message: problem.message.clone(),
         })
         .collect();
-    problem_documents.sort_by(|a, b| {
-        by_location(
-            (&a.file, a.line, a.character),
-            (&b.file, b.line, b.character),
-        )
-    });
+    problem_documents.sort_by(|a, b| a.location.cmp(&b.location));
 
     // summarize returns the counts already in the document's key order
     let summary = summarize(items, problems);
@@ -425,8 +402,14 @@ mod tests {
         assert_eq!(req.title, None);
         assert_eq!(req.origin, "spec");
         assert!(req.tags.is_empty());
-        assert_eq!(req.file, "docs/spec.md");
-        assert_eq!((req.line, req.character), (1, 1));
+        assert_eq!(
+            req.location,
+            LocationDocument {
+                file: "docs/spec.md".to_string(),
+                line: 1,
+                character: 1
+            }
+        );
         assert_eq!(req.status, "deep-covered");
         assert!(!req.defective);
         assert!(req.deep_covered);
@@ -673,8 +656,12 @@ mod tests {
             ("req:legacy#1", "req:a#1")
         );
         assert_eq!(
-            (forward.file.as_str(), forward.line, forward.character),
-            ("docs/spec.md", 7, 1)
+            forward.location,
+            LocationDocument {
+                file: "docs/spec.md".to_string(),
+                line: 7,
+                character: 1
+            }
         );
         assert!(forward.effective);
         assert_eq!(forward.voided_by, None);
@@ -684,9 +671,11 @@ mod tests {
             item_of(&document, "impl:a#1").wanted_by,
             [ItemReference {
                 id: "req:a#1".to_string(),
-                file: "docs/spec.md".to_string(),
-                line: 1,
-                character: 1
+                location: LocationDocument {
+                    file: "docs/spec.md".to_string(),
+                    line: 1,
+                    character: 1
+                }
             }]
         );
         assert!(item_of(&document, "req:a#1").wanted_by.is_empty());
@@ -701,9 +690,11 @@ mod tests {
             item_of(&document, "req:a#1").forwarded_from,
             [ItemReference {
                 id: "req:legacy#1".to_string(),
-                file: "docs/spec.md".to_string(),
-                line: 5,
-                character: 1
+                location: LocationDocument {
+                    file: "docs/spec.md".to_string(),
+                    line: 5,
+                    character: 1
+                }
             }]
         );
         assert!(item_of(&document, "req:legacy#1").forwarded_from.is_empty());
@@ -779,9 +770,11 @@ mod tests {
         assert_eq!(
             document.problems,
             [ProblemDocument {
-                file: "src/impl.js".to_string(),
-                line: 1,
-                character: 4,
+                location: LocationDocument {
+                    file: "src/impl.js".to_string(),
+                    line: 1,
+                    character: 4
+                },
                 message: "need tag [>>utest:a#1] has no preceding item tag in this file"
                     .to_string(),
             }]
@@ -872,7 +865,13 @@ mod tests {
         let item_locations: Vec<(&str, &str, usize)> = document
             .items
             .iter()
-            .map(|item| (item.file.as_str(), item.id.as_str(), item.line))
+            .map(|item| {
+                (
+                    item.location.file.as_str(),
+                    item.id.as_str(),
+                    item.location.line,
+                )
+            })
             .collect();
         assert_eq!(
             item_locations,
@@ -888,14 +887,14 @@ mod tests {
         let forward_lines: Vec<usize> = document
             .forwards
             .iter()
-            .map(|forward| forward.line)
+            .map(|forward| forward.location.line)
             .collect();
         assert_eq!(forward_lines, [9, 10]);
         // the same line falls back to the character
         let problem_locations: Vec<(usize, usize)> = document
             .problems
             .iter()
-            .map(|problem| (problem.line, problem.character))
+            .map(|problem| (problem.location.line, problem.location.character))
             .collect();
         assert_eq!(problem_locations.len(), 2);
         assert_eq!(problem_locations[0].0, problem_locations[1].0);
@@ -920,9 +919,7 @@ mod tests {
             "\"title\"",
             "\"origin\"",
             "\"tags\"",
-            "\"file\"",
-            "\"line\"",
-            "\"character\"",
+            "\"location\"",
             "\"status\"",
             "\"defective\"",
             "\"deepCovered\"",
@@ -938,6 +935,52 @@ mod tests {
             let found = serialized[position..].find(key).expect(key);
             position += found;
         }
+        // file, line and character nest inside location, in that order
+        assert!(serialized.contains(concat!(
+            "      \"tags\": [],\n",
+            "      \"location\": {\n",
+            "        \"file\": \"docs/spec.md\",\n",
+            "        \"line\": 1,\n",
+            "        \"character\": 1\n",
+            "      },\n",
+            "      \"status\": "
+        )));
+    }
+
+    // a defect nests a location exactly when it has one of its own; one
+    // anchored at its item's location carries no location key at all
+    #[test]
+    fn a_defect_carries_a_nested_location_only_when_it_has_its_own() {
+        let document = build(&["`req:a#1`", "", "Needs: not/valid, impl:gone#1"], &[]);
+        let defects = &item_of(&document, "req:a#1").defects;
+        let invalid = defects
+            .iter()
+            .find(|defect| defect.kind == "invalid-reference")
+            .unwrap();
+        assert_eq!(
+            invalid.location,
+            Some(LocationDocument {
+                file: "docs/spec.md".to_string(),
+                line: 3,
+                character: 8
+            })
+        );
+        let uncovered = defects
+            .iter()
+            .find(|defect| defect.kind == "uncovered-need")
+            .unwrap();
+        assert_eq!(uncovered.location, None);
+
+        let serialized = serialize_report_document(&document);
+        assert!(serialized.contains(concat!(
+            "          \"ref\": \"not/valid\",\n",
+            "          \"location\": {\n",
+            "            \"file\": \"docs/spec.md\",\n"
+        )));
+        assert!(serialized.contains(concat!(
+            "          \"ref\": \"impl:gone#1\",\n",
+            "          \"message\": "
+        )));
     }
 
     // the document is UTF-8 with the minimal JSON escaping: `"` and `\`

@@ -14,7 +14,7 @@ Wherever these specifications speak of whitespace - blank lines, trimmed titles 
 
 ## Columns
 
-A column is 1-based and counts characters - Unicode scalar values - from the start of its line. A tab counts one, `é` (U+00E9) one, `😀` (U+1F600) one, and an `e` followed by a combining U+0301 two. Columns appear as `character` in the [JSON report](json-report.md); the plain-text report shows lines only.
+A column is 1-based and counts characters - Unicode scalar values - from the start of its line. A tab counts one, `é` (U+00E9) one, `😀` (U+1F600) one, and an `e` followed by a combining U+0301 two. Columns appear as `location.character` in the [JSON report](json-report.md); the plain-text report shows lines only.
 
 ## Ordering
 

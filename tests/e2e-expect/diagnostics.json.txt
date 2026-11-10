@@ -8,9 +8,11 @@
       "title": "Alpha feature",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 3,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 3,
+        "character": 1
+      },
       "status": "shallow-covered",
       "defective": false,
       "deepCovered": false,
@@ -33,9 +35,11 @@
       "title": "Alpha requirement",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 12,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 12,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": false,
@@ -58,9 +62,11 @@
       "wantedBy": [
         {
           "id": "feat:alpha#1",
-          "file": "spec.md",
-          "line": 3,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 3,
+            "character": 1
+          }
         }
       ]
     },
@@ -69,9 +75,11 @@
       "title": "Beta requirement",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 21,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 21,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -98,9 +106,11 @@
       "title": "Gamma requirement",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 29,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 29,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -127,9 +137,11 @@
       "title": "Gamma feature",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 37,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 37,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -145,9 +157,11 @@
       "title": "Delta requirement",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 43,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 43,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": false,
@@ -177,9 +191,11 @@
       "title": "Epsilon requirement",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 52,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 52,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -201,9 +217,11 @@
       "title": "Epsilon requirement (defined again)",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 58,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 58,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -225,9 +243,11 @@
       "title": "Zeta requirement",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 64,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 64,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -239,9 +259,11 @@
         {
           "kind": "duplicate-forwarding",
           "ref": "req:zeta#1",
-          "file": "spec.md",
-          "line": 69,
-          "character": 1,
+          "location": {
+            "file": "spec.md",
+            "line": 69,
+            "character": 1
+          },
           "message": "duplicate: forwarding for req:zeta#1 is declared 2 times"
         }
       ],
@@ -252,9 +274,11 @@
       "title": "Zeta design",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 74,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 74,
+        "character": 1
+      },
       "status": "deep-covered",
       "defective": false,
       "deepCovered": true,
@@ -264,9 +288,11 @@
       "forwardedFrom": [
         {
           "id": "req:zeta#1",
-          "file": "spec.md",
-          "line": 64,
-          "character": 1
+          "location": {
+            "file": "spec.md",
+            "line": 64,
+            "character": 1
+          }
         }
       ],
       "defects": [],
@@ -277,9 +303,11 @@
       "title": "Eta requirement",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 80,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 80,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -291,9 +319,11 @@
         {
           "kind": "cyclic-forwarding",
           "ref": "req:theta#1",
-          "file": "spec.md",
-          "line": 85,
-          "character": 1,
+          "location": {
+            "file": "spec.md",
+            "line": 85,
+            "character": 1
+          },
           "message": "cyclic: forwards to req:theta#1, closing the cycle req:eta#1 --> req:theta#1 --> req:eta#1, so the forwarding has no effect"
         }
       ],
@@ -304,9 +334,11 @@
       "title": "Theta requirement",
       "origin": "spec",
       "tags": [],
-      "file": "spec.md",
-      "line": 89,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 89,
+        "character": 1
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -318,9 +350,11 @@
         {
           "kind": "cyclic-forwarding",
           "ref": "req:eta#1",
-          "file": "spec.md",
-          "line": 93,
-          "character": 1,
+          "location": {
+            "file": "spec.md",
+            "line": 93,
+            "character": 1
+          },
           "message": "cyclic: forwards to req:eta#1, closing the cycle req:eta#1 --> req:theta#1 --> req:eta#1, so the forwarding has no effect"
         }
       ],
@@ -331,9 +365,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "unwanted.ts",
-      "line": 2,
-      "character": 4,
+      "location": {
+        "file": "unwanted.ts",
+        "line": 2,
+        "character": 4
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -355,9 +391,11 @@
       "title": null,
       "origin": "code",
       "tags": [],
-      "file": "unwanted.ts",
-      "line": 6,
-      "character": 4,
+      "location": {
+        "file": "unwanted.ts",
+        "line": 6,
+        "character": 4
+      },
       "status": "defective",
       "defective": true,
       "deepCovered": true,
@@ -379,59 +417,73 @@
     {
       "from": "req:zeta#1",
       "to": "dsn:zeta#1",
-      "file": "spec.md",
-      "line": 69,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 69,
+        "character": 1
+      },
       "effective": true
     },
     {
       "from": "req:zeta#1",
       "to": "dsn:zeta-other#1",
-      "file": "spec.md",
-      "line": 70,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 70,
+        "character": 1
+      },
       "effective": false,
       "voidedBy": "duplicate"
     },
     {
       "from": "req:eta#1",
       "to": "req:theta#1",
-      "file": "spec.md",
-      "line": 85,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 85,
+        "character": 1
+      },
       "effective": false,
       "voidedBy": "cycle"
     },
     {
       "from": "req:theta#1",
       "to": "req:eta#1",
-      "file": "spec.md",
-      "line": 93,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 93,
+        "character": 1
+      },
       "effective": false,
       "voidedBy": "cycle"
     },
     {
       "from": "req:ghost#1",
       "to": "req:alpha#1",
-      "file": "spec.md",
-      "line": 97,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 97,
+        "character": 1
+      },
       "effective": false,
       "voidedBy": "missing-source"
     }
   ],
   "problems": [
     {
-      "file": "orphan-need.ts",
-      "line": 1,
-      "character": 4,
+      "location": {
+        "file": "orphan-need.ts",
+        "line": 1,
+        "character": 4
+      },
       "message": "need tag [>>utest:orphan#1] has no preceding item tag in this file"
     },
     {
-      "file": "spec.md",
-      "line": 97,
-      "character": 1,
+      "location": {
+        "file": "spec.md",
+        "line": 97,
+        "character": 1
+      },
       "message": "forwarding from req:ghost#1, which does not exist"
     }
   ],

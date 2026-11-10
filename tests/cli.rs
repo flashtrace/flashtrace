@@ -904,8 +904,8 @@ fn a_leading_byte_order_mark_is_ignored() {
         .find(|item| item["id"] == "req:login#1")
         .expect("the item on the first line is defined");
     // the mark is no character of line 1: the ID's backtick is column 1
-    assert_eq!(item["line"], 1);
-    assert_eq!(item["character"], 1);
+    assert_eq!(item["location"]["line"], 1);
+    assert_eq!(item["location"]["character"], 1);
 }
 
 #[test]
