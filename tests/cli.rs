@@ -1030,9 +1030,8 @@ fn metadata_and_dependencies_are_excluded_but_hidden_content_is_scanned_and_inpu
     );
 }
 
-#[test]
-fn local_and_global_git_excludes_apply_without_a_git_executable() {
-    let project = with_project("global-ignore", &[]);
+fn with_local_and_global_excludes(name: &str) -> Project {
+    let project = with_project(name, &[]);
     write_project_file(&project, "repository/.git/info/exclude", "local.md\n");
     write_project_file(&project, "configuration/git/ignore", "global.md\n");
     for name in ["local", "global", "keep"] {
@@ -1042,11 +1041,28 @@ fn local_and_global_git_excludes_apply_without_a_git_executable() {
             &format!("`req:{name}#1`"),
         );
     }
+    project
+}
+
+#[test]
+fn local_and_global_git_excludes_apply_without_a_git_executable() {
+    let project = with_local_and_global_excludes("global-ignore");
     assert_eq!(
         scanned_items(&isolated_scan(&project, &["--json"])),
         ["req:keep#1"]
     );
+}
 
+// The `ignore` crate expands every `~` in `core.excludesFile`, not only a
+// leading `~/`, so the runner's 8.3 temporary path (`C:/Users/RUNNER~1/...`)
+// is misread; see docs/known-limitations.md and BurntSushi/ripgrep#3592.
+#[test]
+#[cfg_attr(
+    windows,
+    ignore = "ignore crate expands a non-leading `~` in core.excludesFile (BurntSushi/ripgrep#3592)"
+)]
+fn a_configured_excludes_file_replaces_the_default_global_excludes() {
+    let project = with_local_and_global_excludes("configured-ignore");
     write_project_file(&project, "configuration/custom-ignore", "keep.md\n");
     let ignore_path = project
         .0
