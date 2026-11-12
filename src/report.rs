@@ -11,8 +11,9 @@ use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
 use crate::analyze::{Resolver, build_resolver, is_clean, status_of, summarize};
-use crate::defects::{Location, Problem};
+use crate::defects::Problem;
 use crate::ids::{Item, Origin, canonical_id, is_wildcard_rev, rev_of};
+use crate::location::Location;
 use crate::paths::display_relative;
 
 /// print one line to stdout, ignoring write errors (broken pipes end quietly)

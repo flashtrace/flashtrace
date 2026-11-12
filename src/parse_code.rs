@@ -25,12 +25,13 @@ use std::sync::LazyLock;
 
 use regex::{Captures, Regex};
 
-use crate::defects::{Location, Problem};
+use crate::defects::Problem;
 use crate::ids::{
     Forward, Item, Origin, canonical_id, forward_src, id_src, make_forward, make_id, new_item,
     ref_src, resolve_ref,
 };
 use crate::languages::{C_LIKE, Composite, Grammar, Leaf, Region, RegionGrammar, grammar_for};
+use crate::location::Location;
 use crate::paths::extension_of;
 
 // Alternation: a need tag with an optional explicit source (groups 1-4 source,

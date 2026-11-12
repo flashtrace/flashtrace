@@ -21,8 +21,9 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::analyze::{Resolver, Summary, build_resolver, is_clean, status_of, summarize};
-use crate::defects::{Defect, Location, Problem};
+use crate::defects::{Defect, Problem};
 use crate::ids::{Forward, Item, canonical_id, compare_rev, rev_of};
+use crate::location::Location;
 use crate::paths::display_relative;
 
 // 0 marks the format unstable; it becomes 1 with flashtrace 1.0.0

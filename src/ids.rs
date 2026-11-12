@@ -15,7 +15,8 @@ use std::sync::LazyLock;
 
 use regex::{Captures, Regex};
 
-use crate::defects::{Defect, Location};
+use crate::defects::Defect;
+use crate::location::Location;
 
 const SEGMENT_SRC: &str = "[A-Za-z][A-Za-z0-9_.-]*";
 // concrete revision: X, X.Y or X.Y.Z (one to three numeric layers)

@@ -30,8 +30,9 @@ use std::sync::LazyLock;
 
 use regex::{Captures, Regex};
 
-use crate::defects::{Location, Problem};
+use crate::defects::Problem;
 use crate::ids::{Forward, Item, Origin, forward_src, id_src, make_forward, make_id, new_item};
+use crate::location::Location;
 use crate::spec_items::{Entry, KEYWORDS, apply_keyword, is_keyword};
 
 static DEFINITION_RE: LazyLock<Regex> =

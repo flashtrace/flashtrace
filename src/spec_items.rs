@@ -8,8 +8,9 @@
  * format's parser.
  */
 
-use crate::defects::{Location, invalid_reference};
+use crate::defects::invalid_reference;
 use crate::ids::{Item, parse_cover_entry, parse_need_entry};
+use crate::location::Location;
 
 // Bare words only: the Markdown parser interpolates these into a regex
 // alternation unescaped, so a keyword must carry no regex metacharacters.
