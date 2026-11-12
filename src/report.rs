@@ -229,15 +229,11 @@ impl<'run> Renderer<'run> {
     }
 
     // full item list for --verbose: every item with status and trace edges,
-    // grouped by file, then line - deliberately not the full location order:
-    // the sort is stable, so items sharing a line keep definition order
+    // in the documented location order, which groups them by file, then line
     fn render_verbose(&self, out: &mut Vec<String>) {
         let resolver = build_resolver(self.items);
         let mut sorted: Vec<usize> = (0..self.items.len()).collect();
-        sorted.sort_by(|&a, &b| {
-            let (a, b) = (&self.items[a].location, &self.items[b].location);
-            (&a.file, a.line).cmp(&(&b.file, b.line))
-        });
+        sorted.sort_by(|&a, &b| self.items[a].location.cmp(&self.items[b].location));
         let mut previous_file: Option<&str> = None;
         for index in &sorted {
             let item = &self.items[*index];
