@@ -247,6 +247,7 @@ mod tests {
 
     #[test]
     fn locations_order_by_file_then_line_then_character() {
+        // given
         let at = |file: &str, line: usize, character: usize| Location {
             file: file.to_string(),
             line,
@@ -260,7 +261,11 @@ mod tests {
             // code-point order: an uppercase letter sorts before lowercase
             at("B.md", 9, 9),
         ];
+
+        // when
         locations.sort();
+
+        // then
         assert_eq!(
             locations,
             [
