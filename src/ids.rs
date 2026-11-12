@@ -16,6 +16,7 @@ use std::sync::LazyLock;
 use regex::{Captures, Regex};
 
 use crate::defects::Defect;
+use crate::location::Location;
 
 const SEGMENT_SRC: &str = "[A-Za-z][A-Za-z0-9_.-]*";
 // concrete revision: X, X.Y or X.Y.Z (one to three numeric layers)
@@ -91,9 +92,7 @@ pub fn make_id(id_type: &str, group: Option<&str>, name: &str, rev: &str) -> Str
 pub struct Forward {
     pub from: String,
     pub to: String,
-    pub file: String,
-    pub line: usize,
-    pub character: usize,
+    pub location: Location,
     pub effective: bool,
     pub voided_by: Option<&'static str>,
 }
@@ -119,9 +118,11 @@ pub fn make_forward(
             capture(6).unwrap(),
             capture(7).unwrap(),
         ),
-        file: file.to_string(),
-        line,
-        character,
+        location: Location {
+            file: file.to_string(),
+            line,
+            character,
+        },
         effective: true,
         voided_by: None,
     }
@@ -300,10 +301,9 @@ pub struct Item {
     /// the SemVer-equal identity every exact-ID lookup keys on
     pub canonical_id: String,
     pub origin: Origin,
-    pub file: String,
-    pub line: usize,
-    /// 1-based column of the first character of the defining construct
-    pub character: usize,
+    /// where the defining construct starts: its 1-based column is that of
+    /// the construct's first character
+    pub location: Location,
     pub title: Option<String>,
     pub description: Vec<String>,
     pub needs: Vec<String>,
@@ -324,9 +324,11 @@ pub fn new_item(id: &str, origin: Origin, file: &str, line: usize, character: us
         revision: rev_of(id).to_string(),
         canonical_id: canonical_id(id),
         origin,
-        file: file.to_string(),
-        line,
-        character,
+        location: Location {
+            file: file.to_string(),
+            line,
+            character,
+        },
         title: None,
         description: Vec::new(),
         needs: Vec::new(),
@@ -476,6 +478,13 @@ mod tests {
         let forward = make_forward(&m, 1, "spec.md", 7, 3);
         assert_eq!(forward.from, "req:auth/a#1");
         assert_eq!(forward.to, "dsn:b#2");
-        assert_eq!((forward.line, forward.character), (7, 3));
+        assert_eq!(
+            forward.location,
+            Location {
+                file: "spec.md".to_string(),
+                line: 7,
+                character: 3,
+            }
+        );
     }
 }

@@ -32,6 +32,7 @@ use regex::{Captures, Regex};
 
 use crate::defects::Problem;
 use crate::ids::{Forward, Item, Origin, forward_src, id_src, make_forward, make_id, new_item};
+use crate::location::Location;
 use crate::spec_items::{Entry, KEYWORDS, apply_keyword, is_keyword};
 
 static DEFINITION_RE: LazyLock<Regex> =
@@ -399,9 +400,11 @@ fn scan_tables(lines: &[&str], file: &str, problems: &mut Vec<Problem>) -> Vec<b
                 if let Some(definition) = definition {
                     let id = captured_id(&definition);
                     problems.push(Problem {
-                        file: file.to_string(),
-                        line: k + 1,
-                        character: columns[col],
+                        location: Location {
+                            file: file.to_string(),
+                            line: k + 1,
+                            character: columns[col],
+                        },
                         message: format!(
                             "item {id} defined inside a table; a table cell is not an item definition"
                         ),
@@ -552,9 +555,11 @@ pub fn parse_markdown(
             // Report it and create no item; the folded text titles the item below.
             let id = captured_id(&definition);
             problems.push(Problem {
-                file: file.to_string(),
-                line: i + 1,
-                character: first_non_blank_column(lines[i]),
+                location: Location {
+                    file: file.to_string(),
+                    line: i + 1,
+                    character: first_non_blank_column(lines[i]),
+                },
                 message: format!(
                     "item {id} defined inside a setext heading; a heading is not an item definition"
                 ),
@@ -601,9 +606,11 @@ mod tests {
         Forward {
             from: from.to_string(),
             to: to.to_string(),
-            file: "spec.md".to_string(),
-            line,
-            character,
+            location: Location {
+                file: "spec.md".to_string(),
+                line,
+                character,
+            },
             effective: true,
             voided_by: None,
         }
@@ -634,8 +641,8 @@ mod tests {
         assert_eq!(item.key, "req:auth/login");
         assert_eq!(item.revision, "1");
         assert_eq!(item.origin, Origin::Spec);
-        assert_eq!(item.file, "spec.md");
-        assert_eq!(item.line, 2);
+        assert_eq!(item.location.file, "spec.md");
+        assert_eq!(item.location.line, 2);
         assert_eq!(
             item.title.as_deref(),
             Some("Login requires a valid session token")
@@ -774,7 +781,7 @@ mod tests {
         assert_eq!(items[0].id, "req:b#1");
         assert_eq!(items[0].title.as_deref(), Some("`req:a#1` Some title"));
         assert_eq!(problems.len(), 1);
-        assert_eq!(problems[0].line, 1);
+        assert_eq!(problems[0].location.line, 1);
         assert!(problems[0].message.contains(
             "item req:a#1 defined inside a setext heading; a heading is not an item definition"
         ));
@@ -1530,7 +1537,7 @@ mod tests {
         let (items, problems, _) = parse(&["| ID | Owner |", "|---|---|", "| `req:x#1` | Alice |"]);
         assert_eq!(items.len(), 0);
         assert_eq!(problems.len(), 1);
-        assert_eq!(problems[0].line, 3);
+        assert_eq!(problems[0].location.line, 3);
         assert!(problems[0].message.contains(
             "item req:x#1 defined inside a table; a table cell is not an item definition"
         ));
@@ -1641,8 +1648,8 @@ mod tests {
     #[test]
     fn an_item_and_a_forwarding_record_the_column_of_their_construct() {
         let (items, _, forwards) = parse(&["  `req:a#1`", "", "   [req:a#1 --> dsn:b#1]"]);
-        assert_eq!(items[0].line, 1);
-        assert_eq!(items[0].character, 3); // the backtick, past two spaces
+        assert_eq!(items[0].location.line, 1);
+        assert_eq!(items[0].location.character, 3); // the backtick, past two spaces
         assert_eq!(forwards, [forward("req:a#1", "dsn:b#1", 3, 4)]);
     }
 
@@ -1655,8 +1662,8 @@ mod tests {
                 .message
                 .contains("defined inside a setext heading")
         );
-        assert_eq!(problems[0].line, 1);
-        assert_eq!(problems[0].character, 3);
+        assert_eq!(problems[0].location.line, 1);
+        assert_eq!(problems[0].location.character, 3);
     }
 
     #[test]
@@ -1664,8 +1671,8 @@ mod tests {
         let (_, problems, _) = parse(&["| Col |", "|---|", "| `req:x#1` |"]);
         assert_eq!(problems.len(), 1);
         assert!(problems[0].message.contains("defined inside a table"));
-        assert_eq!(problems[0].line, 3);
-        assert_eq!(problems[0].character, 3);
+        assert_eq!(problems[0].location.line, 3);
+        assert_eq!(problems[0].location.character, 3);
     }
 
     #[test]

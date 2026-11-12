@@ -2,10 +2,10 @@
  * Every defect an item can carry, in one place.
  *
  * A defect is { kind, ref, message }, plus existing_revisions when the
- * revision-mismatch hint applies, plus file/line/character - all three or
- * none - when the defect has a source location of its own, distinct from the
- * item's: the invalid entry or the forwarding declaration it is about. A
- * defect without the location group is anchored at the item's own location.
+ * revision-mismatch hint applies, plus a location when the defect has a
+ * source location of its own, distinct from the item's: the invalid entry or
+ * the forwarding declaration it is about. A defect without a location is
+ * anchored at the item's own location.
  *
  * There is exactly one kind per condition, and every kind is raised from
  * exactly one place. `kind` is therefore a complete discriminator: a consumer
@@ -21,6 +21,8 @@
  * keyword); it still serializes as `ref`.
  */
 
+use crate::location::Location;
+
 /// every defect kind, in the order the schema lists them
 pub const DEFECT_KINDS: [&str; 9] = [
     "invalid-reference",
@@ -34,23 +36,12 @@ pub const DEFECT_KINDS: [&str; 9] = [
     "cyclic-forwarding",
 ];
 
-/// A source position: 1-based line and 1-based column in a file, the column
-/// counted in characters (Unicode scalar values).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Location {
-    pub file: String,
-    pub line: usize,
-    pub character: usize,
-}
-
 /// A problem outside any item's scope - a located message on the run itself,
 /// the diagnostics channel next to the item-scoped defects, pushed by the
 /// parsers and the analysis.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Problem {
-    pub file: String,
-    pub line: usize,
-    pub character: usize,
+    pub location: Location,
     pub message: String,
 }
 
