@@ -1,0 +1,6 @@
+Summary
+  items       9  (5 from specs, 4 from code)
+  ok          9
+  defective   0
+
+ok
