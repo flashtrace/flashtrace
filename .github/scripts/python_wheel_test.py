@@ -159,6 +159,22 @@ class PythonWheelTest(unittest.TestCase):
         # then
         self.assertIn("version 1.0.0-rc.1 is not major.minor.patch", str(raised.exception))
 
+    def test_a_version_with_a_non_ascii_digit_is_refused(self):
+        # when
+        with self.assertRaises(ValueError) as raised:
+            self.build(version="1.2.\u0663")
+
+        # then
+        self.assertIn("is not major.minor.patch", str(raised.exception))
+
+    def test_a_version_with_a_trailing_newline_is_refused(self):
+        # when
+        with self.assertRaises(ValueError) as raised:
+            self.build(version="1.2.3\n")
+
+        # then
+        self.assertIn("is not major.minor.patch", str(raised.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

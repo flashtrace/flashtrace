@@ -67,8 +67,9 @@ def read_cargo_version():
 
 
 # The binary is a build output inside this checkout - target/ in CI, the
-# extracted archive in the release build - so a path leading elsewhere is
-# refused rather than packaged.
+# extracted archive in the release build - and the wheel directory is the
+# one the release uploads from, so a path leading elsewhere is refused
+# rather than read or written.
 def read_arguments():
     if len(sys.argv) not in (3, 4):
         raise SystemExit("usage: python .github/scripts/python_smoke_test.py <target> <binary> [<wheel-directory>]")
@@ -76,7 +77,11 @@ def read_arguments():
     binary = (REPOSITORY_ROOT / sys.argv[2]).resolve()
     if REPOSITORY_ROOT not in binary.parents:
         raise SystemExit(f"the binary must lie inside the checkout {REPOSITORY_ROOT}: {binary}")
-    wheel_directory = Path(sys.argv[3]).resolve() if len(sys.argv) == 4 else None
+    wheel_directory = None
+    if len(sys.argv) == 4:
+        wheel_directory = (REPOSITORY_ROOT / sys.argv[3]).resolve()
+        if REPOSITORY_ROOT not in wheel_directory.parents:
+            raise SystemExit(f"the wheel directory must lie inside the checkout {REPOSITORY_ROOT}: {wheel_directory}")
     return target, binary, wheel_directory
 
 

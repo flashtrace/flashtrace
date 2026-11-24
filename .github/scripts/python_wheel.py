@@ -11,14 +11,14 @@ so the release bump has no Python file to edit. The archive's bytes depend
 only on its inputs: fixed timestamps and modes, a fixed entry order and LF
 line endings in every text file, whatever the checkout's line endings are.
 
-Usage: python3 .github/scripts/python_wheel.py <target> <version> <binary> <output-directory>
-Prints the path of the built wheel.
+A library rather than a command: python_smoke_test.py builds the wheel it
+installs and tests, after checking where its paths lead, and the release
+publishes that very wheel.
 """
 
 import base64
 import hashlib
 import re
-import sys
 import zipfile
 from pathlib import Path
 
@@ -44,8 +44,9 @@ PLATFORM_TAGS = {
     "aarch64-pc-windows-msvc": "win_arm64",
 }
 
-# the release only ever produces major.minor.patch, which PEP 440 reads as is
-VERSION_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
+# The release only ever produces major.minor.patch, which PEP 440 reads as
+# is. ASCII: a str pattern's \d otherwise matches every Unicode digit.
+VERSION_RE = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", re.ASCII)
 
 # the earliest date a zip archive can record
 FIXED_DATE_TIME = (1980, 1, 1, 0, 0, 0)
@@ -106,10 +107,14 @@ def entries_of(repository_root, target, version, binary):
         (f"{MODULE_NAME}/{source.name}", read_text(source), REGULAR_FILE_MODE)
         for source in sorted(module_directory.glob("*.py"))
     ]
-    entries.append((f"{data_directory}/scripts/{binary_name_of(target)}", binary.read_bytes(), EXECUTABLE_FILE_MODE))
-    entries.append((f"{dist_info}/METADATA", metadata(version, read_text(repository_root / "README.md")), REGULAR_FILE_MODE))
-    entries.append((f"{dist_info}/WHEEL", wheel_file(target), REGULAR_FILE_MODE))
-    entries.append((f"{dist_info}/licenses/LICENSE", read_text(repository_root / "LICENSE"), REGULAR_FILE_MODE))
+    entries.extend(
+        [
+            (f"{data_directory}/scripts/{binary_name_of(target)}", binary.read_bytes(), EXECUTABLE_FILE_MODE),
+            (f"{dist_info}/METADATA", metadata(version, read_text(repository_root / "README.md")), REGULAR_FILE_MODE),
+            (f"{dist_info}/WHEEL", wheel_file(target), REGULAR_FILE_MODE),
+            (f"{dist_info}/licenses/LICENSE", read_text(repository_root / "LICENSE"), REGULAR_FILE_MODE),
+        ]
+    )
     record = "".join(record_line(path, content) for path, content, _ in entries) + f"{dist_info}/RECORD,,\n"
     entries.append((f"{dist_info}/RECORD", record.encode("utf-8"), REGULAR_FILE_MODE))
     return entries
@@ -119,7 +124,7 @@ def build_wheel(repository_root, target, version, binary, output_directory):
     """Builds the wheel of the given target into output_directory and returns its path."""
     if target not in PLATFORM_TAGS:
         raise ValueError(f"no platform tags for target {target}; known targets: {', '.join(sorted(PLATFORM_TAGS))}")
-    if not VERSION_RE.match(version):
+    if not VERSION_RE.fullmatch(version):
         raise ValueError(f"version {version} is not major.minor.patch")
     repository_root = Path(repository_root)
     output_directory = Path(output_directory)
@@ -135,20 +140,3 @@ def build_wheel(repository_root, target, version, binary, output_directory):
             archive.writestr(info, content)
     return wheel
 
-
-def main(argv):
-    if len(argv) != 5:
-        print("usage: python3 .github/scripts/python_wheel.py <target> <version> <binary> <output-directory>", file=sys.stderr)
-        return 2
-    target, version, binary, output_directory = argv[1:]
-    repository_root = Path(__file__).resolve().parents[2]
-    try:
-        print(build_wheel(repository_root, target, version, binary, output_directory))
-    except ValueError as error:
-        print(f"error: {error}", file=sys.stderr)
-        return 2
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv))
