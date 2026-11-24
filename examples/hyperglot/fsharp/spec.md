@@ -22,6 +22,9 @@ Needs:
 - impl:fsharp/fs-block#1
 - impl:fsharp/fs-nested/deep#1
 - impl:fsharp/fs-nested/after-close#1
+- impl:fsharp/fs-after-double-quoted#1
+- impl:fsharp/fs-after-character-literal#1
+- impl:fsharp/fs-after-type-variable#1
 
 ## .fsi
 
@@ -32,6 +35,9 @@ Needs:
 - impl:fsharp/fsi-block#1
 - impl:fsharp/fsi-nested/deep#1
 - impl:fsharp/fsi-nested/after-close#1
+- impl:fsharp/fsi-after-double-quoted#1
+- impl:fsharp/fsi-after-character-literal#1
+- impl:fsharp/fsi-after-type-variable#1
 
 ## .fsx
 
@@ -42,3 +48,6 @@ Needs:
 - impl:fsharp/fsx-block#1
 - impl:fsharp/fsx-nested/deep#1
 - impl:fsharp/fsx-nested/after-close#1
+- impl:fsharp/fsx-after-double-quoted#1
+- impl:fsharp/fsx-after-character-literal#1
+- impl:fsharp/fsx-after-type-variable#1
