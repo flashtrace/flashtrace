@@ -30,10 +30,10 @@ Needs: impl:dash-line/ads#1, impl:dash-line/ads-after-double-quoted#1, impl:dash
 
 `req:dash-line/vhd#1`
 
-Needs: impl:dash-line/vhd#1
+Needs: impl:dash-line/vhd#1, impl:dash-line/vhd-after-double-quoted#1, impl:dash-line/vhd-after-character-literal#1, impl:dash-line/vhd-after-attribute#1
 
 ## .vhdl
 
 `req:dash-line/vhdl#1`
 
-Needs: impl:dash-line/vhdl#1
+Needs: impl:dash-line/vhdl#1, impl:dash-line/vhdl-after-double-quoted#1, impl:dash-line/vhdl-after-character-literal#1, impl:dash-line/vhdl-after-attribute#1
