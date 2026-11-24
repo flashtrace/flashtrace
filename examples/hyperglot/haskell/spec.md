@@ -32,6 +32,9 @@ Needs:
 - impl:haskell/hs-block#1
 - impl:haskell/hs-nested/deep#1
 - impl:haskell/hs-nested/after-close#1
+- impl:haskell/hs-after-double-quoted#1
+- impl:haskell/hs-after-character-literal#1
+- impl:haskell/hs-after-prime#1
 
 ## .purs
 
