@@ -93,8 +93,42 @@ jobs:
         if: contains(matrix.target, 'musl')
         run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends musl-tools
 
+      # part of the cache key, so a new runner image rebuilds every dependency
+      - name: Name the runner image
+        id: runner-image
+        shell: bash
+        run: |
+          test -n "$ImageOS" && test -n "$ImageVersion"
+          echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the cargo cache
+        id: cargo-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-${{ matrix.target }}-${{ steps.runner-image.outputs.name }}-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.lock') }}
+          # after a lockfile change, only the changed crates rebuild
+          restore-keys: |
+            cargo-${{ matrix.target }}-${{ steps.runner-image.outputs.name }}-${{ hashFiles('rust-toolchain.toml') }}-
+
       - name: Test on the target
         run: cargo test --locked --target ${{ matrix.target }}
+
+      # pull requests only read main's caches
+      - name: Save the cargo cache
+        if: github.event_name == 'push' && steps.cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ steps.cargo-cache.outputs.cache-primary-key }}
 
       # The musl binaries must stay static: one linked dynamically still
       # passes every test here, but cannot start on a glibc system, which has
