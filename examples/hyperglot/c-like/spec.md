@@ -138,7 +138,7 @@ Needs: impl:c-like/ino-line#1, impl:c-like/ino-block#1, impl:c-like/ino-after-do
 
 `req:c-like/java#1`
 
-Needs: impl:c-like/java-line#1, impl:c-like/java-block#1
+Needs: impl:c-like/java-line#1, impl:c-like/java-block#1, impl:c-like/java-after-double-quoted#1, impl:c-like/java-after-character-literal#1
 
 ## .js
 
