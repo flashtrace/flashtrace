@@ -2162,7 +2162,8 @@ mod tests {
     // occurrences merge into one list, in document order.
     #[test]
     fn a_repeated_keyword_line_merges_its_entries_in_document_order() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "Needs: impl",
@@ -2173,7 +2174,12 @@ mod tests {
             "Covers:",
             "- feat:b#1",
             "Tags: two, three",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert!(problems.is_empty());
         assert!(items[0].defects.is_empty());
         assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);
@@ -2183,7 +2189,8 @@ mod tests {
 
     #[test]
     fn a_keyword_column_in_two_tables_merges_its_entries() {
-        let (items, problems, _) = parse(&[
+        // given
+        let lines = [
             "`req:a#1`",
             "",
             "| Needs |",
@@ -2193,7 +2200,12 @@ mod tests {
             "| Needs |",
             "|---|",
             "| utest |",
-        ]);
+        ];
+
+        // when
+        let (items, problems, _) = parse(&lines);
+
+        // then
         assert!(problems.is_empty());
         assert!(items[0].defects.is_empty());
         assert_eq!(items[0].needs, ["impl:a#1", "utest:a#1"]);

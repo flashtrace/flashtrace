@@ -1026,7 +1026,13 @@ mod tests {
     // anchored at its item's location carries no location key at all
     #[test]
     fn a_defect_carries_a_nested_location_only_when_it_has_its_own() {
-        let document = build(&["`req:a#1`", "", "Needs: not/valid, impl:gone#1"], &[]);
+        // given
+        let md = ["`req:a#1`", "", "Needs: not/valid, impl:gone#1"];
+
+        // when
+        let document = build(&md, &[]);
+
+        // then
         let defects = &item_of(&document, "req:a#1").defects;
         let invalid = defects
             .iter()
@@ -1045,8 +1051,18 @@ mod tests {
             .find(|defect| defect.kind == "uncovered-need")
             .unwrap();
         assert_eq!(uncovered.location, None);
+    }
 
+    #[test]
+    fn a_defect_serializes_a_location_key_only_when_it_has_its_own() {
+        // given
+        let md = ["`req:a#1`", "", "Needs: not/valid, impl:gone#1"];
+        let document = build(&md, &[]);
+
+        // when
         let serialized = serialize_report_document(&document);
+
+        // then
         assert!(serialized.contains(concat!(
             "          \"ref\": \"not/valid\",\n",
             "          \"location\": {\n",
