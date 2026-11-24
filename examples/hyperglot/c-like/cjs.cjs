@@ -4,3 +4,8 @@
 /*
  * [impl:c-like/cjs-block#1]
  */
+
+// A string hides comment markers; a comment after it still counts.
+const text = "\" // [impl:c-like/cjs-ghost-double-quoted#1]"; // [impl:c-like/cjs-after-double-quoted#1]
+const text = '\' // [impl:c-like/cjs-ghost-single-quoted#1]'; // [impl:c-like/cjs-after-single-quoted#1]
+const text = `\` // [impl:c-like/cjs-ghost-backtick-quoted#1]`; // [impl:c-like/cjs-after-backtick-quoted#1]

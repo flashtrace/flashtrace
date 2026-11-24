@@ -54,7 +54,7 @@ Needs: impl:c-like/cc-line#1, impl:c-like/cc-block#1
 
 `req:c-like/cjs#1`
 
-Needs: impl:c-like/cjs-line#1, impl:c-like/cjs-block#1
+Needs: impl:c-like/cjs-line#1, impl:c-like/cjs-block#1, impl:c-like/cjs-after-double-quoted#1, impl:c-like/cjs-after-single-quoted#1, impl:c-like/cjs-after-backtick-quoted#1
 
 ## .cpp
 
@@ -144,7 +144,7 @@ Needs: impl:c-like/java-line#1, impl:c-like/java-block#1
 
 `req:c-like/js#1`
 
-Needs: impl:c-like/js-line#1, impl:c-like/js-block#1
+Needs: impl:c-like/js-line#1, impl:c-like/js-block#1, impl:c-like/js-after-double-quoted#1, impl:c-like/js-after-single-quoted#1, impl:c-like/js-after-backtick-quoted#1
 
 ## .jsx
 
@@ -162,7 +162,7 @@ Needs: impl:c-like/less-line#1, impl:c-like/less-block#1
 
 `req:c-like/mjs#1`
 
-Needs: impl:c-like/mjs-line#1, impl:c-like/mjs-block#1
+Needs: impl:c-like/mjs-line#1, impl:c-like/mjs-block#1, impl:c-like/mjs-after-double-quoted#1, impl:c-like/mjs-after-single-quoted#1, impl:c-like/mjs-after-backtick-quoted#1
 
 ## .mts
 
