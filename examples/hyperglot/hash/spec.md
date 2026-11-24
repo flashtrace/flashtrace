@@ -64,7 +64,7 @@ Needs: impl:hash/exs#1, impl:hash/exs-after-double-quoted#1, impl:hash/exs-after
 
 `req:hash/gd#1`
 
-Needs: impl:hash/gd#1
+Needs: impl:hash/gd#1, impl:hash/gd-after-double-quoted#1, impl:hash/gd-after-single-quoted#1
 
 ## .gql
 
