@@ -151,6 +151,32 @@ static DOUBLE_QUOTED: &[StringForm] = &[StringForm::Quoted {
     escape: Some('\\'),
 }];
 
+// "…" and '…' strings, both with backslash escapes. PHP's single-quoted
+// strings only know \' and \\, which ends them at the same place.
+//   Python        https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
+//   Ruby          https://docs.ruby-lang.org/en/master/syntax/literals_rdoc.html
+//   R             https://cran.r-project.org/doc/manuals/r-release/R-lang.html#Literal-constants
+//   GDScript      https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html#literals
+//   CoffeeScript  https://coffeescript.org/#strings
+//   Lua           https://www.lua.org/manual/5.4/manual.html#3.1
+//   PHP           https://www.php.net/manual/en/language.types.string.php
+//   Groovy        https://groovy-lang.org/syntax.html#all-strings
+//   Dart          https://dart.dev/language/built-in-types#strings
+//   Solidity      https://docs.soliditylang.org/en/latest/types.html#string-literals-and-types
+//   Protobuf      https://protobuf.dev/reference/protobuf/proto3-spec/#string_literals
+//   SCSS          https://sass-lang.com/documentation/values/strings/
+//   CSS           https://www.w3.org/TR/css-syntax-3/#consume-string-token
+static DOUBLE_AND_SINGLE_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::Quoted {
+        quote: '\'',
+        escape: Some('\\'),
+    },
+];
+
 // Shared comment families, reused across the extension table below. C_LIKE is
 // also the fallback comment family for unknown extensions (see parse_code.rs).
 pub static C_LIKE: Comments = Comments {
@@ -287,7 +313,10 @@ fn script_grammar(tag: &str) -> Leaf {
         return comments_only(&XML); // inline HTML templates
     }
     if attribute_of(tag, &LANG_ATTRIBUTE_RE).contains("coffee") {
-        return comments_only(&COFFEE); // CoffeeScript
+        return Leaf {
+            comments: &COFFEE,
+            strings: DOUBLE_AND_SINGLE_QUOTED,
+        }; // CoffeeScript
     }
     comments_only(&C_LIKE) // JS / TS / JSX / module / ...
 }
@@ -300,9 +329,21 @@ fn style_grammar(tag: &str) -> Leaf {
         .iter()
         .any(|name| lang.contains(name))
     {
-        comments_only(&C_LIKE)
+        // only SCSS's strings are validated; Sass, Less and Stylus keep
+        // the comments-only scan
+        if lang.contains("scss") {
+            Leaf {
+                comments: &C_LIKE,
+                strings: DOUBLE_AND_SINGLE_QUOTED,
+            }
+        } else {
+            comments_only(&C_LIKE)
+        }
     } else {
-        comments_only(&CSS)
+        Leaf {
+            comments: &CSS,
+            strings: DOUBLE_AND_SINGLE_QUOTED,
+        }
     }
 }
 
@@ -391,13 +432,13 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("cs", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("java", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("go", &C_LIKE, NO_STRINGS),
-        leaf("groovy", &C_LIKE, NO_STRINGS),
-        leaf("gradle", &C_LIKE, NO_STRINGS),
-        leaf("sol", &C_LIKE, NO_STRINGS),
-        leaf("dart", &C_LIKE, NO_STRINGS),
-        leaf("php", &PHP, NO_STRINGS),
-        leaf("proto", &C_LIKE, NO_STRINGS),
-        leaf("scss", &C_LIKE, NO_STRINGS),
+        leaf("groovy", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
+        leaf("gradle", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
+        leaf("sol", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
+        leaf("dart", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
+        leaf("php", &PHP, DOUBLE_AND_SINGLE_QUOTED),
+        leaf("proto", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
+        leaf("scss", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
         leaf("less", &C_LIKE, NO_STRINGS),
         // C-family with nested block comments
         leaf("rs", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
@@ -406,28 +447,28 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("kts", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("scala", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
         // hash line comments
-        leaf("py", &HASH, NO_STRINGS),
-        leaf("rb", &HASH, NO_STRINGS),
+        leaf("py", &HASH, DOUBLE_AND_SINGLE_QUOTED),
+        leaf("rb", &HASH, DOUBLE_AND_SINGLE_QUOTED),
         leaf("sh", &HASH, NO_STRINGS),
         leaf("bash", &HASH, NO_STRINGS),
         leaf("zsh", &HASH, NO_STRINGS),
         leaf("yaml", &HASH, NO_STRINGS),
         leaf("yml", &HASH, NO_STRINGS),
         leaf("toml", &HASH, NO_STRINGS),
-        leaf("r", &HASH, NO_STRINGS),
+        leaf("r", &HASH, DOUBLE_AND_SINGLE_QUOTED),
         leaf("pm", &HASH, NO_STRINGS),
         leaf("ex", &HASH, NO_STRINGS),
         leaf("exs", &HASH, NO_STRINGS),
         leaf("tcl", &HASH, NO_STRINGS),
         leaf("cr", &HASH, DOUBLE_QUOTED_AND_CHARACTER),
-        leaf("gd", &HASH, NO_STRINGS),
+        leaf("gd", &HASH, DOUBLE_AND_SINGLE_QUOTED),
         leaf("awk", &HASH, DOUBLE_QUOTED),
         leaf("graphql", &HASH, DOUBLE_QUOTED),
         leaf("gql", &HASH, DOUBLE_QUOTED),
         // hash line comments plus a block pair of their own
         leaf("jl", &JULIA, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("nim", &NIM, DOUBLE_QUOTED_AND_CHARACTER),
-        leaf("coffee", &COFFEE, NO_STRINGS),
+        leaf("coffee", &COFFEE, DOUBLE_AND_SINGLE_QUOTED),
         leaf("cmake", &CMAKE, DOUBLE_QUOTED),
         leaf("ps1", &POWERSHELL, NO_STRINGS),
         leaf("psm1", &POWERSHELL, NO_STRINGS),
@@ -465,11 +506,11 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("dpr", &PASCAL, NO_STRINGS),
         // dashes and others
         leaf("sql", &SQL, NO_STRINGS),
-        leaf("lua", &LUA, NO_STRINGS),
+        leaf("lua", &LUA, DOUBLE_AND_SINGLE_QUOTED),
         leaf("hs", &HASKELL, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("elm", &HASKELL, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("purs", &HASKELL, DOUBLE_QUOTED),
-        leaf("css", &CSS, NO_STRINGS),
+        leaf("css", &CSS, DOUBLE_AND_SINGLE_QUOTED),
         leaf("xml", &XML, NO_STRINGS),
         leaf("svg", &XML, NO_STRINGS),
         // composite: HTML markup with embedded <script>/<style> regions
