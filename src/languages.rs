@@ -280,6 +280,67 @@ static POWERSHELL_QUOTED: &[StringForm] = &[
     },
 ];
 
+// Languages with prefixed character literals, which may hold a quote or a
+// comment marker: Clojure \" and \;, Scheme/Racket/Common Lisp #\" and #\;,
+// Erlang $" and $%, Elixir ?" and ?#.
+//   Clojure      https://clojure.org/reference/reader (Strings, Character)
+static CLOJURE_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::PrefixedCharacter {
+        prefix: "\\",
+        escape: None,
+    },
+];
+//   Scheme       https://standards.scheme.org/corrected-r7rs/r7rs-Z-H-8.html (6.6 Characters, 6.7 Strings)
+//   Racket       https://docs.racket-lang.org/reference/reader.html#(part._parse-string)
+//                https://docs.racket-lang.org/reference/reader.html#(part._parse-character)
+//   Common Lisp  https://www.lispworks.com/documentation/HyperSpec/Body/02_de.htm
+//                https://www.lispworks.com/documentation/HyperSpec/Body/02_dha.htm
+static LISP_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::PrefixedCharacter {
+        prefix: "#\\",
+        escape: None,
+    },
+];
+//   Erlang       https://www.erlang.org/doc/system/data_types.html ("…" strings, '…' quoted atoms, $c)
+static ERLANG_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::Quoted {
+        quote: '\'',
+        escape: Some('\\'),
+    },
+    StringForm::PrefixedCharacter {
+        prefix: "$",
+        escape: Some('\\'),
+    },
+];
+//   Elixir       https://hexdocs.pm/elixir/syntax-reference.html ("…" strings, '…' charlists)
+//                https://hexdocs.pm/elixir/String.html#module-unicode-and-code-points (?c)
+static ELIXIR_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::Quoted {
+        quote: '\'',
+        escape: Some('\\'),
+    },
+    StringForm::PrefixedCharacter {
+        prefix: "?",
+        escape: Some('\\'),
+    },
+];
+
 // Shared comment families, reused across the extension table below. C_LIKE is
 // also the fallback comment family for unknown extensions (see parse_code.rs).
 pub static C_LIKE: Comments = Comments {
@@ -563,8 +624,8 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("toml", &HASH, TOML_QUOTED),
         leaf("r", &HASH, DOUBLE_AND_SINGLE_QUOTED),
         leaf("pm", &HASH, NO_STRINGS),
-        leaf("ex", &HASH, NO_STRINGS),
-        leaf("exs", &HASH, NO_STRINGS),
+        leaf("ex", &HASH, ELIXIR_QUOTED),
+        leaf("exs", &HASH, ELIXIR_QUOTED),
         leaf("tcl", &HASH, NO_STRINGS),
         leaf("cr", &HASH, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("gd", &HASH, DOUBLE_AND_SINGLE_QUOTED),
@@ -582,19 +643,19 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("tfvars", &HCL, DOUBLE_QUOTED),
         leaf("hcl", &HCL, DOUBLE_QUOTED),
         // semicolon (Lisp family)
-        leaf("clj", &SEMICOLON, NO_STRINGS),
-        leaf("cljs", &SEMICOLON, NO_STRINGS),
-        leaf("cljc", &SEMICOLON, NO_STRINGS),
+        leaf("clj", &SEMICOLON, CLOJURE_QUOTED),
+        leaf("cljs", &SEMICOLON, CLOJURE_QUOTED),
+        leaf("cljc", &SEMICOLON, CLOJURE_QUOTED),
         leaf("edn", &SEMICOLON, NO_STRINGS),
         leaf("el", &SEMICOLON, NO_STRINGS),
-        leaf("lisp", &SEMICOLON, NO_STRINGS),
+        leaf("lisp", &SEMICOLON, LISP_QUOTED),
         // Scheme/Racket: ; lines plus nestable #| |# blocks
-        leaf("scm", &SCHEME, NO_STRINGS),
-        leaf("ss", &SCHEME, NO_STRINGS),
-        leaf("rkt", &SCHEME, NO_STRINGS),
+        leaf("scm", &SCHEME, LISP_QUOTED),
+        leaf("ss", &SCHEME, LISP_QUOTED),
+        leaf("rkt", &SCHEME, LISP_QUOTED),
         // percent (Erlang, LaTeX)
-        leaf("erl", &PERCENT, NO_STRINGS),
-        leaf("hrl", &PERCENT, NO_STRINGS),
+        leaf("erl", &PERCENT, ERLANG_QUOTED),
+        leaf("hrl", &PERCENT, ERLANG_QUOTED),
         leaf("tex", &PERCENT, NO_STRINGS),
         leaf("sty", &PERCENT, NO_STRINGS),
         // dash line-only (Ada, VHDL)
