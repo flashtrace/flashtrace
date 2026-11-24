@@ -118,7 +118,7 @@ Needs: impl:hash/tcl#1
 
 `req:hash/toml#1`
 
-Needs: impl:hash/toml
+Needs: impl:hash/toml, impl:hash/toml-after-double-quoted#1, impl:hash/toml-after-single-quoted#1
 
 ## .yaml
 
