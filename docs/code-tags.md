@@ -1,6 +1,6 @@
 # Code tags
 
-Tags are written inside comments. The comment style is chosen per file extension, so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
+Tags are written inside comments. The comment style is chosen per file extension (for a few languages, per [file name](#file-names-that-name-their-language)), so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
 
 ## Comment styles
 
@@ -9,7 +9,7 @@ Tags are written inside comments. The comment style is chosen per file extension
 | C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cxx` `.hxx` `.ino` `.inl` `.tpp` `.cs` `.java` `.go` `.groovy` `.gradle` `.sol` `.dart` `.proto` `.scss` `.less` |
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
 | PHP | `//` `#` | `/* … */` | `.php` |
-| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.graphql` `.gql` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.graphql` `.gql` `.dockerfile` |
 | CoffeeScript | `#` | `### … ###` (opener not followed by `#`) | `.coffee` |
 | Julia | `#` | `#= … =#` (nestable) | `.jl` |
 | Nim | `#` | `#[ … ]#` `##[ … ]##` (nestable) | `.nim` |
@@ -30,6 +30,16 @@ Tags are written inside comments. The comment style is chosen per file extension
 | HTML + embedded | – | `<!-- … -->` (markup) | `.html` `.htm` `.vue` `.svelte` |
 
 In CoffeeScript a run of four or more `#` is a line comment, not a block opener, so a `#### Section` heading or a `##########` divider comments out only its own line.
+
+## File names that name their language
+
+Some languages are named by a file-name convention rather than an extension. A file whose name, ignoring case, equals one of the names below or continues it after a dot is scanned as that language, ahead of its extension:
+
+| Name | Scanned as | Matches |
+|---|---|---|
+| `Dockerfile` | `.dockerfile` (Hash) | `Dockerfile`, `Dockerfile.dev`, `Dockerfile.prod.local` |
+
+The name outranks the extension, as in editors: `Dockerfile.js` is a Dockerfile, not JavaScript, and `Dockerfile.md` is not a spec. A name that merely contains the convention, such as `Dockerfile-dev` or `my-dockerfile`, falls back to its extension.
 
 ## HTML and embedded languages
 
@@ -84,6 +94,7 @@ and `node_modules/` dependency directories are always excluded from traversal,
 including when supplied as directory scan roots. Directory
 symlinks are not followed, and symlink entries discovered during traversal are
 not scanned. Explicit file arguments bypass ignore rules, but must still have a
-supported extension. Results are deduplicated and sorted.
+supported extension or [language-naming file name](#file-names-that-name-their-language).
+Results are deduplicated and sorted.
 
 Ignored files and explicit overrides do not produce warnings.
