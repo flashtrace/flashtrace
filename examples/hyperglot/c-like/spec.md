@@ -180,7 +180,7 @@ Needs: impl:c-like/proto-line#1, impl:c-like/proto-block#1, impl:c-like/proto-af
 
 `req:c-like/scss#1`
 
-Needs: impl:c-like/scss-line#1, impl:c-like/scss-block#1
+Needs: impl:c-like/scss-line#1, impl:c-like/scss-block#1, impl:c-like/scss-after-double-quoted#1, impl:c-like/scss-after-single-quoted#1
 
 ## .sol
 
