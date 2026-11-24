@@ -21,19 +21,19 @@ Tags: grammar, lisp
 
 `req:semicolon/clj#1`
 
-Needs: impl:semicolon/clj#1
+Needs: impl:semicolon/clj#1, impl:semicolon/clj-after-double-quoted#1, impl:semicolon/clj-after-character-prefix#1
 
 ## .cljc
 
 `req:semicolon/cljc#1`
 
-Needs: impl:semicolon/cljc#1
+Needs: impl:semicolon/cljc#1, impl:semicolon/cljc-after-double-quoted#1, impl:semicolon/cljc-after-character-prefix#1
 
 ## .cljs
 
 `req:semicolon/cljs#1`
 
-Needs: impl:semicolon/cljs#1
+Needs: impl:semicolon/cljs#1, impl:semicolon/cljs-after-double-quoted#1, impl:semicolon/cljs-after-character-prefix#1
 
 ## .edn
 
