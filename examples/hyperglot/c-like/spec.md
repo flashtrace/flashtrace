@@ -90,7 +90,7 @@ Needs: impl:c-like/dart-line#1, impl:c-like/dart-block#1
 
 `req:c-like/go#1`
 
-Needs: impl:c-like/go-line#1, impl:c-like/go-block#1
+Needs: impl:c-like/go-line#1, impl:c-like/go-block#1, impl:c-like/go-after-double-quoted#1, impl:c-like/go-after-backtick-quoted#1, impl:c-like/go-after-character-literal#1
 
 ## .gradle
 
