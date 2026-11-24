@@ -52,13 +52,13 @@ Needs: impl:hash/cr#1
 
 `req:hash/ex#1`
 
-Needs: impl:hash/ex#1
+Needs: impl:hash/ex#1, impl:hash/ex-after-double-quoted#1, impl:hash/ex-after-single-quoted#1, impl:hash/ex-after-character-prefix#1
 
 ## .exs
 
 `req:hash/exs#1`
 
-Needs: impl:hash/exs#1
+Needs: impl:hash/exs#1, impl:hash/exs-after-double-quoted#1, impl:hash/exs-after-single-quoted#1, impl:hash/exs-after-character-prefix#1
 
 ## .gd
 
