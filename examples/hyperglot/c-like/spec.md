@@ -72,7 +72,7 @@ Needs: impl:c-like/cs-line#1, impl:c-like/cs-block#1
 
 `req:c-like/cts#1`
 
-Needs: impl:c-like/cts-line#1, impl:c-like/cts-block#1
+Needs: impl:c-like/cts-line#1, impl:c-like/cts-block#1, impl:c-like/cts-after-double-quoted#1, impl:c-like/cts-after-single-quoted#1, impl:c-like/cts-after-backtick-quoted#1
 
 ## .cxx
 
@@ -168,7 +168,7 @@ Needs: impl:c-like/mjs-line#1, impl:c-like/mjs-block#1
 
 `req:c-like/mts#1`
 
-Needs: impl:c-like/mts-line#1, impl:c-like/mts-block#1
+Needs: impl:c-like/mts-line#1, impl:c-like/mts-block#1, impl:c-like/mts-after-double-quoted#1, impl:c-like/mts-after-single-quoted#1, impl:c-like/mts-after-backtick-quoted#1
 
 ## .proto
 
@@ -198,7 +198,7 @@ Needs: impl:c-like/tpp-line#1, impl:c-like/tpp-block#1
 
 `req:c-like/ts#1`
 
-Needs: impl:c-like/ts-line#1, impl:c-like/ts-block#1
+Needs: impl:c-like/ts-line#1, impl:c-like/ts-block#1, impl:c-like/ts-after-double-quoted#1, impl:c-like/ts-after-single-quoted#1, impl:c-like/ts-after-backtick-quoted#1
 
 ## .tsx
 
