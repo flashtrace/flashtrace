@@ -8,6 +8,12 @@ on:
     branches:
       - main
 
+# a new push to a pull request cancels its running CI; pushes to main
+# keep every run, since publish-badges.yml reads each one
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lint:
     name: Format and lint
