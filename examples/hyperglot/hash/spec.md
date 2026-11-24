@@ -88,7 +88,7 @@ Needs: impl:hash/pm#1
 
 `req:hash/py#1`
 
-Needs: impl#1.2
+Needs: impl#1.2, impl:hash/py-after-double-quoted#1, impl:hash/py-after-single-quoted#1
 
 ## .r
 
