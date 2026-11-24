@@ -42,7 +42,7 @@ Tags: grammar, c-like
 
 `req:c-like/c#1`
 
-Needs: impl:c-like/c-line#1, impl:c-like/c-block#1
+Needs: impl:c-like/c-line#1, impl:c-like/c-block#1, impl:c-like/c-after-double-quoted#1, impl:c-like/c-after-character-literal#1, impl:c-like/c-after-digit-separator#1
 
 ## .cc
 
@@ -108,7 +108,7 @@ Needs: impl:c-like/groovy-line#1, impl:c-like/groovy-block#1
 
 `req:c-like/h#1`
 
-Needs: impl:c-like/h-line#1, impl:c-like/h-block#1
+Needs: impl:c-like/h-line#1, impl:c-like/h-block#1, impl:c-like/h-after-double-quoted#1, impl:c-like/h-after-character-literal#1, impl:c-like/h-after-digit-separator#1
 
 ## .hpp
 
