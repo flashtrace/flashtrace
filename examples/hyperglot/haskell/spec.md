@@ -47,3 +47,4 @@ Needs:
 - impl:haskell/purs-block#1
 - impl:haskell/purs-nested/deep#1
 - impl:haskell/purs-nested/after-close#1
+- impl:haskell/purs-after-double-quoted#1

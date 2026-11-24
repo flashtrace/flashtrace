@@ -9,3 +9,6 @@
   {- [impl:haskell/purs-nested/deep#1] inner -}
   [impl:haskell/purs-nested/after-close#1] still inside the outer block
 -}
+
+-- A string hides comment markers; a comment after it still counts.
+text = "\" -- [impl:haskell/purs-ghost-double-quoted#1]" -- [impl:haskell/purs-after-double-quoted#1]
