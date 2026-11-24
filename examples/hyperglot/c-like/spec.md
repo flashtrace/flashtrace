@@ -48,7 +48,7 @@ Needs: impl:c-like/c-line#1, impl:c-like/c-block#1, impl:c-like/c-after-double-q
 
 `req:c-like/cc#1`
 
-Needs: impl:c-like/cc-line#1, impl:c-like/cc-block#1
+Needs: impl:c-like/cc-line#1, impl:c-like/cc-block#1, impl:c-like/cc-after-double-quoted#1, impl:c-like/cc-after-character-literal#1, impl:c-like/cc-after-digit-separator#1
 
 ## .cjs
 
@@ -60,7 +60,7 @@ Needs: impl:c-like/cjs-line#1, impl:c-like/cjs-block#1, impl:c-like/cjs-after-do
 
 `req:c-like/cpp#1`
 
-Needs: impl:c-like/cpp-line#1, impl:c-like/cpp-block#1
+Needs: impl:c-like/cpp-line#1, impl:c-like/cpp-block#1, impl:c-like/cpp-after-double-quoted#1, impl:c-like/cpp-after-character-literal#1, impl:c-like/cpp-after-digit-separator#1
 
 ## .cs
 
@@ -78,7 +78,7 @@ Needs: impl:c-like/cts-line#1, impl:c-like/cts-block#1, impl:c-like/cts-after-do
 
 `req:c-like/cxx#1`
 
-Needs: impl:c-like/cxx-line#1, impl:c-like/cxx-block#1
+Needs: impl:c-like/cxx-line#1, impl:c-like/cxx-block#1, impl:c-like/cxx-after-double-quoted#1, impl:c-like/cxx-after-character-literal#1, impl:c-like/cxx-after-digit-separator#1
 
 ## .dart
 
@@ -114,25 +114,25 @@ Needs: impl:c-like/h-line#1, impl:c-like/h-block#1, impl:c-like/h-after-double-q
 
 `req:c-like/hpp#1`
 
-Needs: impl:c-like/hpp-line#1, impl:c-like/hpp-block#1
+Needs: impl:c-like/hpp-line#1, impl:c-like/hpp-block#1, impl:c-like/hpp-after-double-quoted#1, impl:c-like/hpp-after-character-literal#1, impl:c-like/hpp-after-digit-separator#1
 
 ## .hxx
 
 `req:c-like/hxx#1`
 
-Needs: impl:c-like/hxx-line#1, impl:c-like/hxx-block#1
+Needs: impl:c-like/hxx-line#1, impl:c-like/hxx-block#1, impl:c-like/hxx-after-double-quoted#1, impl:c-like/hxx-after-character-literal#1, impl:c-like/hxx-after-digit-separator#1
 
 ## .inl
 
 `req:c-like/inl#1`
 
-Needs: impl:c-like/inl-line#1, impl:c-like/inl-block#1
+Needs: impl:c-like/inl-line#1, impl:c-like/inl-block#1, impl:c-like/inl-after-double-quoted#1, impl:c-like/inl-after-character-literal#1, impl:c-like/inl-after-digit-separator#1
 
 ## .ino
 
 `req:c-like/ino#1`
 
-Needs: impl:c-like/ino-line#1, impl:c-like/ino-block#1
+Needs: impl:c-like/ino-line#1, impl:c-like/ino-block#1, impl:c-like/ino-after-double-quoted#1, impl:c-like/ino-after-character-literal#1, impl:c-like/ino-after-digit-separator#1
 
 ## .java
 
@@ -192,7 +192,7 @@ Needs: impl:c-like/sol-line#1, impl:c-like/sol-block#1
 
 `req:c-like/tpp#1`
 
-Needs: impl:c-like/tpp-line#1, impl:c-like/tpp-block#1
+Needs: impl:c-like/tpp-line#1, impl:c-like/tpp-block#1, impl:c-like/tpp-after-double-quoted#1, impl:c-like/tpp-after-character-literal#1, impl:c-like/tpp-after-digit-separator#1
 
 ## .ts
 
