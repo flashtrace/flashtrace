@@ -139,6 +139,18 @@ static DOUBLE_QUOTED_AND_CHARACTER: &[StringForm] = &[
     StringForm::CharacterLiteral { escape: Some('\\') },
 ];
 
+// "…" strings with backslash escapes, and no other single-line literal.
+//   Swift       https://github.com/swiftlang/swift-book/blob/main/TSPL.docc/ReferenceManual/LexicalStructure.md#string-literals
+//   AWK         https://pubs.opengroup.org/onlinepubs/9799919799/utilities/awk.html (Lexical Conventions: STRING)
+//   GraphQL     https://spec.graphql.org/October2021/#sec-String-Value
+//   CMake       https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#quoted-argument
+//   HCL         https://github.com/hashicorp/hcl/blob/main/hclsyntax/spec.md#template-expressions
+//   PureScript  https://github.com/purescript/documentation/blob/master/language/Syntax.md#strings
+static DOUBLE_QUOTED: &[StringForm] = &[StringForm::Quoted {
+    quote: '"',
+    escape: Some('\\'),
+}];
+
 // Shared comment families, reused across the extension table below. C_LIKE is
 // also the fallback comment family for unknown extensions (see parse_code.rs).
 pub static C_LIKE: Comments = Comments {
@@ -389,7 +401,7 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("less", &C_LIKE, NO_STRINGS),
         // C-family with nested block comments
         leaf("rs", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
-        leaf("swift", &C_LIKE_NESTED, NO_STRINGS),
+        leaf("swift", &C_LIKE_NESTED, DOUBLE_QUOTED),
         leaf("kt", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("kts", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("scala", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
@@ -409,19 +421,19 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("tcl", &HASH, NO_STRINGS),
         leaf("cr", &HASH, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("gd", &HASH, NO_STRINGS),
-        leaf("awk", &HASH, NO_STRINGS),
-        leaf("graphql", &HASH, NO_STRINGS),
-        leaf("gql", &HASH, NO_STRINGS),
+        leaf("awk", &HASH, DOUBLE_QUOTED),
+        leaf("graphql", &HASH, DOUBLE_QUOTED),
+        leaf("gql", &HASH, DOUBLE_QUOTED),
         // hash line comments plus a block pair of their own
         leaf("jl", &JULIA, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("nim", &NIM, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("coffee", &COFFEE, NO_STRINGS),
-        leaf("cmake", &CMAKE, NO_STRINGS),
+        leaf("cmake", &CMAKE, DOUBLE_QUOTED),
         leaf("ps1", &POWERSHELL, NO_STRINGS),
         leaf("psm1", &POWERSHELL, NO_STRINGS),
-        leaf("tf", &HCL, NO_STRINGS),
-        leaf("tfvars", &HCL, NO_STRINGS),
-        leaf("hcl", &HCL, NO_STRINGS),
+        leaf("tf", &HCL, DOUBLE_QUOTED),
+        leaf("tfvars", &HCL, DOUBLE_QUOTED),
+        leaf("hcl", &HCL, DOUBLE_QUOTED),
         // semicolon (Lisp family)
         leaf("clj", &SEMICOLON, NO_STRINGS),
         leaf("cljs", &SEMICOLON, NO_STRINGS),
@@ -456,7 +468,7 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("lua", &LUA, NO_STRINGS),
         leaf("hs", &HASKELL, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("elm", &HASKELL, DOUBLE_QUOTED_AND_CHARACTER),
-        leaf("purs", &HASKELL, NO_STRINGS),
+        leaf("purs", &HASKELL, DOUBLE_QUOTED),
         leaf("css", &CSS, NO_STRINGS),
         leaf("xml", &XML, NO_STRINGS),
         leaf("svg", &XML, NO_STRINGS),
