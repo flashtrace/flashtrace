@@ -84,7 +84,7 @@ Needs: impl:c-like/cxx-line#1, impl:c-like/cxx-block#1, impl:c-like/cxx-after-do
 
 `req:c-like/dart#1`
 
-Needs: impl:c-like/dart-line#1, impl:c-like/dart-block#1
+Needs: impl:c-like/dart-line#1, impl:c-like/dart-block#1, impl:c-like/dart-after-double-quoted#1, impl:c-like/dart-after-single-quoted#1
 
 ## .go
 
