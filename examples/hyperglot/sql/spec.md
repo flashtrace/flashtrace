@@ -14,4 +14,4 @@ Tags: grammar, dash
 
 `req:sql/sql#1`
 
-Needs: impl:sql/sql-line#1, impl:sql/sql-block#1
+Needs: impl:sql/sql-line#1, impl:sql/sql-block#1, impl:sql/sql-after-single-quoted#1, impl:sql/sql-after-double-quoted#1
