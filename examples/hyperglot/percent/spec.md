@@ -18,13 +18,13 @@ Tags: grammar, percent
 
 `req:percent/erl#1`
 
-Needs: impl:percent/erl#1
+Needs: impl:percent/erl#1, impl:percent/erl-after-double-quoted#1, impl:percent/erl-after-single-quoted#1, impl:percent/erl-after-character-prefix#1
 
 ## .hrl
 
 `req:percent/hrl#1`
 
-Needs: impl:percent/hrl#1
+Needs: impl:percent/hrl#1, impl:percent/hrl-after-double-quoted#1, impl:percent/hrl-after-single-quoted#1, impl:percent/hrl-after-character-prefix#1
 
 ## .sty
 
