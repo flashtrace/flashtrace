@@ -14,6 +14,7 @@ This is intended to give you some structural guidance.
 | tests/        | Integration tests and the e2e snapshots (`tests/e2e-expect/`). |
 | docs/         | Exact Documentation ("spec-driven"). Written in Markdown.   |
 | npm/          | The npm packages: the launcher and the platform binaries.   |
+| python/       | The Python package `flashtrace-cli`, wrapped into a wheel per platform at release time. |
 | .github/      | Continuous integration workflows and more.                  |
 
 We keep dev dependencies to a minimum.

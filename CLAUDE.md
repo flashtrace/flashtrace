@@ -19,6 +19,7 @@ Ask refining questions before you start writing.
 | schemas/ | Published JSON Schemas for machine-readable output formats; one file per format version, mirroring the URL it is served at |
 | examples/ | Self-contained example projects; fixtures for the end-to-end tests |
 | npm/ | The npm packages: the flashtrace launcher and the @flashtrace/* platform packages whose bin/ receives its binary at release time |
+| python/ | The flashtrace_cli module of the flashtrace-cli PyPI package; .github/scripts/python_wheel.py wraps it with each binary into a platform wheel at release time |
 | .github/ | Continuous integration workflows and the helper scripts they run |
 
 Keep dev dependencies to a minimum.

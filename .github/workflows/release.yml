@@ -418,6 +418,28 @@ jobs:
           done
           node .github/scripts/npm-smoke-test.mjs "$binary"
 
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+
+      # Built here rather than in the release job, which runs no repository
+      # code: the wheel wraps the binary just extracted from the packaged
+      # archive, and the smoke test installs and runs the very wheel the
+      # release job publishes.
+      - name: Build and smoke-test the Python wheel with the packaged binary
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ needs.bump.outputs.version }}
+        run: |
+          binary="smoke-binary/flashtrace-v${VERSION}-${TARGET}/flashtrace"
+          if [[ "$TARGET" == *windows* ]]; then
+            binary="${binary}.exe"
+          fi
+          python .github/scripts/python_smoke_test.py "$TARGET" "$binary" wheels
+          ls -l wheels
+
       # Kept as long as the run can be re-run (30 days): a retried release job
       # must publish these very bytes - a rebuild is not guaranteed to be
       # byte-identical, and the publish guards refuse anything that differs
@@ -431,6 +453,17 @@ jobs:
           path: assets/*
           retention-days: 30
           overwrite: true
+
+      # Kept, and replaced on "Re-run all jobs", like the binaries above: a
+      # retried release job publishes these very bytes.
+      - name: Upload the Python wheel
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wheel-${{ matrix.target }}
+          path: wheels/*.whl
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
 
   # The only job that writes to the repository, and it runs only after every
   # target built and tested the release commit. It pushes the very commit
@@ -518,25 +551,26 @@ jobs:
           # as above.
           git push --atomic "$remote" "${COMMIT}:refs/heads/main" "refs/release/${tag}:refs/tags/${tag}"
 
-  # This job holds the release credentials (id-token for npm and crates.io
-  # trusted publishing, the app key for the GitHub Release) and in exchange
-  # executes no repository-controlled code: every step can request an OIDC
-  # token, so nothing here compiles the crate. cargo packages with
+  # This job holds the release credentials (id-token for npm, crates.io and
+  # PyPI trusted publishing, the app key for the GitHub Release) and in
+  # exchange executes no repository-controlled code: every step can request
+  # an OIDC token, so nothing here compiles the crate. cargo packages with
   # --no-verify - the matrix above built and tested this very tree, and CI
-  # builds the packaged crate on every pull request - and npm runs with
-  # --ignore-scripts throughout.
+  # builds the packaged crate on every pull request - npm runs with
+  # --ignore-scripts throughout, and the Python wheels arrive built and
+  # smoke-tested from the matrix.
   #
   # Every publish is idempotent, so "Re-run failed jobs" recovers a release
   # that failed halfway: the GitHub Release stays a draft until everything
   # else is out, and each package registry is asked first - an identical
   # package already there is skipped, a different one fails the run.
   release:
-    name: Publish release, npm packages and crate
+    name: Publish release, crate, wheels and npm packages
     needs: [bump, push]
     runs-on: ubuntu-26.04
     permissions:
       contents: read # the GitHub Release uses the app token below, not GITHUB_TOKEN
-      id-token: write # npm and crates.io trusted publishing (OIDC)
+      id-token: write # npm, crates.io and PyPI trusted publishing (OIDC)
     steps:
       - name: Checkout the released tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -631,6 +665,75 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-io.outputs.token }}
         run: cargo publish --locked --no-verify
+
+      - name: Download the Python wheels
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: wheel-*
+          merge-multiple: true
+          path: wheels
+
+      # PyPI after crates.io and before npm: like crates.io it checks every
+      # file on upload and never accepts a file name twice, so a refused
+      # wheel stops the release before the npm packages are public. Asked
+      # first, as for the crate: each wheel already on PyPI with identical
+      # contents is skipped, one with different contents fails the run, and
+      # only the rest is published - so a retry finishes a partial upload.
+      - name: Check which Python wheels are already published
+        id: wheels
+        env:
+          VERSION: ${{ needs.bump.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          # one wheel per packaged binary, or a target went missing
+          wheel_count=$(find wheels -name '*.whl' | wc -l)
+          asset_count=$(find assets -name 'flashtrace-v*' | wc -l)
+          if [ "$wheel_count" != "$asset_count" ]; then
+            echo "::error::${wheel_count} wheels for ${asset_count} packaged binaries."
+            exit 1
+          fi
+          # A new project or version is 404; PyPI's JSON API is cached for a
+          # few minutes, so a wheel uploaded just now may still be missing
+          # from it - PyPI then accepts its identical re-upload as a no-op.
+          status=$(curl -sS -o "$RUNNER_TEMP/pypi.json" -w '%{http_code}' \
+            -A "flashtrace release workflow (https://github.com/${REPO})" \
+            "https://pypi.org/pypi/flashtrace-cli/${VERSION}/json")
+          case "$status" in
+            404) echo '{"urls": []}' > "$RUNNER_TEMP/pypi.json" ;;
+            200) ;;
+            *)
+              echo "::error::PyPI answered HTTP ${status}."
+              cat "$RUNNER_TEMP/pypi.json" >&2
+              exit 1
+              ;;
+          esac
+          # inside the workspace, which the publish action's container mounts
+          mkdir unpublished-wheels
+          for wheel in wheels/*.whl; do
+            file=$(basename "$wheel")
+            remote=$(jq -r --arg file "$file" '.urls[] | select(.filename == $file) | .digests.sha256' "$RUNNER_TEMP/pypi.json")
+            if [ -z "$remote" ]; then
+              cp "$wheel" unpublished-wheels/
+            elif [ "$remote" = "$(sha256sum "$wheel" | cut -d' ' -f1)" ]; then
+              echo "${file} is already on PyPI with identical contents; skipping."
+            else
+              echo "::error::${file} is already on PyPI with different contents."
+              exit 1
+            fi
+          done
+          if [ -n "$(ls unpublished-wheels)" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Trusted publishing: the action trades this job's OIDC token for a
+      # short-lived PyPI token, checks the metadata and attaches attestations.
+      - name: Publish the Python wheels
+        if: steps.wheels.outputs.publish == 'true'
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        with:
+          packages-dir: unpublished-wheels/
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

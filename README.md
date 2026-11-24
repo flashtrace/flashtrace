@@ -75,6 +75,7 @@
 To use flashtrace in your project,
 
 - run `npm install flashtrace -D` to add it as a dev dependency (a prebuilt native binary; `npx flashtrace` runs the tracing),
+- or `pip install flashtrace-cli` to install it into a Python environment (the same prebuilt binary as the `flashtrace` command; `pipx install flashtrace-cli` or `uv tool install flashtrace-cli` for a global install),
 - or `cargo install flashtrace` to build it from the published crate,
 - or download the binary for your platform from the [releases](https://github.com/flashtrace/flashtrace/releases).
 
