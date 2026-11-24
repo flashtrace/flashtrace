@@ -177,6 +177,20 @@ jobs:
         shell: bash
         run: node .github/scripts/npm-smoke-test.mjs "target/${{ matrix.target }}/debug/flashtrace${{ runner.os == 'Windows' && '.exe' || '' }}"
 
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+
+      # The same binary wrapped into this target's Python wheel, installed
+      # offline into a fresh virtual environment - so pip proves it accepts
+      # the wheel's platform tags here - and run as the installed command and
+      # as python -m flashtrace_cli. The release build runs the same script
+      # against every released binary and publishes the wheel it tested.
+      - name: Smoke-test the Python wheel with the built binary
+        shell: bash
+        run: python .github/scripts/python_smoke_test.py ${{ matrix.target }} "target/${{ matrix.target }}/debug/flashtrace${{ runner.os == 'Windows' && '.exe' || '' }}"
+
   # The npm launcher and platform-package templates ship binaries only at
   # release time; this keeps every package packable. Installing and running
   # them with a real binary is the test job's npm smoke test; the stub checks
@@ -267,6 +281,28 @@ jobs:
           rm -rf npm/flashtrace/node_modules
           echo "exit $status"
           test "$status" = 143
+
+  # The wheels, like the npm platform packages, receive their binary only at
+  # release time; installing and running them with a real binary is the test
+  # job's Python smoke test. The unit tests here pin what it cannot see on a
+  # single machine: every target's tags, the archive layout and RECORD, and
+  # byte-identical rebuilds.
+  python-package:
+    name: Python wheel builder
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read # checkout only; the tests run locally
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+
+      - name: Test the wheel builder
+        run: python -m unittest discover --start-directory .github/scripts --pattern '*_test.py' --verbose
 
   coverage:
     name: Coverage
