@@ -15,4 +15,4 @@ Tags: grammar, hash
 
 `req:cmake/cmake#1`
 
-Needs: impl:cmake/cmake-line#1, impl:cmake/cmake-block#1
+Needs: impl:cmake/cmake-line#1, impl:cmake/cmake-block#1, impl:cmake/cmake-after-double-quoted#1
