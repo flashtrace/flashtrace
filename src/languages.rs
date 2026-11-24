@@ -215,6 +215,20 @@ static GO_QUOTED: &[StringForm] = &[
     StringForm::CharacterLiteral { escape: Some('\\') },
 ];
 
+// TOML: "…" basic strings with backslash escapes and '…' literal strings
+// without any escapes.
+//   https://toml.io/en/v1.0.0#string
+static TOML_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::Quoted {
+        quote: '\'',
+        escape: None,
+    },
+];
+
 // Shared comment families, reused across the extension table below. C_LIKE is
 // also the fallback comment family for unknown extensions (see parse_code.rs).
 pub static C_LIKE: Comments = Comments {
@@ -495,7 +509,7 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("zsh", &HASH, NO_STRINGS),
         leaf("yaml", &HASH, NO_STRINGS),
         leaf("yml", &HASH, NO_STRINGS),
-        leaf("toml", &HASH, NO_STRINGS),
+        leaf("toml", &HASH, TOML_QUOTED),
         leaf("r", &HASH, DOUBLE_AND_SINGLE_QUOTED),
         leaf("pm", &HASH, NO_STRINGS),
         leaf("ex", &HASH, NO_STRINGS),
