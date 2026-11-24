@@ -6,3 +6,6 @@ target/
 # copied from the root by the npm launcher's prepack script
 npm/flashtrace/README.md
 npm/flashtrace/LICENSE
+
+# bytecode of the Python launcher and the CI helper scripts
+__pycache__/
