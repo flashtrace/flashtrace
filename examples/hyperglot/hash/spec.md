@@ -94,7 +94,7 @@ Needs: impl#1.2, impl:hash/py-after-double-quoted#1, impl:hash/py-after-single-q
 
 `req:hash/r#1`
 
-Needs: impl:hash/r#1
+Needs: impl:hash/r#1, impl:hash/r-after-double-quoted#1, impl:hash/r-after-single-quoted#1
 
 ## .rb
 
