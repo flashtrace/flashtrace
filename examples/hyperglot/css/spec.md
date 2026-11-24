@@ -14,4 +14,4 @@ Tags: grammar, css
 
 `req:css/css#1`
 
-Needs: impl:css/css#1
+Needs: impl:css/css#1, impl:css/css-after-double-quoted#1, impl:css/css-after-single-quoted#1

@@ -6,3 +6,7 @@
 .hyperglot {
   display: block;
 }
+
+/* A string hides comment markers; a comment after it still counts. */
+.hyperglot::before { content: "\" /* [impl:css/css-ghost-double-quoted#1]"; } /* [impl:css/css-after-double-quoted#1] */
+.hyperglot::before { content: '\' /* [impl:css/css-ghost-single-quoted#1]'; } /* [impl:css/css-after-single-quoted#1] */
