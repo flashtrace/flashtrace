@@ -6,5 +6,5 @@
  */
 
 // A string hides comment markers; a comment after it still counts.
-var text = "\" // [impl:c-like/cs-ghost-double-quoted#1]"; // [impl:c-like/cs-after-double-quoted#1]
-var text = '"'; // [impl:c-like/cs-after-character-literal#1]
+var doubleQuoted = "\" // [impl:c-like/cs-ghost-double-quoted#1]"; // [impl:c-like/cs-after-double-quoted#1]
+var characterLiteral = '"'; // [impl:c-like/cs-after-character-literal#1]

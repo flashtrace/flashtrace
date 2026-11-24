@@ -2,5 +2,5 @@
 # [impl:hash/cr#1]
 
 # A string hides comment markers; a comment after it still counts.
-text = "\" # [impl:hash/cr-ghost-double-quoted#1]" # [impl:hash/cr-after-double-quoted#1]
-text = '"' # [impl:hash/cr-after-character-literal#1]
+double_quoted = "\" # [impl:hash/cr-ghost-double-quoted#1]" # [impl:hash/cr-after-double-quoted#1]
+character_literal = '"' # [impl:hash/cr-after-character-literal#1]

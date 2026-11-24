@@ -6,6 +6,6 @@
  */
 
 // A string hides comment markers; a comment after it still counts.
-const text = "\" // [impl:c-like/cts-ghost-double-quoted#1]"; // [impl:c-like/cts-after-double-quoted#1]
-const text = '\' // [impl:c-like/cts-ghost-single-quoted#1]'; // [impl:c-like/cts-after-single-quoted#1]
-const text = `\` // [impl:c-like/cts-ghost-backtick-quoted#1]`; // [impl:c-like/cts-after-backtick-quoted#1]
+const doubleQuoted = "\" // [impl:c-like/cts-ghost-double-quoted#1]"; // [impl:c-like/cts-after-double-quoted#1]
+const singleQuoted = '\' // [impl:c-like/cts-ghost-single-quoted#1]'; // [impl:c-like/cts-after-single-quoted#1]
+const backtickQuoted = `\` // [impl:c-like/cts-ghost-backtick-quoted#1]`; // [impl:c-like/cts-after-backtick-quoted#1]

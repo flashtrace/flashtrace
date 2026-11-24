@@ -11,5 +11,5 @@
 -}
 
 -- A string hides comment markers; a comment after it still counts.
-text = "\" -- [impl:haskell/elm-ghost-double-quoted#1]" -- [impl:haskell/elm-after-double-quoted#1]
-text = '"' -- [impl:haskell/elm-after-character-literal#1]
+doubleQuoted = "\" -- [impl:haskell/elm-ghost-double-quoted#1]" -- [impl:haskell/elm-after-double-quoted#1]
+characterLiteral = '"' -- [impl:haskell/elm-after-character-literal#1]

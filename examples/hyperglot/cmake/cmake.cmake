@@ -6,4 +6,4 @@
 ]]
 
 # A string hides comment markers; a comment after it still counts.
-set(text "\" # [impl:cmake/cmake-ghost-double-quoted#1]") # [impl:cmake/cmake-after-double-quoted#1]
+set(double_quoted "\" # [impl:cmake/cmake-ghost-double-quoted#1]") # [impl:cmake/cmake-after-double-quoted#1]

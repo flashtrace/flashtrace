@@ -9,6 +9,6 @@
 *)
 
 (* A string hides comment markers; a comment after it still counts. *)
-let text = "\" (* [impl:ml/ml-ghost-double-quoted#1]" (* [impl:ml/ml-after-double-quoted#1] *)
-let text = '"' (* [impl:ml/ml-after-character-literal#1] *)
+let double_quoted = "\" (* [impl:ml/ml-ghost-double-quoted#1]" (* [impl:ml/ml-after-double-quoted#1] *)
+let character_literal = '"' (* [impl:ml/ml-after-character-literal#1] *)
 type 'a pair = 'a * 'a (* [impl:ml/ml-after-type-variable#1] *)

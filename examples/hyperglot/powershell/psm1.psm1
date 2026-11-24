@@ -6,5 +6,5 @@
 #>
 
 # A string hides comment markers; a comment after it still counts.
-$text = 'it''s # [impl:powershell/psm1-ghost-single-quoted#1]' # [impl:powershell/psm1-after-single-quoted#1]
-$text = "`" # [impl:powershell/psm1-ghost-double-quoted#1]" # [impl:powershell/psm1-after-double-quoted#1]
+$singleQuoted = 'it''s # [impl:powershell/psm1-ghost-single-quoted#1]' # [impl:powershell/psm1-after-single-quoted#1]
+$doubleQuoted = "`" # [impl:powershell/psm1-ghost-double-quoted#1]" # [impl:powershell/psm1-after-double-quoted#1]

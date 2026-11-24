@@ -11,4 +11,4 @@
 -}
 
 -- A string hides comment markers; a comment after it still counts.
-text = "\" -- [impl:haskell/purs-ghost-double-quoted#1]" -- [impl:haskell/purs-after-double-quoted#1]
+doubleQuoted = "\" -- [impl:haskell/purs-ghost-double-quoted#1]" -- [impl:haskell/purs-after-double-quoted#1]

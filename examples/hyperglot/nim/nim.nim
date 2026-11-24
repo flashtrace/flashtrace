@@ -21,6 +21,6 @@
 ]##
 
 # A string hides comment markers; a comment after it still counts.
-let text = "\" # [impl:nim/nim-ghost-double-quoted#1]" # [impl:nim/nim-after-double-quoted#1]
-let text = '"' # [impl:nim/nim-after-character-literal#1]
+let double_quoted = "\" # [impl:nim/nim-ghost-double-quoted#1]" # [impl:nim/nim-after-double-quoted#1]
+let character_literal = '"' # [impl:nim/nim-after-character-literal#1]
 let small = 1'i8 # [impl:nim/nim-after-type-suffix#1]

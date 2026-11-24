@@ -11,6 +11,6 @@
 =#
 
 # A string hides comment markers; a comment after it still counts.
-text = "\" # [impl:julia/jl-ghost-double-quoted#1]" # [impl:julia/jl-after-double-quoted#1]
-text = '"' # [impl:julia/jl-after-character-literal#1]
+double_quoted = "\" # [impl:julia/jl-ghost-double-quoted#1]" # [impl:julia/jl-after-double-quoted#1]
+character_literal = '"' # [impl:julia/jl-after-character-literal#1]
 product = A' * B' # [impl:julia/jl-after-adjoint#1]

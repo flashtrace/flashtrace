@@ -7,4 +7,4 @@
  */
 
 # A string hides comment markers; a comment after it still counts.
-text = "\" # [impl:hcl/tf-ghost-double-quoted#1]" # [impl:hcl/tf-after-double-quoted#1]
+double_quoted = "\" # [impl:hcl/tf-ghost-double-quoted#1]" # [impl:hcl/tf-after-double-quoted#1]

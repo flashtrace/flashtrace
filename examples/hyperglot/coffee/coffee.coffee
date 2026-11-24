@@ -11,5 +11,5 @@
 #### and end that block here
 
 # A string hides comment markers; a comment after it still counts.
-text = "\" # [impl:coffee/coffee-ghost-double-quoted#1]" # [impl:coffee/coffee-after-double-quoted#1]
-text = '\' # [impl:coffee/coffee-ghost-single-quoted#1]' # [impl:coffee/coffee-after-single-quoted#1]
+doubleQuoted = "\" # [impl:coffee/coffee-ghost-double-quoted#1]" # [impl:coffee/coffee-after-double-quoted#1]
+singleQuoted = '\' # [impl:coffee/coffee-ghost-single-quoted#1]' # [impl:coffee/coffee-after-single-quoted#1]

@@ -11,5 +11,5 @@
 |#
 
 ; A string hides comment markers; a comment after it still counts.
-(define text "\" ; [impl:scheme/ss-ghost-double-quoted#1]") ; [impl:scheme/ss-after-double-quoted#1]
-(define text #\") ; [impl:scheme/ss-after-character-prefix#1]
+(define double-quoted "\" ; [impl:scheme/ss-ghost-double-quoted#1]") ; [impl:scheme/ss-after-double-quoted#1]
+(define character-prefix #\") ; [impl:scheme/ss-after-character-prefix#1]

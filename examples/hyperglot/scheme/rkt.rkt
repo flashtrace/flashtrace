@@ -11,5 +11,5 @@
 |#
 
 ; A string hides comment markers; a comment after it still counts.
-(define text "\" ; [impl:scheme/rkt-ghost-double-quoted#1]") ; [impl:scheme/rkt-after-double-quoted#1]
-(define text #\") ; [impl:scheme/rkt-after-character-prefix#1]
+(define double-quoted "\" ; [impl:scheme/rkt-ghost-double-quoted#1]") ; [impl:scheme/rkt-after-double-quoted#1]
+(define character-prefix #\") ; [impl:scheme/rkt-after-character-prefix#1]

@@ -11,6 +11,6 @@
 -}
 
 -- A string hides comment markers; a comment after it still counts.
-text = "\" -- [impl:haskell/hs-ghost-double-quoted#1]" -- [impl:haskell/hs-after-double-quoted#1]
-text = '"' -- [impl:haskell/hs-after-character-literal#1]
+doubleQuoted = "\" -- [impl:haskell/hs-ghost-double-quoted#1]" -- [impl:haskell/hs-after-double-quoted#1]
+characterLiteral = '"' -- [impl:haskell/hs-after-character-literal#1]
 next' = foldl' step initial -- [impl:haskell/hs-after-prime#1]

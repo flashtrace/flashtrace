@@ -11,4 +11,4 @@
 */
 
 // A string hides comment markers; a comment after it still counts.
-let text = "\" // [impl:c-like-nested/swift-ghost-double-quoted#1]" // [impl:c-like-nested/swift-after-double-quoted#1]
+let doubleQuoted = "\" // [impl:c-like-nested/swift-ghost-double-quoted#1]" // [impl:c-like-nested/swift-after-double-quoted#1]

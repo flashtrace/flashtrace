@@ -127,7 +127,7 @@
       "location": {
         "file": "c-like-nested/kt.kt",
         "line": 14,
-        "character": 69
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,
@@ -156,7 +156,7 @@
       "location": {
         "file": "c-like-nested/kt.kt",
         "line": 15,
-        "character": 19
+        "character": 31
       },
       "status": "deep-covered",
       "defective": false,
@@ -301,7 +301,7 @@
       "location": {
         "file": "c-like-nested/kts.kts",
         "line": 14,
-        "character": 70
+        "character": 78
       },
       "status": "deep-covered",
       "defective": false,
@@ -330,7 +330,7 @@
       "location": {
         "file": "c-like-nested/kts.kts",
         "line": 15,
-        "character": 19
+        "character": 31
       },
       "status": "deep-covered",
       "defective": false,
@@ -475,7 +475,7 @@
       "location": {
         "file": "c-like-nested/rs.rs",
         "line": 14,
-        "character": 70
+        "character": 79
       },
       "status": "deep-covered",
       "defective": false,
@@ -504,7 +504,7 @@
       "location": {
         "file": "c-like-nested/rs.rs",
         "line": 15,
-        "character": 20
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -678,7 +678,7 @@
       "location": {
         "file": "c-like-nested/scala.scala",
         "line": 14,
-        "character": 72
+        "character": 80
       },
       "status": "deep-covered",
       "defective": false,
@@ -707,7 +707,7 @@
       "location": {
         "file": "c-like-nested/scala.scala",
         "line": 15,
-        "character": 19
+        "character": 31
       },
       "status": "deep-covered",
       "defective": false,
@@ -1250,7 +1250,7 @@
       "location": {
         "file": "c-like-nested/swift.swift",
         "line": 14,
-        "character": 72
+        "character": 80
       },
       "status": "deep-covered",
       "defective": false,
@@ -1337,7 +1337,7 @@
       "location": {
         "file": "c-like/c.c",
         "line": 9,
-        "character": 70
+        "character": 78
       },
       "status": "deep-covered",
       "defective": false,
@@ -1366,7 +1366,7 @@
       "location": {
         "file": "c-like/c.c",
         "line": 10,
-        "character": 28
+        "character": 40
       },
       "status": "deep-covered",
       "defective": false,
@@ -1482,7 +1482,7 @@
       "location": {
         "file": "c-like/cc.cc",
         "line": 9,
-        "character": 64
+        "character": 72
       },
       "status": "deep-covered",
       "defective": false,
@@ -1511,7 +1511,7 @@
       "location": {
         "file": "c-like/cc.cc",
         "line": 10,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -1627,7 +1627,7 @@
       "location": {
         "file": "c-like/cjs.cjs",
         "line": 9,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -1656,7 +1656,7 @@
       "location": {
         "file": "c-like/cjs.cjs",
         "line": 10,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -1685,7 +1685,7 @@
       "location": {
         "file": "c-like/cjs.cjs",
         "line": 11,
-        "character": 68
+        "character": 78
       },
       "status": "deep-covered",
       "defective": false,
@@ -1772,7 +1772,7 @@
       "location": {
         "file": "c-like/cpp.cpp",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -1801,7 +1801,7 @@
       "location": {
         "file": "c-like/cpp.cpp",
         "line": 10,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -1917,7 +1917,7 @@
       "location": {
         "file": "c-like/cs.cs",
         "line": 9,
-        "character": 63
+        "character": 71
       },
       "status": "deep-covered",
       "defective": false,
@@ -1946,7 +1946,7 @@
       "location": {
         "file": "c-like/cs.cs",
         "line": 10,
-        "character": 20
+        "character": 32
       },
       "status": "deep-covered",
       "defective": false,
@@ -2033,7 +2033,7 @@
       "location": {
         "file": "c-like/cts.cts",
         "line": 9,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -2062,7 +2062,7 @@
       "location": {
         "file": "c-like/cts.cts",
         "line": 10,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -2091,7 +2091,7 @@
       "location": {
         "file": "c-like/cts.cts",
         "line": 11,
-        "character": 68
+        "character": 78
       },
       "status": "deep-covered",
       "defective": false,
@@ -2178,7 +2178,7 @@
       "location": {
         "file": "c-like/cxx.cxx",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -2207,7 +2207,7 @@
       "location": {
         "file": "c-like/cxx.cxx",
         "line": 10,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -2323,7 +2323,7 @@
       "location": {
         "file": "c-like/dart.dart",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -2352,7 +2352,7 @@
       "location": {
         "file": "c-like/dart.dart",
         "line": 10,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -2439,7 +2439,7 @@
       "location": {
         "file": "c-like/go.go",
         "line": 9,
-        "character": 59
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -2468,7 +2468,7 @@
       "location": {
         "file": "c-like/go.go",
         "line": 10,
-        "character": 60
+        "character": 70
       },
       "status": "deep-covered",
       "defective": false,
@@ -2497,7 +2497,7 @@
       "location": {
         "file": "c-like/go.go",
         "line": 11,
-        "character": 16
+        "character": 28
       },
       "status": "deep-covered",
       "defective": false,
@@ -2584,7 +2584,7 @@
       "location": {
         "file": "c-like/gradle.gradle",
         "line": 9,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -2613,7 +2613,7 @@
       "location": {
         "file": "c-like/gradle.gradle",
         "line": 10,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -2700,7 +2700,7 @@
       "location": {
         "file": "c-like/groovy.groovy",
         "line": 9,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -2729,7 +2729,7 @@
       "location": {
         "file": "c-like/groovy.groovy",
         "line": 10,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -2816,7 +2816,7 @@
       "location": {
         "file": "c-like/h.h",
         "line": 9,
-        "character": 70
+        "character": 78
       },
       "status": "deep-covered",
       "defective": false,
@@ -2845,7 +2845,7 @@
       "location": {
         "file": "c-like/h.h",
         "line": 10,
-        "character": 28
+        "character": 40
       },
       "status": "deep-covered",
       "defective": false,
@@ -2961,7 +2961,7 @@
       "location": {
         "file": "c-like/hpp.hpp",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -2990,7 +2990,7 @@
       "location": {
         "file": "c-like/hpp.hpp",
         "line": 10,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -3106,7 +3106,7 @@
       "location": {
         "file": "c-like/hxx.hxx",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -3135,7 +3135,7 @@
       "location": {
         "file": "c-like/hxx.hxx",
         "line": 10,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -3251,7 +3251,7 @@
       "location": {
         "file": "c-like/inl.inl",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -3280,7 +3280,7 @@
       "location": {
         "file": "c-like/inl.inl",
         "line": 10,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -3396,7 +3396,7 @@
       "location": {
         "file": "c-like/ino.ino",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -3425,7 +3425,7 @@
       "location": {
         "file": "c-like/ino.ino",
         "line": 10,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -3541,7 +3541,7 @@
       "location": {
         "file": "c-like/java.java",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -3570,7 +3570,7 @@
       "location": {
         "file": "c-like/java.java",
         "line": 10,
-        "character": 20
+        "character": 32
       },
       "status": "deep-covered",
       "defective": false,
@@ -3657,7 +3657,7 @@
       "location": {
         "file": "c-like/js.js",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -3686,7 +3686,7 @@
       "location": {
         "file": "c-like/js.js",
         "line": 10,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -3715,7 +3715,7 @@
       "location": {
         "file": "c-like/js.js",
         "line": 11,
-        "character": 67
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,
@@ -3918,7 +3918,7 @@
       "location": {
         "file": "c-like/mjs.mjs",
         "line": 9,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -3947,7 +3947,7 @@
       "location": {
         "file": "c-like/mjs.mjs",
         "line": 10,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -3976,7 +3976,7 @@
       "location": {
         "file": "c-like/mjs.mjs",
         "line": 11,
-        "character": 68
+        "character": 78
       },
       "status": "deep-covered",
       "defective": false,
@@ -4063,7 +4063,7 @@
       "location": {
         "file": "c-like/mts.mts",
         "line": 9,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -4092,7 +4092,7 @@
       "location": {
         "file": "c-like/mts.mts",
         "line": 10,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -4121,7 +4121,7 @@
       "location": {
         "file": "c-like/mts.mts",
         "line": 11,
-        "character": 68
+        "character": 78
       },
       "status": "deep-covered",
       "defective": false,
@@ -4324,7 +4324,7 @@
       "location": {
         "file": "c-like/scss.scss",
         "line": 9,
-        "character": 61
+        "character": 69
       },
       "status": "deep-covered",
       "defective": false,
@@ -4353,7 +4353,7 @@
       "location": {
         "file": "c-like/scss.scss",
         "line": 10,
-        "character": 61
+        "character": 69
       },
       "status": "deep-covered",
       "defective": false,
@@ -4440,7 +4440,7 @@
       "location": {
         "file": "c-like/sol.sol",
         "line": 9,
-        "character": 76
+        "character": 84
       },
       "status": "deep-covered",
       "defective": false,
@@ -4469,7 +4469,7 @@
       "location": {
         "file": "c-like/sol.sol",
         "line": 10,
-        "character": 76
+        "character": 84
       },
       "status": "deep-covered",
       "defective": false,
@@ -6340,7 +6340,7 @@
       "location": {
         "file": "c-like/tpp.tpp",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -6369,7 +6369,7 @@
       "location": {
         "file": "c-like/tpp.tpp",
         "line": 10,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -6485,7 +6485,7 @@
       "location": {
         "file": "c-like/ts.ts",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -6514,7 +6514,7 @@
       "location": {
         "file": "c-like/ts.ts",
         "line": 10,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -6543,7 +6543,7 @@
       "location": {
         "file": "c-like/ts.ts",
         "line": 11,
-        "character": 67
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,
@@ -6688,7 +6688,7 @@
       "location": {
         "file": "cmake/cmake.cmake",
         "line": 9,
-        "character": 61
+        "character": 70
       },
       "status": "deep-covered",
       "defective": false,
@@ -6896,7 +6896,7 @@
       "location": {
         "file": "coffee/coffee.coffee",
         "line": 14,
-        "character": 60
+        "character": 68
       },
       "status": "deep-covered",
       "defective": false,
@@ -6925,7 +6925,7 @@
       "location": {
         "file": "coffee/coffee.coffee",
         "line": 15,
-        "character": 60
+        "character": 68
       },
       "status": "deep-covered",
       "defective": false,
@@ -7087,7 +7087,7 @@
       "location": {
         "file": "css/css.css",
         "line": 11,
-        "character": 82
+        "character": 96
       },
       "status": "deep-covered",
       "defective": false,
@@ -7116,7 +7116,7 @@
       "location": {
         "file": "css/css.css",
         "line": 12,
-        "character": 82
+        "character": 96
       },
       "status": "deep-covered",
       "defective": false,
@@ -7776,7 +7776,7 @@
       "location": {
         "file": "dash-line/vhd.vhd",
         "line": 5,
-        "character": 85
+        "character": 94
       },
       "status": "deep-covered",
       "defective": false,
@@ -7805,7 +7805,7 @@
       "location": {
         "file": "dash-line/vhd.vhd",
         "line": 6,
-        "character": 35
+        "character": 48
       },
       "status": "deep-covered",
       "defective": false,
@@ -7892,7 +7892,7 @@
       "location": {
         "file": "dash-line/vhdl.vhdl",
         "line": 5,
-        "character": 86
+        "character": 95
       },
       "status": "deep-covered",
       "defective": false,
@@ -7921,7 +7921,7 @@
       "location": {
         "file": "dash-line/vhdl.vhdl",
         "line": 6,
-        "character": 35
+        "character": 48
       },
       "status": "deep-covered",
       "defective": false,
@@ -8095,7 +8095,7 @@
       "location": {
         "file": "fsharp/fs.fs",
         "line": 14,
-        "character": 62
+        "character": 70
       },
       "status": "deep-covered",
       "defective": false,
@@ -8124,7 +8124,7 @@
       "location": {
         "file": "fsharp/fs.fs",
         "line": 15,
-        "character": 19
+        "character": 31
       },
       "status": "deep-covered",
       "defective": false,
@@ -8298,7 +8298,7 @@
       "location": {
         "file": "fsharp/fsi.fsi",
         "line": 14,
-        "character": 63
+        "character": 71
       },
       "status": "deep-covered",
       "defective": false,
@@ -8327,7 +8327,7 @@
       "location": {
         "file": "fsharp/fsi.fsi",
         "line": 15,
-        "character": 19
+        "character": 31
       },
       "status": "deep-covered",
       "defective": false,
@@ -8501,7 +8501,7 @@
       "location": {
         "file": "fsharp/fsx.fsx",
         "line": 14,
-        "character": 63
+        "character": 71
       },
       "status": "deep-covered",
       "defective": false,
@@ -8530,7 +8530,7 @@
       "location": {
         "file": "fsharp/fsx.fsx",
         "line": 15,
-        "character": 19
+        "character": 31
       },
       "status": "deep-covered",
       "defective": false,
@@ -8889,7 +8889,7 @@
       "location": {
         "file": "hash/awk.awk",
         "line": 5,
-        "character": 65
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -8976,7 +8976,7 @@
       "location": {
         "file": "hash/cr.cr",
         "line": 5,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -9005,7 +9005,7 @@
       "location": {
         "file": "hash/cr.cr",
         "line": 6,
-        "character": 14
+        "character": 27
       },
       "status": "deep-covered",
       "defective": false,
@@ -9063,7 +9063,7 @@
       "location": {
         "file": "hash/ex.ex",
         "line": 5,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -9092,7 +9092,7 @@
       "location": {
         "file": "hash/ex.ex",
         "line": 6,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -9121,7 +9121,7 @@
       "location": {
         "file": "hash/ex.ex",
         "line": 7,
-        "character": 13
+        "character": 25
       },
       "status": "deep-covered",
       "defective": false,
@@ -9179,7 +9179,7 @@
       "location": {
         "file": "hash/exs.exs",
         "line": 5,
-        "character": 55
+        "character": 64
       },
       "status": "deep-covered",
       "defective": false,
@@ -9208,7 +9208,7 @@
       "location": {
         "file": "hash/exs.exs",
         "line": 6,
-        "character": 55
+        "character": 64
       },
       "status": "deep-covered",
       "defective": false,
@@ -9237,7 +9237,7 @@
       "location": {
         "file": "hash/exs.exs",
         "line": 7,
-        "character": 13
+        "character": 25
       },
       "status": "deep-covered",
       "defective": false,
@@ -9295,7 +9295,7 @@
       "location": {
         "file": "hash/gd.gd",
         "line": 5,
-        "character": 58
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -9324,7 +9324,7 @@
       "location": {
         "file": "hash/gd.gd",
         "line": 6,
-        "character": 58
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -9527,7 +9527,7 @@
       "location": {
         "file": "hash/py.py",
         "line": 5,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -9556,7 +9556,7 @@
       "location": {
         "file": "hash/py.py",
         "line": 6,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -9614,7 +9614,7 @@
       "location": {
         "file": "hash/r.r",
         "line": 5,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -9643,7 +9643,7 @@
       "location": {
         "file": "hash/r.r",
         "line": 6,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -9701,7 +9701,7 @@
       "location": {
         "file": "hash/rb.rb",
         "line": 5,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -9730,7 +9730,7 @@
       "location": {
         "file": "hash/rb.rb",
         "line": 6,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -10766,7 +10766,7 @@
       "location": {
         "file": "hash/toml.toml",
         "line": 5,
-        "character": 56
+        "character": 65
       },
       "status": "deep-covered",
       "defective": false,
@@ -10795,7 +10795,7 @@
       "location": {
         "file": "hash/toml.toml",
         "line": 6,
-        "character": 55
+        "character": 64
       },
       "status": "deep-covered",
       "defective": false,
@@ -11027,7 +11027,7 @@
       "location": {
         "file": "haskell/elm.elm",
         "line": 14,
-        "character": 60
+        "character": 68
       },
       "status": "deep-covered",
       "defective": false,
@@ -11056,7 +11056,7 @@
       "location": {
         "file": "haskell/elm.elm",
         "line": 15,
-        "character": 15
+        "character": 27
       },
       "status": "deep-covered",
       "defective": false,
@@ -11201,7 +11201,7 @@
       "location": {
         "file": "haskell/hs.hs",
         "line": 14,
-        "character": 59
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -11230,7 +11230,7 @@
       "location": {
         "file": "haskell/hs.hs",
         "line": 15,
-        "character": 15
+        "character": 27
       },
       "status": "deep-covered",
       "defective": false,
@@ -11404,7 +11404,7 @@
       "location": {
         "file": "haskell/purs.purs",
         "line": 14,
-        "character": 61
+        "character": 69
       },
       "status": "deep-covered",
       "defective": false,
@@ -11774,7 +11774,7 @@
       "location": {
         "file": "hcl/hcl.hcl",
         "line": 10,
-        "character": 54
+        "character": 63
       },
       "status": "deep-covered",
       "defective": false,
@@ -12108,7 +12108,7 @@
       "location": {
         "file": "hcl/tf.tf",
         "line": 10,
-        "character": 53
+        "character": 62
       },
       "status": "deep-covered",
       "defective": false,
@@ -12224,7 +12224,7 @@
       "location": {
         "file": "hcl/tfvars.tfvars",
         "line": 10,
-        "character": 57
+        "character": 66
       },
       "status": "deep-covered",
       "defective": false,
@@ -12282,7 +12282,7 @@
       "location": {
         "file": "html/htm.htm",
         "line": 9,
-        "character": 93
+        "character": 107
       },
       "status": "deep-covered",
       "defective": false,
@@ -12311,7 +12311,7 @@
       "location": {
         "file": "html/htm.htm",
         "line": 10,
-        "character": 93
+        "character": 107
       },
       "status": "deep-covered",
       "defective": false,
@@ -12427,7 +12427,7 @@
       "location": {
         "file": "html/htm.htm",
         "line": 24,
-        "character": 75
+        "character": 83
       },
       "status": "deep-covered",
       "defective": false,
@@ -12456,7 +12456,7 @@
       "location": {
         "file": "html/htm.htm",
         "line": 25,
-        "character": 75
+        "character": 83
       },
       "status": "deep-covered",
       "defective": false,
@@ -12485,7 +12485,7 @@
       "location": {
         "file": "html/htm.htm",
         "line": 26,
-        "character": 77
+        "character": 87
       },
       "status": "deep-covered",
       "defective": false,
@@ -12572,7 +12572,7 @@
       "location": {
         "file": "html/html.html",
         "line": 9,
-        "character": 94
+        "character": 108
       },
       "status": "deep-covered",
       "defective": false,
@@ -12601,7 +12601,7 @@
       "location": {
         "file": "html/html.html",
         "line": 10,
-        "character": 94
+        "character": 108
       },
       "status": "deep-covered",
       "defective": false,
@@ -12717,7 +12717,7 @@
       "location": {
         "file": "html/html.html",
         "line": 24,
-        "character": 76
+        "character": 84
       },
       "status": "deep-covered",
       "defective": false,
@@ -12746,7 +12746,7 @@
       "location": {
         "file": "html/html.html",
         "line": 25,
-        "character": 76
+        "character": 84
       },
       "status": "deep-covered",
       "defective": false,
@@ -12775,7 +12775,7 @@
       "location": {
         "file": "html/html.html",
         "line": 26,
-        "character": 78
+        "character": 88
       },
       "status": "deep-covered",
       "defective": false,
@@ -13394,7 +13394,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 6,
-        "character": 74
+        "character": 82
       },
       "status": "deep-covered",
       "defective": false,
@@ -13423,7 +13423,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 7,
-        "character": 74
+        "character": 82
       },
       "status": "deep-covered",
       "defective": false,
@@ -13452,7 +13452,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 8,
-        "character": 76
+        "character": 86
       },
       "status": "deep-covered",
       "defective": false,
@@ -13510,7 +13510,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 14,
-        "character": 72
+        "character": 80
       },
       "status": "deep-covered",
       "defective": false,
@@ -13539,7 +13539,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 15,
-        "character": 72
+        "character": 80
       },
       "status": "deep-covered",
       "defective": false,
@@ -13655,7 +13655,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 30,
-        "character": 92
+        "character": 106
       },
       "status": "deep-covered",
       "defective": false,
@@ -13684,7 +13684,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 31,
-        "character": 92
+        "character": 106
       },
       "status": "deep-covered",
       "defective": false,
@@ -13742,7 +13742,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 37,
-        "character": 72
+        "character": 80
       },
       "status": "deep-covered",
       "defective": false,
@@ -13771,7 +13771,7 @@
       "location": {
         "file": "html/svelte.svelte",
         "line": 38,
-        "character": 72
+        "character": 80
       },
       "status": "deep-covered",
       "defective": false,
@@ -13887,7 +13887,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 13,
-        "character": 71
+        "character": 79
       },
       "status": "deep-covered",
       "defective": false,
@@ -13916,7 +13916,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 14,
-        "character": 71
+        "character": 79
       },
       "status": "deep-covered",
       "defective": false,
@@ -13945,7 +13945,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 15,
-        "character": 73
+        "character": 83
       },
       "status": "deep-covered",
       "defective": false,
@@ -14003,7 +14003,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 21,
-        "character": 69
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,
@@ -14032,7 +14032,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 22,
-        "character": 69
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,
@@ -14119,7 +14119,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 32,
-        "character": 89
+        "character": 103
       },
       "status": "deep-covered",
       "defective": false,
@@ -14148,7 +14148,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 33,
-        "character": 89
+        "character": 103
       },
       "status": "deep-covered",
       "defective": false,
@@ -14206,7 +14206,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 39,
-        "character": 69
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,
@@ -14235,7 +14235,7 @@
       "location": {
         "file": "html/vue.vue",
         "line": 40,
-        "character": 69
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,
@@ -14380,7 +14380,7 @@
       "location": {
         "file": "julia/jl.jl",
         "line": 14,
-        "character": 55
+        "character": 64
       },
       "status": "deep-covered",
       "defective": false,
@@ -14409,7 +14409,7 @@
       "location": {
         "file": "julia/jl.jl",
         "line": 15,
-        "character": 14
+        "character": 27
       },
       "status": "deep-covered",
       "defective": false,
@@ -14641,7 +14641,7 @@
       "location": {
         "file": "lua/lua.lua",
         "line": 9,
-        "character": 62
+        "character": 71
       },
       "status": "deep-covered",
       "defective": false,
@@ -14670,7 +14670,7 @@
       "location": {
         "file": "lua/lua.lua",
         "line": 10,
-        "character": 62
+        "character": 71
       },
       "status": "deep-covered",
       "defective": false,
@@ -14884,7 +14884,7 @@
       "location": {
         "file": "ml/ml.ml",
         "line": 12,
-        "character": 58
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -14913,7 +14913,7 @@
       "location": {
         "file": "ml/ml.ml",
         "line": 13,
-        "character": 19
+        "character": 32
       },
       "status": "deep-covered",
       "defective": false,
@@ -15058,7 +15058,7 @@
       "location": {
         "file": "ml/mli.mli",
         "line": 12,
-        "character": 59
+        "character": 68
       },
       "status": "deep-covered",
       "defective": false,
@@ -15087,7 +15087,7 @@
       "location": {
         "file": "ml/mli.mli",
         "line": 13,
-        "character": 19
+        "character": 32
       },
       "status": "deep-covered",
       "defective": false,
@@ -15530,7 +15530,7 @@
       "location": {
         "file": "nim/nim.nim",
         "line": 24,
-        "character": 58
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -15559,7 +15559,7 @@
       "location": {
         "file": "nim/nim.nim",
         "line": 25,
-        "character": 18
+        "character": 31
       },
       "status": "deep-covered",
       "defective": false,
@@ -15838,7 +15838,7 @@
       "location": {
         "file": "pascal/dpr.dpr",
         "line": 13,
-        "character": 64
+        "character": 72
       },
       "status": "deep-covered",
       "defective": false,
@@ -15954,7 +15954,7 @@
       "location": {
         "file": "pascal/pas.pas",
         "line": 13,
-        "character": 64
+        "character": 72
       },
       "status": "deep-covered",
       "defective": false,
@@ -16170,7 +16170,7 @@
       "location": {
         "file": "percent/erl.erl",
         "line": 5,
-        "character": 59
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -16199,7 +16199,7 @@
       "location": {
         "file": "percent/erl.erl",
         "line": 6,
-        "character": 59
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -16228,7 +16228,7 @@
       "location": {
         "file": "percent/erl.erl",
         "line": 7,
-        "character": 14
+        "character": 25
       },
       "status": "deep-covered",
       "defective": false,
@@ -16286,7 +16286,7 @@
       "location": {
         "file": "percent/hrl.hrl",
         "line": 5,
-        "character": 59
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -16315,7 +16315,7 @@
       "location": {
         "file": "percent/hrl.hrl",
         "line": 6,
-        "character": 59
+        "character": 67
       },
       "status": "deep-covered",
       "defective": false,
@@ -16344,7 +16344,7 @@
       "location": {
         "file": "percent/hrl.hrl",
         "line": 7,
-        "character": 14
+        "character": 25
       },
       "status": "deep-covered",
       "defective": false,
@@ -16760,7 +16760,7 @@
       "location": {
         "file": "php/php.php",
         "line": 11,
-        "character": 58
+        "character": 66
       },
       "status": "deep-covered",
       "defective": false,
@@ -16789,7 +16789,7 @@
       "location": {
         "file": "php/php.php",
         "line": 12,
-        "character": 58
+        "character": 66
       },
       "status": "deep-covered",
       "defective": false,
@@ -16980,7 +16980,7 @@
       "location": {
         "file": "powershell/ps1.ps1",
         "line": 9,
-        "character": 65
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -17009,7 +17009,7 @@
       "location": {
         "file": "powershell/ps1.ps1",
         "line": 10,
-        "character": 62
+        "character": 70
       },
       "status": "deep-covered",
       "defective": false,
@@ -17096,7 +17096,7 @@
       "location": {
         "file": "powershell/psm1.psm1",
         "line": 9,
-        "character": 66
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -17125,7 +17125,7 @@
       "location": {
         "file": "powershell/psm1.psm1",
         "line": 10,
-        "character": 63
+        "character": 71
       },
       "status": "deep-covered",
       "defective": false,
@@ -17428,7 +17428,7 @@
       "location": {
         "file": "scheme/rkt.rkt",
         "line": 14,
-        "character": 64
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -17457,7 +17457,7 @@
       "location": {
         "file": "scheme/rkt.rkt",
         "line": 15,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -17602,7 +17602,7 @@
       "location": {
         "file": "scheme/scm.scm",
         "line": 14,
-        "character": 64
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -17631,7 +17631,7 @@
       "location": {
         "file": "scheme/scm.scm",
         "line": 15,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -18030,7 +18030,7 @@
       "location": {
         "file": "scheme/ss.ss",
         "line": 14,
-        "character": 63
+        "character": 72
       },
       "status": "deep-covered",
       "defective": false,
@@ -18059,7 +18059,7 @@
       "location": {
         "file": "scheme/ss.ss",
         "line": 15,
-        "character": 21
+        "character": 33
       },
       "status": "deep-covered",
       "defective": false,
@@ -18117,7 +18117,7 @@
       "location": {
         "file": "semicolon/clj.clj",
         "line": 5,
-        "character": 64
+        "character": 73
       },
       "status": "deep-covered",
       "defective": false,
@@ -18146,7 +18146,7 @@
       "location": {
         "file": "semicolon/clj.clj",
         "line": 6,
-        "character": 17
+        "character": 29
       },
       "status": "deep-covered",
       "defective": false,
@@ -18204,7 +18204,7 @@
       "location": {
         "file": "semicolon/cljc.cljc",
         "line": 5,
-        "character": 65
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -18233,7 +18233,7 @@
       "location": {
         "file": "semicolon/cljc.cljc",
         "line": 6,
-        "character": 17
+        "character": 29
       },
       "status": "deep-covered",
       "defective": false,
@@ -18291,7 +18291,7 @@
       "location": {
         "file": "semicolon/cljs.cljs",
         "line": 5,
-        "character": 65
+        "character": 74
       },
       "status": "deep-covered",
       "defective": false,
@@ -18320,7 +18320,7 @@
       "location": {
         "file": "semicolon/cljs.cljs",
         "line": 6,
-        "character": 17
+        "character": 29
       },
       "status": "deep-covered",
       "defective": false,
@@ -18436,7 +18436,7 @@
       "location": {
         "file": "semicolon/lisp.lisp",
         "line": 5,
-        "character": 70
+        "character": 79
       },
       "status": "deep-covered",
       "defective": false,
@@ -18465,7 +18465,7 @@
       "location": {
         "file": "semicolon/lisp.lisp",
         "line": 6,
-        "character": 23
+        "character": 35
       },
       "status": "deep-covered",
       "defective": false,
@@ -19609,7 +19609,7 @@
       "location": {
         "file": "sql/sql.sql",
         "line": 9,
-        "character": 68
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,
@@ -19638,7 +19638,7 @@
       "location": {
         "file": "sql/sql.sql",
         "line": 10,
-        "character": 68
+        "character": 77
       },
       "status": "deep-covered",
       "defective": false,

@@ -11,5 +11,5 @@
 */
 
 // A string hides comment markers; a comment after it still counts.
-val text = "\" // [impl:c-like-nested/kts-ghost-double-quoted#1]" // [impl:c-like-nested/kts-after-double-quoted#1]
-val text = '"' // [impl:c-like-nested/kts-after-character-literal#1]
+val doubleQuoted = "\" // [impl:c-like-nested/kts-ghost-double-quoted#1]" // [impl:c-like-nested/kts-after-double-quoted#1]
+val characterLiteral = '"' // [impl:c-like-nested/kts-after-character-literal#1]

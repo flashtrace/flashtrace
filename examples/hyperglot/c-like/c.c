@@ -6,6 +6,6 @@
  */
 
 // A string hides comment markers; a comment after it still counts.
-const char *text = "\" // [impl:c-like/c-ghost-double-quoted#1]"; // [impl:c-like/c-after-double-quoted#1]
-const char *text = '"'; // [impl:c-like/c-after-character-literal#1]
+const char *doubleQuoted = "\" // [impl:c-like/c-ghost-double-quoted#1]"; // [impl:c-like/c-after-double-quoted#1]
+const char *characterLiteral = '"'; // [impl:c-like/c-after-character-literal#1]
 unsigned long large = 1'000'000; unsigned long odd = 10'000; // [impl:c-like/c-after-digit-separator#1]
