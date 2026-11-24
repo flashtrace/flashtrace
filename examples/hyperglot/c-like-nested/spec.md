@@ -60,6 +60,8 @@ Needs:
 - impl:c-like-nested/scala-block#1
 - impl:c-like-nested/scala-nested/deep#1
 - impl:c-like-nested/scala-nested/after-close#1
+- impl:c-like-nested/scala-after-double-quoted#1
+- impl:c-like-nested/scala-after-character-literal#1
 
 ## .swift
 
