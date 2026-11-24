@@ -66,3 +66,4 @@ Needs:
 - impl:c-like-nested/swift-block#1
 - impl:c-like-nested/swift-nested/deep#1
 - impl:c-like-nested/swift-nested/after-close#1
+- impl:c-like-nested/swift-after-double-quoted#1
