@@ -44,6 +44,7 @@ jobs:
                 { prev2 = prev1; prev1 = $0 }
                 END { if (found == 1) print version }' ;;
               Cargo.lock) awk '/^name = "flashtrace"$/ { getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit }' ;;
+              CITATION.cff) sed -n 's|^version: *||p' | sed 's|^"\(.*\)"$|\1|' ;;
               *) echo "::error file=$file::version_of has no extractor for $file." >&2; return 1 ;;
             esac
           }
@@ -111,6 +112,20 @@ jobs:
                 exit 1
                 ;;
             esac
+          done
+
+          # All versions must name one release, so a drifted main blocks merges.
+          cargo_version=$(version_of Cargo.toml < Cargo.toml)
+          files=(Cargo.lock CITATION.cff npm/flashtrace/package.json)
+          for platform in $platforms; do
+            files+=("npm/@flashtrace/$platform/package.json")
+          done
+          for file in "${files[@]}"; do
+            file_version=$(version_of "$file" < "$file")
+            if [ "$file_version" != "$cargo_version" ]; then
+              echo "::error file=$file::Cargo.toml has version $cargo_version, but $file has \"$file_version\". The release workflow keeps them in sync; restore the released version."
+              exit 1
+            fi
           done
 
       - name: Ensure the platform-package pins match the main npm package
