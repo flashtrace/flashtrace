@@ -51,4 +51,4 @@ Needs: impl:semicolon/el#1
 
 `req:semicolon/lisp#1`
 
-Needs: impl:semicolon/lisp#1
+Needs: impl:semicolon/lisp#1, impl:semicolon/lisp-after-double-quoted#1, impl:semicolon/lisp-after-character-prefix#1
