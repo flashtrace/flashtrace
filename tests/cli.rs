@@ -650,6 +650,91 @@ fn git_ignored_files_are_excluded_outside_a_repository() {
     assert!(!stdout(&result).contains("req:bad#1"));
 }
 
+#[test]
+fn files_known_by_their_exact_name_are_scanned_with_their_grammar() {
+    // given
+    let project = with_project(
+        "exact-names",
+        &[
+            (
+                "spec.md",
+                &["`req:build#1`", "", "Needs: impl:image#1, impl:pipeline#1"],
+            ),
+            ("Dockerfile", &["FROM alpine", "# [impl:image#1]"]),
+            ("Jenkinsfile", &["// [impl:pipeline#1]"]),
+        ],
+    );
+
+    // when
+    let result = run(&project, &[]);
+
+    // then
+    assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
+}
+
+#[test]
+fn a_known_name_with_a_suffix_is_read_by_its_extension_only() {
+    // given
+    let project = with_project(
+        "suffixed-names",
+        &[
+            ("spec.md", &["`req:script#1`", "", "Needs: impl:script#1"]),
+            (
+                "Dockerfile.js",
+                &["// [impl:script#1]", "# [impl:read-as-dockerfile#1]"],
+            ),
+            ("Dockerfile.dev", &["# [impl:never-scanned#1]"]),
+            ("Gemfile.lock", &["# [impl:never-scanned-either#1]"]),
+        ],
+    );
+
+    // when
+    let result = run(&project, &[]);
+
+    // then
+    assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
+}
+
+#[test]
+fn only_documented_spellings_of_a_known_name_are_scanned() {
+    // given
+    let project = with_project(
+        "documented-spellings",
+        &[
+            (
+                "spec.md",
+                &["`req:build#1`", "", "Needs: impl:make#1, impl:just#1"],
+            ),
+            ("makefile", &["# [impl:make#1]"]),
+            ("JUSTFILE", &["# [impl:just#1]"]),
+            ("dockerfile", &["# [impl:image#1]"]),
+        ],
+    );
+
+    // when
+    let result = run(&project, &[]);
+
+    // then
+    assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
+    assert!(!stdout(&result).contains("impl:image#1"));
+}
+
+#[test]
+fn an_explicit_dockerfile_argument_is_accepted() {
+    // given
+    let project = with_project(
+        "dockerfile-argument",
+        &[("Dockerfile", &["# [impl:image#1]"])],
+    );
+
+    // when
+    let result = run(&project, &["Dockerfile"]);
+
+    // then
+    assert_eq!(result.status.code(), Some(1), "{}", stderr(&result));
+    assert!(stdout(&result).contains("unwanted: no item needs impl:image#1"));
+}
+
 const JSON_SPEC: &[&str] = &[
     "# Login",
     "`req:login#1`",

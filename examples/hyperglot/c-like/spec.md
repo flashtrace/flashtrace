@@ -24,6 +24,7 @@ Needs:
 - req:c-like/inl#1
 - req:c-like/ino#1
 - req:c-like/java#1
+- req:c-like/jenkinsfile-name#1
 - req:c-like/js#1
 - req:c-like/jsx#1
 - req:c-like/less#1
@@ -139,6 +140,12 @@ Needs: impl:c-like/ino-line#1, impl:c-like/ino-block#1
 `req:c-like/java#1`
 
 Needs: impl:c-like/java-line#1, impl:c-like/java-block#1
+
+## Jenkinsfile
+
+`req:c-like/jenkinsfile-name#1`
+
+Needs: impl:c-like/jenkinsfile-name-line#1, impl:c-like/jenkinsfile-name-block#1
 
 ## .js
 

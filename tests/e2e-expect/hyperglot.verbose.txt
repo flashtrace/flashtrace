@@ -82,289 +82,299 @@
 ✔ impl:c-like-nested/swift-nested/after-close#1  c-like-nested/swift.swift:10  [deep-covered]
     wanted by req:c-like-nested/swift#1  c-like-nested/spec.md:59
 
+✔ impl:c-like/jenkinsfile-name-line#1  c-like/Jenkinsfile:2  [deep-covered]
+    wanted by req:c-like/jenkinsfile-name#1  c-like/spec.md:146
+✔ impl:c-like/jenkinsfile-name-block#1  c-like/Jenkinsfile:5  [deep-covered]
+    wanted by req:c-like/jenkinsfile-name#1  c-like/spec.md:146
+
 ✔ impl:c-like/c-line#1  c-like/c.c:2  [deep-covered]
-    wanted by req:c-like/c#1  c-like/spec.md:43
+    wanted by req:c-like/c#1  c-like/spec.md:44
 ✔ impl:c-like/c-block#1  c-like/c.c:5  [deep-covered]
-    wanted by req:c-like/c#1  c-like/spec.md:43
+    wanted by req:c-like/c#1  c-like/spec.md:44
 
 ✔ impl:c-like/cc-line#1  c-like/cc.cc:2  [deep-covered]
-    wanted by req:c-like/cc#1  c-like/spec.md:49
+    wanted by req:c-like/cc#1  c-like/spec.md:50
 ✔ impl:c-like/cc-block#1  c-like/cc.cc:5  [deep-covered]
-    wanted by req:c-like/cc#1  c-like/spec.md:49
+    wanted by req:c-like/cc#1  c-like/spec.md:50
 
 ✔ impl:c-like/cjs-line#1  c-like/cjs.cjs:2  [deep-covered]
-    wanted by req:c-like/cjs#1  c-like/spec.md:55
+    wanted by req:c-like/cjs#1  c-like/spec.md:56
 ✔ impl:c-like/cjs-block#1  c-like/cjs.cjs:5  [deep-covered]
-    wanted by req:c-like/cjs#1  c-like/spec.md:55
+    wanted by req:c-like/cjs#1  c-like/spec.md:56
 
 ✔ impl:c-like/cpp-line#1  c-like/cpp.cpp:2  [deep-covered]
-    wanted by req:c-like/cpp#1  c-like/spec.md:61
+    wanted by req:c-like/cpp#1  c-like/spec.md:62
 ✔ impl:c-like/cpp-block#1  c-like/cpp.cpp:5  [deep-covered]
-    wanted by req:c-like/cpp#1  c-like/spec.md:61
+    wanted by req:c-like/cpp#1  c-like/spec.md:62
 
 ✔ impl:c-like/cs-line#1  c-like/cs.cs:2  [deep-covered]
-    wanted by req:c-like/cs#1  c-like/spec.md:67
+    wanted by req:c-like/cs#1  c-like/spec.md:68
 ✔ impl:c-like/cs-block#1  c-like/cs.cs:5  [deep-covered]
-    wanted by req:c-like/cs#1  c-like/spec.md:67
+    wanted by req:c-like/cs#1  c-like/spec.md:68
 
 ✔ impl:c-like/cts-line#1  c-like/cts.cts:2  [deep-covered]
-    wanted by req:c-like/cts#1  c-like/spec.md:73
+    wanted by req:c-like/cts#1  c-like/spec.md:74
 ✔ impl:c-like/cts-block#1  c-like/cts.cts:5  [deep-covered]
-    wanted by req:c-like/cts#1  c-like/spec.md:73
+    wanted by req:c-like/cts#1  c-like/spec.md:74
 
 ✔ impl:c-like/cxx-line#1  c-like/cxx.cxx:2  [deep-covered]
-    wanted by req:c-like/cxx#1  c-like/spec.md:79
+    wanted by req:c-like/cxx#1  c-like/spec.md:80
 ✔ impl:c-like/cxx-block#1  c-like/cxx.cxx:5  [deep-covered]
-    wanted by req:c-like/cxx#1  c-like/spec.md:79
+    wanted by req:c-like/cxx#1  c-like/spec.md:80
 
 ✔ impl:c-like/dart-line#1  c-like/dart.dart:2  [deep-covered]
-    wanted by req:c-like/dart#1  c-like/spec.md:85
+    wanted by req:c-like/dart#1  c-like/spec.md:86
 ✔ impl:c-like/dart-block#1  c-like/dart.dart:5  [deep-covered]
-    wanted by req:c-like/dart#1  c-like/spec.md:85
+    wanted by req:c-like/dart#1  c-like/spec.md:86
 
 ✔ impl:c-like/go-line#1  c-like/go.go:2  [deep-covered]
-    wanted by req:c-like/go#1  c-like/spec.md:91
+    wanted by req:c-like/go#1  c-like/spec.md:92
 ✔ impl:c-like/go-block#1  c-like/go.go:5  [deep-covered]
-    wanted by req:c-like/go#1  c-like/spec.md:91
+    wanted by req:c-like/go#1  c-like/spec.md:92
 
 ✔ impl:c-like/gradle-line#1  c-like/gradle.gradle:2  [deep-covered]
-    wanted by req:c-like/gradle#1  c-like/spec.md:97
+    wanted by req:c-like/gradle#1  c-like/spec.md:98
 ✔ impl:c-like/gradle-block#1  c-like/gradle.gradle:5  [deep-covered]
-    wanted by req:c-like/gradle#1  c-like/spec.md:97
+    wanted by req:c-like/gradle#1  c-like/spec.md:98
 
 ✔ impl:c-like/groovy-line#1  c-like/groovy.groovy:2  [deep-covered]
-    wanted by req:c-like/groovy#1  c-like/spec.md:103
+    wanted by req:c-like/groovy#1  c-like/spec.md:104
 ✔ impl:c-like/groovy-block#1  c-like/groovy.groovy:5  [deep-covered]
-    wanted by req:c-like/groovy#1  c-like/spec.md:103
+    wanted by req:c-like/groovy#1  c-like/spec.md:104
 
 ✔ impl:c-like/h-line#1  c-like/h.h:2  [deep-covered]
-    wanted by req:c-like/h#1  c-like/spec.md:109
+    wanted by req:c-like/h#1  c-like/spec.md:110
 ✔ impl:c-like/h-block#1  c-like/h.h:5  [deep-covered]
-    wanted by req:c-like/h#1  c-like/spec.md:109
+    wanted by req:c-like/h#1  c-like/spec.md:110
 
 ✔ impl:c-like/hpp-line#1  c-like/hpp.hpp:2  [deep-covered]
-    wanted by req:c-like/hpp#1  c-like/spec.md:115
+    wanted by req:c-like/hpp#1  c-like/spec.md:116
 ✔ impl:c-like/hpp-block#1  c-like/hpp.hpp:5  [deep-covered]
-    wanted by req:c-like/hpp#1  c-like/spec.md:115
+    wanted by req:c-like/hpp#1  c-like/spec.md:116
 
 ✔ impl:c-like/hxx-line#1  c-like/hxx.hxx:2  [deep-covered]
-    wanted by req:c-like/hxx#1  c-like/spec.md:121
+    wanted by req:c-like/hxx#1  c-like/spec.md:122
 ✔ impl:c-like/hxx-block#1  c-like/hxx.hxx:5  [deep-covered]
-    wanted by req:c-like/hxx#1  c-like/spec.md:121
+    wanted by req:c-like/hxx#1  c-like/spec.md:122
 
 ✔ impl:c-like/inl-line#1  c-like/inl.inl:2  [deep-covered]
-    wanted by req:c-like/inl#1  c-like/spec.md:127
+    wanted by req:c-like/inl#1  c-like/spec.md:128
 ✔ impl:c-like/inl-block#1  c-like/inl.inl:5  [deep-covered]
-    wanted by req:c-like/inl#1  c-like/spec.md:127
+    wanted by req:c-like/inl#1  c-like/spec.md:128
 
 ✔ impl:c-like/ino-line#1  c-like/ino.ino:2  [deep-covered]
-    wanted by req:c-like/ino#1  c-like/spec.md:133
+    wanted by req:c-like/ino#1  c-like/spec.md:134
 ✔ impl:c-like/ino-block#1  c-like/ino.ino:5  [deep-covered]
-    wanted by req:c-like/ino#1  c-like/spec.md:133
+    wanted by req:c-like/ino#1  c-like/spec.md:134
 
 ✔ impl:c-like/java-line#1  c-like/java.java:2  [deep-covered]
-    wanted by req:c-like/java#1  c-like/spec.md:139
+    wanted by req:c-like/java#1  c-like/spec.md:140
 ✔ impl:c-like/java-block#1  c-like/java.java:5  [deep-covered]
-    wanted by req:c-like/java#1  c-like/spec.md:139
+    wanted by req:c-like/java#1  c-like/spec.md:140
 
 ✔ impl:c-like/js-line#1  c-like/js.js:2  [deep-covered]
-    wanted by req:c-like/js#1  c-like/spec.md:145
+    wanted by req:c-like/js#1  c-like/spec.md:152
 ✔ impl:c-like/js-block#1  c-like/js.js:5  [deep-covered]
-    wanted by req:c-like/js#1  c-like/spec.md:145
+    wanted by req:c-like/js#1  c-like/spec.md:152
 
 ✔ impl:c-like/jsx-line#1  c-like/jsx.jsx:2  [deep-covered]
-    wanted by req:c-like/jsx#1  c-like/spec.md:151
+    wanted by req:c-like/jsx#1  c-like/spec.md:158
 ✔ impl:c-like/jsx-block#1  c-like/jsx.jsx:5  [deep-covered]
-    wanted by req:c-like/jsx#1  c-like/spec.md:151
+    wanted by req:c-like/jsx#1  c-like/spec.md:158
 
 ✔ impl:c-like/less-line#1  c-like/less.less:2  [deep-covered]
-    wanted by req:c-like/less#1  c-like/spec.md:157
+    wanted by req:c-like/less#1  c-like/spec.md:164
 ✔ impl:c-like/less-block#1  c-like/less.less:5  [deep-covered]
-    wanted by req:c-like/less#1  c-like/spec.md:157
+    wanted by req:c-like/less#1  c-like/spec.md:164
 
 ✔ impl:c-like/mjs-line#1  c-like/mjs.mjs:2  [deep-covered]
-    wanted by req:c-like/mjs#1  c-like/spec.md:163
+    wanted by req:c-like/mjs#1  c-like/spec.md:170
 ✔ impl:c-like/mjs-block#1  c-like/mjs.mjs:5  [deep-covered]
-    wanted by req:c-like/mjs#1  c-like/spec.md:163
+    wanted by req:c-like/mjs#1  c-like/spec.md:170
 
 ✔ impl:c-like/mts-line#1  c-like/mts.mts:2  [deep-covered]
-    wanted by req:c-like/mts#1  c-like/spec.md:169
+    wanted by req:c-like/mts#1  c-like/spec.md:176
 ✔ impl:c-like/mts-block#1  c-like/mts.mts:5  [deep-covered]
-    wanted by req:c-like/mts#1  c-like/spec.md:169
+    wanted by req:c-like/mts#1  c-like/spec.md:176
 
 ✔ impl:c-like/proto-line#1  c-like/proto.proto:2  [deep-covered]
-    wanted by req:c-like/proto#1  c-like/spec.md:175
+    wanted by req:c-like/proto#1  c-like/spec.md:182
 ✔ impl:c-like/proto-block#1  c-like/proto.proto:5  [deep-covered]
-    wanted by req:c-like/proto#1  c-like/spec.md:175
+    wanted by req:c-like/proto#1  c-like/spec.md:182
 
 ✔ impl:c-like/scss-line#1  c-like/scss.scss:2  [deep-covered]
-    wanted by req:c-like/scss#1  c-like/spec.md:181
+    wanted by req:c-like/scss#1  c-like/spec.md:188
 ✔ impl:c-like/scss-block#1  c-like/scss.scss:5  [deep-covered]
-    wanted by req:c-like/scss#1  c-like/spec.md:181
+    wanted by req:c-like/scss#1  c-like/spec.md:188
 
 ✔ impl:c-like/sol-line#1  c-like/sol.sol:2  [deep-covered]
-    wanted by req:c-like/sol#1  c-like/spec.md:187
+    wanted by req:c-like/sol#1  c-like/spec.md:194
 ✔ impl:c-like/sol-block#1  c-like/sol.sol:5  [deep-covered]
-    wanted by req:c-like/sol#1  c-like/spec.md:187
+    wanted by req:c-like/sol#1  c-like/spec.md:194
 
 ✔ req:c-like/grammar#1 "C-like comment grammar"  c-like/spec.md:3  [deep-covered]
-    needs req:c-like/c#1  ✔ c-like/spec.md:43
-    needs req:c-like/cc#1  ✔ c-like/spec.md:49
-    needs req:c-like/cjs#1  ✔ c-like/spec.md:55
-    needs req:c-like/cpp#1  ✔ c-like/spec.md:61
-    needs req:c-like/cs#1  ✔ c-like/spec.md:67
-    needs req:c-like/cts#1  ✔ c-like/spec.md:73
-    needs req:c-like/cxx#1  ✔ c-like/spec.md:79
-    needs req:c-like/dart#1  ✔ c-like/spec.md:85
-    needs req:c-like/go#1  ✔ c-like/spec.md:91
-    needs req:c-like/gradle#1  ✔ c-like/spec.md:97
-    needs req:c-like/groovy#1  ✔ c-like/spec.md:103
-    needs req:c-like/h#1  ✔ c-like/spec.md:109
-    needs req:c-like/hpp#1  ✔ c-like/spec.md:115
-    needs req:c-like/hxx#1  ✔ c-like/spec.md:121
-    needs req:c-like/inl#1  ✔ c-like/spec.md:127
-    needs req:c-like/ino#1  ✔ c-like/spec.md:133
-    needs req:c-like/java#1  ✔ c-like/spec.md:139
-    needs req:c-like/js#1  ✔ c-like/spec.md:145
-    needs req:c-like/jsx#1  ✔ c-like/spec.md:151
-    needs req:c-like/less#1  ✔ c-like/spec.md:157
-    needs req:c-like/mjs#1  ✔ c-like/spec.md:163
-    needs req:c-like/mts#1  ✔ c-like/spec.md:169
-    needs req:c-like/proto#1  ✔ c-like/spec.md:175
-    needs req:c-like/scss#1  ✔ c-like/spec.md:181
-    needs req:c-like/sol#1  ✔ c-like/spec.md:187
-    needs req:c-like/tpp#1  ✔ c-like/spec.md:193
-    needs req:c-like/ts#1  ✔ c-like/spec.md:199
-    needs req:c-like/tsx#1  ✔ c-like/spec.md:205
+    needs req:c-like/c#1  ✔ c-like/spec.md:44
+    needs req:c-like/cc#1  ✔ c-like/spec.md:50
+    needs req:c-like/cjs#1  ✔ c-like/spec.md:56
+    needs req:c-like/cpp#1  ✔ c-like/spec.md:62
+    needs req:c-like/cs#1  ✔ c-like/spec.md:68
+    needs req:c-like/cts#1  ✔ c-like/spec.md:74
+    needs req:c-like/cxx#1  ✔ c-like/spec.md:80
+    needs req:c-like/dart#1  ✔ c-like/spec.md:86
+    needs req:c-like/go#1  ✔ c-like/spec.md:92
+    needs req:c-like/gradle#1  ✔ c-like/spec.md:98
+    needs req:c-like/groovy#1  ✔ c-like/spec.md:104
+    needs req:c-like/h#1  ✔ c-like/spec.md:110
+    needs req:c-like/hpp#1  ✔ c-like/spec.md:116
+    needs req:c-like/hxx#1  ✔ c-like/spec.md:122
+    needs req:c-like/inl#1  ✔ c-like/spec.md:128
+    needs req:c-like/ino#1  ✔ c-like/spec.md:134
+    needs req:c-like/java#1  ✔ c-like/spec.md:140
+    needs req:c-like/jenkinsfile-name#1  ✔ c-like/spec.md:146
+    needs req:c-like/js#1  ✔ c-like/spec.md:152
+    needs req:c-like/jsx#1  ✔ c-like/spec.md:158
+    needs req:c-like/less#1  ✔ c-like/spec.md:164
+    needs req:c-like/mjs#1  ✔ c-like/spec.md:170
+    needs req:c-like/mts#1  ✔ c-like/spec.md:176
+    needs req:c-like/proto#1  ✔ c-like/spec.md:182
+    needs req:c-like/scss#1  ✔ c-like/spec.md:188
+    needs req:c-like/sol#1  ✔ c-like/spec.md:194
+    needs req:c-like/tpp#1  ✔ c-like/spec.md:200
+    needs req:c-like/ts#1  ✔ c-like/spec.md:206
+    needs req:c-like/tsx#1  ✔ c-like/spec.md:212
     covers feat:support-grammar/c-like#1  ✔ spec.md:10
     wanted by feat:support-grammar/c-like#1  spec.md:10
-✔ req:c-like/c#1 ".c"  c-like/spec.md:43  [deep-covered]
+✔ req:c-like/c#1 ".c"  c-like/spec.md:44  [deep-covered]
     needs impl:c-like/c-line#1  ✔ c-like/c.c:2
     needs impl:c-like/c-block#1  ✔ c-like/c.c:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/cc#1 ".cc"  c-like/spec.md:49  [deep-covered]
+✔ req:c-like/cc#1 ".cc"  c-like/spec.md:50  [deep-covered]
     needs impl:c-like/cc-line#1  ✔ c-like/cc.cc:2
     needs impl:c-like/cc-block#1  ✔ c-like/cc.cc:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/cjs#1 ".cjs"  c-like/spec.md:55  [deep-covered]
+✔ req:c-like/cjs#1 ".cjs"  c-like/spec.md:56  [deep-covered]
     needs impl:c-like/cjs-line#1  ✔ c-like/cjs.cjs:2
     needs impl:c-like/cjs-block#1  ✔ c-like/cjs.cjs:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/cpp#1 ".cpp"  c-like/spec.md:61  [deep-covered]
+✔ req:c-like/cpp#1 ".cpp"  c-like/spec.md:62  [deep-covered]
     needs impl:c-like/cpp-line#1  ✔ c-like/cpp.cpp:2
     needs impl:c-like/cpp-block#1  ✔ c-like/cpp.cpp:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/cs#1 ".cs"  c-like/spec.md:67  [deep-covered]
+✔ req:c-like/cs#1 ".cs"  c-like/spec.md:68  [deep-covered]
     needs impl:c-like/cs-line#1  ✔ c-like/cs.cs:2
     needs impl:c-like/cs-block#1  ✔ c-like/cs.cs:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/cts#1 ".cts"  c-like/spec.md:73  [deep-covered]
+✔ req:c-like/cts#1 ".cts"  c-like/spec.md:74  [deep-covered]
     needs impl:c-like/cts-line#1  ✔ c-like/cts.cts:2
     needs impl:c-like/cts-block#1  ✔ c-like/cts.cts:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/cxx#1 ".cxx"  c-like/spec.md:79  [deep-covered]
+✔ req:c-like/cxx#1 ".cxx"  c-like/spec.md:80  [deep-covered]
     needs impl:c-like/cxx-line#1  ✔ c-like/cxx.cxx:2
     needs impl:c-like/cxx-block#1  ✔ c-like/cxx.cxx:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/dart#1 ".dart"  c-like/spec.md:85  [deep-covered]
+✔ req:c-like/dart#1 ".dart"  c-like/spec.md:86  [deep-covered]
     needs impl:c-like/dart-line#1  ✔ c-like/dart.dart:2
     needs impl:c-like/dart-block#1  ✔ c-like/dart.dart:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/go#1 ".go"  c-like/spec.md:91  [deep-covered]
+✔ req:c-like/go#1 ".go"  c-like/spec.md:92  [deep-covered]
     needs impl:c-like/go-line#1  ✔ c-like/go.go:2
     needs impl:c-like/go-block#1  ✔ c-like/go.go:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/gradle#1 ".gradle"  c-like/spec.md:97  [deep-covered]
+✔ req:c-like/gradle#1 ".gradle"  c-like/spec.md:98  [deep-covered]
     needs impl:c-like/gradle-line#1  ✔ c-like/gradle.gradle:2
     needs impl:c-like/gradle-block#1  ✔ c-like/gradle.gradle:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/groovy#1 ".groovy"  c-like/spec.md:103  [deep-covered]
+✔ req:c-like/groovy#1 ".groovy"  c-like/spec.md:104  [deep-covered]
     needs impl:c-like/groovy-line#1  ✔ c-like/groovy.groovy:2
     needs impl:c-like/groovy-block#1  ✔ c-like/groovy.groovy:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/h#1 ".h"  c-like/spec.md:109  [deep-covered]
+✔ req:c-like/h#1 ".h"  c-like/spec.md:110  [deep-covered]
     needs impl:c-like/h-line#1  ✔ c-like/h.h:2
     needs impl:c-like/h-block#1  ✔ c-like/h.h:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/hpp#1 ".hpp"  c-like/spec.md:115  [deep-covered]
+✔ req:c-like/hpp#1 ".hpp"  c-like/spec.md:116  [deep-covered]
     needs impl:c-like/hpp-line#1  ✔ c-like/hpp.hpp:2
     needs impl:c-like/hpp-block#1  ✔ c-like/hpp.hpp:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/hxx#1 ".hxx"  c-like/spec.md:121  [deep-covered]
+✔ req:c-like/hxx#1 ".hxx"  c-like/spec.md:122  [deep-covered]
     needs impl:c-like/hxx-line#1  ✔ c-like/hxx.hxx:2
     needs impl:c-like/hxx-block#1  ✔ c-like/hxx.hxx:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/inl#1 ".inl"  c-like/spec.md:127  [deep-covered]
+✔ req:c-like/inl#1 ".inl"  c-like/spec.md:128  [deep-covered]
     needs impl:c-like/inl-line#1  ✔ c-like/inl.inl:2
     needs impl:c-like/inl-block#1  ✔ c-like/inl.inl:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/ino#1 ".ino"  c-like/spec.md:133  [deep-covered]
+✔ req:c-like/ino#1 ".ino"  c-like/spec.md:134  [deep-covered]
     needs impl:c-like/ino-line#1  ✔ c-like/ino.ino:2
     needs impl:c-like/ino-block#1  ✔ c-like/ino.ino:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/java#1 ".java"  c-like/spec.md:139  [deep-covered]
+✔ req:c-like/java#1 ".java"  c-like/spec.md:140  [deep-covered]
     needs impl:c-like/java-line#1  ✔ c-like/java.java:2
     needs impl:c-like/java-block#1  ✔ c-like/java.java:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/js#1 ".js"  c-like/spec.md:145  [deep-covered]
+✔ req:c-like/jenkinsfile-name#1 "Jenkinsfile"  c-like/spec.md:146  [deep-covered]
+    needs impl:c-like/jenkinsfile-name-line#1  ✔ c-like/Jenkinsfile:2
+    needs impl:c-like/jenkinsfile-name-block#1  ✔ c-like/Jenkinsfile:5
+    wanted by req:c-like/grammar#1  c-like/spec.md:3
+✔ req:c-like/js#1 ".js"  c-like/spec.md:152  [deep-covered]
     needs impl:c-like/js-line#1  ✔ c-like/js.js:2
     needs impl:c-like/js-block#1  ✔ c-like/js.js:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/jsx#1 ".jsx"  c-like/spec.md:151  [deep-covered]
+✔ req:c-like/jsx#1 ".jsx"  c-like/spec.md:158  [deep-covered]
     needs impl:c-like/jsx-line#1  ✔ c-like/jsx.jsx:2
     needs impl:c-like/jsx-block#1  ✔ c-like/jsx.jsx:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/less#1 ".less"  c-like/spec.md:157  [deep-covered]
+✔ req:c-like/less#1 ".less"  c-like/spec.md:164  [deep-covered]
     needs impl:c-like/less-line#1  ✔ c-like/less.less:2
     needs impl:c-like/less-block#1  ✔ c-like/less.less:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/mjs#1 ".mjs"  c-like/spec.md:163  [deep-covered]
+✔ req:c-like/mjs#1 ".mjs"  c-like/spec.md:170  [deep-covered]
     needs impl:c-like/mjs-line#1  ✔ c-like/mjs.mjs:2
     needs impl:c-like/mjs-block#1  ✔ c-like/mjs.mjs:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/mts#1 ".mts"  c-like/spec.md:169  [deep-covered]
+✔ req:c-like/mts#1 ".mts"  c-like/spec.md:176  [deep-covered]
     needs impl:c-like/mts-line#1  ✔ c-like/mts.mts:2
     needs impl:c-like/mts-block#1  ✔ c-like/mts.mts:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/proto#1 ".proto"  c-like/spec.md:175  [deep-covered]
+✔ req:c-like/proto#1 ".proto"  c-like/spec.md:182  [deep-covered]
     needs impl:c-like/proto-line#1  ✔ c-like/proto.proto:2
     needs impl:c-like/proto-block#1  ✔ c-like/proto.proto:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/scss#1 ".scss"  c-like/spec.md:181  [deep-covered]
+✔ req:c-like/scss#1 ".scss"  c-like/spec.md:188  [deep-covered]
     needs impl:c-like/scss-line#1  ✔ c-like/scss.scss:2
     needs impl:c-like/scss-block#1  ✔ c-like/scss.scss:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/sol#1 ".sol"  c-like/spec.md:187  [deep-covered]
+✔ req:c-like/sol#1 ".sol"  c-like/spec.md:194  [deep-covered]
     needs impl:c-like/sol-line#1  ✔ c-like/sol.sol:2
     needs impl:c-like/sol-block#1  ✔ c-like/sol.sol:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/tpp#1 ".tpp"  c-like/spec.md:193  [deep-covered]
+✔ req:c-like/tpp#1 ".tpp"  c-like/spec.md:200  [deep-covered]
     needs impl:c-like/tpp-line#1  ✔ c-like/tpp.tpp:2
     needs impl:c-like/tpp-block#1  ✔ c-like/tpp.tpp:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/ts#1 ".ts"  c-like/spec.md:199  [deep-covered]
+✔ req:c-like/ts#1 ".ts"  c-like/spec.md:206  [deep-covered]
     needs impl:c-like/ts-line#1  ✔ c-like/ts.ts:2
     needs impl:c-like/ts-block#1  ✔ c-like/ts.ts:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
-✔ req:c-like/tsx#1 ".tsx"  c-like/spec.md:205  [deep-covered]
+✔ req:c-like/tsx#1 ".tsx"  c-like/spec.md:212  [deep-covered]
     needs impl:c-like/tsx-line#1  ✔ c-like/tsx.tsx:2
     needs impl:c-like/tsx-block#1  ✔ c-like/tsx.tsx:5
     wanted by req:c-like/grammar#1  c-like/spec.md:3
 
 ✔ impl:c-like/tpp-line#1  c-like/tpp.tpp:2  [deep-covered]
-    wanted by req:c-like/tpp#1  c-like/spec.md:193
+    wanted by req:c-like/tpp#1  c-like/spec.md:200
 ✔ impl:c-like/tpp-block#1  c-like/tpp.tpp:5  [deep-covered]
-    wanted by req:c-like/tpp#1  c-like/spec.md:193
+    wanted by req:c-like/tpp#1  c-like/spec.md:200
 
 ✔ impl:c-like/ts-line#1  c-like/ts.ts:2  [deep-covered]
-    wanted by req:c-like/ts#1  c-like/spec.md:199
+    wanted by req:c-like/ts#1  c-like/spec.md:206
 ✔ impl:c-like/ts-block#1  c-like/ts.ts:5  [deep-covered]
-    wanted by req:c-like/ts#1  c-like/spec.md:199
+    wanted by req:c-like/ts#1  c-like/spec.md:206
 
 ✔ impl:c-like/tsx-line#1  c-like/tsx.tsx:2  [deep-covered]
-    wanted by req:c-like/tsx#1  c-like/spec.md:205
+    wanted by req:c-like/tsx#1  c-like/spec.md:212
 ✔ impl:c-like/tsx-block#1  c-like/tsx.tsx:5  [deep-covered]
-    wanted by req:c-like/tsx#1  c-like/spec.md:205
+    wanted by req:c-like/tsx#1  c-like/spec.md:212
 
 ✔ impl:cmake/cmake-line#1  cmake/cmake.cmake:2  [deep-covered]
     wanted by req:cmake/cmake#1  cmake/spec.md:16
@@ -492,135 +502,254 @@
     needs impl:fsharp/fsx-nested/after-close#1  ✔ fsharp/fsx.fsx:10
     wanted by req:fsharp/grammar#1  fsharp/spec.md:3
 
+✔ impl:hash/build-name#1  hash/BUILD:2  [deep-covered]
+    wanted by req:hash/build-name#1  hash/spec.md:70
+
+✔ impl:hash/brewfile-name#1  hash/Brewfile:2  [deep-covered]
+    wanted by req:hash/brewfile-name#1  hash/spec.md:64
+
+✔ impl:hash/containerfile-name#1  hash/Containerfile:2  [deep-covered]
+    wanted by req:hash/containerfile-name#1  hash/spec.md:82
+
+✔ impl:hash/dockerfile-name#1  hash/Dockerfile:2  [deep-covered]
+    wanted by req:hash/dockerfile-name#1  hash/spec.md:100
+
+✔ impl:hash/earthfile-name#1  hash/Earthfile:2  [deep-covered]
+    wanted by req:hash/earthfile-name#1  hash/spec.md:106
+
+✔ impl:hash/fastfile-name#1  hash/Fastfile:2  [deep-covered]
+    wanted by req:hash/fastfile-name#1  hash/spec.md:124
+
+✔ impl:hash/gemfile-name#1  hash/Gemfile:2  [deep-covered]
+    wanted by req:hash/gemfile-name#1  hash/spec.md:136
+
+✔ impl:hash/makefile-name#1  hash/Makefile:2  [deep-covered]
+    wanted by req:hash/makefile-name#1  hash/spec.md:160
+
+✔ impl:hash/pipfile-name#1  hash/Pipfile:2  [deep-covered]
+    wanted by req:hash/pipfile-name#1  hash/spec.md:166
+
+✔ impl:hash/podfile-name#1  hash/Podfile:2  [deep-covered]
+    wanted by req:hash/podfile-name#1  hash/spec.md:178
+
+✔ impl:hash/rakefile-name#1  hash/Rakefile:2  [deep-covered]
+    wanted by req:hash/rakefile-name#1  hash/spec.md:196
+
+✔ impl:hash/tiltfile-name#1  hash/Tiltfile:2  [deep-covered]
+    wanted by req:hash/tiltfile-name#1  hash/spec.md:220
+
+✔ impl:hash/vagrantfile-name#1  hash/Vagrantfile:2  [deep-covered]
+    wanted by req:hash/vagrantfile-name#1  hash/spec.md:232
+
+✔ impl:hash/workspace-name#1  hash/WORKSPACE:2  [deep-covered]
+    wanted by req:hash/workspace-name#1  hash/spec.md:238
+
 ✔ impl:hash/awk#1  hash/awk.awk:2  [deep-covered]
-    wanted by req:hash/awk#1  hash/spec.md:35
+    wanted by req:hash/awk#1  hash/spec.md:52
 
 ✔ impl:hash/bash#2.5  hash/bash.bash:2  [deep-covered]
-    wanted by req:hash/bash#1  hash/spec.md:41
+    wanted by req:hash/bash#1  hash/spec.md:58
+
+✔ impl:hash/containerfile#1  hash/containerfile.containerfile:2  [deep-covered]
+    wanted by req:hash/containerfile#1  hash/spec.md:76
 
 ✔ impl:hash/cr#1  hash/cr.cr:2  [deep-covered]
-    wanted by req:hash/cr#1  hash/spec.md:47
+    wanted by req:hash/cr#1  hash/spec.md:88
+
+✔ impl:hash/dockerfile#1  hash/dockerfile.dockerfile:2  [deep-covered]
+    wanted by req:hash/dockerfile#1  hash/spec.md:94
 
 ✔ impl:hash/ex#1  hash/ex.ex:2  [deep-covered]
-    wanted by req:hash/ex#1  hash/spec.md:53
+    wanted by req:hash/ex#1  hash/spec.md:112
 
 ✔ impl:hash/exs#1  hash/exs.exs:2  [deep-covered]
-    wanted by req:hash/exs#1  hash/spec.md:59
+    wanted by req:hash/exs#1  hash/spec.md:118
 
 ✔ impl:hash/gd#1  hash/gd.gd:2  [deep-covered]
-    wanted by req:hash/gd#1  hash/spec.md:65
+    wanted by req:hash/gd#1  hash/spec.md:130
 
 ✔ impl:hash/gql#1  hash/gql.gql:2  [deep-covered]
-    wanted by req:hash/gql#1  hash/spec.md:71
+    wanted by req:hash/gql#1  hash/spec.md:142
 
 ✔ impl:hash/graphql#1  hash/graphql.graphql:2  [deep-covered]
-    wanted by req:hash/graphql#1  hash/spec.md:77
+    wanted by req:hash/graphql#1  hash/spec.md:148
+
+✔ impl:hash/justfile-name#1  hash/justfile:2  [deep-covered]
+    wanted by req:hash/justfile-name#1  hash/spec.md:154
 
 ✔ impl:hash/pm#1  hash/pm.pm:2  [deep-covered]
-    wanted by req:hash/pm#1  hash/spec.md:83
+    wanted by req:hash/pm#1  hash/spec.md:172
 
 ✔ impl:hash/py#1.2  hash/py.py:2  [deep-covered]
-    wanted by req:hash/py#1  hash/spec.md:89
+    wanted by req:hash/py#1  hash/spec.md:184
 
 ✔ impl:hash/r#1  hash/r.r:2  [deep-covered]
-    wanted by req:hash/r#1  hash/spec.md:95
+    wanted by req:hash/r#1  hash/spec.md:190
 
 ✔ impl:hash/rb#1  hash/rb.rb:2  [deep-covered]
-    wanted by req:hash/rb#1  hash/spec.md:101
+    wanted by req:hash/rb#1  hash/spec.md:202
 
 ✔ impl:hash/sh#1.2.3  hash/sh.sh:2  [deep-covered]
-    wanted by req:hash/sh#1  hash/spec.md:107
+    wanted by req:hash/sh#1  hash/spec.md:208
 
 ✔ req:hash/grammar#1 "Hash comment grammar, the widest family in the grammar table"  hash/spec.md:5  [deep-covered]
-    needs req:hash/awk#1  ✔ hash/spec.md:35
-    needs req:hash/bash#1  ✔ hash/spec.md:41
-    needs req:hash/cr#1  ✔ hash/spec.md:47
-    needs req:hash/ex#1  ✔ hash/spec.md:53
-    needs req:hash/exs#1  ✔ hash/spec.md:59
-    needs req:hash/gd#1  ✔ hash/spec.md:65
-    needs req:hash/gql#1  ✔ hash/spec.md:71
-    needs req:hash/graphql#1  ✔ hash/spec.md:77
-    needs req:hash/pm#1  ✔ hash/spec.md:83
-    needs req:hash/py#1  ✔ hash/spec.md:89
-    needs req:hash/r#1  ✔ hash/spec.md:95
-    needs req:hash/rb#1  ✔ hash/spec.md:101
-    needs req:hash/sh#1  ✔ hash/spec.md:107
-    needs req:hash/tcl#1  ✔ hash/spec.md:113
-    needs req:hash/toml#1  ✔ hash/spec.md:119
-    needs req:hash/yaml#1  ✔ hash/spec.md:125
-    needs req:hash/yml#1  ✔ hash/spec.md:131
-    needs req:hash/zsh#1  ✔ hash/spec.md:137
+    needs req:hash/awk#1  ✔ hash/spec.md:52
+    needs req:hash/bash#1  ✔ hash/spec.md:58
+    needs req:hash/brewfile-name#1  ✔ hash/spec.md:64
+    needs req:hash/build-name#1  ✔ hash/spec.md:70
+    needs req:hash/containerfile#1  ✔ hash/spec.md:76
+    needs req:hash/containerfile-name#1  ✔ hash/spec.md:82
+    needs req:hash/cr#1  ✔ hash/spec.md:88
+    needs req:hash/dockerfile#1  ✔ hash/spec.md:94
+    needs req:hash/dockerfile-name#1  ✔ hash/spec.md:100
+    needs req:hash/earthfile-name#1  ✔ hash/spec.md:106
+    needs req:hash/ex#1  ✔ hash/spec.md:112
+    needs req:hash/exs#1  ✔ hash/spec.md:118
+    needs req:hash/fastfile-name#1  ✔ hash/spec.md:124
+    needs req:hash/gd#1  ✔ hash/spec.md:130
+    needs req:hash/gemfile-name#1  ✔ hash/spec.md:136
+    needs req:hash/gql#1  ✔ hash/spec.md:142
+    needs req:hash/graphql#1  ✔ hash/spec.md:148
+    needs req:hash/justfile-name#1  ✔ hash/spec.md:154
+    needs req:hash/makefile-name#1  ✔ hash/spec.md:160
+    needs req:hash/pipfile-name#1  ✔ hash/spec.md:166
+    needs req:hash/pm#1  ✔ hash/spec.md:172
+    needs req:hash/podfile-name#1  ✔ hash/spec.md:178
+    needs req:hash/py#1  ✔ hash/spec.md:184
+    needs req:hash/r#1  ✔ hash/spec.md:190
+    needs req:hash/rakefile-name#1  ✔ hash/spec.md:196
+    needs req:hash/rb#1  ✔ hash/spec.md:202
+    needs req:hash/sh#1  ✔ hash/spec.md:208
+    needs req:hash/tcl#1  ✔ hash/spec.md:214
+    needs req:hash/tiltfile-name#1  ✔ hash/spec.md:220
+    needs req:hash/toml#1  ✔ hash/spec.md:226
+    needs req:hash/vagrantfile-name#1  ✔ hash/spec.md:232
+    needs req:hash/workspace-name#1  ✔ hash/spec.md:238
+    needs req:hash/yaml#1  ✔ hash/spec.md:244
+    needs req:hash/yml#1  ✔ hash/spec.md:250
+    needs req:hash/zsh#1  ✔ hash/spec.md:256
     covers feat:support-grammar/hash#1  ✔ spec.md:66
     wanted by feat:support-grammar/hash#1  spec.md:66
-✔ req:hash/awk#1 ".awk"  hash/spec.md:35  [deep-covered]
+✔ req:hash/awk#1 ".awk"  hash/spec.md:52  [deep-covered]
     needs impl:hash/awk#1  ✔ hash/awk.awk:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/bash#1 ".bash"  hash/spec.md:41  [deep-covered]
+✔ req:hash/bash#1 ".bash"  hash/spec.md:58  [deep-covered]
     needs impl:hash/bash#2.x (→ impl:hash/bash#2.5)  ✔ hash/bash.bash:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/cr#1 ".cr"  hash/spec.md:47  [deep-covered]
+✔ req:hash/brewfile-name#1 "Brewfile"  hash/spec.md:64  [deep-covered]
+    needs impl:hash/brewfile-name#1  ✔ hash/Brewfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/build-name#1 "BUILD"  hash/spec.md:70  [deep-covered]
+    needs impl:hash/build-name#1  ✔ hash/BUILD:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/containerfile#1 ".containerfile"  hash/spec.md:76  [deep-covered]
+    needs impl:hash/containerfile#1  ✔ hash/containerfile.containerfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/containerfile-name#1 "Containerfile"  hash/spec.md:82  [deep-covered]
+    needs impl:hash/containerfile-name#1  ✔ hash/Containerfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/cr#1 ".cr"  hash/spec.md:88  [deep-covered]
     needs impl:hash/cr#1  ✔ hash/cr.cr:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/ex#1 ".ex"  hash/spec.md:53  [deep-covered]
+✔ req:hash/dockerfile#1 ".dockerfile"  hash/spec.md:94  [deep-covered]
+    needs impl:hash/dockerfile#1  ✔ hash/dockerfile.dockerfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/dockerfile-name#1 "Dockerfile"  hash/spec.md:100  [deep-covered]
+    needs impl:hash/dockerfile-name#1  ✔ hash/Dockerfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/earthfile-name#1 "Earthfile"  hash/spec.md:106  [deep-covered]
+    needs impl:hash/earthfile-name#1  ✔ hash/Earthfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/ex#1 ".ex"  hash/spec.md:112  [deep-covered]
     needs impl:hash/ex#1  ✔ hash/ex.ex:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/exs#1 ".exs"  hash/spec.md:59  [deep-covered]
+✔ req:hash/exs#1 ".exs"  hash/spec.md:118  [deep-covered]
     needs impl:hash/exs#1  ✔ hash/exs.exs:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/gd#1 ".gd"  hash/spec.md:65  [deep-covered]
+✔ req:hash/fastfile-name#1 "Fastfile"  hash/spec.md:124  [deep-covered]
+    needs impl:hash/fastfile-name#1  ✔ hash/Fastfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/gd#1 ".gd"  hash/spec.md:130  [deep-covered]
     needs impl:hash/gd#1  ✔ hash/gd.gd:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/gql#1 ".gql"  hash/spec.md:71  [deep-covered]
+✔ req:hash/gemfile-name#1 "Gemfile"  hash/spec.md:136  [deep-covered]
+    needs impl:hash/gemfile-name#1  ✔ hash/Gemfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/gql#1 ".gql"  hash/spec.md:142  [deep-covered]
     needs impl:hash/gql#1  ✔ hash/gql.gql:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/graphql#1 ".graphql"  hash/spec.md:77  [deep-covered]
+✔ req:hash/graphql#1 ".graphql"  hash/spec.md:148  [deep-covered]
     needs impl:hash/graphql#1  ✔ hash/graphql.graphql:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/pm#1 ".pm"  hash/spec.md:83  [deep-covered]
+✔ req:hash/justfile-name#1 "justfile"  hash/spec.md:154  [deep-covered]
+    needs impl:hash/justfile-name#1  ✔ hash/justfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/makefile-name#1 "Makefile"  hash/spec.md:160  [deep-covered]
+    needs impl:hash/makefile-name#1  ✔ hash/Makefile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/pipfile-name#1 "Pipfile"  hash/spec.md:166  [deep-covered]
+    needs impl:hash/pipfile-name#1  ✔ hash/Pipfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/pm#1 ".pm"  hash/spec.md:172  [deep-covered]
     needs impl:hash/pm#1  ✔ hash/pm.pm:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/py#1 ".py"  hash/spec.md:89  [deep-covered]
+✔ req:hash/podfile-name#1 "Podfile"  hash/spec.md:178  [deep-covered]
+    needs impl:hash/podfile-name#1  ✔ hash/Podfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/py#1 ".py"  hash/spec.md:184  [deep-covered]
     needs impl:hash/py#1.2  ✔ hash/py.py:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/r#1 ".r"  hash/spec.md:95  [deep-covered]
+✔ req:hash/r#1 ".r"  hash/spec.md:190  [deep-covered]
     needs impl:hash/r#1  ✔ hash/r.r:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/rb#1 ".rb"  hash/spec.md:101  [deep-covered]
+✔ req:hash/rakefile-name#1 "Rakefile"  hash/spec.md:196  [deep-covered]
+    needs impl:hash/rakefile-name#1  ✔ hash/Rakefile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/rb#1 ".rb"  hash/spec.md:202  [deep-covered]
     needs impl:hash/rb#x (→ impl:hash/rb#1)  ✔ hash/rb.rb:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/sh#1 ".sh"  hash/spec.md:107  [deep-covered]
+✔ req:hash/sh#1 ".sh"  hash/spec.md:208  [deep-covered]
     needs impl:hash/sh#1.2.x (→ impl:hash/sh#1.2.3)  ✔ hash/sh.sh:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/tcl#1 ".tcl"  hash/spec.md:113  [deep-covered]
+✔ req:hash/tcl#1 ".tcl"  hash/spec.md:214  [deep-covered]
     needs impl:hash/tcl#1  ✔ hash/tcl.tcl:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/toml#1 ".toml"  hash/spec.md:119  [deep-covered]
+✔ req:hash/tiltfile-name#1 "Tiltfile"  hash/spec.md:220  [deep-covered]
+    needs impl:hash/tiltfile-name#1  ✔ hash/Tiltfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/toml#1 ".toml"  hash/spec.md:226  [deep-covered]
     needs impl:hash/toml#1  ✔ hash/toml.toml:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/yaml#1 ".yaml"  hash/spec.md:125  [deep-covered]
+✔ req:hash/vagrantfile-name#1 "Vagrantfile"  hash/spec.md:232  [deep-covered]
+    needs impl:hash/vagrantfile-name#1  ✔ hash/Vagrantfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/workspace-name#1 "WORKSPACE"  hash/spec.md:238  [deep-covered]
+    needs impl:hash/workspace-name#1  ✔ hash/WORKSPACE:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/yaml#1 ".yaml"  hash/spec.md:244  [deep-covered]
     needs impl:hash/yaml#1.x (→ impl:hash/yaml#1.7)  ✔ hash/yaml.yaml:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/yml#1 ".yml"  hash/spec.md:131  [deep-covered]
+✔ req:hash/yml#1 ".yml"  hash/spec.md:250  [deep-covered]
     needs impl:hash/yml#1  ✔ hash/yml.yml:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/zsh#1 ".zsh"  hash/spec.md:137  [deep-covered]
+✔ req:hash/zsh#1 ".zsh"  hash/spec.md:256  [deep-covered]
     needs impl:hash/zsh#3.* (→ impl:hash/zsh#3.1.4)  ✔ hash/zsh.zsh:2
     wanted by req:hash/grammar#1  hash/spec.md:5
 
 ✔ impl:hash/tcl#1  hash/tcl.tcl:2  [deep-covered]
-    wanted by req:hash/tcl#1  hash/spec.md:113
+    wanted by req:hash/tcl#1  hash/spec.md:214
 
 ✔ impl:hash/toml#1  hash/toml.toml:2  [deep-covered]
-    wanted by req:hash/toml#1  hash/spec.md:119
+    wanted by req:hash/toml#1  hash/spec.md:226
 
 ✔ impl:hash/yaml#1.7  hash/yaml.yaml:2  [deep-covered]
-    wanted by req:hash/yaml#1  hash/spec.md:125
+    wanted by req:hash/yaml#1  hash/spec.md:244
 
 ✔ impl:hash/yml#1  hash/yml.yml:2  [deep-covered]
-    wanted by req:hash/yml#1  hash/spec.md:131
+    wanted by req:hash/yml#1  hash/spec.md:250
 
 ✔ impl:hash/zsh#3.1.4  hash/zsh.zsh:2  [deep-covered]
-    wanted by req:hash/zsh#1  hash/spec.md:137
+    wanted by req:hash/zsh#1  hash/spec.md:256
 
 ✔ impl:haskell/elm-line#1  haskell/elm.elm:2  [deep-covered]
     wanted by req:haskell/elm#1  haskell/spec.md:18
@@ -1179,8 +1308,8 @@
     wanted by req:xml/xml#1  xml/spec.md:24
 
 Summary
-  items       362  (143 from specs, 219 from code)
-  ok          362
+  items       399  (161 from specs, 238 from code)
+  ok          399
   defective   0
 
 ok

@@ -1,6 +1,6 @@
 # Code tags
 
-Tags are written inside comments. The comment style is chosen per file extension, so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
+Tags are written inside comments. The comment style is chosen per file extension (for some extensionless files, per [file name](#file-names-that-name-their-language)), so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
 
 ## Comment styles
 
@@ -9,7 +9,7 @@ Tags are written inside comments. The comment style is chosen per file extension
 | C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cxx` `.hxx` `.ino` `.inl` `.tpp` `.cs` `.java` `.go` `.groovy` `.gradle` `.sol` `.dart` `.proto` `.scss` `.less` |
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
 | PHP | `//` `#` | `/* … */` | `.php` |
-| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.graphql` `.gql` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.graphql` `.gql` `.dockerfile` `.containerfile` |
 | CoffeeScript | `#` | `### … ###` (opener not followed by `#`) | `.coffee` |
 | Julia | `#` | `#= … =#` (nestable) | `.jl` |
 | Nim | `#` | `#[ … ]#` `##[ … ]##` (nestable) | `.nim` |
@@ -30,6 +30,30 @@ Tags are written inside comments. The comment style is chosen per file extension
 | HTML + embedded | – | `<!-- … -->` (markup) | `.html` `.htm` `.vue` `.svelte` |
 
 In CoffeeScript a run of four or more `#` is a line comment, not a block opener, so a `#### Section` heading or a `##########` divider comments out only its own line.
+
+## File names that name their language
+
+Some files carry no extension because their name already says what they are. flashtrace scans these names, matched against the whole file name in exactly the spellings their tools document:
+
+| Comment family | Tool | Spellings |
+|---|---|---|
+| C-like | Jenkins | `Jenkinsfile` |
+| Hash | Docker | `Dockerfile` |
+| Hash | Podman, Buildah | `Containerfile` |
+| Hash | Earthly | `Earthfile` |
+| Hash | make | `Makefile` `makefile` `GNUmakefile` |
+| Hash | just | `justfile` in any letter case, `.justfile` |
+| Hash | Tilt | `Tiltfile` |
+| Hash | Bazel | `BUILD` `WORKSPACE` |
+| Hash | Pipenv | `Pipfile` |
+| Hash | Vagrant | `Vagrantfile` |
+| Hash | Bundler | `Gemfile` |
+| Hash | Rake | `Rakefile` `rakefile` |
+| Hash | CocoaPods | `Podfile` |
+| Hash | Homebrew Bundle | `Brewfile` |
+| Hash | fastlane | `Fastfile` |
+
+Any other spelling does not match: a different letter case (`dockerfile`, `MAKEFILE`) unless noted, or an added suffix (`Dockerfile.dev`, `Gemfile.lock`, `BUILD.bazel`). Such a file is read by its extension like any other: `Dockerfile.js` is JavaScript and `Dockerfile.md` a spec.
 
 ## HTML and embedded languages
 
@@ -84,6 +108,7 @@ and `node_modules/` dependency directories are always excluded from traversal,
 including when supplied as directory scan roots. Directory
 symlinks are not followed, and symlink entries discovered during traversal are
 not scanned. Explicit file arguments bypass ignore rules, but must still have a
-supported extension. Results are deduplicated and sorted.
+supported extension or [known file name](#file-names-that-name-their-language).
+Results are deduplicated and sorted.
 
 Ignored files and explicit overrides do not produce warnings.

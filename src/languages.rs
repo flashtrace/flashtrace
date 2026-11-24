@@ -16,11 +16,18 @@
  * truth for code-file collection. Both are views of the one `BY_EXT` table.
  * Extensions are spelled lowercased and without their leading dot, as
  * `std::path::Path::extension` yields them.
+ *
+ * Some files are named after their language instead of carrying an extension
+ * (`Dockerfile`, `Makefile`). `BY_NAME` lists those exact names with their
+ * grammar, and `grammar_of_file(file)` resolves a file through either table.
  */
 
+use std::path::Path;
 use std::sync::LazyLock;
 
 use regex::Regex;
+
+use crate::paths::extension_of;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlockPair {
@@ -320,6 +327,8 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("awk", &HASH),
         leaf("graphql", &HASH),
         leaf("gql", &HASH),
+        leaf("dockerfile", &HASH),
+        leaf("containerfile", &HASH),
         // hash line comments plus a block pair of their own
         leaf("jl", &JULIA),
         leaf("nim", &NIM),
@@ -388,6 +397,143 @@ pub fn grammar_for(ext: &str) -> Option<Grammar> {
         .map(|(_, grammar)| *grammar)
 }
 
+/// One way a file name may be spelled: exactly, or in any letter case.
+#[derive(Clone, Copy, Debug)]
+pub enum Spelling {
+    Exact(&'static str),
+    AnyCase(&'static str),
+}
+
+impl Spelling {
+    /// the spelling as written, the case-sensitive form for `AnyCase`
+    pub fn text(self) -> &'static str {
+        match self {
+            Spelling::Exact(text) | Spelling::AnyCase(text) => text,
+        }
+    }
+
+    pub fn matches(self, name: &str) -> bool {
+        match self {
+            Spelling::Exact(text) => name == text,
+            Spelling::AnyCase(text) => name.eq_ignore_ascii_case(text),
+        }
+    }
+}
+
+/// A file name that names its language: every spelling its tool documents,
+/// the most common first, and the grammar the file is scanned with.
+pub struct KnownName {
+    pub spellings: &'static [Spelling],
+    pub grammar: Grammar,
+}
+
+const fn known(spellings: &'static [Spelling], leaf: &'static Leaf) -> KnownName {
+    KnownName {
+        spellings,
+        grammar: Grammar::Leaf(leaf),
+    }
+}
+
+use Spelling::{AnyCase, Exact};
+
+/// File names that name their language, matched against the whole file name.
+/// Only names without an extension are listed, so a match never changes how
+/// a file with an extension is read - such a file had nothing to be scanned
+/// by before. A spelling is listed only when its tool's documentation names
+/// it, and is case-insensitive only when that documentation says so.
+///
+/// Each entry notes the spellings related to it that are not considered yet:
+/// candidates for later improvements, each needing its own check that it
+/// cannot capture a file already scanned by its extension.
+pub static BY_NAME: [KnownName; 16] = [
+    // Docker: docs.docker.com names only `Dockerfile`; `*.dockerfile` is
+    // scanned by extension. Not yet: lowercase `dockerfile` (`docker build`
+    // falls back to it, but only an issue comment says so, no documentation)
+    // and suffixed `Dockerfile.dev`, `Dockerfile.prod`. Warning: a suffix
+    // rule captures scanned extensions (`Dockerfile.js` is JavaScript by
+    // extension, `Dockerfile.md` a spec).
+    known(&[Exact("Dockerfile")], &HASH),
+    // Podman and Buildah: podman-build(1) reads `Containerfile`, then
+    // `Dockerfile`; `*.containerfile` is scanned by extension. Not yet:
+    // suffixed `Containerfile.<suffix>`, with the same warning as Dockerfile.
+    known(&[Exact("Containerfile")], &HASH),
+    // Earthly. No alternative spelling documented.
+    known(&[Exact("Earthfile")], &HASH),
+    // GNU make: its manual (What Name to Give Your Makefile) tries
+    // `GNUmakefile`, `makefile`, then `Makefile`. Not yet: the `.mk` and `.mak`
+    // extensions, and Automake's `Makefile.am` with its generated
+    // `Makefile.in`. Warning: a suffix or case-insensitive rule captures
+    // `makefile.ts` / `makefile.js` modules (`//` comments) and cargo-make's
+    // `Makefile.toml`.
+    known(
+        &[Exact("Makefile"), Exact("makefile"), Exact("GNUmakefile")],
+        &HASH,
+    ),
+    // just: its README says the search for a `justfile` is case insensitive
+    // and also finds a hidden `.justfile`. Not yet: the `.just` extension of
+    // just's module files.
+    known(&[AnyCase("justfile"), Exact(".justfile")], &HASH),
+    // Tilt (Starlark). No alternative spelling documented. Not yet: the
+    // `.star` and `.bzl` Starlark files a Tiltfile loads.
+    known(&[Exact("Tiltfile")], &HASH),
+    // Bazel (Starlark). Not yet: `BUILD.bazel` (the `.bazel` extension is
+    // not scanned) and `.bzl` files. Warning: a case-insensitive or suffix
+    // rule captures `build.gradle` (Groovy, `//` comments) and extensionless
+    // `build` scripts.
+    known(&[Exact("BUILD")], &HASH),
+    // Bazel workspace (Starlark). Not yet: `WORKSPACE.bazel` and
+    // `MODULE.bazel`. Warning: a case-insensitive or suffix rule captures
+    // `workspace.ts`.
+    known(&[Exact("WORKSPACE")], &HASH),
+    // Pipenv (TOML). Warning: a suffix rule captures `Pipfile.lock`, which is
+    // JSON and has no comments.
+    known(&[Exact("Pipfile")], &HASH),
+    // Vagrant (Ruby). Not yet: lowercase `vagrantfile` - Vagrant's docs only
+    // say casing does not matter on a case-insensitive file system.
+    known(&[Exact("Vagrantfile")], &HASH),
+    // Bundler (Ruby); its alternative `gems.rb` is scanned by extension.
+    // Warning: a suffix rule captures `Gemfile.lock`, which is not Ruby.
+    known(&[Exact("Gemfile")], &HASH),
+    // Rake (Ruby): its command-line usage names `rakefile` and `Rakefile`;
+    // `Rakefile.rb` is scanned by extension.
+    known(&[Exact("Rakefile"), Exact("rakefile")], &HASH),
+    // CocoaPods (Ruby). Warning: a suffix rule captures `Podfile.lock`, which
+    // is YAML.
+    known(&[Exact("Podfile")], &HASH),
+    // Homebrew Bundle (Ruby). Not yet: the global `~/.Brewfile` (documented
+    // only as where `brew bundle dump --global` writes). Warning: a suffix
+    // rule captures `Brewfile.lock.json` (JSON).
+    known(&[Exact("Brewfile")], &HASH),
+    // fastlane (Ruby). Not yet: fastlane's other files such as `Appfile`,
+    // `Matchfile` and `Pluginfile`.
+    known(&[Exact("Fastfile")], &HASH),
+    // Jenkins pipelines (Groovy); `*.groovy` is scanned by extension. Not yet:
+    // suffixed `Jenkinsfile.<name>` variants and the `.jenkinsfile`
+    // extension. Warning: a suffix rule captures `Jenkinsfile.md` (a spec).
+    known(&[Exact("Jenkinsfile")], &C_LIKE),
+];
+
+/// The known name a file name spells, if any.
+pub fn known_name_of(name: &str) -> Option<&'static KnownName> {
+    BY_NAME.iter().find(|known| {
+        known
+            .spellings
+            .iter()
+            .any(|spelling| spelling.matches(name))
+    })
+}
+
+/// The grammar a file is scanned with: by its name (see `BY_NAME`), otherwise
+/// by its extension. None when flashtrace does not scan the file.
+pub fn grammar_of_file(file: &str) -> Option<Grammar> {
+    Path::new(file)
+        .file_name()
+        .and_then(std::ffi::OsStr::to_str)
+        .and_then(known_name_of)
+        .map(|known| known.grammar)
+        .or_else(|| grammar_for(&extension_of(file)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -451,5 +597,142 @@ mod tests {
                 "{lang}"
             );
         }
+    }
+
+    fn leaf_of(grammar: Option<Grammar>) -> &'static Leaf {
+        match grammar {
+            Some(Grammar::Leaf(leaf)) => leaf,
+            _ => panic!("expected a leaf grammar"),
+        }
+    }
+
+    #[test]
+    fn grammar_of_file_reads_an_exactly_named_file_by_its_name() {
+        // when
+        let grammar = grammar_of_file("build/Dockerfile");
+
+        // then
+        assert!(std::ptr::eq(leaf_of(grammar), &HASH));
+    }
+
+    #[test]
+    fn grammar_of_file_reads_a_jenkinsfile_with_c_like_comments() {
+        // when
+        let grammar = grammar_of_file("ci/Jenkinsfile");
+
+        // then
+        assert!(std::ptr::eq(leaf_of(grammar), &C_LIKE));
+    }
+
+    #[test]
+    fn grammar_of_file_accepts_every_documented_spelling() {
+        // when
+        let scanned: Vec<bool> = [
+            "makefile",
+            "GNUmakefile",
+            "rakefile",
+            "Justfile",
+            "JUSTFILE",
+            "JuStFiLe",
+            ".justfile",
+        ]
+        .iter()
+        .map(|file| grammar_of_file(file).is_some())
+        .collect();
+
+        // then
+        assert!(scanned.iter().all(|scanned| *scanned), "{scanned:?}");
+    }
+
+    #[test]
+    fn grammar_of_file_rejects_spellings_no_documentation_names() {
+        // when
+        let scanned: Vec<bool> = [
+            "dockerfile",
+            "DOCKERFILE",
+            "MAKEFILE",
+            "vagrantfile",
+            "build",
+            ".JUSTFILE",
+        ]
+        .iter()
+        .map(|file| grammar_of_file(file).is_some())
+        .collect();
+
+        // then
+        assert_eq!(scanned, [false; 6]);
+    }
+
+    #[test]
+    fn grammar_of_file_reads_a_suffixed_name_by_its_extension() {
+        // when
+        let javascript = grammar_of_file("Dockerfile.js");
+        let gradle = grammar_of_file("BUILD.gradle");
+        let unknown: Vec<bool> = ["Dockerfile.dev", "Gemfile.lock", "Pipfile.lock"]
+            .iter()
+            .map(|file| grammar_of_file(file).is_some())
+            .collect();
+
+        // then
+        assert!(std::ptr::eq(leaf_of(javascript), &C_LIKE));
+        assert!(std::ptr::eq(leaf_of(gradle), &C_LIKE));
+        assert_eq!(unknown, [false, false, false]);
+    }
+
+    #[test]
+    fn grammar_of_file_reads_the_dockerfile_extensions_through_the_extension_table() {
+        // when
+        let dockerfile = grammar_of_file("services/api.dockerfile");
+        let containerfile = grammar_of_file("services/api.containerfile");
+
+        // then
+        assert!(std::ptr::eq(leaf_of(dockerfile), &HASH));
+        assert!(std::ptr::eq(leaf_of(containerfile), &HASH));
+    }
+
+    #[test]
+    fn no_spelling_carries_an_extension() {
+        // when
+        let with_extension: Vec<&str> = BY_NAME
+            .iter()
+            .flat_map(|known| known.spellings)
+            .map(|spelling| spelling.text())
+            .filter(|text| !extension_of(text).is_empty())
+            .collect();
+
+        // then
+        assert!(with_extension.is_empty(), "{with_extension:?}");
+    }
+
+    #[test]
+    fn no_two_known_names_share_a_spelling_even_ignoring_case() {
+        // given
+        // one lowercased spelling set per entry: a name its own variants
+        // may repeat ignoring case (Makefile, makefile), another may not
+        let sets: Vec<std::collections::HashSet<String>> = BY_NAME
+            .iter()
+            .map(|known| {
+                known
+                    .spellings
+                    .iter()
+                    .map(|spelling| spelling.text().to_lowercase())
+                    .collect()
+            })
+            .collect();
+
+        // when
+        let shared: usize = sets
+            .iter()
+            .enumerate()
+            .map(|(i, set)| {
+                sets[i + 1..]
+                    .iter()
+                    .map(|other| set.intersection(other).count())
+                    .sum::<usize>()
+            })
+            .sum();
+
+        // then
+        assert_eq!(shared, 0);
     }
 }

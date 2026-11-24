@@ -30,9 +30,8 @@ use crate::ids::{
     Forward, Item, Origin, canonical_id, forward_src, id_src, make_forward, make_id, new_item,
     ref_src, resolve_ref,
 };
-use crate::languages::{C_LIKE, Composite, Grammar, Leaf, Region, RegionGrammar, grammar_for};
+use crate::languages::{C_LIKE, Composite, Grammar, Leaf, Region, RegionGrammar, grammar_of_file};
 use crate::location::Location;
-use crate::paths::extension_of;
 
 // Alternation: a need tag with an optional explicit source (groups 1-4 source,
 // 5-7 target), or a plain item tag (groups 8-11). The target is a ref_src
@@ -561,10 +560,9 @@ pub fn parse_code(
     problems: &mut Vec<Problem>,
     forwards: &mut Vec<Forward>,
 ) -> Vec<Item> {
-    let ext = extension_of(file);
-    // Unknown extensions never reach here via the CLI (file collection
-    // filters on CODE_EXT); direct callers fall back to C-like.
-    let grammar = grammar_for(&ext).unwrap_or(Grammar::Leaf(&C_LIKE));
+    // Files of no known extension or name never reach here via the CLI (file
+    // collection filters on grammar_of_file); direct callers fall back to C-like.
+    let grammar = grammar_of_file(file).unwrap_or(Grammar::Leaf(&C_LIKE));
     let lines: Vec<&str> = text.lines().collect();
     let mut items = Vec::new();
     let mut state = ScanState {
