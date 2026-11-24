@@ -243,7 +243,7 @@ jobs:
         run: node --test .github/scripts/*.test.mjs
 
       - name: Install cargo-llvm-cov and cargo-nextest
-        uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2.85.0
+        uses: taiki-e/install-action@25f51f6b1bf4e18876107cece836f4f77ac17c8c # v2.90.7
         with:
           tool: cargo-llvm-cov,cargo-nextest
 
