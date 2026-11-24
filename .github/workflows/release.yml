@@ -434,7 +434,9 @@ jobs:
           VERSION: ${{ needs.bump.outputs.version }}
         run: |
           binary="smoke-binary/flashtrace-v${VERSION}-${TARGET}/flashtrace"
-          case "$TARGET" in *windows*) binary="${binary}.exe" ;; esac
+          if [[ "$TARGET" == *windows* ]]; then
+            binary="${binary}.exe"
+          fi
           python .github/scripts/python_smoke_test.py "$TARGET" "$binary" wheels
           ls -l wheels
 
