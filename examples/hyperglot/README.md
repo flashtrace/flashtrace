@@ -3,7 +3,9 @@
 Every file extension flashtrace knows, each in a file that exercises every
 comment form its grammar offers, and a Markdown spec that exercises every
 construct the Markdown parser reads. One folder per comment grammar, one file
-per extension inside it.
+per extension inside it - plus, for a language named by a file-name convention
+rather than an extension, one file named verbatim after it (`Dockerfile` beside
+`dockerfile.dockerfile`).
 
 Extensions share a folder only when they resolve to the very same grammar - not
 when they merely look alike. That is why `.scss` and `.less` sit under
@@ -121,16 +123,18 @@ kinds are shown in [diagnostics](../diagnostics/) instead.
 
 These files are written by hand like any other example, but the example is only
 worth its name while it covers every extension flashtrace scans. So
-`test/hyperglot.test.mjs` ties the two together: every extension in
-`src/languages.mjs` must have a fixture here, each fixture must be named after
-its extension and sit in the folder of its comment grammar, and each must tag
+`tests/hyperglot.rs` ties the two together: every extension in
+`src/languages.rs` must have a fixture here, and so must every file-name
+convention; each fixture must be named after its extension (or verbatim after
+its convention) and sit in the folder of its comment grammar, and each must tag
 every comment form that grammar offers. CI runs the suite on every pull request,
 so a change teaching flashtrace a new extension cannot land without the fixture
 that exercises it.
 
 Adding an extension therefore means adding one file named after it to the folder
 of its grammar - a new folder when the grammar itself is new - and needing its
-tags from that folder's `spec.md`. Changing a fixture also means refreshing the
+tags from that folder's `spec.md`. Adding a file-name convention means the same
+for a file named verbatim after it, beside its extension's fixture. Changing a fixture also means refreshing the
 end-to-end snapshots, which pin this example's report byte-for-byte:
 
 ```sh

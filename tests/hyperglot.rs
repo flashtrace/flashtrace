@@ -11,6 +11,8 @@
  * The conventions it checks, all of which the example's README spells out:
  *   - one fixture per extension, named after it (ts.ts covers .ts), so "the
  *     fixture for .ts" is something this suite can look up at all;
+ *   - one more fixture per file-name convention, named verbatim after it
+ *     (Dockerfile), beside the fixture of the extension it resolves to;
  *   - fixtures grouped in a folder per comment grammar, shared by exactly the
  *     extensions resolving to the same grammar object;
  *   - each fixture writing every marker its grammar defines and defining an
@@ -27,9 +29,8 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use flashtrace::languages::{CODE_EXT, Grammar, grammar_for};
+use flashtrace::languages::{BY_NAME, CODE_EXT, Grammar, effective_ext_of, grammar_for};
 use flashtrace::parse_code::parse_code;
-use flashtrace::paths::extension_of;
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/hyperglot")
@@ -39,13 +40,15 @@ const MARKDOWN: [&str; 2] = ["md", "markdown"];
 
 struct Fixture {
     ext: String,
+    // the file-name convention the fixture is named after, if it is one
+    convention: Option<&'static str>,
     folder: Option<String>,
     name: String,
     text: String,
 }
 
-// Every code fixture under examples/hyperglot: its extension, the folder it
-// sits in and its text. Markdown is skipped - the specs and the README are
+// Every code fixture under examples/hyperglot: the extension it is read as,
+// the convention it is named after, the folder it sits in and its text. Markdown is skipped - the specs and the README are
 // prose about the fixtures, not fixtures themselves.
 fn collect_fixtures() -> Vec<Fixture> {
     fn walk(dir: &Path, folder: Option<&str>, fixtures: &mut Vec<Fixture>) {
@@ -56,12 +59,17 @@ fn collect_fixtures() -> Vec<Fixture> {
                 walk(&entry.path(), Some(&name), fixtures);
                 continue;
             }
-            let ext = extension_of(&name);
+            let ext = effective_ext_of(&name);
             if MARKDOWN.contains(&ext.as_str()) {
                 continue;
             }
+            let convention = BY_NAME
+                .iter()
+                .map(|(spelling, _)| *spelling)
+                .find(|spelling| spelling.eq_ignore_ascii_case(&name));
             fixtures.push(Fixture {
                 ext,
+                convention,
                 folder: folder.map(str::to_string),
                 name,
                 text: fs::read_to_string(entry.path()).unwrap(),
@@ -120,9 +128,15 @@ fn markers_of(grammar: Grammar) -> Vec<&'static str> {
     markers
 }
 
-fn by_extension(fixtures: &[Fixture]) -> HashMap<&str, &Fixture> {
+// The fixtures standing for an extension - not those named after a convention.
+fn extension_fixtures(fixtures: &[Fixture]) -> impl Iterator<Item = &Fixture> {
     fixtures
         .iter()
+        .filter(|fixture| fixture.convention.is_none())
+}
+
+fn by_extension(fixtures: &[Fixture]) -> HashMap<&str, &Fixture> {
+    extension_fixtures(fixtures)
         .map(|fixture| (fixture.ext.as_str(), fixture))
         .collect()
 }
@@ -190,7 +204,7 @@ fn each_extension_has_exactly_one_fixture() {
 
     // when
     let mut counts: HashMap<&str, usize> = HashMap::new();
-    for fixture in &fixtures {
+    for fixture in extension_fixtures(&fixtures) {
         *counts.entry(fixture.ext.as_str()).or_insert(0) += 1;
     }
     let mut duplicated: Vec<&str> = counts
@@ -214,16 +228,20 @@ fn each_fixture_is_named_after_its_extension() {
     let fixtures = collect_fixtures();
 
     // when
+    let expected_name = |fixture: &Fixture| match fixture.convention {
+        Some(spelling) => spelling.to_string(),
+        None => {
+            let ext = &fixture.ext;
+            format!("{ext}.{ext}")
+        }
+    };
     let mut misnamed: Vec<String> = fixtures
         .iter()
-        .filter(|fixture| {
-            let ext = &fixture.ext;
-            fixture.name != format!("{ext}.{ext}")
-        })
+        .filter(|fixture| fixture.name != expected_name(fixture))
         .map(|fixture| {
             let location = where_of(fixture);
-            let ext = &fixture.ext;
-            format!("{location} (expected {ext}.{ext})")
+            let expected = expected_name(fixture);
+            format!("{location} (expected {expected})")
         })
         .collect();
     misnamed.sort();
@@ -290,12 +308,65 @@ fn extensions_are_grouped_by_shared_grammar_not_by_similarity() {
     );
 }
 
-// The fixtures of known extensions with their grammars; the others are
-// reported by every_fixture_covers_a_known_code_extension.
+#[test]
+fn every_file_name_convention_has_a_fixture_named_verbatim_after_it() {
+    // given
+    let fixtures = collect_fixtures();
+
+    // when
+    let mut missing: Vec<&str> = BY_NAME
+        .iter()
+        .map(|(spelling, _)| *spelling)
+        .filter(|spelling| !fixtures.iter().any(|fixture| fixture.name == *spelling))
+        .collect();
+    missing.sort();
+
+    // then
+    assert!(
+        missing.is_empty(),
+        "file-name conventions with no fixture in examples/hyperglot: {}. \
+         Add a file named verbatim after each, beside the fixture of the extension it resolves to.",
+        missing.join(", ")
+    );
+}
+
+#[test]
+fn each_convention_fixture_sits_beside_its_extension_fixture() {
+    // given
+    let fixtures = collect_fixtures();
+    let by_extension = by_extension(&fixtures);
+
+    // when
+    let mut misplaced: Vec<String> = fixtures
+        .iter()
+        .filter(|fixture| fixture.convention.is_some())
+        .filter(|fixture| {
+            by_extension
+                .get(fixture.ext.as_str())
+                .is_some_and(|sibling| sibling.folder != fixture.folder)
+        })
+        .map(|fixture| {
+            let location = where_of(fixture);
+            let ext = &fixture.ext;
+            format!("{location} (expected beside {ext}.{ext})")
+        })
+        .collect();
+    misplaced.sort();
+
+    // then
+    assert!(
+        misplaced.is_empty(),
+        "convention fixtures apart from their extension's fixture: {}",
+        misplaced.join(", ")
+    );
+}
+
+// Every fixture of a known extension with its grammar, convention fixtures
+// included; the others are reported by every_fixture_covers_a_known_code_extension.
 fn known_fixtures(fixtures: &[Fixture]) -> Vec<(&Fixture, Grammar)> {
-    by_extension(fixtures)
-        .into_iter()
-        .filter_map(|(ext, fixture)| grammar_for(ext).map(|grammar| (fixture, grammar)))
+    fixtures
+        .iter()
+        .filter_map(|fixture| grammar_for(&fixture.ext).map(|grammar| (fixture, grammar)))
         .collect()
 }
 

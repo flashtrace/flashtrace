@@ -397,12 +397,13 @@ pub fn grammar_for(ext: &str) -> Option<Grammar> {
         .map(|(_, grammar)| *grammar)
 }
 
-/// File-name conventions that name a language outright: a lowercased stem,
-/// matched by a file name equal to it or continuing it after a dot
-/// (`Dockerfile`, `Dockerfile.dev`), and the `BY_EXT` extension that language
-/// is listed under. Like editors, a convention outranks the extension, so
-/// `Dockerfile.js` is a Dockerfile, not JavaScript.
-const BY_NAME: [(&str, &str); 1] = [("dockerfile", "dockerfile")];
+/// File-name conventions that name a language outright: the canonical
+/// spelling of the name, matched ignoring case by a file name equal to it or
+/// continuing it after a dot (`Dockerfile`, `Dockerfile.dev`), and the
+/// `BY_EXT` extension that language is listed under. Like editors, a
+/// convention outranks the extension, so `Dockerfile.js` is a Dockerfile, not
+/// JavaScript.
+pub const BY_NAME: [(&str, &str); 1] = [("Dockerfile", "dockerfile")];
 
 /// The extension a file is read as: the one its file-name convention resolves
 /// to (see `BY_NAME`), otherwise its own extension as `extension_of` yields it.
@@ -413,8 +414,8 @@ pub fn effective_ext_of(file: &str) -> String {
         .unwrap_or_default();
     BY_NAME
         .iter()
-        .find(|(stem, _)| {
-            name.strip_prefix(stem)
+        .find(|(spelling, _)| {
+            name.strip_prefix(&spelling.to_lowercase())
                 .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
         })
         .map_or_else(|| extension_of(file), |(_, ext)| (*ext).to_string())
