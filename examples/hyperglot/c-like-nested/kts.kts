@@ -9,3 +9,7 @@
   /* [impl:c-like-nested/kts-nested/deep#1] inner */
   [impl:c-like-nested/kts-nested/after-close#1] still inside the outer block
 */
+
+// A string hides comment markers; a comment after it still counts.
+val text = "\" // [impl:c-like-nested/kts-ghost-double-quoted#1]" // [impl:c-like-nested/kts-after-double-quoted#1]
+val text = '"' // [impl:c-like-nested/kts-after-character-literal#1]

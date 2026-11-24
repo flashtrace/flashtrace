@@ -23,6 +23,8 @@ Needs:
 - impl:c-like-nested/kt-block#1
 - impl:c-like-nested/kt-nested/deep#1
 - impl:c-like-nested/kt-nested/after-close#1
+- impl:c-like-nested/kt-after-double-quoted#1
+- impl:c-like-nested/kt-after-character-literal#1
 
 ## .kts
 
@@ -33,6 +35,8 @@ Needs:
 - impl:c-like-nested/kts-block#1
 - impl:c-like-nested/kts-nested/deep#1
 - impl:c-like-nested/kts-nested/after-close#1
+- impl:c-like-nested/kts-after-double-quoted#1
+- impl:c-like-nested/kts-after-character-literal#1
 
 ## .rs
 
