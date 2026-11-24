@@ -17,10 +17,9 @@
  * Extensions are spelled lowercased and without their leading dot, as
  * `std::path::Path::extension` yields them.
  *
- * Some languages are named by a file-name convention rather than an extension
- * (`Dockerfile`, `Containerfile`). `effective_ext_of(file)` layers those
- * conventions, listed in `BY_NAME`, above the extension: a file matching one
- * is read as the extension its language is listed under in `BY_EXT`.
+ * Some files are named after their language instead of carrying an extension
+ * (`Dockerfile`, `Makefile`). `BY_NAME` lists those exact names with their
+ * grammar, and `grammar_of_file(file)` resolves a file through either table.
  */
 
 use std::path::Path;
@@ -398,32 +397,77 @@ pub fn grammar_for(ext: &str) -> Option<Grammar> {
         .map(|(_, grammar)| *grammar)
 }
 
-/// File-name conventions that name a language outright: the canonical
-/// spelling of the name, matched ignoring case by a file name equal to it or
-/// continuing it after a dot (`Dockerfile`, `Dockerfile.dev`), and the
-/// `BY_EXT` extension that language is listed under. Like editors, a
-/// convention outranks the extension, so `Dockerfile.js` is a Dockerfile, not
-/// JavaScript.
-pub const BY_NAME: [(&str, &str); 2] = [
-    ("Dockerfile", "dockerfile"),
-    // Podman and Buildah's name for the same build-file format
-    ("Containerfile", "containerfile"),
+/// Exact file names that name their language, with its grammar. A name is
+/// matched case-sensitively against the whole file name and only names
+/// without an extension are listed, so a match never changes how a file with
+/// an extension is read - such a file had nothing to be scanned by before.
+///
+/// Each entry notes the spellings related to it that are not considered yet:
+/// candidates for later improvements, each needing its own check that it
+/// cannot capture a file already scanned by its extension.
+pub static BY_NAME: [(&str, Grammar); 17] = [
+    // Docker. `*.dockerfile` is scanned by extension. Not yet: lowercase
+    // `dockerfile` (`docker build` reads it; collides with `Dockerfile` on a
+    // case-insensitive file system) and suffixed `Dockerfile.dev`,
+    // `Dockerfile.prod`. Warning: a suffix rule captures scanned extensions
+    // (`Dockerfile.js` is JavaScript by extension, `Dockerfile.md` a spec).
+    ("Dockerfile", Grammar::Leaf(&HASH)),
+    // Podman and Buildah. `*.containerfile` is scanned by extension. Not yet:
+    // suffixed `Containerfile.<suffix>`, with the same warning as Dockerfile.
+    ("Containerfile", Grammar::Leaf(&HASH)),
+    // Earthly. No alternative spelling known.
+    ("Earthfile", Grammar::Leaf(&HASH)),
+    // make. Not yet: lowercase `makefile` (GNU make reads it; collides with
+    // `Makefile` on a case-insensitive file system), the `.mk` and `.mak`
+    // extensions, and Automake's `Makefile.am` with its generated
+    // `Makefile.in`. Warning: a suffix or case-insensitive rule captures
+    // `makefile.ts` / `makefile.js` modules (`//` comments) and cargo-make's
+    // `Makefile.toml`.
+    ("Makefile", Grammar::Leaf(&HASH)),
+    ("GNUmakefile", Grammar::Leaf(&HASH)),
+    // just. Not yet: `Justfile`, `JUSTFILE` and the hidden `.justfile` (just
+    // finds its file ignoring case), and the `.just` extension.
+    ("justfile", Grammar::Leaf(&HASH)),
+    // Tilt (Starlark). Not yet: `Tiltfile` loads other Starlark files by the
+    // `.star` and `.bzl` extensions, which are not scanned.
+    ("Tiltfile", Grammar::Leaf(&HASH)),
+    // Bazel (Starlark). Not yet: `BUILD.bazel`, `WORKSPACE.bazel`,
+    // `MODULE.bazel` (the `.bazel` extension is not scanned) and `.bzl` files.
+    // Warning: a case-insensitive or suffix rule captures `build.gradle`
+    // (Groovy, `//` comments), `workspace.ts` and extensionless `build`
+    // scripts.
+    ("BUILD", Grammar::Leaf(&HASH)),
+    ("WORKSPACE", Grammar::Leaf(&HASH)),
+    // Pipenv (TOML). Warning: a suffix rule captures `Pipfile.lock`, which is
+    // JSON and has no comments.
+    ("Pipfile", Grammar::Leaf(&HASH)),
+    // Ruby DSL files. `*.rb` alternatives (`Rakefile.rb`, Bundler's `gems.rb`)
+    // are scanned by extension. Not yet: lowercase `rakefile`, and further
+    // DSL files such as `Guardfile`, `Berksfile`, `Capfile`, `Dangerfile` and
+    // fastlane's `Appfile`, `Matchfile`, `Pluginfile`. Warning: a suffix rule
+    // captures the lock files `Gemfile.lock` and `Podfile.lock` (not Ruby) and
+    // `Brewfile.lock.json` (JSON).
+    ("Vagrantfile", Grammar::Leaf(&HASH)),
+    ("Gemfile", Grammar::Leaf(&HASH)),
+    ("Rakefile", Grammar::Leaf(&HASH)),
+    ("Podfile", Grammar::Leaf(&HASH)),
+    ("Brewfile", Grammar::Leaf(&HASH)),
+    ("Fastfile", Grammar::Leaf(&HASH)),
+    // Jenkins pipelines (Groovy). `*.groovy` is scanned by extension. Not yet:
+    // suffixed `Jenkinsfile.<name>` variants and the `.jenkinsfile`
+    // extension. Warning: a suffix rule captures `Jenkinsfile.md` (a spec).
+    ("Jenkinsfile", Grammar::Leaf(&C_LIKE)),
 ];
 
-/// The extension a file is read as: the one its file-name convention resolves
-/// to (see `BY_NAME`), otherwise its own extension as `extension_of` yields it.
-pub fn effective_ext_of(file: &str) -> String {
-    let name = Path::new(file)
-        .file_name()
-        .map(|name| name.to_string_lossy().to_lowercase())
-        .unwrap_or_default();
+/// The grammar a file is scanned with: by its exact name (see `BY_NAME`),
+/// otherwise by its extension. None when flashtrace does not scan the file.
+pub fn grammar_of_file(file: &str) -> Option<Grammar> {
+    let name = Path::new(file).file_name().and_then(|name| name.to_str());
     BY_NAME
         .iter()
-        .find(|(spelling, _)| {
-            name.strip_prefix(&spelling.to_lowercase())
-                .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
-        })
-        .map_or_else(|| extension_of(file), |(_, ext)| (*ext).to_string())
+        .find(|(known, _)| Some(*known) == name)
+        .map(|(_, grammar)| *grammar)
+        .or_else(|| grammar_for(&extension_of(file)))
 }
 
 #[cfg(test)]
@@ -491,101 +535,92 @@ mod tests {
         }
     }
 
-    #[test]
-    fn effective_ext_of_reads_a_plain_dockerfile_as_a_dockerfile() {
-        // when
-        let ext = effective_ext_of("build/Dockerfile");
-
-        // then
-        assert_eq!(ext, "dockerfile");
+    fn leaf_of(grammar: Option<Grammar>) -> &'static Leaf {
+        match grammar {
+            Some(Grammar::Leaf(leaf)) => leaf,
+            _ => panic!("expected a leaf grammar"),
+        }
     }
 
     #[test]
-    fn effective_ext_of_matches_the_dockerfile_name_without_regard_to_case() {
+    fn grammar_of_file_reads_an_exactly_named_file_by_its_name() {
         // when
-        let exts: Vec<String> = ["dockerfile", "DOCKERFILE", "DockerFile"]
+        let grammar = grammar_of_file("build/Dockerfile");
+
+        // then
+        assert!(std::ptr::eq(leaf_of(grammar), &HASH));
+    }
+
+    #[test]
+    fn grammar_of_file_reads_a_jenkinsfile_with_c_like_comments() {
+        // when
+        let grammar = grammar_of_file("ci/Jenkinsfile");
+
+        // then
+        assert!(std::ptr::eq(leaf_of(grammar), &C_LIKE));
+    }
+
+    #[test]
+    fn grammar_of_file_matches_a_name_case_sensitively() {
+        // when
+        let grammars: Vec<bool> = ["dockerfile", "DOCKERFILE", "makefile", "build"]
             .iter()
-            .map(|file| effective_ext_of(file))
+            .map(|file| grammar_of_file(file).is_some())
             .collect();
 
         // then
-        assert_eq!(exts, ["dockerfile", "dockerfile", "dockerfile"]);
+        assert_eq!(grammars, [false, false, false, false]);
     }
 
     #[test]
-    fn effective_ext_of_reads_a_suffixed_dockerfile_as_a_dockerfile() {
+    fn grammar_of_file_reads_a_suffixed_name_by_its_extension() {
         // when
-        let exts: Vec<String> = ["Dockerfile.dev", "Dockerfile.prod.local"]
+        let javascript = grammar_of_file("Dockerfile.js");
+        let gradle = grammar_of_file("BUILD.gradle");
+        let unknown: Vec<bool> = ["Dockerfile.dev", "Gemfile.lock", "Pipfile.lock"]
             .iter()
-            .map(|file| effective_ext_of(file))
+            .map(|file| grammar_of_file(file).is_some())
             .collect();
 
         // then
-        assert_eq!(exts, ["dockerfile", "dockerfile"]);
+        assert!(std::ptr::eq(leaf_of(javascript), &C_LIKE));
+        assert!(std::ptr::eq(leaf_of(gradle), &C_LIKE));
+        assert_eq!(unknown, [false, false, false]);
     }
 
     #[test]
-    fn effective_ext_of_lets_the_dockerfile_name_outrank_a_known_extension() {
+    fn grammar_of_file_reads_the_dockerfile_extensions_through_the_extension_table() {
         // when
-        let exts: Vec<String> = ["Dockerfile.js", "Dockerfile.md"]
+        let dockerfile = grammar_of_file("services/api.dockerfile");
+        let containerfile = grammar_of_file("services/api.containerfile");
+
+        // then
+        assert!(std::ptr::eq(leaf_of(dockerfile), &HASH));
+        assert!(std::ptr::eq(leaf_of(containerfile), &HASH));
+    }
+
+    #[test]
+    fn no_listed_name_carries_an_extension() {
+        // when
+        let with_extension: Vec<&str> = BY_NAME
             .iter()
-            .map(|file| effective_ext_of(file))
+            .map(|(name, _)| *name)
+            .filter(|name| !extension_of(name).is_empty())
             .collect();
 
         // then
-        assert_eq!(exts, ["dockerfile", "dockerfile"]);
+        assert!(with_extension.is_empty(), "{with_extension:?}");
     }
 
     #[test]
-    fn effective_ext_of_reads_a_dockerfile_extension_through_the_extension_table() {
+    fn no_name_is_listed_twice_even_ignoring_case() {
         // when
-        let ext = effective_ext_of("services/api.Dockerfile");
-
-        // then
-        assert_eq!(ext, "dockerfile");
-        assert!(std::ptr::eq(
-            match grammar_for(&ext) {
-                Some(Grammar::Leaf(leaf)) => leaf,
-                _ => panic!("dockerfile resolves to a leaf grammar"),
-            },
-            &HASH
-        ));
-    }
-
-    #[test]
-    fn effective_ext_of_falls_back_to_the_extension_for_a_name_merely_containing_the_stem() {
-        // when
-        let exts: Vec<String> = ["Dockerfile-dev", "my-dockerfile", "dockerfiles/app.py"]
+        let unique: std::collections::HashSet<String> = BY_NAME
             .iter()
-            .map(|file| effective_ext_of(file))
+            .map(|(name, _)| name.to_lowercase())
             .collect();
 
         // then
-        assert_eq!(exts, ["", "", "py"]);
-    }
-
-    #[test]
-    fn effective_ext_of_reads_a_containerfile_by_name_and_by_extension() {
-        // when
-        let exts: Vec<String> = ["Containerfile", "Containerfile.prod", "api.containerfile"]
-            .iter()
-            .map(|file| effective_ext_of(file))
-            .collect();
-
-        // then
-        assert_eq!(exts, ["containerfile", "containerfile", "containerfile"]);
-    }
-
-    #[test]
-    fn every_file_name_convention_resolves_to_a_listed_extension() {
-        // when
-        let unlisted: Vec<&str> = BY_NAME
-            .iter()
-            .map(|(_, ext)| *ext)
-            .filter(|ext| grammar_for(ext).is_none())
-            .collect();
-
-        // then
-        assert!(unlisted.is_empty(), "{unlisted:?}");
+        assert_eq!(unique.len(), BY_NAME.len());
     }
 }

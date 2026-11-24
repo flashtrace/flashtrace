@@ -1,0 +1,6 @@
+// hyperglot fixture: Jenkinsfile is scanned with the C-like comment grammar.
+// [impl:c-like/jenkinsfile-name-line#1]
+
+/*
+ * [impl:c-like/jenkinsfile-name-block#1]
+ */

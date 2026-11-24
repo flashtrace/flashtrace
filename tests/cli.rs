@@ -651,21 +651,17 @@ fn git_ignored_files_are_excluded_outside_a_repository() {
 }
 
 #[test]
-fn files_named_dockerfile_are_scanned_with_hash_comments() {
+fn files_known_by_their_exact_name_are_scanned_with_their_grammar() {
     // given
     let project = with_project(
-        "dockerfile-names",
+        "exact-names",
         &[
             (
                 "spec.md",
-                &[
-                    "`req:image#1`",
-                    "",
-                    "Needs: impl:image/base#1, impl:image/dev#1",
-                ],
+                &["`req:build#1`", "", "Needs: impl:image#1, impl:pipeline#1"],
             ),
-            ("Dockerfile", &["FROM alpine", "# [impl:image/base#1]"]),
-            ("Dockerfile.dev", &["FROM alpine", "# [impl:image/dev#1]"]),
+            ("Dockerfile", &["FROM alpine", "# [impl:image#1]"]),
+            ("Jenkinsfile", &["// [impl:pipeline#1]"]),
         ],
     );
 
@@ -677,16 +673,18 @@ fn files_named_dockerfile_are_scanned_with_hash_comments() {
 }
 
 #[test]
-fn the_dockerfile_name_outranks_a_known_extension() {
+fn a_known_name_with_a_suffix_is_read_by_its_extension_only() {
     // given
     let project = with_project(
-        "dockerfile-outranks",
+        "suffixed-names",
         &[
-            ("spec.md", &["`req:image#1`", "", "Needs: impl:image#1"]),
+            ("spec.md", &["`req:script#1`", "", "Needs: impl:script#1"]),
             (
                 "Dockerfile.js",
-                &["# [impl:image#1]", "// [impl:read-as-javascript#1]"],
+                &["// [impl:script#1]", "# [impl:read-as-dockerfile#1]"],
             ),
+            ("Dockerfile.dev", &["# [impl:never-scanned#1]"]),
+            ("Gemfile.lock", &["# [impl:never-scanned-either#1]"]),
         ],
     );
 
@@ -695,7 +693,19 @@ fn the_dockerfile_name_outranks_a_known_extension() {
 
     // then
     assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
-    assert!(!stdout(&result).contains("impl:read-as-javascript#1"));
+}
+
+#[test]
+fn a_known_name_is_matched_case_sensitively() {
+    // given
+    let project = with_project("lowercase-name", &[("dockerfile", &["# [impl:image#1]"])]);
+
+    // when
+    let result = run(&project, &[]);
+
+    // then
+    assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
+    assert!(!stdout(&result).contains("impl:image#1"));
 }
 
 #[test]

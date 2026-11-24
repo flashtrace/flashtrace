@@ -8,9 +8,9 @@ use std::path::{Path, PathBuf};
 use ignore::WalkBuilder;
 
 use crate::errors::UsageError;
-use crate::languages::{CODE_EXT, effective_ext_of};
+use crate::languages::grammar_of_file;
 use crate::parse_spec::SPEC_EXT;
-use crate::paths::absolute_normalized;
+use crate::paths::{absolute_normalized, extension_of};
 
 pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
     let mut files: Vec<String> = Vec::new();
@@ -56,8 +56,7 @@ pub fn collect_files(dirs: &[String]) -> Result<Vec<String>, UsageError> {
     let mut collected: Vec<String> = files
         .into_iter()
         .filter(|file| {
-            let ext = effective_ext_of(file);
-            SPEC_EXT.contains(&ext.as_str()) || CODE_EXT.contains(&ext.as_str())
+            SPEC_EXT.contains(&extension_of(file).as_str()) || grammar_of_file(file).is_some()
         })
         .collect();
     // code-point order, locale-independent

@@ -1,6 +1,6 @@
 # Code tags
 
-Tags are written inside comments. The comment style is chosen per file extension (for a few languages, per [file name](#file-names-that-name-their-language)), so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
+Tags are written inside comments. The comment style is chosen per file extension (for some extensionless files, per [file name](#file-names-that-name-their-language)), so the same tag syntax works across many languages. Multi-line comment blocks are supported; each tag may sit on its own line inside a block.
 
 ## Comment styles
 
@@ -33,14 +33,14 @@ In CoffeeScript a run of four or more `#` is a line comment, not a block opener,
 
 ## File names that name their language
 
-Some languages are named by a file-name convention rather than an extension. A file whose name, ignoring case, equals one of the names below or continues it after a dot is scanned as that language, ahead of its extension:
+Some files carry no extension because their name already says what they are. flashtrace scans these exact names, matched case-sensitively against the whole file name:
 
-| Name | Scanned as | Matches |
-|---|---|---|
-| `Dockerfile` | `.dockerfile` (Hash) | `Dockerfile`, `Dockerfile.dev`, `Dockerfile.prod.local` |
-| `Containerfile` | `.containerfile` (Hash) | `Containerfile`, `Containerfile.dev` (Podman, Buildah) |
+| Comment family | Names |
+|---|---|
+| C-like | `Jenkinsfile` |
+| Hash | `Dockerfile` `Containerfile` `Earthfile` `Makefile` `GNUmakefile` `justfile` `Tiltfile` `BUILD` `WORKSPACE` `Pipfile` `Vagrantfile` `Gemfile` `Rakefile` `Podfile` `Brewfile` `Fastfile` |
 
-The name outranks the extension, as in editors: `Dockerfile.js` is a Dockerfile, not JavaScript, and `Dockerfile.md` is not a spec. A name that merely contains the convention, such as `Dockerfile-dev` or `my-dockerfile`, falls back to its extension.
+Only the exact name matches. A different case (`dockerfile`, `makefile`) or an added suffix (`Dockerfile.dev`, `Gemfile.lock`, `BUILD.bazel`) does not, and such a file is read by its extension like any other: `Dockerfile.js` is JavaScript and `Dockerfile.md` a spec.
 
 ## HTML and embedded languages
 
@@ -95,7 +95,7 @@ and `node_modules/` dependency directories are always excluded from traversal,
 including when supplied as directory scan roots. Directory
 symlinks are not followed, and symlink entries discovered during traversal are
 not scanned. Explicit file arguments bypass ignore rules, but must still have a
-supported extension or [language-naming file name](#file-names-that-name-their-language).
+supported extension or [known file name](#file-names-that-name-their-language).
 Results are deduplicated and sorted.
 
 Ignored files and explicit overrides do not produce warnings.

@@ -11,23 +11,37 @@ Covers: feat:support-grammar/hash#1
 Needs:
 + req:hash/awk#1
 + req:hash/bash#1
++ req:hash/brewfile-name#1
++ req:hash/build-name#1
 + req:hash/containerfile#1
 + req:hash/containerfile-name#1
 + req:hash/cr#1
-+ req:hash/dockerfile-name#1
 + req:hash/dockerfile#1
++ req:hash/dockerfile-name#1
++ req:hash/earthfile-name#1
 + req:hash/ex#1
 + req:hash/exs#1
++ req:hash/fastfile-name#1
 + req:hash/gd#1
++ req:hash/gemfile-name#1
++ req:hash/gnumakefile-name#1
 + req:hash/gql#1
 + req:hash/graphql#1
++ req:hash/justfile-name#1
++ req:hash/makefile-name#1
++ req:hash/pipfile-name#1
 + req:hash/pm#1
++ req:hash/podfile-name#1
 + req:hash/py#1
 + req:hash/r#1
++ req:hash/rakefile-name#1
 + req:hash/rb#1
 + req:hash/sh#1
 + req:hash/tcl#1
++ req:hash/tiltfile-name#1
 + req:hash/toml#1
++ req:hash/vagrantfile-name#1
++ req:hash/workspace-name#1
 + req:hash/yaml#1
 + req:hash/yml#1
 + req:hash/zsh#1
@@ -45,6 +59,18 @@ Needs: impl:hash/awk#1
 `req:hash/bash#1`
 
 Needs: impl#2.x
+
+## Brewfile
+
+`req:hash/brewfile-name#1`
+
+Needs: impl:hash/brewfile-name#1
+
+## BUILD
+
+`req:hash/build-name#1`
+
+Needs: impl:hash/build-name#1
 
 ## .containerfile
 
@@ -64,17 +90,23 @@ Needs: impl:hash/containerfile-name#1
 
 Needs: impl:hash/cr#1
 
+## .dockerfile
+
+`req:hash/dockerfile#1`
+
+Needs: impl:hash/dockerfile#1
+
 ## Dockerfile
 
 `req:hash/dockerfile-name#1`
 
 Needs: impl:hash/dockerfile-name#1
 
-## .dockerfile
+## Earthfile
 
-`req:hash/dockerfile#1`
+`req:hash/earthfile-name#1`
 
-Needs: impl:hash/dockerfile#1
+Needs: impl:hash/earthfile-name#1
 
 ## .ex
 
@@ -88,11 +120,29 @@ Needs: impl:hash/ex#1
 
 Needs: impl:hash/exs#1
 
+## Fastfile
+
+`req:hash/fastfile-name#1`
+
+Needs: impl:hash/fastfile-name#1
+
 ## .gd
 
 `req:hash/gd#1`
 
 Needs: impl:hash/gd#1
+
+## Gemfile
+
+`req:hash/gemfile-name#1`
+
+Needs: impl:hash/gemfile-name#1
+
+## GNUmakefile
+
+`req:hash/gnumakefile-name#1`
+
+Needs: impl:hash/gnumakefile-name#1
 
 ## .gql
 
@@ -106,11 +156,35 @@ Needs: impl:hash/gql#1
 
 Needs: impl:hash/graphql#1
 
+## justfile
+
+`req:hash/justfile-name#1`
+
+Needs: impl:hash/justfile-name#1
+
+## Makefile
+
+`req:hash/makefile-name#1`
+
+Needs: impl:hash/makefile-name#1
+
+## Pipfile
+
+`req:hash/pipfile-name#1`
+
+Needs: impl:hash/pipfile-name#1
+
 ## .pm
 
 `req:hash/pm#1`
 
 Needs: impl:hash/pm#1
+
+## Podfile
+
+`req:hash/podfile-name#1`
+
+Needs: impl:hash/podfile-name#1
 
 ## .py
 
@@ -123,6 +197,12 @@ Needs: impl#1.2
 `req:hash/r#1`
 
 Needs: impl:hash/r#1
+
+## Rakefile
+
+`req:hash/rakefile-name#1`
+
+Needs: impl:hash/rakefile-name#1
 
 ## .rb
 
@@ -142,11 +222,29 @@ Needs: impl#1.2.x
 
 Needs: impl:hash/tcl#1
 
+## Tiltfile
+
+`req:hash/tiltfile-name#1`
+
+Needs: impl:hash/tiltfile-name#1
+
 ## .toml
 
 `req:hash/toml#1`
 
 Needs: impl:hash/toml
+
+## Vagrantfile
+
+`req:hash/vagrantfile-name#1`
+
+Needs: impl:hash/vagrantfile-name#1
+
+## WORKSPACE
+
+`req:hash/workspace-name#1`
+
+Needs: impl:hash/workspace-name#1
 
 ## .yaml
 
