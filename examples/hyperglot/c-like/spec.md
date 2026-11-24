@@ -96,13 +96,13 @@ Needs: impl:c-like/go-line#1, impl:c-like/go-block#1, impl:c-like/go-after-doubl
 
 `req:c-like/gradle#1`
 
-Needs: impl:c-like/gradle-line#1, impl:c-like/gradle-block#1
+Needs: impl:c-like/gradle-line#1, impl:c-like/gradle-block#1, impl:c-like/gradle-after-double-quoted#1, impl:c-like/gradle-after-single-quoted#1
 
 ## .groovy
 
 `req:c-like/groovy#1`
 
-Needs: impl:c-like/groovy-line#1, impl:c-like/groovy-block#1
+Needs: impl:c-like/groovy-line#1, impl:c-like/groovy-block#1, impl:c-like/groovy-after-double-quoted#1, impl:c-like/groovy-after-single-quoted#1
 
 ## .h
 

@@ -4,3 +4,7 @@
 /*
  * [impl:c-like/gradle-block#1]
  */
+
+// A string hides comment markers; a comment after it still counts.
+def text = "\" // [impl:c-like/gradle-ghost-double-quoted#1]" // [impl:c-like/gradle-after-double-quoted#1]
+def text = '\' // [impl:c-like/gradle-ghost-single-quoted#1]' // [impl:c-like/gradle-after-single-quoted#1]
