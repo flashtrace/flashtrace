@@ -151,6 +151,14 @@ jobs:
             echo "::error file=Cargo.toml::Expected one [package] / name = \"flashtrace\" / version = \"major.minor.patch\" block, found \"${current}\"."
             exit 1
           fi
+          # The bump counts up from Cargo.toml, so it must match the latest tag.
+          # Fetched separately so a failed request fails instead of "no tags".
+          tags=$(gh api --paginate "repos/$REPO/git/matching-refs/tags/v" --jq '.[].ref')
+          latest=$(grep -E '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' <<< "$tags" | sed 's|^refs/tags/v||' | sort -V | tail -1)
+          if [ "$current" != "$latest" ]; then
+            echo "::error file=Cargo.toml::Cargo.toml has version ${current}, but the latest release tag is v${latest:-<none>}; restore the released version before releasing."
+            exit 1
+          fi
           IFS=. read -r major minor patch <<< "$current"
           case "$LEVEL" in
             major) version="$((major + 1)).0.0" ;;
