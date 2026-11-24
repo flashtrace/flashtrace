@@ -46,7 +46,7 @@ Needs: impl#2.x
 
 `req:hash/cr#1`
 
-Needs: impl:hash/cr#1
+Needs: impl:hash/cr#1, impl:hash/cr-after-double-quoted#1, impl:hash/cr-after-character-literal#1
 
 ## .ex
 
