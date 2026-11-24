@@ -4,3 +4,7 @@
 --[[
   [impl:lua/lua-block#1]
 ]]
+
+-- A string hides comment markers; a comment after it still counts.
+local text = "\" -- [impl:lua/lua-ghost-double-quoted#1]" -- [impl:lua/lua-after-double-quoted#1]
+local text = '\' -- [impl:lua/lua-ghost-single-quoted#1]' -- [impl:lua/lua-after-single-quoted#1]
