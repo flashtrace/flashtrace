@@ -100,7 +100,7 @@ Needs: impl:hash/r#1
 
 `req:hash/rb#1`
 
-Needs: impl#x
+Needs: impl#x, impl:hash/rb-after-double-quoted#1, impl:hash/rb-after-single-quoted#1
 
 ## .sh
 
