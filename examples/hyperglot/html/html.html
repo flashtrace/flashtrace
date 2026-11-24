@@ -6,6 +6,8 @@
     /*
      * [impl:html/html-style-block#1]
      */
+    .hyperglot::before { content: "\" /* [impl:html/html-style-ghost-double-quoted#1]"; } /* [impl:html/html-style-after-double-quoted#1] */
+    .hyperglot::before { content: '\' /* [impl:html/html-style-ghost-single-quoted#1]'; } /* [impl:html/html-style-after-single-quoted#1] */
     .hyperglot { display: block; }
     </style>
   </head>
@@ -19,6 +21,9 @@
     /*
      * [impl:html/html-script-block#1]
      */
+    const text = "\" // [impl:html/html-script-ghost-double-quoted#1]"; // [impl:html/html-script-after-double-quoted#1]
+    const text = '\' // [impl:html/html-script-ghost-single-quoted#1]'; // [impl:html/html-script-after-single-quoted#1]
+    const text = `\` // [impl:html/html-script-ghost-backtick-quoted#1]`; // [impl:html/html-script-after-backtick-quoted#1]
     export default {};
     </script>
 
