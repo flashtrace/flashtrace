@@ -18,13 +18,13 @@ Covers: feat:support-grammar/dash-line#1
 
 `req:dash-line/adb#1`
 
-Needs: impl:dash-line/adb#1
+Needs: impl:dash-line/adb#1, impl:dash-line/adb-after-double-quoted#1, impl:dash-line/adb-after-character-literal#1, impl:dash-line/adb-after-attribute#1
 
 ## .ads
 
 `req:dash-line/ads#1`
 
-Needs: impl:dash-line/ads#1
+Needs: impl:dash-line/ads#1, impl:dash-line/ads-after-double-quoted#1, impl:dash-line/ads-after-character-literal#1, impl:dash-line/ads-after-attribute#1
 
 ## .vhd
 
