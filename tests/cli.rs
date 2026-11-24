@@ -696,9 +696,20 @@ fn a_known_name_with_a_suffix_is_read_by_its_extension_only() {
 }
 
 #[test]
-fn a_known_name_is_matched_case_sensitively() {
+fn only_documented_spellings_of_a_known_name_are_scanned() {
     // given
-    let project = with_project("lowercase-name", &[("dockerfile", &["# [impl:image#1]"])]);
+    let project = with_project(
+        "documented-spellings",
+        &[
+            (
+                "spec.md",
+                &["`req:build#1`", "", "Needs: impl:make#1, impl:just#1"],
+            ),
+            ("makefile", &["# [impl:make#1]"]),
+            ("JUSTFILE", &["# [impl:just#1]"]),
+            ("dockerfile", &["# [impl:image#1]"]),
+        ],
+    );
 
     // when
     let result = run(&project, &[]);

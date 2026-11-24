@@ -1,6 +1,6 @@
 Summary
-  items       401  (162 from specs, 239 from code)
-  ok          401
+  items       399  (161 from specs, 238 from code)
+  ok          399
   defective   0
 
 ok

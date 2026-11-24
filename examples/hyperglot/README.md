@@ -3,8 +3,9 @@
 Every file extension flashtrace knows, each in a file that exercises every
 comment form its grammar offers, and a Markdown spec that exercises every
 construct the Markdown parser reads. One folder per comment grammar, one file
-per extension inside it - plus one file named verbatim after each extensionless
-file name flashtrace knows (`Dockerfile`, `Jenkinsfile`), in its grammar's folder.
+per extension inside it - plus one file per extensionless file name flashtrace
+knows, named after its first spelling (`Makefile`, not `makefile`), in its
+grammar's folder.
 
 Extensions share a folder only when they resolve to the very same grammar - not
 when they merely look alike. That is why `.scss` and `.less` sit under
@@ -124,16 +125,17 @@ These files are written by hand like any other example, but the example is only
 worth its name while it covers every extension flashtrace scans. So
 `tests/hyperglot.rs` ties the two together: every extension in
 `src/languages.rs` must have a fixture here, and so must every file name it
-knows; each fixture must be named after its extension (or verbatim after its
-file name) and sit in the folder of its comment grammar, and each must tag
-every comment form that grammar offers. CI runs the suite on every pull request,
-so a change teaching flashtrace a new extension cannot land without the fixture
-that exercises it.
+knows; each fixture must be named after its extension (or after its file
+name's first spelling) and sit in the folder of its comment grammar, and each
+must tag every comment form that grammar offers. CI runs the suite on every pull
+request, so a change teaching flashtrace a new extension cannot land without the
+fixture that exercises it.
 
 Adding an extension therefore means adding one file named after it to the folder
 of its grammar - a new folder when the grammar itself is new - and needing its
 tags from that folder's `spec.md`. Adding a file name means the same for a file
-named verbatim after it. Changing a fixture also means refreshing the
+named after its first spelling; further spellings of the same name share that
+file. Changing a fixture also means refreshing the
 end-to-end snapshots, which pin this example's report byte-for-byte:
 
 ```sh

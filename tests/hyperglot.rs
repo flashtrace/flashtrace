@@ -11,8 +11,9 @@
  * The conventions it checks, all of which the example's README spells out:
  *   - one fixture per extension, named after it (ts.ts covers .ts), so "the
  *     fixture for .ts" is something this suite can look up at all;
- *   - one more fixture per exact file name flashtrace knows, named
- *     verbatim after it (Dockerfile), in the folder of its grammar;
+ *   - one more fixture per file name flashtrace knows, named verbatim
+ *     after its first spelling (Makefile, not makefile), in the folder of
+ *     its grammar;
  *   - fixtures grouped in a folder per comment grammar, shared by exactly the
  *     extensions resolving to the same grammar object;
  *   - each fixture writing every marker its grammar defines and defining an
@@ -29,7 +30,9 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use flashtrace::languages::{BY_NAME, CODE_EXT, Grammar, grammar_for, grammar_of_file};
+use flashtrace::languages::{
+    BY_NAME, CODE_EXT, Grammar, grammar_for, grammar_of_file, known_name_of,
+};
 use flashtrace::parse_code::parse_code;
 use flashtrace::paths::extension_of;
 
@@ -41,7 +44,7 @@ const MARKDOWN: [&str; 2] = ["md", "markdown"];
 
 struct Fixture {
     ext: String,
-    // the exact file name the fixture stands for, if it stands for one
+    // the first spelling of the known name the fixture stands for, if any
     known_name: Option<&'static str>,
     folder: Option<String>,
     name: String,
@@ -64,10 +67,7 @@ fn collect_fixtures() -> Vec<Fixture> {
             if MARKDOWN.contains(&ext.as_str()) {
                 continue;
             }
-            let known_name = BY_NAME
-                .iter()
-                .map(|(known, _)| *known)
-                .find(|known| *known == name);
+            let known_name = known_name_of(&name).map(|known| known.spellings[0].text());
             fixtures.push(Fixture {
                 ext,
                 known_name,
@@ -309,14 +309,14 @@ fn extensions_are_grouped_by_shared_grammar_not_by_similarity() {
 }
 
 #[test]
-fn every_known_file_name_has_a_fixture_named_verbatim_after_it() {
+fn every_known_file_name_has_a_fixture_named_after_its_first_spelling() {
     // given
     let fixtures = collect_fixtures();
 
     // when
     let mut missing: Vec<&str> = BY_NAME
         .iter()
-        .map(|(name, _)| *name)
+        .map(|known| known.spellings[0].text())
         .filter(|name| !fixtures.iter().any(|fixture| fixture.name == *name))
         .collect();
     missing.sort();
@@ -325,7 +325,7 @@ fn every_known_file_name_has_a_fixture_named_verbatim_after_it() {
     assert!(
         missing.is_empty(),
         "known file names with no fixture in examples/hyperglot: {}. \
-         Add a file named verbatim after each, in the folder of its grammar.",
+         Add a file named verbatim after each first spelling, in the folder of its grammar.",
         missing.join(", ")
     );
 }

@@ -33,14 +33,27 @@ In CoffeeScript a run of four or more `#` is a line comment, not a block opener,
 
 ## File names that name their language
 
-Some files carry no extension because their name already says what they are. flashtrace scans these exact names, matched case-sensitively against the whole file name:
+Some files carry no extension because their name already says what they are. flashtrace scans these names, matched against the whole file name in exactly the spellings their tools document:
 
-| Comment family | Names |
-|---|---|
-| C-like | `Jenkinsfile` |
-| Hash | `Dockerfile` `Containerfile` `Earthfile` `Makefile` `GNUmakefile` `justfile` `Tiltfile` `BUILD` `WORKSPACE` `Pipfile` `Vagrantfile` `Gemfile` `Rakefile` `Podfile` `Brewfile` `Fastfile` |
+| Comment family | Tool | Spellings |
+|---|---|---|
+| C-like | Jenkins | `Jenkinsfile` |
+| Hash | Docker | `Dockerfile` |
+| Hash | Podman, Buildah | `Containerfile` |
+| Hash | Earthly | `Earthfile` |
+| Hash | make | `Makefile` `makefile` `GNUmakefile` |
+| Hash | just | `justfile` in any letter case, `.justfile` |
+| Hash | Tilt | `Tiltfile` |
+| Hash | Bazel | `BUILD` `WORKSPACE` |
+| Hash | Pipenv | `Pipfile` |
+| Hash | Vagrant | `Vagrantfile` |
+| Hash | Bundler | `Gemfile` |
+| Hash | Rake | `Rakefile` `rakefile` |
+| Hash | CocoaPods | `Podfile` |
+| Hash | Homebrew Bundle | `Brewfile` |
+| Hash | fastlane | `Fastfile` |
 
-Only the exact name matches. A different case (`dockerfile`, `makefile`) or an added suffix (`Dockerfile.dev`, `Gemfile.lock`, `BUILD.bazel`) does not, and such a file is read by its extension like any other: `Dockerfile.js` is JavaScript and `Dockerfile.md` a spec.
+Any other spelling does not match: a different letter case (`dockerfile`, `MAKEFILE`) unless noted, or an added suffix (`Dockerfile.dev`, `Gemfile.lock`, `BUILD.bazel`). Such a file is read by its extension like any other: `Dockerfile.js` is JavaScript and `Dockerfile.md` a spec.
 
 ## HTML and embedded languages
 

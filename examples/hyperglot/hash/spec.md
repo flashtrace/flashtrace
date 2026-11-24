@@ -24,7 +24,6 @@ Needs:
 + req:hash/fastfile-name#1
 + req:hash/gd#1
 + req:hash/gemfile-name#1
-+ req:hash/gnumakefile-name#1
 + req:hash/gql#1
 + req:hash/graphql#1
 + req:hash/justfile-name#1
@@ -137,12 +136,6 @@ Needs: impl:hash/gd#1
 `req:hash/gemfile-name#1`
 
 Needs: impl:hash/gemfile-name#1
-
-## GNUmakefile
-
-`req:hash/gnumakefile-name#1`
-
-Needs: impl:hash/gnumakefile-name#1
 
 ## .gql
 
