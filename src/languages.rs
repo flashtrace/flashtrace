@@ -199,6 +199,22 @@ static JAVASCRIPT_QUOTED: &[StringForm] = &[
     },
 ];
 
+// Go: "…" interpreted strings and 'c' rune literals with backslash
+// escapes, and `…` raw strings, in which a backslash escapes nothing.
+//   https://go.dev/ref/spec#String_literals
+//   https://go.dev/ref/spec#Rune_literals
+static GO_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::Quoted {
+        quote: '`',
+        escape: None,
+    },
+    StringForm::CharacterLiteral { escape: Some('\\') },
+];
+
 // Shared comment families, reused across the extension table below. C_LIKE is
 // also the fallback comment family for unknown extensions (see parse_code.rs).
 pub static C_LIKE: Comments = Comments {
@@ -456,7 +472,7 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("tpp", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("cs", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("java", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
-        leaf("go", &C_LIKE, NO_STRINGS),
+        leaf("go", &C_LIKE, GO_QUOTED),
         leaf("groovy", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
         leaf("gradle", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
         leaf("sol", &C_LIKE, DOUBLE_AND_SINGLE_QUOTED),
