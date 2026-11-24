@@ -1,2 +1,5 @@
 # hyperglot fixture: .graphql has line comments only.
 # [impl:hash/graphql#1]
+
+# A string hides comment markers; a comment after it still counts.
+query { search(text: "\" # [impl:hash/graphql-ghost-double-quoted#1]") } # [impl:hash/graphql-after-double-quoted#1]

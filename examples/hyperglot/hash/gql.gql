@@ -1,2 +1,5 @@
 # hyperglot fixture: .gql has line comments only.
 # [impl:hash/gql#1]
+
+# A string hides comment markers; a comment after it still counts.
+query { search(text: "\" # [impl:hash/gql-ghost-double-quoted#1]") } # [impl:hash/gql-after-double-quoted#1]

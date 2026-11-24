@@ -70,13 +70,13 @@ Needs: impl:hash/gd#1, impl:hash/gd-after-double-quoted#1, impl:hash/gd-after-si
 
 `req:hash/gql#1`
 
-Needs: impl:hash/gql#1
+Needs: impl:hash/gql#1, impl:hash/gql-after-double-quoted#1
 
 ## .graphql
 
 `req:hash/graphql#1`
 
-Needs: impl:hash/graphql#1
+Needs: impl:hash/graphql#1, impl:hash/graphql-after-double-quoted#1
 
 ## .pm
 
