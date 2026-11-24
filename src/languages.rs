@@ -177,6 +177,28 @@ static DOUBLE_AND_SINGLE_QUOTED: &[StringForm] = &[
     },
 ];
 
+// "…", '…' and `…` with backslash escapes. A template literal spanning
+// lines, or holding ${…} with nested literals, is only followed on its
+// opening line. JSX and TSX are left out: JSX text between tags may hold
+// either quote unpaired (https://github.com/facebook/jsx/blob/main/spec.emu,
+// JSXText).
+//   JavaScript/TypeScript  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#string_literals
+//                          https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
+static JAVASCRIPT_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::Quoted {
+        quote: '\'',
+        escape: Some('\\'),
+    },
+    StringForm::Quoted {
+        quote: '`',
+        escape: Some('\\'),
+    },
+];
+
 // Shared comment families, reused across the extension table below. C_LIKE is
 // also the fallback comment family for unknown extensions (see parse_code.rs).
 pub static C_LIKE: Comments = Comments {
@@ -318,7 +340,10 @@ fn script_grammar(tag: &str) -> Leaf {
             strings: DOUBLE_AND_SINGLE_QUOTED,
         }; // CoffeeScript
     }
-    comments_only(&C_LIKE) // JS / TS / JSX / module / ...
+    Leaf {
+        comments: &C_LIKE,
+        strings: JAVASCRIPT_QUOTED,
+    } // JS / TS / module / ...
 }
 
 fn style_grammar(tag: &str) -> Leaf {
@@ -411,14 +436,14 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
     let html = |ext: &'static str| (ext, Grammar::Composite(&HTML));
     vec![
         // C-family: // line, /* */ block
-        leaf("ts", &C_LIKE, NO_STRINGS),
-        leaf("js", &C_LIKE, NO_STRINGS),
-        leaf("mjs", &C_LIKE, NO_STRINGS),
-        leaf("cjs", &C_LIKE, NO_STRINGS),
+        leaf("ts", &C_LIKE, JAVASCRIPT_QUOTED),
+        leaf("js", &C_LIKE, JAVASCRIPT_QUOTED),
+        leaf("mjs", &C_LIKE, JAVASCRIPT_QUOTED),
+        leaf("cjs", &C_LIKE, JAVASCRIPT_QUOTED),
         leaf("jsx", &C_LIKE, NO_STRINGS),
         leaf("tsx", &C_LIKE, NO_STRINGS),
-        leaf("cts", &C_LIKE, NO_STRINGS),
-        leaf("mts", &C_LIKE, NO_STRINGS),
+        leaf("cts", &C_LIKE, JAVASCRIPT_QUOTED),
+        leaf("mts", &C_LIKE, JAVASCRIPT_QUOTED),
         leaf("c", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("h", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("cpp", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
