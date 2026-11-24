@@ -22,6 +22,8 @@ Needs:
 - impl:haskell/elm-block#1
 - impl:haskell/elm-nested/deep#1
 - impl:haskell/elm-nested/after-close#1
+- impl:haskell/elm-after-double-quoted#1
+- impl:haskell/elm-after-character-literal#1
 
 ## .hs
 
