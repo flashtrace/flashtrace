@@ -22,8 +22,10 @@ updates:
       - dependency-type: all
     # Keep a requirement such as regex = "1" as it is while it admits the new
     # version: the published crate must not demand more of its consumers than
-    # it needs, and the lockfile pins the build anyway.
-    versioning-strategy: increase-if-necessary
+    # it needs, and the lockfile pins the build anyway. For cargo, Dependabot
+    # accepts only "auto" and "lockfile-only", and "auto" does just that for a
+    # library crate.
+    versioning-strategy: auto
     # A new major has more time to surface problems before it is proposed
     cooldown:
       default-days: 3
