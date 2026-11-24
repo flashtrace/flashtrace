@@ -274,3 +274,23 @@ jobs:
           name: quality-badges
           path: badges/
           retention-days: 1
+
+  # The one check the "Required CI" ruleset requires on main, so adding,
+  # renaming or matrix-expanding a job needs no ruleset change: list it under
+  # needs here instead. always() makes it report even when a needed job
+  # failed; skipped jobs pass, so a job may be skipped on purpose.
+  result:
+    name: CI result
+    if: always()
+    needs: [lint, minimum-rust, test, npm-packages, coverage]
+    runs-on: ubuntu-26.04
+    permissions: {} # reads only the needed jobs' results
+    steps:
+      - name: Fail when a needed job failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "needed job results: $RESULTS"
+          case " $RESULTS " in
+            *" failure "* | *" cancelled "*) exit 1 ;;
+          esac
