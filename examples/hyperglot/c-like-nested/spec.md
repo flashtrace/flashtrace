@@ -43,6 +43,9 @@ Needs:
 - impl:c-like-nested/rs-block#1
 - impl:c-like-nested/rs-nested/deep#1
 - impl:c-like-nested/rs-nested/after-close#1
+- impl:c-like-nested/rs-after-double-quoted#1
+- impl:c-like-nested/rs-after-character-literal#1
+- impl:c-like-nested/rs-after-lifetime#1
 
 ## .scala
 
