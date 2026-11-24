@@ -50,64 +50,17 @@ static TAG_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 static FORWARD_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&forward_src()).unwrap());
 
-// URL-shaped text: a scheme followed by ://, extending until a character that
-// ends a URL in practice (whitespace, quotes/backtick, brackets, angle
-// brackets - so a tag or an HTML tag right next to a URL stays outside).
-// The scheme repetition is bounded so a long run of scheme-valid characters
-// with no :// cannot force super-linear backtracking; 63 clears every real
-// scheme (RFC 3986 and reverse-DNS custom schemes stay well under it).
-static URL_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"[A-Za-z][A-Za-z0-9+.-]{0,63}://[^\s"'`<>\[\]]*"#).unwrap());
-
 // the 1-based column of a byte offset into a line, counted in characters
 // (Unicode scalar values)
 fn character_column(line: &str, byte_offset: usize) -> usize {
     line[..byte_offset].chars().count() + 1
 }
 
-// a URL span [start, end) in a line, in byte offsets
-struct UrlSpan {
-    start: usize,
-    end: usize,
-}
-
-// spans of URL-shaped text in a line, in order. Comment *openers* inside a
-// span are ignored (see marker_index), so the `//`, `#`, `--` or `/*` of e.g.
-// `https://example.com/a--b#anchor` cannot open a phantom comment. Block
-// *closers* are still honoured inside URLs: skipping a closer could leave a
-// block comment open far past its real end, which is worse than the phantom
-// it would prevent.
-fn url_spans(line: &str) -> Vec<UrlSpan> {
-    if !line.contains("://") {
-        return Vec::new();
-    }
-    URL_RE
-        .find_iter(line)
-        .map(|m| UrlSpan {
-            start: m.start(),
-            end: m.end(),
-        })
-        .collect()
-}
-
-// first index of `marker` at or after pos that lies outside every URL span,
-// or None. Spans are in ascending order and the index only moves forward, so
-// a single pass over the spans suffices.
-fn marker_index(line: &str, marker: &str, pos: usize, spans: &[UrlSpan]) -> Option<usize> {
-    let find_from = |from: usize| {
-        line.get(from..)
-            .and_then(|rest| rest.find(marker).map(|idx| from + idx))
-    };
-    let mut idx = find_from(pos);
-    for span in spans {
-        match idx {
-            None => break,
-            Some(found) if found < span.start => break,
-            Some(found) if found < span.end => idx = find_from(span.end),
-            Some(_) => {}
-        }
-    }
-    idx
+// first index of `marker` at or after pos, or None
+fn marker_index(line: &str, marker: &str, pos: usize) -> Option<usize> {
+    line.get(pos..)
+        .and_then(|rest| rest.find(marker))
+        .map(|idx| pos + idx)
 }
 
 // an open block comment carried across lines: its tokens and nesting depth
@@ -214,13 +167,7 @@ fn region_exit_regex(region: &'static Region) -> &'static Regex {
 // earliest scanning event in the line at or after pos, or None: a comment
 // opener or a string literal from the active leaf grammar, or - for composite
 // grammars - a region boundary.
-fn next_event(
-    line: &str,
-    pos: usize,
-    grammar: Grammar,
-    state: &ScanState,
-    spans: &[UrlSpan],
-) -> Option<Event> {
+fn next_event(line: &str, pos: usize, grammar: Grammar, state: &ScanState) -> Option<Event> {
     let leaf = active_leaf(grammar, state);
     let mut best: Option<Event> = None;
     // earliest match wins; on a tie the longest opener wins, so a block opener
@@ -240,7 +187,7 @@ fn next_event(
     };
     for marker in leaf.comments.line {
         consider(
-            marker_index(line, marker, pos, spans),
+            marker_index(line, marker, pos),
             Event {
                 idx: 0,
                 len: marker.len(),
@@ -250,7 +197,7 @@ fn next_event(
     }
     for block_pair in leaf.comments.block {
         consider(
-            marker_index(line, block_pair.open, pos, spans),
+            marker_index(line, block_pair.open, pos),
             Event {
                 idx: 0,
                 len: block_pair.open.len(),
@@ -501,7 +448,6 @@ fn consume_line(
 // is a hard boundary that ends the region even mid-comment, the way a browser
 // terminates a raw-text element at the first `</script>`.
 fn comment_text(line: &str, state: &mut ScanState, grammar: Grammar) -> String {
-    let spans = url_spans(line);
     let mut buffer = vec![b' '; line.len()];
     let mut keep = |from: usize, to: usize| {
         buffer[from..to].copy_from_slice(&line.as_bytes()[from..to]);
@@ -520,7 +466,7 @@ fn comment_text(line: &str, state: &mut ScanState, grammar: Grammar) -> String {
             continue;
         }
 
-        let Some(event) = next_event(line, pos, grammar, state, &spans) else {
+        let Some(event) = next_event(line, pos, grammar, state) else {
             break;
         };
         pos = event.idx + event.len;
@@ -967,9 +913,36 @@ mod tests {
     }
 
     #[test]
-    fn a_comment_opener_glued_to_a_scheme_shaped_token_is_missed_known_limitation() {
-        let (items, _, _) = parse("src.ts", &["const x = 1; note://[impl:missed#1]"]);
-        assert_eq!(items.len(), 0);
+    fn a_comment_opener_glued_to_a_scheme_shaped_token_opens_a_comment() {
+        // when
+        let (items, _, _) = parse("src.ts", &["const x = 1; note://[impl:glued#1]"]);
+
+        // then
+        assert_eq!(ids(&items), ["impl:glued#1"]);
+    }
+
+    #[test]
+    fn a_url_in_a_string_and_a_glued_comment_are_told_apart() {
+        // given
+        let in_string = "call(\"note; scheme://[invalid:url#1]\");";
+        let in_comment = "call(note); scheme://[invalid:url#1]";
+
+        // when
+        let (string_items, _, _) = parse("src.ts", &[in_string]);
+        let (comment_items, _, _) = parse("src.ts", &[in_comment]);
+
+        // then
+        assert_eq!(string_items.len(), 0);
+        assert_eq!(ids(&comment_items), ["invalid:url#1"]);
+    }
+
+    #[test]
+    fn a_url_outside_strings_opens_a_comment_where_no_strings_are_known_known_limitation() {
+        // when
+        let (items, _, _) = parse("fetch.sh", &["curl https://example.com/#[impl:phantom#1]"]);
+
+        // then
+        assert_eq!(ids(&items), ["impl:phantom#1"]);
     }
 
     #[test]

@@ -17,7 +17,7 @@ like.
 | `id` | identifier | An item ID such as `req:auth/login#1`. Pluralizes as `ids`. |
 | `ext` | file extension | Always lowercased and without the leading dot (`rs`), as `std::path::Path::extension` yields it; used in `CODE_EXT`, `SPEC_EXT`, `extension_of`. |
 | `md` | Markdown | The `.md` file extension; used in names like the `md` fixture parameter carrying Markdown input in the analyze and JSON-report test suites. |
-| `url` | Uniform Resource Locator | URL-shaped text (`scheme://…`), exempt from comment detection (see [docs/code-tags.md](docs/code-tags.md)); used in `URL_RE`, `UrlSpan`, `url_spans`. |
+| `url` | Uniform Resource Locator | URL-shaped text (`scheme://…`), whose `//`, `#` or `--` the string families keep from opening a comment when the URL sits in a string; used in the names of the code parser's URL tests. |
 | `col` | column | Only the index of a Markdown table column while a row is scanned (`for (col, cell) in …`), alongside the `columns` it indexes. A character column in the output is `character`, spelled in full. |
 
 ## Regex conventions (src/ids.rs and the parsers)
