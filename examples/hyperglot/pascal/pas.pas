@@ -8,3 +8,6 @@
 (*
  * [impl:pascal/pas-paren-block#1]
  *)
+
+// A string hides comment markers; a comment after it still counts.
+Text := 'it''s // [impl:pascal/pas-ghost-single-quoted#1]'; // [impl:pascal/pas-after-single-quoted#1]
