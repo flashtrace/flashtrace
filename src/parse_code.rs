@@ -862,6 +862,36 @@ mod tests {
     }
 
     #[test]
+    fn a_scheme_adjacent_tag_inside_a_string_argument_does_not_open_a_comment() {
+        // given
+        let line = "const response = fetch(\"scheme://[invalid:url#1]\");";
+
+        // when
+        let (items, _, _) = parse("src.ts", &[line]);
+
+        // then
+        assert_eq!(items.len(), 0);
+    }
+
+    // From the `//` on, both lines are byte-identical, so a lexical parser
+    // must treat them alike: recognizing the comment case would also turn the
+    // string case into a phantom item. The miss is the safer of the two.
+    #[test]
+    fn a_scheme_adjacent_tag_in_a_string_and_in_a_comment_are_treated_alike_known_limitation() {
+        // given
+        let in_comment = "call(note); scheme://[invalid:url#1]";
+        let in_string = "call(\"note; scheme://[invalid:url#1]\");";
+
+        // when
+        let (comment_items, _, _) = parse("src.ts", &[in_comment]);
+        let (string_items, _, _) = parse("src.ts", &[in_string]);
+
+        // then
+        assert_eq!(comment_items.len(), 0);
+        assert_eq!(string_items.len(), 0);
+    }
+
+    #[test]
     fn a_block_closer_inside_a_url_still_closes_an_open_block_comment() {
         // Block *closers* are honoured inside URLs (unlike openers): the `*/`
         // in the URL ends the block, so the following line is scanned as
