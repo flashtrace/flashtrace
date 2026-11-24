@@ -98,6 +98,33 @@ const fn comments_only(comments: &'static Comments) -> Leaf {
 }
 
 /// the string family of languages whose literals the scanner does not know
+//
+// A wrong string rule is worse than none: a quote misread as an opener hides
+// the real comments after it, and nothing reports their absence. So these
+// languages keep the comments-only scan, for the reasons their docs give:
+//   shell       a backslash outside quotes escapes a quote (don\'t), and `#`
+//               opens a comment only at the start of a word
+//               https://pubs.opengroup.org/onlinepubs/9799919799/utilities/V3_chap02.html#tag_19_02
+//               https://pubs.opengroup.org/onlinepubs/9799919799/utilities/V3_chap02.html#tag_19_03
+//   YAML        plain scalars hold quotes (title: Don't panic); quoted
+//               scalars only open at the start of a scalar
+//               https://yaml.org/spec/1.2.2/#733-plain-style
+//   Perl        quote-like operators take arbitrary delimiters, and `$#` is
+//               array syntax
+//               https://perldoc.perl.org/perlop#Quote-and-Quote-like-Operators
+//               https://perldoc.perl.org/perldata
+//   Tcl         a double quote opens a word only at the start of the word,
+//               and `#` is a comment only where a command may start
+//               https://www.tcl-lang.org/man/tcl8.6/TclCmd/Tcl.htm
+//   LaTeX       has no string literals; `\%` is not a comment
+//               https://en.wikibooks.org/wiki/LaTeX/Basics#Comments
+//   XML, HTML   character data holds quotes freely; quotes only delimit
+//   markup      attribute values inside tags
+//               https://www.w3.org/TR/xml/#syntax
+//   JSX, TSX    JSX text between tags may hold an unpaired quote
+//               https://github.com/facebook/jsx/blob/main/spec.emu (JSXText)
+//   Less, Emacs Lisp, EDN
+//               string syntax not validated against current documentation
 pub static NO_STRINGS: &[StringForm] = &[];
 
 // "…" strings and 'c' character literals, both with backslash escapes. The
