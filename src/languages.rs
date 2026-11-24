@@ -100,6 +100,45 @@ const fn comments_only(comments: &'static Comments) -> Leaf {
 /// the string family of languages whose literals the scanner does not know
 pub static NO_STRINGS: &[StringForm] = &[];
 
+// "…" strings and 'c' character literals, both with backslash escapes. The
+// character-literal form only matches one character or one escape sequence
+// between apostrophes, so the apostrophe's other uses stay code: C23/C++14
+// digit separators (1'000), Rust lifetimes ('a), OCaml/F# type variables
+// ('a, 'T), Haskell primes (foldl'), Julia's adjoint (A') and Nim's type
+// suffixes (1'i8).
+//   C        https://en.cppreference.com/w/c/language/string_literal
+//            https://en.cppreference.com/w/c/language/character_constant
+//   C++      https://en.cppreference.com/w/cpp/language/string_literal
+//            https://en.cppreference.com/w/cpp/language/character_literal
+//   C#       https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/reference-types#string-literals
+//            https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/char
+//   Java     https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.4
+//            https://docs.oracle.com/javase/specs/jls/se21/html/jls-3.html#jls-3.10.5
+//   Kotlin   https://kotlinlang.org/docs/strings.html
+//            https://kotlinlang.org/docs/characters.html
+//   Scala    https://docs.scala-lang.org/scala3/reference/syntax.html (stringLiteral, characterLiteral)
+//   Rust     https://doc.rust-lang.org/reference/tokens.html#character-literals
+//            https://doc.rust-lang.org/reference/tokens.html#string-literals
+//            https://doc.rust-lang.org/reference/tokens.html#lifetimes-and-loop-labels
+//   Crystal  https://crystal-lang.org/reference/latest/syntax_and_semantics/literals/string.html
+//            https://crystal-lang.org/reference/latest/syntax_and_semantics/literals/char.html
+//   Julia    https://docs.julialang.org/en/v1/manual/strings/
+//   Nim      https://nim-lang.org/docs/manual.html#lexical-analysis-string-literals
+//            https://nim-lang.org/docs/manual.html#lexical-analysis-character-literals
+//   OCaml    https://ocaml.org/manual/latest/lex.html#sss:stringliterals
+//            https://ocaml.org/manual/latest/lex.html#sss:character-literals
+//   F#       https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/strings
+//            https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/literals
+//   Haskell  https://www.haskell.org/onlinereport/haskell2010/haskellch2.html#x7-200002.6
+//   Elm      https://github.com/elm/compiler/blob/master/compiler/src/Parse/String.hs
+static DOUBLE_QUOTED_AND_CHARACTER: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    },
+    StringForm::CharacterLiteral { escape: Some('\\') },
+];
+
 // Shared comment families, reused across the extension table below. C_LIKE is
 // also the fallback comment family for unknown extensions (see parse_code.rs).
 pub static C_LIKE: Comments = Comments {
@@ -327,18 +366,18 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("tsx", &C_LIKE, NO_STRINGS),
         leaf("cts", &C_LIKE, NO_STRINGS),
         leaf("mts", &C_LIKE, NO_STRINGS),
-        leaf("c", &C_LIKE, NO_STRINGS),
-        leaf("h", &C_LIKE, NO_STRINGS),
-        leaf("cpp", &C_LIKE, NO_STRINGS),
-        leaf("cc", &C_LIKE, NO_STRINGS),
-        leaf("hpp", &C_LIKE, NO_STRINGS),
-        leaf("cxx", &C_LIKE, NO_STRINGS),
-        leaf("hxx", &C_LIKE, NO_STRINGS),
-        leaf("ino", &C_LIKE, NO_STRINGS),
-        leaf("inl", &C_LIKE, NO_STRINGS),
-        leaf("tpp", &C_LIKE, NO_STRINGS),
-        leaf("cs", &C_LIKE, NO_STRINGS),
-        leaf("java", &C_LIKE, NO_STRINGS),
+        leaf("c", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("h", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("cpp", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("cc", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("hpp", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("cxx", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("hxx", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("ino", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("inl", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("tpp", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("cs", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("java", &C_LIKE, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("go", &C_LIKE, NO_STRINGS),
         leaf("groovy", &C_LIKE, NO_STRINGS),
         leaf("gradle", &C_LIKE, NO_STRINGS),
@@ -349,11 +388,11 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("scss", &C_LIKE, NO_STRINGS),
         leaf("less", &C_LIKE, NO_STRINGS),
         // C-family with nested block comments
-        leaf("rs", &C_LIKE_NESTED, NO_STRINGS),
+        leaf("rs", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("swift", &C_LIKE_NESTED, NO_STRINGS),
-        leaf("kt", &C_LIKE_NESTED, NO_STRINGS),
-        leaf("kts", &C_LIKE_NESTED, NO_STRINGS),
-        leaf("scala", &C_LIKE_NESTED, NO_STRINGS),
+        leaf("kt", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("kts", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("scala", &C_LIKE_NESTED, DOUBLE_QUOTED_AND_CHARACTER),
         // hash line comments
         leaf("py", &HASH, NO_STRINGS),
         leaf("rb", &HASH, NO_STRINGS),
@@ -368,14 +407,14 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("ex", &HASH, NO_STRINGS),
         leaf("exs", &HASH, NO_STRINGS),
         leaf("tcl", &HASH, NO_STRINGS),
-        leaf("cr", &HASH, NO_STRINGS),
+        leaf("cr", &HASH, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("gd", &HASH, NO_STRINGS),
         leaf("awk", &HASH, NO_STRINGS),
         leaf("graphql", &HASH, NO_STRINGS),
         leaf("gql", &HASH, NO_STRINGS),
         // hash line comments plus a block pair of their own
-        leaf("jl", &JULIA, NO_STRINGS),
-        leaf("nim", &NIM, NO_STRINGS),
+        leaf("jl", &JULIA, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("nim", &NIM, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("coffee", &COFFEE, NO_STRINGS),
         leaf("cmake", &CMAKE, NO_STRINGS),
         leaf("ps1", &POWERSHELL, NO_STRINGS),
@@ -405,18 +444,18 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("vhd", &DASH_LINE, NO_STRINGS),
         leaf("vhdl", &DASH_LINE, NO_STRINGS),
         // ML-family
-        leaf("ml", &ML, NO_STRINGS),
-        leaf("mli", &ML, NO_STRINGS),
-        leaf("fs", &FSHARP, NO_STRINGS),
-        leaf("fsi", &FSHARP, NO_STRINGS),
-        leaf("fsx", &FSHARP, NO_STRINGS),
+        leaf("ml", &ML, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("mli", &ML, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("fs", &FSHARP, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("fsi", &FSHARP, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("fsx", &FSHARP, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("pas", &PASCAL, NO_STRINGS),
         leaf("dpr", &PASCAL, NO_STRINGS),
         // dashes and others
         leaf("sql", &SQL, NO_STRINGS),
         leaf("lua", &LUA, NO_STRINGS),
-        leaf("hs", &HASKELL, NO_STRINGS),
-        leaf("elm", &HASKELL, NO_STRINGS),
+        leaf("hs", &HASKELL, DOUBLE_QUOTED_AND_CHARACTER),
+        leaf("elm", &HASKELL, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("purs", &HASKELL, NO_STRINGS),
         leaf("css", &CSS, NO_STRINGS),
         leaf("xml", &XML, NO_STRINGS),
