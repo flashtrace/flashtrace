@@ -12,6 +12,7 @@ Needs:
 + req:hash/awk#1
 + req:hash/bash#1
 + req:hash/cr#1
++ req:hash/dockerfile#1
 + req:hash/ex#1
 + req:hash/exs#1
 + req:hash/gd#1
@@ -47,6 +48,12 @@ Needs: impl#2.x
 `req:hash/cr#1`
 
 Needs: impl:hash/cr#1
+
+## .dockerfile
+
+`req:hash/dockerfile#1`
+
+Needs: impl:hash/dockerfile#1
 
 ## .ex
 

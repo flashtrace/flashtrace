@@ -20,9 +20,9 @@ use crate::analyze::analyze;
 use crate::errors::UsageError;
 use crate::files::collect_files;
 use crate::ids::{Forward, Item};
+use crate::languages::effective_ext_of;
 use crate::parse_code::parse_code;
 use crate::parse_spec::spec_parser_for;
-use crate::paths::extension_of;
 use crate::report::report;
 use crate::report_json::report_json;
 
@@ -244,7 +244,7 @@ fn main_flow(options: &Options) -> Result<bool, UsageError> {
         let bytes = std::fs::read(file)
             .map_err(|error| UsageError(format!("cannot read {file}: {error}")))?;
         let text = decode(&bytes);
-        let ext = extension_of(file);
+        let ext = effective_ext_of(file);
         // a file has one role: its spec parser when the format has one, the
         // code tag scanner otherwise
         let parse = spec_parser_for(&ext).unwrap_or(parse_code as _);

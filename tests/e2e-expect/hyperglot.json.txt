@@ -5270,7 +5270,7 @@
           "id": "req:hash/awk#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 35,
+            "line": 36,
             "character": 1
           }
         }
@@ -5299,7 +5299,7 @@
           "id": "req:hash/bash#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 41,
+            "line": 42,
             "character": 1
           }
         }
@@ -5328,7 +5328,36 @@
           "id": "req:hash/cr#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 47,
+            "line": 48,
+            "character": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "impl:hash/dockerfile#1",
+      "title": null,
+      "origin": "code",
+      "tags": [],
+      "location": {
+        "file": "hash/dockerfile.dockerfile",
+        "line": 2,
+        "character": 3
+      },
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:hash/dockerfile#1",
+          "location": {
+            "file": "hash/spec.md",
+            "line": 54,
             "character": 1
           }
         }
@@ -5357,7 +5386,7 @@
           "id": "req:hash/ex#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 53,
+            "line": 60,
             "character": 1
           }
         }
@@ -5386,7 +5415,7 @@
           "id": "req:hash/exs#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 59,
+            "line": 66,
             "character": 1
           }
         }
@@ -5415,7 +5444,7 @@
           "id": "req:hash/gd#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 65,
+            "line": 72,
             "character": 1
           }
         }
@@ -5444,7 +5473,7 @@
           "id": "req:hash/gql#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 71,
+            "line": 78,
             "character": 1
           }
         }
@@ -5473,7 +5502,7 @@
           "id": "req:hash/graphql#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 77,
+            "line": 84,
             "character": 1
           }
         }
@@ -5502,7 +5531,7 @@
           "id": "req:hash/pm#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 83,
+            "line": 90,
             "character": 1
           }
         }
@@ -5531,7 +5560,7 @@
           "id": "req:hash/py#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 89,
+            "line": 96,
             "character": 1
           }
         }
@@ -5560,7 +5589,7 @@
           "id": "req:hash/r#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 95,
+            "line": 102,
             "character": 1
           }
         }
@@ -5589,7 +5618,7 @@
           "id": "req:hash/rb#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 101,
+            "line": 108,
             "character": 1
           }
         }
@@ -5618,7 +5647,7 @@
           "id": "req:hash/sh#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 107,
+            "line": 114,
             "character": 1
           }
         }
@@ -5657,6 +5686,12 @@
           "ref": "req:hash/cr#1",
           "resolvedTo": [
             "req:hash/cr#1"
+          ]
+        },
+        {
+          "ref": "req:hash/dockerfile#1",
+          "resolvedTo": [
+            "req:hash/dockerfile#1"
           ]
         },
         {
@@ -5777,7 +5812,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 35,
+        "line": 36,
         "character": 1
       },
       "status": "deep-covered",
@@ -5813,7 +5848,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 41,
+        "line": 42,
         "character": 1
       },
       "status": "deep-covered",
@@ -5849,7 +5884,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 47,
+        "line": 48,
         "character": 1
       },
       "status": "deep-covered",
@@ -5879,13 +5914,49 @@
       ]
     },
     {
+      "id": "req:hash/dockerfile#1",
+      "title": ".dockerfile",
+      "origin": "spec",
+      "tags": [],
+      "location": {
+        "file": "hash/spec.md",
+        "line": 54,
+        "character": 1
+      },
+      "status": "deep-covered",
+      "defective": false,
+      "deepCovered": true,
+      "needs": [
+        {
+          "ref": "impl:hash/dockerfile#1",
+          "resolvedTo": [
+            "impl:hash/dockerfile#1"
+          ]
+        }
+      ],
+      "covers": [],
+      "forwardsTo": null,
+      "forwardedFrom": [],
+      "defects": [],
+      "wantedBy": [
+        {
+          "id": "req:hash/grammar#1",
+          "location": {
+            "file": "hash/spec.md",
+            "line": 5,
+            "character": 1
+          }
+        }
+      ]
+    },
+    {
       "id": "req:hash/ex#1",
       "title": ".ex",
       "origin": "spec",
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 53,
+        "line": 60,
         "character": 1
       },
       "status": "deep-covered",
@@ -5921,7 +5992,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 59,
+        "line": 66,
         "character": 1
       },
       "status": "deep-covered",
@@ -5957,7 +6028,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 65,
+        "line": 72,
         "character": 1
       },
       "status": "deep-covered",
@@ -5993,7 +6064,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 71,
+        "line": 78,
         "character": 1
       },
       "status": "deep-covered",
@@ -6029,7 +6100,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 77,
+        "line": 84,
         "character": 1
       },
       "status": "deep-covered",
@@ -6065,7 +6136,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 83,
+        "line": 90,
         "character": 1
       },
       "status": "deep-covered",
@@ -6101,7 +6172,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 89,
+        "line": 96,
         "character": 1
       },
       "status": "deep-covered",
@@ -6137,7 +6208,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 95,
+        "line": 102,
         "character": 1
       },
       "status": "deep-covered",
@@ -6173,7 +6244,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 101,
+        "line": 108,
         "character": 1
       },
       "status": "deep-covered",
@@ -6209,7 +6280,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 107,
+        "line": 114,
         "character": 1
       },
       "status": "deep-covered",
@@ -6245,7 +6316,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 113,
+        "line": 120,
         "character": 1
       },
       "status": "deep-covered",
@@ -6281,7 +6352,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 119,
+        "line": 126,
         "character": 1
       },
       "status": "deep-covered",
@@ -6317,7 +6388,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 125,
+        "line": 132,
         "character": 1
       },
       "status": "deep-covered",
@@ -6353,7 +6424,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 131,
+        "line": 138,
         "character": 1
       },
       "status": "deep-covered",
@@ -6389,7 +6460,7 @@
       "tags": [],
       "location": {
         "file": "hash/spec.md",
-        "line": 137,
+        "line": 144,
         "character": 1
       },
       "status": "deep-covered",
@@ -6441,7 +6512,7 @@
           "id": "req:hash/tcl#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 113,
+            "line": 120,
             "character": 1
           }
         }
@@ -6470,7 +6541,7 @@
           "id": "req:hash/toml#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 119,
+            "line": 126,
             "character": 1
           }
         }
@@ -6499,7 +6570,7 @@
           "id": "req:hash/yaml#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 125,
+            "line": 132,
             "character": 1
           }
         }
@@ -6528,7 +6599,7 @@
           "id": "req:hash/yml#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 131,
+            "line": 138,
             "character": 1
           }
         }
@@ -6557,7 +6628,7 @@
           "id": "req:hash/zsh#1",
           "location": {
             "file": "hash/spec.md",
-            "line": 137,
+            "line": 144,
             "character": 1
           }
         }
@@ -12698,10 +12769,10 @@
   ],
   "problems": [],
   "summary": {
-    "items": 362,
-    "specItems": 143,
-    "codeItems": 219,
-    "okItems": 362,
+    "items": 364,
+    "specItems": 144,
+    "codeItems": 220,
+    "okItems": 364,
     "defectiveItems": 0,
     "shallowCoveredItems": 0,
     "problems": 0

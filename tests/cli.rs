@@ -650,6 +650,70 @@ fn git_ignored_files_are_excluded_outside_a_repository() {
     assert!(!stdout(&result).contains("req:bad#1"));
 }
 
+#[test]
+fn files_named_dockerfile_are_scanned_with_hash_comments() {
+    // given
+    let project = with_project(
+        "dockerfile-names",
+        &[
+            (
+                "spec.md",
+                &[
+                    "`req:image#1`",
+                    "",
+                    "Needs: impl:image/base#1, impl:image/dev#1",
+                ],
+            ),
+            ("Dockerfile", &["FROM alpine", "# [impl:image/base#1]"]),
+            ("Dockerfile.dev", &["FROM alpine", "# [impl:image/dev#1]"]),
+        ],
+    );
+
+    // when
+    let result = run(&project, &[]);
+
+    // then
+    assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
+}
+
+#[test]
+fn the_dockerfile_name_outranks_a_known_extension() {
+    // given
+    let project = with_project(
+        "dockerfile-outranks",
+        &[
+            ("spec.md", &["`req:image#1`", "", "Needs: impl:image#1"]),
+            (
+                "Dockerfile.js",
+                &["# [impl:image#1]", "// [impl:read-as-javascript#1]"],
+            ),
+        ],
+    );
+
+    // when
+    let result = run(&project, &[]);
+
+    // then
+    assert_eq!(result.status.code(), Some(0), "{}", stdout(&result));
+    assert!(!stdout(&result).contains("impl:read-as-javascript#1"));
+}
+
+#[test]
+fn an_explicit_dockerfile_argument_is_accepted() {
+    // given
+    let project = with_project(
+        "dockerfile-argument",
+        &[("Dockerfile", &["# [impl:image#1]"])],
+    );
+
+    // when
+    let result = run(&project, &["Dockerfile"]);
+
+    // then
+    assert_eq!(result.status.code(), Some(1), "{}", stderr(&result));
+    assert!(stdout(&result).contains("unwanted: no item needs impl:image#1"));
+}
+
 const JSON_SPEC: &[&str] = &[
     "# Login",
     "`req:login#1`",

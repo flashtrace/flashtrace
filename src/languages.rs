@@ -16,11 +16,19 @@
  * truth for code-file collection. Both are views of the one `BY_EXT` table.
  * Extensions are spelled lowercased and without their leading dot, as
  * `std::path::Path::extension` yields them.
+ *
+ * Some languages are named by a file-name convention rather than an extension
+ * (`Dockerfile`, `Dockerfile.dev`). `effective_ext_of(file)` layers those
+ * conventions, listed in `BY_NAME`, above the extension: a file matching one
+ * is read as the extension its language is listed under in `BY_EXT`.
  */
 
+use std::path::Path;
 use std::sync::LazyLock;
 
 use regex::Regex;
+
+use crate::paths::extension_of;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BlockPair {
@@ -320,6 +328,7 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("awk", &HASH),
         leaf("graphql", &HASH),
         leaf("gql", &HASH),
+        leaf("dockerfile", &HASH),
         // hash line comments plus a block pair of their own
         leaf("jl", &JULIA),
         leaf("nim", &NIM),
@@ -388,6 +397,29 @@ pub fn grammar_for(ext: &str) -> Option<Grammar> {
         .map(|(_, grammar)| *grammar)
 }
 
+/// File-name conventions that name a language outright: a lowercased stem,
+/// matched by a file name equal to it or continuing it after a dot
+/// (`Dockerfile`, `Dockerfile.dev`), and the `BY_EXT` extension that language
+/// is listed under. Like editors, a convention outranks the extension, so
+/// `Dockerfile.js` is a Dockerfile, not JavaScript.
+const BY_NAME: [(&str, &str); 1] = [("dockerfile", "dockerfile")];
+
+/// The extension a file is read as: the one its file-name convention resolves
+/// to (see `BY_NAME`), otherwise its own extension as `extension_of` yields it.
+pub fn effective_ext_of(file: &str) -> String {
+    let name = Path::new(file)
+        .file_name()
+        .map(|name| name.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    BY_NAME
+        .iter()
+        .find(|(stem, _)| {
+            name.strip_prefix(stem)
+                .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
+        })
+        .map_or_else(|| extension_of(file), |(_, ext)| (*ext).to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -451,5 +483,91 @@ mod tests {
                 "{lang}"
             );
         }
+    }
+
+    #[test]
+    fn effective_ext_of_reads_a_plain_dockerfile_as_a_dockerfile() {
+        // when
+        let ext = effective_ext_of("build/Dockerfile");
+
+        // then
+        assert_eq!(ext, "dockerfile");
+    }
+
+    #[test]
+    fn effective_ext_of_matches_the_dockerfile_name_without_regard_to_case() {
+        // when
+        let exts: Vec<String> = ["dockerfile", "DOCKERFILE", "DockerFile"]
+            .iter()
+            .map(|file| effective_ext_of(file))
+            .collect();
+
+        // then
+        assert_eq!(exts, ["dockerfile", "dockerfile", "dockerfile"]);
+    }
+
+    #[test]
+    fn effective_ext_of_reads_a_suffixed_dockerfile_as_a_dockerfile() {
+        // when
+        let exts: Vec<String> = ["Dockerfile.dev", "Dockerfile.prod.local"]
+            .iter()
+            .map(|file| effective_ext_of(file))
+            .collect();
+
+        // then
+        assert_eq!(exts, ["dockerfile", "dockerfile"]);
+    }
+
+    #[test]
+    fn effective_ext_of_lets_the_dockerfile_name_outrank_a_known_extension() {
+        // when
+        let exts: Vec<String> = ["Dockerfile.js", "Dockerfile.md"]
+            .iter()
+            .map(|file| effective_ext_of(file))
+            .collect();
+
+        // then
+        assert_eq!(exts, ["dockerfile", "dockerfile"]);
+    }
+
+    #[test]
+    fn effective_ext_of_reads_a_dockerfile_extension_through_the_extension_table() {
+        // when
+        let ext = effective_ext_of("services/api.Dockerfile");
+
+        // then
+        assert_eq!(ext, "dockerfile");
+        assert!(std::ptr::eq(
+            match grammar_for(&ext) {
+                Some(Grammar::Leaf(leaf)) => leaf,
+                _ => panic!("dockerfile resolves to a leaf grammar"),
+            },
+            &HASH
+        ));
+    }
+
+    #[test]
+    fn effective_ext_of_falls_back_to_the_extension_for_a_name_merely_containing_the_stem() {
+        // when
+        let exts: Vec<String> = ["Dockerfile-dev", "my-dockerfile", "dockerfiles/app.py"]
+            .iter()
+            .map(|file| effective_ext_of(file))
+            .collect();
+
+        // then
+        assert_eq!(exts, ["", "", "py"]);
+    }
+
+    #[test]
+    fn every_file_name_convention_resolves_to_a_listed_extension() {
+        // when
+        let unlisted: Vec<&str> = BY_NAME
+            .iter()
+            .map(|(_, ext)| *ext)
+            .filter(|ext| grammar_for(ext).is_none())
+            .collect();
+
+        // then
+        assert!(unlisted.is_empty(), "{unlisted:?}");
     }
 }
