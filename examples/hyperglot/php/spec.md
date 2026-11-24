@@ -15,4 +15,4 @@ Tags: grammar, php
 
 `req:php/php#1`
 
-Needs: impl:php/php-line-slash#1, impl:php/php-line-hash#1, impl:php/php-block#1
+Needs: impl:php/php-line-slash#1, impl:php/php-line-hash#1, impl:php/php-block#1, impl:php/php-after-double-quoted#1, impl:php/php-after-single-quoted#1
