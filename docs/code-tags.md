@@ -9,7 +9,7 @@ Tags are written inside comments. The comment style is chosen per file extension
 | C-like | `//` | `/* … */` | `.ts` `.js` `.mjs` `.cjs` `.jsx` `.tsx` `.cts` `.mts` `.c` `.h` `.cpp` `.cc` `.hpp` `.cxx` `.hxx` `.ino` `.inl` `.tpp` `.cs` `.java` `.go` `.groovy` `.gradle` `.sol` `.dart` `.proto` `.scss` `.less` |
 | C-like, nesting | `//` | `/* … */` (nestable) | `.rs` `.swift` `.kt` `.kts` `.scala` |
 | PHP | `//` `#` | `/* … */` | `.php` |
-| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.graphql` `.gql` `.dockerfile` |
+| Hash | `#` | – | `.py` `.rb` `.sh` `.bash` `.zsh` `.yaml` `.yml` `.toml` `.r` `.pm` `.ex` `.exs` `.tcl` `.cr` `.gd` `.awk` `.graphql` `.gql` `.dockerfile` `.containerfile` |
 | CoffeeScript | `#` | `### … ###` (opener not followed by `#`) | `.coffee` |
 | Julia | `#` | `#= … =#` (nestable) | `.jl` |
 | Nim | `#` | `#[ … ]#` `##[ … ]##` (nestable) | `.nim` |
@@ -38,6 +38,7 @@ Some languages are named by a file-name convention rather than an extension. A f
 | Name | Scanned as | Matches |
 |---|---|---|
 | `Dockerfile` | `.dockerfile` (Hash) | `Dockerfile`, `Dockerfile.dev`, `Dockerfile.prod.local` |
+| `Containerfile` | `.containerfile` (Hash) | `Containerfile`, `Containerfile.dev` (Podman, Buildah) |
 
 The name outranks the extension, as in editors: `Dockerfile.js` is a Dockerfile, not JavaScript, and `Dockerfile.md` is not a spec. A name that merely contains the convention, such as `Dockerfile-dev` or `my-dockerfile`, falls back to its extension.
 

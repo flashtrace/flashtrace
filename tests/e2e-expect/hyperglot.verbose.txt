@@ -492,149 +492,163 @@
     needs impl:fsharp/fsx-nested/after-close#1  ✔ fsharp/fsx.fsx:10
     wanted by req:fsharp/grammar#1  fsharp/spec.md:3
 
+✔ impl:hash/containerfile-name#1  hash/Containerfile:2  [deep-covered]
+    wanted by req:hash/containerfile-name#1  hash/spec.md:57
+
 ✔ impl:hash/dockerfile-name#1  hash/Dockerfile:2  [deep-covered]
-    wanted by req:hash/dockerfile-name#1  hash/spec.md:55
+    wanted by req:hash/dockerfile-name#1  hash/spec.md:69
 
 ✔ impl:hash/awk#1  hash/awk.awk:2  [deep-covered]
-    wanted by req:hash/awk#1  hash/spec.md:37
+    wanted by req:hash/awk#1  hash/spec.md:39
 
 ✔ impl:hash/bash#2.5  hash/bash.bash:2  [deep-covered]
-    wanted by req:hash/bash#1  hash/spec.md:43
+    wanted by req:hash/bash#1  hash/spec.md:45
+
+✔ impl:hash/containerfile#1  hash/containerfile.containerfile:2  [deep-covered]
+    wanted by req:hash/containerfile#1  hash/spec.md:51
 
 ✔ impl:hash/cr#1  hash/cr.cr:2  [deep-covered]
-    wanted by req:hash/cr#1  hash/spec.md:49
+    wanted by req:hash/cr#1  hash/spec.md:63
 
 ✔ impl:hash/dockerfile#1  hash/dockerfile.dockerfile:2  [deep-covered]
-    wanted by req:hash/dockerfile#1  hash/spec.md:61
+    wanted by req:hash/dockerfile#1  hash/spec.md:75
 
 ✔ impl:hash/ex#1  hash/ex.ex:2  [deep-covered]
-    wanted by req:hash/ex#1  hash/spec.md:67
+    wanted by req:hash/ex#1  hash/spec.md:81
 
 ✔ impl:hash/exs#1  hash/exs.exs:2  [deep-covered]
-    wanted by req:hash/exs#1  hash/spec.md:73
+    wanted by req:hash/exs#1  hash/spec.md:87
 
 ✔ impl:hash/gd#1  hash/gd.gd:2  [deep-covered]
-    wanted by req:hash/gd#1  hash/spec.md:79
+    wanted by req:hash/gd#1  hash/spec.md:93
 
 ✔ impl:hash/gql#1  hash/gql.gql:2  [deep-covered]
-    wanted by req:hash/gql#1  hash/spec.md:85
+    wanted by req:hash/gql#1  hash/spec.md:99
 
 ✔ impl:hash/graphql#1  hash/graphql.graphql:2  [deep-covered]
-    wanted by req:hash/graphql#1  hash/spec.md:91
+    wanted by req:hash/graphql#1  hash/spec.md:105
 
 ✔ impl:hash/pm#1  hash/pm.pm:2  [deep-covered]
-    wanted by req:hash/pm#1  hash/spec.md:97
+    wanted by req:hash/pm#1  hash/spec.md:111
 
 ✔ impl:hash/py#1.2  hash/py.py:2  [deep-covered]
-    wanted by req:hash/py#1  hash/spec.md:103
+    wanted by req:hash/py#1  hash/spec.md:117
 
 ✔ impl:hash/r#1  hash/r.r:2  [deep-covered]
-    wanted by req:hash/r#1  hash/spec.md:109
+    wanted by req:hash/r#1  hash/spec.md:123
 
 ✔ impl:hash/rb#1  hash/rb.rb:2  [deep-covered]
-    wanted by req:hash/rb#1  hash/spec.md:115
+    wanted by req:hash/rb#1  hash/spec.md:129
 
 ✔ impl:hash/sh#1.2.3  hash/sh.sh:2  [deep-covered]
-    wanted by req:hash/sh#1  hash/spec.md:121
+    wanted by req:hash/sh#1  hash/spec.md:135
 
 ✔ req:hash/grammar#1 "Hash comment grammar, the widest family in the grammar table"  hash/spec.md:5  [deep-covered]
-    needs req:hash/awk#1  ✔ hash/spec.md:37
-    needs req:hash/bash#1  ✔ hash/spec.md:43
-    needs req:hash/cr#1  ✔ hash/spec.md:49
-    needs req:hash/dockerfile-name#1  ✔ hash/spec.md:55
-    needs req:hash/dockerfile#1  ✔ hash/spec.md:61
-    needs req:hash/ex#1  ✔ hash/spec.md:67
-    needs req:hash/exs#1  ✔ hash/spec.md:73
-    needs req:hash/gd#1  ✔ hash/spec.md:79
-    needs req:hash/gql#1  ✔ hash/spec.md:85
-    needs req:hash/graphql#1  ✔ hash/spec.md:91
-    needs req:hash/pm#1  ✔ hash/spec.md:97
-    needs req:hash/py#1  ✔ hash/spec.md:103
-    needs req:hash/r#1  ✔ hash/spec.md:109
-    needs req:hash/rb#1  ✔ hash/spec.md:115
-    needs req:hash/sh#1  ✔ hash/spec.md:121
-    needs req:hash/tcl#1  ✔ hash/spec.md:127
-    needs req:hash/toml#1  ✔ hash/spec.md:133
-    needs req:hash/yaml#1  ✔ hash/spec.md:139
-    needs req:hash/yml#1  ✔ hash/spec.md:145
-    needs req:hash/zsh#1  ✔ hash/spec.md:151
+    needs req:hash/awk#1  ✔ hash/spec.md:39
+    needs req:hash/bash#1  ✔ hash/spec.md:45
+    needs req:hash/containerfile#1  ✔ hash/spec.md:51
+    needs req:hash/containerfile-name#1  ✔ hash/spec.md:57
+    needs req:hash/cr#1  ✔ hash/spec.md:63
+    needs req:hash/dockerfile-name#1  ✔ hash/spec.md:69
+    needs req:hash/dockerfile#1  ✔ hash/spec.md:75
+    needs req:hash/ex#1  ✔ hash/spec.md:81
+    needs req:hash/exs#1  ✔ hash/spec.md:87
+    needs req:hash/gd#1  ✔ hash/spec.md:93
+    needs req:hash/gql#1  ✔ hash/spec.md:99
+    needs req:hash/graphql#1  ✔ hash/spec.md:105
+    needs req:hash/pm#1  ✔ hash/spec.md:111
+    needs req:hash/py#1  ✔ hash/spec.md:117
+    needs req:hash/r#1  ✔ hash/spec.md:123
+    needs req:hash/rb#1  ✔ hash/spec.md:129
+    needs req:hash/sh#1  ✔ hash/spec.md:135
+    needs req:hash/tcl#1  ✔ hash/spec.md:141
+    needs req:hash/toml#1  ✔ hash/spec.md:147
+    needs req:hash/yaml#1  ✔ hash/spec.md:153
+    needs req:hash/yml#1  ✔ hash/spec.md:159
+    needs req:hash/zsh#1  ✔ hash/spec.md:165
     covers feat:support-grammar/hash#1  ✔ spec.md:66
     wanted by feat:support-grammar/hash#1  spec.md:66
-✔ req:hash/awk#1 ".awk"  hash/spec.md:37  [deep-covered]
+✔ req:hash/awk#1 ".awk"  hash/spec.md:39  [deep-covered]
     needs impl:hash/awk#1  ✔ hash/awk.awk:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/bash#1 ".bash"  hash/spec.md:43  [deep-covered]
+✔ req:hash/bash#1 ".bash"  hash/spec.md:45  [deep-covered]
     needs impl:hash/bash#2.x (→ impl:hash/bash#2.5)  ✔ hash/bash.bash:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/cr#1 ".cr"  hash/spec.md:49  [deep-covered]
+✔ req:hash/containerfile#1 ".containerfile"  hash/spec.md:51  [deep-covered]
+    needs impl:hash/containerfile#1  ✔ hash/containerfile.containerfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/containerfile-name#1 "Containerfile"  hash/spec.md:57  [deep-covered]
+    needs impl:hash/containerfile-name#1  ✔ hash/Containerfile:2
+    wanted by req:hash/grammar#1  hash/spec.md:5
+✔ req:hash/cr#1 ".cr"  hash/spec.md:63  [deep-covered]
     needs impl:hash/cr#1  ✔ hash/cr.cr:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/dockerfile-name#1 "Dockerfile"  hash/spec.md:55  [deep-covered]
+✔ req:hash/dockerfile-name#1 "Dockerfile"  hash/spec.md:69  [deep-covered]
     needs impl:hash/dockerfile-name#1  ✔ hash/Dockerfile:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/dockerfile#1 ".dockerfile"  hash/spec.md:61  [deep-covered]
+✔ req:hash/dockerfile#1 ".dockerfile"  hash/spec.md:75  [deep-covered]
     needs impl:hash/dockerfile#1  ✔ hash/dockerfile.dockerfile:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/ex#1 ".ex"  hash/spec.md:67  [deep-covered]
+✔ req:hash/ex#1 ".ex"  hash/spec.md:81  [deep-covered]
     needs impl:hash/ex#1  ✔ hash/ex.ex:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/exs#1 ".exs"  hash/spec.md:73  [deep-covered]
+✔ req:hash/exs#1 ".exs"  hash/spec.md:87  [deep-covered]
     needs impl:hash/exs#1  ✔ hash/exs.exs:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/gd#1 ".gd"  hash/spec.md:79  [deep-covered]
+✔ req:hash/gd#1 ".gd"  hash/spec.md:93  [deep-covered]
     needs impl:hash/gd#1  ✔ hash/gd.gd:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/gql#1 ".gql"  hash/spec.md:85  [deep-covered]
+✔ req:hash/gql#1 ".gql"  hash/spec.md:99  [deep-covered]
     needs impl:hash/gql#1  ✔ hash/gql.gql:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/graphql#1 ".graphql"  hash/spec.md:91  [deep-covered]
+✔ req:hash/graphql#1 ".graphql"  hash/spec.md:105  [deep-covered]
     needs impl:hash/graphql#1  ✔ hash/graphql.graphql:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/pm#1 ".pm"  hash/spec.md:97  [deep-covered]
+✔ req:hash/pm#1 ".pm"  hash/spec.md:111  [deep-covered]
     needs impl:hash/pm#1  ✔ hash/pm.pm:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/py#1 ".py"  hash/spec.md:103  [deep-covered]
+✔ req:hash/py#1 ".py"  hash/spec.md:117  [deep-covered]
     needs impl:hash/py#1.2  ✔ hash/py.py:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/r#1 ".r"  hash/spec.md:109  [deep-covered]
+✔ req:hash/r#1 ".r"  hash/spec.md:123  [deep-covered]
     needs impl:hash/r#1  ✔ hash/r.r:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/rb#1 ".rb"  hash/spec.md:115  [deep-covered]
+✔ req:hash/rb#1 ".rb"  hash/spec.md:129  [deep-covered]
     needs impl:hash/rb#x (→ impl:hash/rb#1)  ✔ hash/rb.rb:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/sh#1 ".sh"  hash/spec.md:121  [deep-covered]
+✔ req:hash/sh#1 ".sh"  hash/spec.md:135  [deep-covered]
     needs impl:hash/sh#1.2.x (→ impl:hash/sh#1.2.3)  ✔ hash/sh.sh:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/tcl#1 ".tcl"  hash/spec.md:127  [deep-covered]
+✔ req:hash/tcl#1 ".tcl"  hash/spec.md:141  [deep-covered]
     needs impl:hash/tcl#1  ✔ hash/tcl.tcl:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/toml#1 ".toml"  hash/spec.md:133  [deep-covered]
+✔ req:hash/toml#1 ".toml"  hash/spec.md:147  [deep-covered]
     needs impl:hash/toml#1  ✔ hash/toml.toml:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/yaml#1 ".yaml"  hash/spec.md:139  [deep-covered]
+✔ req:hash/yaml#1 ".yaml"  hash/spec.md:153  [deep-covered]
     needs impl:hash/yaml#1.x (→ impl:hash/yaml#1.7)  ✔ hash/yaml.yaml:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/yml#1 ".yml"  hash/spec.md:145  [deep-covered]
+✔ req:hash/yml#1 ".yml"  hash/spec.md:159  [deep-covered]
     needs impl:hash/yml#1  ✔ hash/yml.yml:2
     wanted by req:hash/grammar#1  hash/spec.md:5
-✔ req:hash/zsh#1 ".zsh"  hash/spec.md:151  [deep-covered]
+✔ req:hash/zsh#1 ".zsh"  hash/spec.md:165  [deep-covered]
     needs impl:hash/zsh#3.* (→ impl:hash/zsh#3.1.4)  ✔ hash/zsh.zsh:2
     wanted by req:hash/grammar#1  hash/spec.md:5
 
 ✔ impl:hash/tcl#1  hash/tcl.tcl:2  [deep-covered]
-    wanted by req:hash/tcl#1  hash/spec.md:127
+    wanted by req:hash/tcl#1  hash/spec.md:141
 
 ✔ impl:hash/toml#1  hash/toml.toml:2  [deep-covered]
-    wanted by req:hash/toml#1  hash/spec.md:133
+    wanted by req:hash/toml#1  hash/spec.md:147
 
 ✔ impl:hash/yaml#1.7  hash/yaml.yaml:2  [deep-covered]
-    wanted by req:hash/yaml#1  hash/spec.md:139
+    wanted by req:hash/yaml#1  hash/spec.md:153
 
 ✔ impl:hash/yml#1  hash/yml.yml:2  [deep-covered]
-    wanted by req:hash/yml#1  hash/spec.md:145
+    wanted by req:hash/yml#1  hash/spec.md:159
 
 ✔ impl:hash/zsh#3.1.4  hash/zsh.zsh:2  [deep-covered]
-    wanted by req:hash/zsh#1  hash/spec.md:151
+    wanted by req:hash/zsh#1  hash/spec.md:165
 
 ✔ impl:haskell/elm-line#1  haskell/elm.elm:2  [deep-covered]
     wanted by req:haskell/elm#1  haskell/spec.md:18
@@ -1193,8 +1207,8 @@
     wanted by req:xml/xml#1  xml/spec.md:24
 
 Summary
-  items       366  (145 from specs, 221 from code)
-  ok          366
+  items       370  (147 from specs, 223 from code)
+  ok          370
   defective   0
 
 ok

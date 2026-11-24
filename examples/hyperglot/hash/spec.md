@@ -11,6 +11,8 @@ Covers: feat:support-grammar/hash#1
 Needs:
 + req:hash/awk#1
 + req:hash/bash#1
++ req:hash/containerfile#1
++ req:hash/containerfile-name#1
 + req:hash/cr#1
 + req:hash/dockerfile-name#1
 + req:hash/dockerfile#1
@@ -43,6 +45,18 @@ Needs: impl:hash/awk#1
 `req:hash/bash#1`
 
 Needs: impl#2.x
+
+## .containerfile
+
+`req:hash/containerfile#1`
+
+Needs: impl:hash/containerfile#1
+
+## Containerfile
+
+`req:hash/containerfile-name#1`
+
+Needs: impl:hash/containerfile-name#1
 
 ## .cr
 

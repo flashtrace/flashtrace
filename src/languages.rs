@@ -18,7 +18,7 @@
  * `std::path::Path::extension` yields them.
  *
  * Some languages are named by a file-name convention rather than an extension
- * (`Dockerfile`, `Dockerfile.dev`). `effective_ext_of(file)` layers those
+ * (`Dockerfile`, `Containerfile`). `effective_ext_of(file)` layers those
  * conventions, listed in `BY_NAME`, above the extension: a file matching one
  * is read as the extension its language is listed under in `BY_EXT`.
  */
@@ -329,6 +329,7 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("graphql", &HASH),
         leaf("gql", &HASH),
         leaf("dockerfile", &HASH),
+        leaf("containerfile", &HASH),
         // hash line comments plus a block pair of their own
         leaf("jl", &JULIA),
         leaf("nim", &NIM),
@@ -403,7 +404,11 @@ pub fn grammar_for(ext: &str) -> Option<Grammar> {
 /// `BY_EXT` extension that language is listed under. Like editors, a
 /// convention outranks the extension, so `Dockerfile.js` is a Dockerfile, not
 /// JavaScript.
-pub const BY_NAME: [(&str, &str); 1] = [("Dockerfile", "dockerfile")];
+pub const BY_NAME: [(&str, &str); 2] = [
+    ("Dockerfile", "dockerfile"),
+    // Podman and Buildah's name for the same build-file format
+    ("Containerfile", "containerfile"),
+];
 
 /// The extension a file is read as: the one its file-name convention resolves
 /// to (see `BY_NAME`), otherwise its own extension as `extension_of` yields it.
@@ -557,6 +562,18 @@ mod tests {
 
         // then
         assert_eq!(exts, ["", "", "py"]);
+    }
+
+    #[test]
+    fn effective_ext_of_reads_a_containerfile_by_name_and_by_extension() {
+        // when
+        let exts: Vec<String> = ["Containerfile", "Containerfile.prod", "api.containerfile"]
+            .iter()
+            .map(|file| effective_ext_of(file))
+            .collect();
+
+        // then
+        assert_eq!(exts, ["containerfile", "containerfile", "containerfile"]);
     }
 
     #[test]
