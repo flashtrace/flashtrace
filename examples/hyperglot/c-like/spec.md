@@ -66,7 +66,7 @@ Needs: impl:c-like/cpp-line#1, impl:c-like/cpp-block#1, impl:c-like/cpp-after-do
 
 `req:c-like/cs#1`
 
-Needs: impl:c-like/cs-line#1, impl:c-like/cs-block#1
+Needs: impl:c-like/cs-line#1, impl:c-like/cs-block#1, impl:c-like/cs-after-double-quoted#1, impl:c-like/cs-after-character-literal#1
 
 ## .cts
 
