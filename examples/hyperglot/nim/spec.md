@@ -22,3 +22,6 @@ Needs:
 - impl:nim/nim-doc-block#1
 - impl:nim/nim-doc-nested/deep#1
 - impl:nim/nim-doc-nested/after-close#1
+- impl:nim/nim-after-double-quoted#1
+- impl:nim/nim-after-character-literal#1
+- impl:nim/nim-after-type-suffix#1
