@@ -1,9 +1,15 @@
 /*
- * Comment grammars per file extension.
+ * Comment and string grammars per file extension.
  *
- * A leaf grammar is a comment vocabulary: zero or more line markers and zero
- * or more open/close block-comment pairs. A block pair may be marked nestable,
- * for languages whose block comments nest (Rust, Swift, Kotlin, Scala). A
+ * A leaf grammar pairs a comment family with a string family. A comment
+ * family is a comment vocabulary: zero or more line markers and zero or more
+ * open/close block-comment pairs. A block pair may be marked nestable, for
+ * languages whose block comments nest (Rust, Swift, Kotlin, Scala). A string
+ * family lists the literal forms that hide comment markers from the scanner:
+ * quoted strings, character literals and prefixed character literals, each
+ * recognized on a single line only (see StringForm). Comment families are
+ * shared by many languages that disagree on strings, so the two are kept
+ * apart and combined per extension in the table below. A
  * composite grammar layers region rules on top of a default leaf grammar, so
  * a single file can switch comment style by region - e.g. an HTML/Vue file is
  * HTML by default but uses JS comments inside <script> and CSS comments
@@ -45,29 +51,72 @@ const fn nesting_pair(open: &'static str, close: &'static str) -> BlockPair {
     }
 }
 
+/// a comment family: line markers and block-comment pairs
 #[derive(Debug, PartialEq, Eq)]
-pub struct Leaf {
+pub struct Comments {
     pub line: &'static [&'static str],
     pub block: &'static [BlockPair],
 }
 
-// Shared leaf grammars, reused across the extension table below. C_LIKE is
-// also the fallback grammar for unknown extensions (see parse_code.rs).
-pub static C_LIKE: Leaf = Leaf {
+/// One literal form that hides comment markers. Every form ends at the end of
+/// its line at the latest: multi-line literals (triple quotes, raw strings,
+/// heredocs) are out of scope, so a literal still open at a line end is
+/// treated as closed there, and a misread quote costs at most one line.
+#[derive(Debug, PartialEq, Eq)]
+pub enum StringForm {
+    /// `quote … quote`; the escape character, if any, makes the character
+    /// after it part of the literal. A language that escapes its quote by
+    /// doubling it (`'it''s'`) needs no escape: a doubled quote closes the
+    /// literal and immediately reopens it, which hides the same text.
+    Quoted { quote: char, escape: Option<char> },
+    /// `'c'` or `'\…'`: an apostrophe, one character or an escape sequence,
+    /// and a closing apostrophe. An apostrophe that does not start such a
+    /// literal (a Rust lifetime `'a`, a digit separator `1'000`, a prime
+    /// `x'`) is ordinary code, so this form never hides more than a short
+    /// literal.
+    CharacterLiteral { escape: Option<char> },
+    /// `prefix` followed by one character, or by the escape character and one
+    /// more character - e.g. Clojure `\"`, Scheme `#\;`, Erlang `$%`.
+    PrefixedCharacter {
+        prefix: &'static str,
+        escape: Option<char>,
+    },
+}
+
+/// a leaf grammar: one comment family combined with one string family
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct Leaf {
+    pub comments: &'static Comments,
+    pub strings: &'static [StringForm],
+}
+
+const fn comments_only(comments: &'static Comments) -> Leaf {
+    Leaf {
+        comments,
+        strings: NO_STRINGS,
+    }
+}
+
+/// the string family of languages whose literals the scanner does not know
+pub static NO_STRINGS: &[StringForm] = &[];
+
+// Shared comment families, reused across the extension table below. C_LIKE is
+// also the fallback comment family for unknown extensions (see parse_code.rs).
+pub static C_LIKE: Comments = Comments {
     line: &["//"],
     block: &[pair("/*", "*/")],
 };
 // Like C_LIKE, but /* */ nests (Rust, Swift, Kotlin, Scala).
-static C_LIKE_NESTED: Leaf = Leaf {
+static C_LIKE_NESTED: Comments = Comments {
     line: &["//"],
     block: &[nesting_pair("/*", "*/")],
 };
 // PHP accepts // and # line comments plus /* */.
-static PHP: Leaf = Leaf {
+static PHP: Comments = Comments {
     line: &["//", "#"],
     block: &[pair("/*", "*/")],
 };
-static HASH: Leaf = Leaf {
+static HASH: Comments = Comments {
     line: &["#"],
     block: &[],
 };
@@ -77,86 +126,86 @@ static HASH: Leaf = Leaf {
 // and `##########` are line comments. The #### line marker outranks the ###
 // opener by the longest-match tie-break, which degrades every run of four or
 // more to a line comment while a bare ### still opens a block.
-static COFFEE: Leaf = Leaf {
+static COFFEE: Comments = Comments {
     line: &["#", "####"],
     block: &[pair("###", "###")],
 };
-static JULIA: Leaf = Leaf {
+static JULIA: Comments = Comments {
     line: &["#"],
     block: &[nesting_pair("#=", "=#")],
 };
 // Nim also has ##[ ]## doc blocks; the longer opener wins the tie against both
 // # and #[ at the same position, so doc blocks are recognized as such.
-static NIM: Leaf = Leaf {
+static NIM: Comments = Comments {
     line: &["#"],
     block: &[nesting_pair("#[", "]#"), nesting_pair("##[", "]##")],
 };
 // CMake bracket comments: #[[ opens, ]] closes, and they do not nest. Like Lua
 // we recognize the base level, not the equal-signed #[=[ ... ]=] variants.
-static CMAKE: Leaf = Leaf {
+static CMAKE: Comments = Comments {
     line: &["#"],
     block: &[pair("#[[", "]]")],
 };
-static POWERSHELL: Leaf = Leaf {
+static POWERSHELL: Comments = Comments {
     line: &["#"],
     block: &[pair("<#", "#>")],
 };
-static SQL: Leaf = Leaf {
+static SQL: Comments = Comments {
     line: &["--"],
     block: &[pair("/*", "*/")],
 };
-static LUA: Leaf = Leaf {
+static LUA: Comments = Comments {
     line: &["--"],
     block: &[pair("--[[", "]]")],
 };
-static HASKELL: Leaf = Leaf {
+static HASKELL: Comments = Comments {
     line: &["--"],
     block: &[nesting_pair("{-", "-}")],
 };
-static CSS: Leaf = Leaf {
+static CSS: Comments = Comments {
     line: &[],
     block: &[pair("/*", "*/")],
 };
-static XML: Leaf = Leaf {
+static XML: Comments = Comments {
     line: &[],
     block: &[pair("<!--", "-->")],
 };
 // A comment-less grammar, for embedded content that has no comments (JSON).
-static NONE: Leaf = Leaf {
+static NONE: Comments = Comments {
     line: &[],
     block: &[],
 };
-static SEMICOLON: Leaf = Leaf {
+static SEMICOLON: Comments = Comments {
     line: &[";"],
     block: &[],
 };
 // Scheme and Racket add nestable #| |# block comments on top of ; lines.
-static SCHEME: Leaf = Leaf {
+static SCHEME: Comments = Comments {
     line: &[";"],
     block: &[nesting_pair("#|", "|#")],
 };
-static PERCENT: Leaf = Leaf {
+static PERCENT: Comments = Comments {
     line: &["%"],
     block: &[],
 };
-static DASH_LINE: Leaf = Leaf {
+static DASH_LINE: Comments = Comments {
     line: &["--"],
     block: &[],
 };
 // OCaml/F# (* *) nest per spec; Pascal's (* *) does not, so it keeps a plain pair.
-static ML: Leaf = Leaf {
+static ML: Comments = Comments {
     line: &[],
     block: &[nesting_pair("(*", "*)")],
 };
-static FSHARP: Leaf = Leaf {
+static FSHARP: Comments = Comments {
     line: &["//"],
     block: &[nesting_pair("(*", "*)")],
 };
-static PASCAL: Leaf = Leaf {
+static PASCAL: Comments = Comments {
     line: &["//"],
     block: &[pair("{", "}"), pair("(*", "*)")],
 };
-static HCL: Leaf = Leaf {
+static HCL: Comments = Comments {
     line: &["#", "//"],
     block: &[pair("/*", "*/")],
 };
@@ -178,21 +227,21 @@ fn attribute_of(tag: &str, re: &Regex) -> String {
 
 // <script>/<style> embed different languages depending on type/lang; pick the
 // comment grammar from the opening tag rather than always assuming C-like/CSS.
-fn script_grammar(tag: &str) -> &'static Leaf {
+fn script_grammar(tag: &str) -> Leaf {
     let type_attribute = attribute_of(tag, &TYPE_ATTRIBUTE_RE);
     if type_attribute.contains("json") || type_attribute.contains("importmap") {
-        return &NONE; // JSON / import maps: no comments
+        return comments_only(&NONE); // JSON / import maps: no comments
     }
     if type_attribute.contains("template") || type_attribute.contains("html") {
-        return &XML; // inline HTML templates
+        return comments_only(&XML); // inline HTML templates
     }
     if attribute_of(tag, &LANG_ATTRIBUTE_RE).contains("coffee") {
-        return &COFFEE; // CoffeeScript
+        return comments_only(&COFFEE); // CoffeeScript
     }
-    &C_LIKE // JS / TS / JSX / module / ...
+    comments_only(&C_LIKE) // JS / TS / JSX / module / ...
 }
 
-fn style_grammar(tag: &str) -> &'static Leaf {
+fn style_grammar(tag: &str) -> Leaf {
     // SCSS, Sass and Less add `//` line comments on top of CSS `/* */`;
     // "styl" also covers "stylus"
     let lang = attribute_of(tag, &LANG_ATTRIBUTE_RE);
@@ -200,17 +249,17 @@ fn style_grammar(tag: &str) -> &'static Leaf {
         .iter()
         .any(|name| lang.contains(name))
     {
-        &C_LIKE
+        comments_only(&C_LIKE)
     } else {
-        &CSS
+        comments_only(&CSS)
     }
 }
 
 /// how a composite region picks its leaf grammar: fixed, or resolved from the
 /// opening tag's attributes
 pub enum RegionGrammar {
-    Fixed(&'static Leaf),
-    Resolver(fn(&str) -> &'static Leaf),
+    Fixed(Leaf),
+    Resolver(fn(&str) -> Leaf),
 }
 
 pub struct Region {
@@ -220,14 +269,14 @@ pub struct Region {
 }
 
 pub struct Composite {
-    pub default: &'static Leaf,
+    pub default: Leaf,
     pub regions: Vec<Region>,
 }
 
 // HTML-family files: HTML comments in markup, but JS comments inside <script>
 // and CSS comments inside <style>.
 static HTML: LazyLock<Composite> = LazyLock::new(|| Composite {
-    default: &XML,
+    default: comments_only(&XML),
     regions: vec![
         Region {
             enter: Regex::new(r"(?i)<script\b[^>]*>").unwrap(),
@@ -242,132 +291,136 @@ static HTML: LazyLock<Composite> = LazyLock::new(|| Composite {
     ],
 });
 
-/// a file's comment grammar: a plain leaf, or a composite with regions
+/// a file's grammar: a plain leaf, or a composite with regions
 #[derive(Clone, Copy)]
 pub enum Grammar {
-    Leaf(&'static Leaf),
+    Leaf(Leaf),
     Composite(&'static Composite),
 }
 
 impl Grammar {
-    /// a stable identity for grouping extensions by shared grammar: two
-    /// extensions share a grammar exactly when they resolve to the same
-    /// static grammar value
+    /// a stable identity for grouping extensions by shared comment grammar:
+    /// two extensions share it exactly when they resolve to the same static
+    /// comment family, or to the same composite. String families are left
+    /// out on purpose - languages sharing comments but not strings still
+    /// belong together.
     pub fn identity(self) -> usize {
         match self {
-            Grammar::Leaf(leaf) => std::ptr::from_ref(leaf) as usize,
+            Grammar::Leaf(leaf) => std::ptr::from_ref(leaf.comments) as usize,
             Grammar::Composite(composite) => std::ptr::from_ref(composite) as usize,
         }
     }
 }
 
 static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
-    let leaf = |ext: &'static str, leaf: &'static Leaf| (ext, Grammar::Leaf(leaf));
+    let leaf = |ext: &'static str, comments: &'static Comments, strings: &'static [StringForm]| {
+        (ext, Grammar::Leaf(Leaf { comments, strings }))
+    };
     let html = |ext: &'static str| (ext, Grammar::Composite(&HTML));
     vec![
         // C-family: // line, /* */ block
-        leaf("ts", &C_LIKE),
-        leaf("js", &C_LIKE),
-        leaf("mjs", &C_LIKE),
-        leaf("cjs", &C_LIKE),
-        leaf("jsx", &C_LIKE),
-        leaf("tsx", &C_LIKE),
-        leaf("cts", &C_LIKE),
-        leaf("mts", &C_LIKE),
-        leaf("c", &C_LIKE),
-        leaf("h", &C_LIKE),
-        leaf("cpp", &C_LIKE),
-        leaf("cc", &C_LIKE),
-        leaf("hpp", &C_LIKE),
-        leaf("cxx", &C_LIKE),
-        leaf("hxx", &C_LIKE),
-        leaf("ino", &C_LIKE),
-        leaf("inl", &C_LIKE),
-        leaf("tpp", &C_LIKE),
-        leaf("cs", &C_LIKE),
-        leaf("java", &C_LIKE),
-        leaf("go", &C_LIKE),
-        leaf("groovy", &C_LIKE),
-        leaf("gradle", &C_LIKE),
-        leaf("sol", &C_LIKE),
-        leaf("dart", &C_LIKE),
-        leaf("php", &PHP),
-        leaf("proto", &C_LIKE),
-        leaf("scss", &C_LIKE),
-        leaf("less", &C_LIKE),
+        leaf("ts", &C_LIKE, NO_STRINGS),
+        leaf("js", &C_LIKE, NO_STRINGS),
+        leaf("mjs", &C_LIKE, NO_STRINGS),
+        leaf("cjs", &C_LIKE, NO_STRINGS),
+        leaf("jsx", &C_LIKE, NO_STRINGS),
+        leaf("tsx", &C_LIKE, NO_STRINGS),
+        leaf("cts", &C_LIKE, NO_STRINGS),
+        leaf("mts", &C_LIKE, NO_STRINGS),
+        leaf("c", &C_LIKE, NO_STRINGS),
+        leaf("h", &C_LIKE, NO_STRINGS),
+        leaf("cpp", &C_LIKE, NO_STRINGS),
+        leaf("cc", &C_LIKE, NO_STRINGS),
+        leaf("hpp", &C_LIKE, NO_STRINGS),
+        leaf("cxx", &C_LIKE, NO_STRINGS),
+        leaf("hxx", &C_LIKE, NO_STRINGS),
+        leaf("ino", &C_LIKE, NO_STRINGS),
+        leaf("inl", &C_LIKE, NO_STRINGS),
+        leaf("tpp", &C_LIKE, NO_STRINGS),
+        leaf("cs", &C_LIKE, NO_STRINGS),
+        leaf("java", &C_LIKE, NO_STRINGS),
+        leaf("go", &C_LIKE, NO_STRINGS),
+        leaf("groovy", &C_LIKE, NO_STRINGS),
+        leaf("gradle", &C_LIKE, NO_STRINGS),
+        leaf("sol", &C_LIKE, NO_STRINGS),
+        leaf("dart", &C_LIKE, NO_STRINGS),
+        leaf("php", &PHP, NO_STRINGS),
+        leaf("proto", &C_LIKE, NO_STRINGS),
+        leaf("scss", &C_LIKE, NO_STRINGS),
+        leaf("less", &C_LIKE, NO_STRINGS),
         // C-family with nested block comments
-        leaf("rs", &C_LIKE_NESTED),
-        leaf("swift", &C_LIKE_NESTED),
-        leaf("kt", &C_LIKE_NESTED),
-        leaf("kts", &C_LIKE_NESTED),
-        leaf("scala", &C_LIKE_NESTED),
+        leaf("rs", &C_LIKE_NESTED, NO_STRINGS),
+        leaf("swift", &C_LIKE_NESTED, NO_STRINGS),
+        leaf("kt", &C_LIKE_NESTED, NO_STRINGS),
+        leaf("kts", &C_LIKE_NESTED, NO_STRINGS),
+        leaf("scala", &C_LIKE_NESTED, NO_STRINGS),
         // hash line comments
-        leaf("py", &HASH),
-        leaf("rb", &HASH),
-        leaf("sh", &HASH),
-        leaf("bash", &HASH),
-        leaf("zsh", &HASH),
-        leaf("yaml", &HASH),
-        leaf("yml", &HASH),
-        leaf("toml", &HASH),
-        leaf("r", &HASH),
-        leaf("pm", &HASH),
-        leaf("ex", &HASH),
-        leaf("exs", &HASH),
-        leaf("tcl", &HASH),
-        leaf("cr", &HASH),
-        leaf("gd", &HASH),
-        leaf("awk", &HASH),
-        leaf("graphql", &HASH),
-        leaf("gql", &HASH),
+        leaf("py", &HASH, NO_STRINGS),
+        leaf("rb", &HASH, NO_STRINGS),
+        leaf("sh", &HASH, NO_STRINGS),
+        leaf("bash", &HASH, NO_STRINGS),
+        leaf("zsh", &HASH, NO_STRINGS),
+        leaf("yaml", &HASH, NO_STRINGS),
+        leaf("yml", &HASH, NO_STRINGS),
+        leaf("toml", &HASH, NO_STRINGS),
+        leaf("r", &HASH, NO_STRINGS),
+        leaf("pm", &HASH, NO_STRINGS),
+        leaf("ex", &HASH, NO_STRINGS),
+        leaf("exs", &HASH, NO_STRINGS),
+        leaf("tcl", &HASH, NO_STRINGS),
+        leaf("cr", &HASH, NO_STRINGS),
+        leaf("gd", &HASH, NO_STRINGS),
+        leaf("awk", &HASH, NO_STRINGS),
+        leaf("graphql", &HASH, NO_STRINGS),
+        leaf("gql", &HASH, NO_STRINGS),
         // hash line comments plus a block pair of their own
-        leaf("jl", &JULIA),
-        leaf("nim", &NIM),
-        leaf("coffee", &COFFEE),
-        leaf("cmake", &CMAKE),
-        leaf("ps1", &POWERSHELL),
-        leaf("psm1", &POWERSHELL),
-        leaf("tf", &HCL),
-        leaf("tfvars", &HCL),
-        leaf("hcl", &HCL),
+        leaf("jl", &JULIA, NO_STRINGS),
+        leaf("nim", &NIM, NO_STRINGS),
+        leaf("coffee", &COFFEE, NO_STRINGS),
+        leaf("cmake", &CMAKE, NO_STRINGS),
+        leaf("ps1", &POWERSHELL, NO_STRINGS),
+        leaf("psm1", &POWERSHELL, NO_STRINGS),
+        leaf("tf", &HCL, NO_STRINGS),
+        leaf("tfvars", &HCL, NO_STRINGS),
+        leaf("hcl", &HCL, NO_STRINGS),
         // semicolon (Lisp family)
-        leaf("clj", &SEMICOLON),
-        leaf("cljs", &SEMICOLON),
-        leaf("cljc", &SEMICOLON),
-        leaf("edn", &SEMICOLON),
-        leaf("el", &SEMICOLON),
-        leaf("lisp", &SEMICOLON),
+        leaf("clj", &SEMICOLON, NO_STRINGS),
+        leaf("cljs", &SEMICOLON, NO_STRINGS),
+        leaf("cljc", &SEMICOLON, NO_STRINGS),
+        leaf("edn", &SEMICOLON, NO_STRINGS),
+        leaf("el", &SEMICOLON, NO_STRINGS),
+        leaf("lisp", &SEMICOLON, NO_STRINGS),
         // Scheme/Racket: ; lines plus nestable #| |# blocks
-        leaf("scm", &SCHEME),
-        leaf("ss", &SCHEME),
-        leaf("rkt", &SCHEME),
+        leaf("scm", &SCHEME, NO_STRINGS),
+        leaf("ss", &SCHEME, NO_STRINGS),
+        leaf("rkt", &SCHEME, NO_STRINGS),
         // percent (Erlang, LaTeX)
-        leaf("erl", &PERCENT),
-        leaf("hrl", &PERCENT),
-        leaf("tex", &PERCENT),
-        leaf("sty", &PERCENT),
+        leaf("erl", &PERCENT, NO_STRINGS),
+        leaf("hrl", &PERCENT, NO_STRINGS),
+        leaf("tex", &PERCENT, NO_STRINGS),
+        leaf("sty", &PERCENT, NO_STRINGS),
         // dash line-only (Ada, VHDL)
-        leaf("adb", &DASH_LINE),
-        leaf("ads", &DASH_LINE),
-        leaf("vhd", &DASH_LINE),
-        leaf("vhdl", &DASH_LINE),
+        leaf("adb", &DASH_LINE, NO_STRINGS),
+        leaf("ads", &DASH_LINE, NO_STRINGS),
+        leaf("vhd", &DASH_LINE, NO_STRINGS),
+        leaf("vhdl", &DASH_LINE, NO_STRINGS),
         // ML-family
-        leaf("ml", &ML),
-        leaf("mli", &ML),
-        leaf("fs", &FSHARP),
-        leaf("fsi", &FSHARP),
-        leaf("fsx", &FSHARP),
-        leaf("pas", &PASCAL),
-        leaf("dpr", &PASCAL),
+        leaf("ml", &ML, NO_STRINGS),
+        leaf("mli", &ML, NO_STRINGS),
+        leaf("fs", &FSHARP, NO_STRINGS),
+        leaf("fsi", &FSHARP, NO_STRINGS),
+        leaf("fsx", &FSHARP, NO_STRINGS),
+        leaf("pas", &PASCAL, NO_STRINGS),
+        leaf("dpr", &PASCAL, NO_STRINGS),
         // dashes and others
-        leaf("sql", &SQL),
-        leaf("lua", &LUA),
-        leaf("hs", &HASKELL),
-        leaf("elm", &HASKELL),
-        leaf("purs", &HASKELL),
-        leaf("css", &CSS),
-        leaf("xml", &XML),
-        leaf("svg", &XML),
+        leaf("sql", &SQL, NO_STRINGS),
+        leaf("lua", &LUA, NO_STRINGS),
+        leaf("hs", &HASKELL, NO_STRINGS),
+        leaf("elm", &HASKELL, NO_STRINGS),
+        leaf("purs", &HASKELL, NO_STRINGS),
+        leaf("css", &CSS, NO_STRINGS),
+        leaf("xml", &XML, NO_STRINGS),
+        leaf("svg", &XML, NO_STRINGS),
         // composite: HTML markup with embedded <script>/<style> regions
         html("vue"),
         html("html"),
@@ -413,41 +466,44 @@ mod tests {
 
     #[test]
     fn script_grammar_resolves_from_the_opening_tag() {
-        assert!(std::ptr::eq(script_grammar("<script>"), &C_LIKE));
+        assert!(std::ptr::eq(script_grammar("<script>").comments, &C_LIKE));
         assert!(std::ptr::eq(
-            script_grammar("<script setup lang=\"ts\">"),
+            script_grammar("<script setup lang=\"ts\">").comments,
             &C_LIKE
         ));
         assert!(std::ptr::eq(
-            script_grammar("<script type=\"application/json\">"),
+            script_grammar("<script type=\"application/json\">").comments,
             &NONE
         ));
         assert!(std::ptr::eq(
-            script_grammar("<script type=\"importmap\">"),
+            script_grammar("<script type=\"importmap\">").comments,
             &NONE
         ));
         assert!(std::ptr::eq(
-            script_grammar("<script type=\"text/x-template\">"),
+            script_grammar("<script type=\"text/x-template\">").comments,
             &XML
         ));
         assert!(std::ptr::eq(
-            script_grammar("<script lang=\"coffee\">"),
+            script_grammar("<script lang=\"coffee\">").comments,
             &COFFEE
         ));
         // the leading-whitespace guard: data-type is not type
         assert!(std::ptr::eq(
-            script_grammar("<script data-type=\"json\">"),
+            script_grammar("<script data-type=\"json\">").comments,
             &C_LIKE
         ));
     }
 
     #[test]
     fn style_grammar_resolves_from_the_opening_tag() {
-        assert!(std::ptr::eq(style_grammar("<style>"), &CSS));
-        assert!(std::ptr::eq(style_grammar("<style scoped>"), &CSS));
+        assert!(std::ptr::eq(style_grammar("<style>").comments, &CSS));
+        assert!(std::ptr::eq(style_grammar("<style scoped>").comments, &CSS));
         for lang in ["scss", "sass", "less", "stylus", "styl"] {
             assert!(
-                std::ptr::eq(style_grammar(&format!("<style lang=\"{lang}\">")), &C_LIKE),
+                std::ptr::eq(
+                    style_grammar(&format!("<style lang=\"{lang}\">")).comments,
+                    &C_LIKE
+                ),
                 "{lang}"
             );
         }

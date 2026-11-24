@@ -12,10 +12,11 @@
  *   - one fixture per extension, named after it (ts.ts covers .ts), so "the
  *     fixture for .ts" is something this suite can look up at all;
  *   - fixtures grouped in a folder per comment grammar, shared by exactly the
- *     extensions resolving to the same grammar object;
- *   - each fixture writing every marker its grammar defines and defining an
- *     item per comment form, so a new fixture cannot cover an extension in
- *     name only.
+ *     extensions resolving to the same comment family (string families are
+ *     a property of each file, not of its folder);
+ *   - each fixture writing every marker and literal opener its grammar
+ *     defines and defining an item per comment form and per string form, so
+ *     a new fixture cannot cover an extension in name only.
  *
  * That last pair is an approximation, not the statement it stands in for: it
  * counts items and searches for marker text separately, so it never ties an
@@ -27,7 +28,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use flashtrace::languages::{CODE_EXT, Grammar, grammar_for};
+use flashtrace::languages::{CODE_EXT, Grammar, StringForm, grammar_for};
 use flashtrace::parse_code::parse_code;
 use flashtrace::paths::extension_of;
 
@@ -77,16 +78,20 @@ fn collect_fixtures() -> Vec<Fixture> {
 // How many tags a fixture must carry to exercise its grammar: one per line
 // marker, one per block pair, and two more for every pair that nests - one
 // tag inside the inner block and one after the inner closer, which is what
-// makes nesting an assertion rather than decoration. A composite grammar has
+// makes nesting an assertion rather than decoration. Each string form adds
+// one more: the comment after a literal hiding a comment marker, which only
+// a scanner that closes the literal at the right place still reads. A composite grammar has
 // no such number: which regions a file carries follows the convention of the
 // extension, so those are only required to tag something.
 fn tags_required_by(grammar: Grammar) -> usize {
     match grammar {
         Grammar::Composite(_) => 1,
         Grammar::Leaf(leaf) => {
-            leaf.line.len()
-                + leaf.block.len()
+            leaf.comments.line.len()
+                + leaf.comments.block.len()
+                + leaf.strings.len()
                 + 2 * leaf
+                    .comments
                     .block
                     .iter()
                     .filter(|block_pair| block_pair.nestable)
@@ -95,8 +100,8 @@ fn tags_required_by(grammar: Grammar) -> usize {
     }
 }
 
-// Every marker a grammar defines as literal text: its line markers plus both
-// ends of every block pair. A composite grammar contributes its default
+// Every marker a grammar defines as literal text: its line markers, both
+// ends of every block pair and the opener of every string form. A composite grammar contributes its default
 // grammar's markers for the same reason it has no tag count - the embedded
 // grammars a file reaches follow the convention of the extension.
 fn markers_of(grammar: Grammar) -> Vec<&'static str> {
@@ -105,16 +110,28 @@ fn markers_of(grammar: Grammar) -> Vec<&'static str> {
         Grammar::Leaf(leaf) => leaf,
     };
     let mut markers = Vec::new();
-    for marker in leaf.line.iter().copied() {
+    for marker in leaf.comments.line.iter().copied() {
         if !markers.contains(&marker) {
             markers.push(marker);
         }
     }
-    for block_pair in leaf.block {
+    for block_pair in leaf.comments.block {
         for marker in [block_pair.open, block_pair.close] {
             if !markers.contains(&marker) {
                 markers.push(marker);
             }
+        }
+    }
+    for form in leaf.strings {
+        let opener = match form {
+            StringForm::Quoted { quote: '"', .. } => "\"",
+            StringForm::Quoted { quote: '\'', .. } | StringForm::CharacterLiteral { .. } => "'",
+            StringForm::Quoted { quote: '`', .. } => "`",
+            StringForm::Quoted { quote, .. } => panic!("no opener text for quote {quote}"),
+            StringForm::PrefixedCharacter { prefix, .. } => prefix,
+        };
+        if !markers.contains(&opener) {
+            markers.push(opener);
         }
     }
     markers

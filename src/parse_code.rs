@@ -30,7 +30,9 @@ use crate::ids::{
     Forward, Item, Origin, canonical_id, forward_src, id_src, make_forward, make_id, new_item,
     ref_src, resolve_ref,
 };
-use crate::languages::{C_LIKE, Composite, Grammar, Leaf, Region, RegionGrammar, grammar_for};
+use crate::languages::{
+    C_LIKE, Composite, Grammar, Leaf, NO_STRINGS, Region, RegionGrammar, StringForm, grammar_for,
+};
 use crate::location::Location;
 use crate::paths::extension_of;
 
@@ -120,7 +122,7 @@ struct OpenBlock {
 #[derive(Clone, Copy)]
 struct ActiveRegion {
     exit: &'static Regex,
-    grammar: &'static Leaf,
+    grammar: Leaf,
 }
 
 struct ScanState {
@@ -133,9 +135,9 @@ struct ScanState {
     region: Option<ActiveRegion>,
 }
 
-// leaf grammar (line markers + block pairs) active at the current position:
+// leaf grammar (comment and string family) active at the current position:
 // the region's grammar when inside one, otherwise the file's default.
-fn active_leaf(grammar: Grammar, state: &ScanState) -> &'static Leaf {
+fn active_leaf(grammar: Grammar, state: &ScanState) -> Leaf {
     if let Some(region) = &state.region {
         return region.grammar;
     }
@@ -155,6 +157,8 @@ enum EventKind {
     },
     Enter(ActiveRegion),
     Exit,
+    // a string or character literal; the event's len reaches its end
+    Literal,
 }
 
 struct Event {
@@ -186,7 +190,7 @@ fn region_events(
             // the region's grammar may be a resolver picking the leaf from
             // the opening tag
             let leaf = match &region.grammar {
-                RegionGrammar::Fixed(leaf) => leaf,
+                RegionGrammar::Fixed(leaf) => *leaf,
                 RegionGrammar::Resolver(resolve) => resolve(m.as_str()),
             };
             events.push(Event {
@@ -208,8 +212,8 @@ fn region_exit_regex(region: &'static Region) -> &'static Regex {
 }
 
 // earliest scanning event in the line at or after pos, or None: a comment
-// opener from the active leaf grammar, or - for composite grammars - a region
-// boundary.
+// opener or a string literal from the active leaf grammar, or - for composite
+// grammars - a region boundary.
 fn next_event(
     line: &str,
     pos: usize,
@@ -222,7 +226,8 @@ fn next_event(
     // earliest match wins; on a tie the longest opener wins, so a block opener
     // that shares a prefix with a line marker (Lua `--[[` vs `--`) is not
     // masked. Candidates are considered in a fixed order (line markers, block
-    // pairs, region events), which the strict `>` preserves on a full tie.
+    // pairs, literals, region events), which the strict `>` preserves on a
+    // full tie.
     let mut consider = |idx: Option<usize>, event: Event| {
         let Some(idx) = idx else { return };
         let better = match &best {
@@ -233,7 +238,7 @@ fn next_event(
             best = Some(Event { idx, ..event });
         }
     };
-    for marker in leaf.line {
+    for marker in leaf.comments.line {
         consider(
             marker_index(line, marker, pos, spans),
             Event {
@@ -243,7 +248,7 @@ fn next_event(
             },
         );
     }
-    for block_pair in leaf.block {
+    for block_pair in leaf.comments.block {
         consider(
             marker_index(line, block_pair.open, pos, spans),
             Event {
@@ -257,12 +262,104 @@ fn next_event(
             },
         );
     }
+    for form in leaf.strings {
+        if let Some((start, end)) = next_literal(line, pos, form) {
+            consider(
+                Some(start),
+                Event {
+                    idx: 0,
+                    len: end - start,
+                    kind: EventKind::Literal,
+                },
+            );
+        }
+    }
     if let Grammar::Composite(composite) = grammar {
         for event in region_events(line, pos, composite, state) {
             consider(Some(event.idx), event);
         }
     }
     best
+}
+
+// The end (exclusive byte offset) of a literal of `form` whose opener starts
+// at `start`, or None when the text there opens no such literal. A literal
+// still open at the end of the line ends there (single-line literals only).
+fn literal_end(line: &str, start: usize, form: &StringForm) -> Option<usize> {
+    match *form {
+        StringForm::Quoted { quote, escape } => {
+            let mut characters = line[start + quote.len_utf8()..].char_indices();
+            let offset = start + quote.len_utf8();
+            while let Some((idx, character)) = characters.next() {
+                if Some(character) == escape {
+                    characters.next();
+                } else if character == quote {
+                    return Some(offset + idx + character.len_utf8());
+                }
+            }
+            Some(line.len())
+        }
+        StringForm::CharacterLiteral { escape } => {
+            let body = start + 1;
+            let mut characters = line[body..].char_indices();
+            let (_, first) = characters.next()?;
+            if Some(first) == escape {
+                // an escape sequence: the escaped character plus a short run
+                // of further non-quote characters (`\x41`, `\u{1F600}`)
+                characters.next()?;
+                for _ in 0..MAX_ESCAPE_TAIL {
+                    let (idx, character) = characters.next()?;
+                    if character == '\'' {
+                        return Some(body + idx + 1);
+                    }
+                }
+                None
+            } else if first == '\'' && escape.is_some() {
+                // `''` is no literal where the apostrophe must be escaped
+                None
+            } else {
+                let (idx, character) = characters.next()?;
+                (character == '\'').then_some(body + idx + 1)
+            }
+        }
+        StringForm::PrefixedCharacter { prefix, escape } => {
+            let body = start + prefix.len();
+            let mut characters = line[body..].chars();
+            let mut end = body;
+            if let Some(first) = characters.next() {
+                end += first.len_utf8();
+                if Some(first) == escape
+                    && let Some(escaped) = characters.next()
+                {
+                    end += escaped.len_utf8();
+                }
+            }
+            Some(end)
+        }
+    }
+}
+
+// the longest escape sequence tail a character literal may carry after its
+// escaped character: `\u{10FFFF}` is the longest in any supported language
+const MAX_ESCAPE_TAIL: usize = 9;
+
+// the first literal of `form` opening at or after pos, as (start, end), or
+// None. An apostrophe that opens no character literal is skipped.
+fn next_literal(line: &str, pos: usize, form: &StringForm) -> Option<(usize, usize)> {
+    let opener = match form {
+        StringForm::Quoted { quote, .. } => quote.to_string(),
+        StringForm::CharacterLiteral { .. } => "'".to_string(),
+        StringForm::PrefixedCharacter { prefix, .. } => (*prefix).to_string(),
+    };
+    let mut from = pos;
+    while let Some(found) = line.get(from..).and_then(|rest| rest.find(&opener)) {
+        let start = from + found;
+        if let Some(end) = literal_end(line, start, form) {
+            return Some((start, end));
+        }
+        from = start + opener.len();
+    }
+    None
 }
 
 struct Consumed {
@@ -456,6 +553,17 @@ fn comment_text(line: &str, state: &mut ScanState, grammar: Grammar) -> String {
                 // above continues), so there is no open block to clear here
                 state.region = None;
             }
+            EventKind::Literal => {
+                // a literal is code, so nothing of it is kept; a region exit
+                // inside it still ends the region, the way a browser ends a
+                // <script> at the first `</script>`, even within a JS string
+                if let Some((exit_idx, _)) = exit
+                    && exit_idx > event.idx
+                    && exit_idx < pos
+                {
+                    pos = exit_idx;
+                }
+            }
         }
     }
     String::from_utf8(buffer).expect("kept ranges end on character boundaries")
@@ -564,7 +672,10 @@ pub fn parse_code(
     let ext = extension_of(file);
     // Unknown extensions never reach here via the CLI (file collection
     // filters on CODE_EXT); direct callers fall back to C-like.
-    let grammar = grammar_for(&ext).unwrap_or(Grammar::Leaf(&C_LIKE));
+    let grammar = grammar_for(&ext).unwrap_or(Grammar::Leaf(Leaf {
+        comments: &C_LIKE,
+        strings: NO_STRINGS,
+    }));
     let lines: Vec<&str> = text.lines().collect();
     let mut items = Vec::new();
     let mut state = ScanState {
@@ -1671,5 +1782,277 @@ mod tests {
         let (items, _, _) = parse("src.ts", &["const \u{E9} = 1; // \u{1D54F} [impl:a#1]"]);
         // the bracket is the 19th character of the line
         assert_eq!(items[0].location.character, 19);
+    }
+
+    // --- string literals (string families) ---------------------------------
+
+    use crate::languages::{BlockPair, Comments};
+
+    static SLASH_COMMENTS: Comments = Comments {
+        line: &["//"],
+        block: &[BlockPair {
+            open: "/*",
+            close: "*/",
+            nestable: false,
+        }],
+    };
+    static PERCENT_COMMENTS: Comments = Comments {
+        line: &["%"],
+        block: &[],
+    };
+    const DOUBLE_QUOTED: StringForm = StringForm::Quoted {
+        quote: '"',
+        escape: Some('\\'),
+    };
+    const CHARACTER_LITERAL: StringForm = StringForm::CharacterLiteral { escape: Some('\\') };
+
+    fn fresh_state() -> ScanState {
+        ScanState {
+            last_item: None,
+            by_id: HashMap::new(),
+            block: None,
+            region: None,
+        }
+    }
+
+    // the comment text of consecutive lines scanned with one leaf grammar,
+    // each line's comment words joined by single spaces
+    fn comments_of(
+        comments: &'static Comments,
+        strings: &'static [StringForm],
+        lines: &[&str],
+    ) -> Vec<String> {
+        let grammar = Grammar::Leaf(Leaf { comments, strings });
+        let mut state = fresh_state();
+        lines
+            .iter()
+            .map(|line| {
+                comment_text(line, &mut state, grammar)
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_quoted_literal_hides_a_line_marker() {
+        // given
+        static STRINGS: &[StringForm] = &[DOUBLE_QUOTED];
+
+        // when
+        let comments = comments_of(&SLASH_COMMENTS, STRINGS, &[r#"a = "// hidden"; // shown"#]);
+
+        // then
+        assert_eq!(comments, ["shown"]);
+    }
+
+    #[test]
+    fn an_escaped_quote_keeps_the_literal_open() {
+        // given
+        static STRINGS: &[StringForm] = &[DOUBLE_QUOTED];
+
+        // when
+        let comments = comments_of(
+            &SLASH_COMMENTS,
+            STRINGS,
+            &[r#"a = "\" // hidden"; // shown"#],
+        );
+
+        // then
+        assert_eq!(comments, ["shown"]);
+    }
+
+    #[test]
+    fn a_backslash_escapes_nothing_in_a_literal_without_escapes() {
+        // given
+        static STRINGS: &[StringForm] = &[StringForm::Quoted {
+            quote: '`',
+            escape: None,
+        }];
+
+        // when
+        let comments = comments_of(&SLASH_COMMENTS, STRINGS, &[r"a = `// hidden \`; // shown"]);
+
+        // then
+        assert_eq!(comments, ["shown"]);
+    }
+
+    #[test]
+    fn a_doubled_quote_closes_and_reopens_the_literal() {
+        // given
+        static STRINGS: &[StringForm] = &[StringForm::Quoted {
+            quote: '\'',
+            escape: None,
+        }];
+
+        // when
+        let comments = comments_of(
+            &SLASH_COMMENTS,
+            STRINGS,
+            &["a = 'it''s // hidden'; // shown"],
+        );
+
+        // then
+        assert_eq!(comments, ["shown"]);
+    }
+
+    #[test]
+    fn a_literal_still_open_at_the_line_end_ends_there() {
+        // given
+        static STRINGS: &[StringForm] = &[DOUBLE_QUOTED];
+
+        // when
+        let comments = comments_of(&SLASH_COMMENTS, STRINGS, &[r#"a = "// hidden"#, "// shown"]);
+
+        // then
+        assert_eq!(comments, ["", "shown"]);
+    }
+
+    #[test]
+    fn a_quote_inside_a_comment_opens_no_literal() {
+        // given
+        static STRINGS: &[StringForm] = &[DOUBLE_QUOTED];
+
+        // when
+        let comments = comments_of(
+            &SLASH_COMMENTS,
+            STRINGS,
+            &[
+                r#"/* say "hi */ a = 1; // shown"#,
+                r#"// it" stays a comment"#,
+            ],
+        );
+
+        // then
+        assert_eq!(comments, [r#"say "hi shown"#, r#"it" stays a comment"#]);
+    }
+
+    #[test]
+    fn a_character_literal_holding_a_quote_opens_no_string() {
+        // given
+        static STRINGS: &[StringForm] = &[DOUBLE_QUOTED, CHARACTER_LITERAL];
+
+        // when
+        let comments = comments_of(&SLASH_COMMENTS, STRINGS, &[r#"c = '"'; // shown"#]);
+
+        // then
+        assert_eq!(comments, ["shown"]);
+    }
+
+    #[test]
+    fn an_escaped_character_literal_ends_at_its_closing_apostrophe() {
+        // given
+        static STRINGS: &[StringForm] = &[DOUBLE_QUOTED, CHARACTER_LITERAL];
+
+        // when
+        let comments = comments_of(
+            &SLASH_COMMENTS,
+            STRINGS,
+            &[r#"c = '\''; d = '\u{1F600}'; s = "// hidden"; // shown"#],
+        );
+
+        // then
+        assert_eq!(comments, ["shown"]);
+    }
+
+    #[test]
+    fn an_apostrophe_opening_no_character_literal_is_code() {
+        // given
+        static STRINGS: &[StringForm] = &[DOUBLE_QUOTED, CHARACTER_LITERAL];
+
+        // when
+        let comments = comments_of(
+            &SLASH_COMMENTS,
+            STRINGS,
+            &[
+                "fn first<'a>(text: &'a str) -> &'a str { text } // shown",
+                "let large = 10'000; // shown",
+                "let none = ''; // shown",
+                r"let unclosed = '\u{1F600; // shown",
+                "let last = '",
+            ],
+        );
+
+        // then
+        assert_eq!(comments, ["shown", "shown", "shown", "shown", ""]);
+    }
+
+    #[test]
+    fn a_character_literal_without_escapes_may_hold_an_apostrophe() {
+        // given
+        static STRINGS: &[StringForm] = &[StringForm::CharacterLiteral { escape: None }];
+
+        // when
+        let comments = comments_of(&SLASH_COMMENTS, STRINGS, &["c = '''; // shown"]);
+
+        // then
+        assert_eq!(comments, ["shown"]);
+    }
+
+    #[test]
+    fn a_prefixed_character_hides_a_comment_marker() {
+        // given
+        static STRINGS: &[StringForm] = &[StringForm::PrefixedCharacter {
+            prefix: "$",
+            escape: Some('\\'),
+        }];
+
+        // when
+        let comments = comments_of(&PERCENT_COMMENTS, STRINGS, &["P = $%, Q = 1. % shown"]);
+
+        // then
+        assert_eq!(comments, ["shown"]);
+    }
+
+    #[test]
+    fn a_prefixed_character_takes_an_escape_sequence() {
+        // given
+        static STRINGS: &[StringForm] = &[
+            DOUBLE_QUOTED,
+            StringForm::PrefixedCharacter {
+                prefix: "$",
+                escape: Some('\\'),
+            },
+        ];
+
+        // when
+        let comments = comments_of(
+            &PERCENT_COMMENTS,
+            STRINGS,
+            &[r#"Q = $\", S = "% hidden". % shown"#, "E = $"],
+        );
+
+        // then
+        assert_eq!(comments, ["shown", ""]);
+    }
+
+    static SCRIPT_REGION: LazyLock<Composite> = LazyLock::new(|| Composite {
+        default: Leaf {
+            comments: &PERCENT_COMMENTS,
+            strings: NO_STRINGS,
+        },
+        regions: vec![Region {
+            enter: Regex::new("<script>").unwrap(),
+            exit: Regex::new("</script>").unwrap(),
+            grammar: RegionGrammar::Fixed(Leaf {
+                comments: &SLASH_COMMENTS,
+                strings: &[DOUBLE_QUOTED],
+            }),
+        }],
+    });
+
+    #[test]
+    fn a_region_exit_ends_a_literal_and_the_region() {
+        // given
+        let grammar = Grammar::Composite(&SCRIPT_REGION);
+        let mut state = fresh_state();
+
+        // when
+        let comment = comment_text(r#"<script>a = "</script> % shown"#, &mut state, grammar);
+
+        // then
+        assert_eq!(comment.trim(), "shown");
+        assert!(state.region.is_none());
     }
 }
