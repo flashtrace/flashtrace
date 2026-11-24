@@ -4,3 +4,7 @@
 /*
  * [impl:c-like/proto-block#1]
  */
+
+// A string hides comment markers; a comment after it still counts.
+option (text) = "\" // [impl:c-like/proto-ghost-double-quoted#1]"; // [impl:c-like/proto-after-double-quoted#1]
+option (text) = '\' // [impl:c-like/proto-ghost-single-quoted#1]'; // [impl:c-like/proto-after-single-quoted#1]

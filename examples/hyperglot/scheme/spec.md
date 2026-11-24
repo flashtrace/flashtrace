@@ -19,6 +19,8 @@ Needs:
 - impl:scheme/rkt-block#1
 - impl:scheme/rkt-nested/deep#1
 - impl:scheme/rkt-nested/after-close#1
+- impl:scheme/rkt-after-double-quoted#1
+- impl:scheme/rkt-after-character-prefix#1
 
 ## .scm
 
@@ -29,6 +31,8 @@ Needs:
 - impl:scheme/scm-block#1
 - impl:scheme/scm-nested/deep#1
 - impl:scheme/scm-nested/after-close#1
+- impl:scheme/scm-after-double-quoted#1
+- impl:scheme/scm-after-character-prefix#1
 
 ## .ss
 
@@ -39,3 +43,5 @@ Needs:
 - impl:scheme/ss-block#1
 - impl:scheme/ss-nested/deep#1
 - impl:scheme/ss-nested/after-close#1
+- impl:scheme/ss-after-double-quoted#1
+- impl:scheme/ss-after-character-prefix#1

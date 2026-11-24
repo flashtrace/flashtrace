@@ -22,6 +22,8 @@ Needs:
 - impl:haskell/elm-block#1
 - impl:haskell/elm-nested/deep#1
 - impl:haskell/elm-nested/after-close#1
+- impl:haskell/elm-after-double-quoted#1
+- impl:haskell/elm-after-character-literal#1
 
 ## .hs
 
@@ -32,6 +34,9 @@ Needs:
 - impl:haskell/hs-block#1
 - impl:haskell/hs-nested/deep#1
 - impl:haskell/hs-nested/after-close#1
+- impl:haskell/hs-after-double-quoted#1
+- impl:haskell/hs-after-character-literal#1
+- impl:haskell/hs-after-prime#1
 
 ## .purs
 
@@ -42,3 +47,4 @@ Needs:
 - impl:haskell/purs-block#1
 - impl:haskell/purs-nested/deep#1
 - impl:haskell/purs-nested/after-close#1
+- impl:haskell/purs-after-double-quoted#1

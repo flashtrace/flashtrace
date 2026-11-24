@@ -4,3 +4,7 @@
 /*
  * [impl:c-like/scss-block#1]
  */
+
+// A string hides comment markers; a comment after it still counts.
+$doubleQuoted: "\" // [impl:c-like/scss-ghost-double-quoted#1]"; // [impl:c-like/scss-after-double-quoted#1]
+$singleQuoted: '\' // [impl:c-like/scss-ghost-single-quoted#1]'; // [impl:c-like/scss-after-single-quoted#1]

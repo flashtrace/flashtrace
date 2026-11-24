@@ -20,3 +20,6 @@ Needs:
 - impl:julia/jl-block#1
 - impl:julia/jl-nested/deep#1
 - impl:julia/jl-nested/after-close#1
+- impl:julia/jl-after-double-quoted#1
+- impl:julia/jl-after-character-literal#1
+- impl:julia/jl-after-adjoint#1

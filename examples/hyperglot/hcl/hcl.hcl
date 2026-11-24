@@ -5,3 +5,6 @@
 /*
  * [impl:hcl/hcl-block#1]
  */
+
+# A string hides comment markers; a comment after it still counts.
+double_quoted = "\" # [impl:hcl/hcl-ghost-double-quoted#1]" # [impl:hcl/hcl-after-double-quoted#1]

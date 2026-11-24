@@ -42,109 +42,109 @@ Tags: grammar, c-like
 
 `req:c-like/c#1`
 
-Needs: impl:c-like/c-line#1, impl:c-like/c-block#1
+Needs: impl:c-like/c-line#1, impl:c-like/c-block#1, impl:c-like/c-after-double-quoted#1, impl:c-like/c-after-character-literal#1, impl:c-like/c-after-digit-separator#1
 
 ## .cc
 
 `req:c-like/cc#1`
 
-Needs: impl:c-like/cc-line#1, impl:c-like/cc-block#1
+Needs: impl:c-like/cc-line#1, impl:c-like/cc-block#1, impl:c-like/cc-after-double-quoted#1, impl:c-like/cc-after-character-literal#1, impl:c-like/cc-after-digit-separator#1
 
 ## .cjs
 
 `req:c-like/cjs#1`
 
-Needs: impl:c-like/cjs-line#1, impl:c-like/cjs-block#1
+Needs: impl:c-like/cjs-line#1, impl:c-like/cjs-block#1, impl:c-like/cjs-after-double-quoted#1, impl:c-like/cjs-after-single-quoted#1, impl:c-like/cjs-after-backtick-quoted#1
 
 ## .cpp
 
 `req:c-like/cpp#1`
 
-Needs: impl:c-like/cpp-line#1, impl:c-like/cpp-block#1
+Needs: impl:c-like/cpp-line#1, impl:c-like/cpp-block#1, impl:c-like/cpp-after-double-quoted#1, impl:c-like/cpp-after-character-literal#1, impl:c-like/cpp-after-digit-separator#1
 
 ## .cs
 
 `req:c-like/cs#1`
 
-Needs: impl:c-like/cs-line#1, impl:c-like/cs-block#1
+Needs: impl:c-like/cs-line#1, impl:c-like/cs-block#1, impl:c-like/cs-after-double-quoted#1, impl:c-like/cs-after-character-literal#1
 
 ## .cts
 
 `req:c-like/cts#1`
 
-Needs: impl:c-like/cts-line#1, impl:c-like/cts-block#1
+Needs: impl:c-like/cts-line#1, impl:c-like/cts-block#1, impl:c-like/cts-after-double-quoted#1, impl:c-like/cts-after-single-quoted#1, impl:c-like/cts-after-backtick-quoted#1
 
 ## .cxx
 
 `req:c-like/cxx#1`
 
-Needs: impl:c-like/cxx-line#1, impl:c-like/cxx-block#1
+Needs: impl:c-like/cxx-line#1, impl:c-like/cxx-block#1, impl:c-like/cxx-after-double-quoted#1, impl:c-like/cxx-after-character-literal#1, impl:c-like/cxx-after-digit-separator#1
 
 ## .dart
 
 `req:c-like/dart#1`
 
-Needs: impl:c-like/dart-line#1, impl:c-like/dart-block#1
+Needs: impl:c-like/dart-line#1, impl:c-like/dart-block#1, impl:c-like/dart-after-double-quoted#1, impl:c-like/dart-after-single-quoted#1
 
 ## .go
 
 `req:c-like/go#1`
 
-Needs: impl:c-like/go-line#1, impl:c-like/go-block#1
+Needs: impl:c-like/go-line#1, impl:c-like/go-block#1, impl:c-like/go-after-double-quoted#1, impl:c-like/go-after-backtick-quoted#1, impl:c-like/go-after-character-literal#1
 
 ## .gradle
 
 `req:c-like/gradle#1`
 
-Needs: impl:c-like/gradle-line#1, impl:c-like/gradle-block#1
+Needs: impl:c-like/gradle-line#1, impl:c-like/gradle-block#1, impl:c-like/gradle-after-double-quoted#1, impl:c-like/gradle-after-single-quoted#1
 
 ## .groovy
 
 `req:c-like/groovy#1`
 
-Needs: impl:c-like/groovy-line#1, impl:c-like/groovy-block#1
+Needs: impl:c-like/groovy-line#1, impl:c-like/groovy-block#1, impl:c-like/groovy-after-double-quoted#1, impl:c-like/groovy-after-single-quoted#1
 
 ## .h
 
 `req:c-like/h#1`
 
-Needs: impl:c-like/h-line#1, impl:c-like/h-block#1
+Needs: impl:c-like/h-line#1, impl:c-like/h-block#1, impl:c-like/h-after-double-quoted#1, impl:c-like/h-after-character-literal#1, impl:c-like/h-after-digit-separator#1
 
 ## .hpp
 
 `req:c-like/hpp#1`
 
-Needs: impl:c-like/hpp-line#1, impl:c-like/hpp-block#1
+Needs: impl:c-like/hpp-line#1, impl:c-like/hpp-block#1, impl:c-like/hpp-after-double-quoted#1, impl:c-like/hpp-after-character-literal#1, impl:c-like/hpp-after-digit-separator#1
 
 ## .hxx
 
 `req:c-like/hxx#1`
 
-Needs: impl:c-like/hxx-line#1, impl:c-like/hxx-block#1
+Needs: impl:c-like/hxx-line#1, impl:c-like/hxx-block#1, impl:c-like/hxx-after-double-quoted#1, impl:c-like/hxx-after-character-literal#1, impl:c-like/hxx-after-digit-separator#1
 
 ## .inl
 
 `req:c-like/inl#1`
 
-Needs: impl:c-like/inl-line#1, impl:c-like/inl-block#1
+Needs: impl:c-like/inl-line#1, impl:c-like/inl-block#1, impl:c-like/inl-after-double-quoted#1, impl:c-like/inl-after-character-literal#1, impl:c-like/inl-after-digit-separator#1
 
 ## .ino
 
 `req:c-like/ino#1`
 
-Needs: impl:c-like/ino-line#1, impl:c-like/ino-block#1
+Needs: impl:c-like/ino-line#1, impl:c-like/ino-block#1, impl:c-like/ino-after-double-quoted#1, impl:c-like/ino-after-character-literal#1, impl:c-like/ino-after-digit-separator#1
 
 ## .java
 
 `req:c-like/java#1`
 
-Needs: impl:c-like/java-line#1, impl:c-like/java-block#1
+Needs: impl:c-like/java-line#1, impl:c-like/java-block#1, impl:c-like/java-after-double-quoted#1, impl:c-like/java-after-character-literal#1
 
 ## .js
 
 `req:c-like/js#1`
 
-Needs: impl:c-like/js-line#1, impl:c-like/js-block#1
+Needs: impl:c-like/js-line#1, impl:c-like/js-block#1, impl:c-like/js-after-double-quoted#1, impl:c-like/js-after-single-quoted#1, impl:c-like/js-after-backtick-quoted#1
 
 ## .jsx
 
@@ -162,43 +162,43 @@ Needs: impl:c-like/less-line#1, impl:c-like/less-block#1
 
 `req:c-like/mjs#1`
 
-Needs: impl:c-like/mjs-line#1, impl:c-like/mjs-block#1
+Needs: impl:c-like/mjs-line#1, impl:c-like/mjs-block#1, impl:c-like/mjs-after-double-quoted#1, impl:c-like/mjs-after-single-quoted#1, impl:c-like/mjs-after-backtick-quoted#1
 
 ## .mts
 
 `req:c-like/mts#1`
 
-Needs: impl:c-like/mts-line#1, impl:c-like/mts-block#1
+Needs: impl:c-like/mts-line#1, impl:c-like/mts-block#1, impl:c-like/mts-after-double-quoted#1, impl:c-like/mts-after-single-quoted#1, impl:c-like/mts-after-backtick-quoted#1
 
 ## .proto
 
 `req:c-like/proto#1`
 
-Needs: impl:c-like/proto-line#1, impl:c-like/proto-block#1
+Needs: impl:c-like/proto-line#1, impl:c-like/proto-block#1, impl:c-like/proto-after-double-quoted#1, impl:c-like/proto-after-single-quoted#1
 
 ## .scss
 
 `req:c-like/scss#1`
 
-Needs: impl:c-like/scss-line#1, impl:c-like/scss-block#1
+Needs: impl:c-like/scss-line#1, impl:c-like/scss-block#1, impl:c-like/scss-after-double-quoted#1, impl:c-like/scss-after-single-quoted#1
 
 ## .sol
 
 `req:c-like/sol#1`
 
-Needs: impl:c-like/sol-line#1, impl:c-like/sol-block#1
+Needs: impl:c-like/sol-line#1, impl:c-like/sol-block#1, impl:c-like/sol-after-double-quoted#1, impl:c-like/sol-after-single-quoted#1
 
 ## .tpp
 
 `req:c-like/tpp#1`
 
-Needs: impl:c-like/tpp-line#1, impl:c-like/tpp-block#1
+Needs: impl:c-like/tpp-line#1, impl:c-like/tpp-block#1, impl:c-like/tpp-after-double-quoted#1, impl:c-like/tpp-after-character-literal#1, impl:c-like/tpp-after-digit-separator#1
 
 ## .ts
 
 `req:c-like/ts#1`
 
-Needs: impl:c-like/ts-line#1, impl:c-like/ts-block#1
+Needs: impl:c-like/ts-line#1, impl:c-like/ts-block#1, impl:c-like/ts-after-double-quoted#1, impl:c-like/ts-after-single-quoted#1, impl:c-like/ts-after-backtick-quoted#1
 
 ## .tsx
 

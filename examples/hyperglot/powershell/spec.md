@@ -15,10 +15,10 @@ Covers: feat:support-grammar/powershell#1
 
 `req:powershell/ps1#1`
 
-Needs: impl:powershell/ps1-line#1, impl:powershell/ps1-block#1
+Needs: impl:powershell/ps1-line#1, impl:powershell/ps1-block#1, impl:powershell/ps1-after-single-quoted#1, impl:powershell/ps1-after-double-quoted#1
 
 ## .psm1
 
 `req:powershell/psm1#1`
 
-Needs: impl:powershell/psm1-line#1, impl:powershell/psm1-block#1
+Needs: impl:powershell/psm1-line#1, impl:powershell/psm1-block#1, impl:powershell/psm1-after-single-quoted#1, impl:powershell/psm1-after-double-quoted#1

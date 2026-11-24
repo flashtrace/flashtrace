@@ -10,7 +10,7 @@ How flashtrace decodes its input, and how it counts and orders what it reports. 
 
 ## Whitespace
 
-Wherever these specifications speak of whitespace - blank lines, trimmed titles and entries, the optional spaces inside a tag, the end of URL-shaped text - any Unicode whitespace character counts (the `White_Space` property): besides space and tab, for example U+00A0 NO-BREAK SPACE and U+0085 NEXT LINE. U+0085 is whitespace but does not end a line; U+FEFF is not whitespace.
+Wherever these specifications speak of whitespace - blank lines, trimmed titles and entries, the optional spaces inside a tag - any Unicode whitespace character counts (the `White_Space` property): besides space and tab, for example U+00A0 NO-BREAK SPACE and U+0085 NEXT LINE. U+0085 is whitespace but does not end a line; U+FEFF is not whitespace.
 
 ## Columns
 

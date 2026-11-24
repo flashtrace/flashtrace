@@ -1,2 +1,6 @@
 # hyperglot fixture: .toml has line comments only.
 # [impl:hash/toml#1]
+
+# A string hides comment markers; a comment after it still counts.
+double_quoted = "\" # [impl:hash/toml-ghost-double-quoted#1]" # [impl:hash/toml-after-double-quoted#1]
+single_quoted = '# [impl:hash/toml-ghost-single-quoted#1] \' # [impl:hash/toml-after-single-quoted#1]

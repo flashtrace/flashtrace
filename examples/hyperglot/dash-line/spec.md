@@ -18,22 +18,22 @@ Covers: feat:support-grammar/dash-line#1
 
 `req:dash-line/adb#1`
 
-Needs: impl:dash-line/adb#1
+Needs: impl:dash-line/adb#1, impl:dash-line/adb-after-double-quoted#1, impl:dash-line/adb-after-character-literal#1, impl:dash-line/adb-after-attribute#1
 
 ## .ads
 
 `req:dash-line/ads#1`
 
-Needs: impl:dash-line/ads#1
+Needs: impl:dash-line/ads#1, impl:dash-line/ads-after-double-quoted#1, impl:dash-line/ads-after-character-literal#1, impl:dash-line/ads-after-attribute#1
 
 ## .vhd
 
 `req:dash-line/vhd#1`
 
-Needs: impl:dash-line/vhd#1
+Needs: impl:dash-line/vhd#1, impl:dash-line/vhd-after-double-quoted#1, impl:dash-line/vhd-after-character-literal#1, impl:dash-line/vhd-after-attribute#1
 
 ## .vhdl
 
 `req:dash-line/vhdl#1`
 
-Needs: impl:dash-line/vhdl#1
+Needs: impl:dash-line/vhdl#1, impl:dash-line/vhdl-after-double-quoted#1, impl:dash-line/vhdl-after-character-literal#1, impl:dash-line/vhdl-after-attribute#1

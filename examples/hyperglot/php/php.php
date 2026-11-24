@@ -6,3 +6,7 @@
 /*
  * [impl:php/php-block#1]
  */
+
+// A string hides comment markers; a comment after it still counts.
+$doubleQuoted = "\" // [impl:php/php-ghost-double-quoted#1]"; // [impl:php/php-after-double-quoted#1]
+$singleQuoted = '\' // [impl:php/php-ghost-single-quoted#1]'; // [impl:php/php-after-single-quoted#1]

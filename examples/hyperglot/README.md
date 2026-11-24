@@ -1,12 +1,15 @@
 # Hyperglot project
 
 Every file extension flashtrace knows, each in a file that exercises every
-comment form its grammar offers, and a Markdown spec that exercises every
-construct the Markdown parser reads. One folder per comment grammar, one file
-per extension inside it.
+comment form and every string form its grammar offers, and a Markdown spec that
+exercises every construct the Markdown parser reads. One folder per comment
+grammar, one file per extension inside it.
 
-Extensions share a folder only when they resolve to the very same grammar - not
-when they merely look alike. That is why `.scss` and `.less` sit under
+Extensions share a folder only when they resolve to the very same comment
+grammar - not when they merely look alike. Their string forms may differ within
+a folder (`.c` and `.go` share comments, not strings), so a file's string cases
+live in the file itself; [Strings](../../docs/code-tags.md#strings) lists which
+extension has which. That is why `.scss` and `.less` sit under
 [c-like/](c-like/) (their grammar is the C-like one) while `.css` has a folder
 of its own (block comments, no line comments), and why the nesting C-family
 lives apart from the non-nesting one in [c-like-nested/](c-like-nested/).
@@ -89,6 +92,15 @@ not repeated here - only what its grammar offers.
   the run as a `###` opener would read it as comment and define a `ghost` item
   the spec never needs. As with the JSON script, the item count is what proves
   its absence.
+- **Strings hide comment markers.** Every string form of a file's grammar gets
+  one line: a literal holding a comment marker and a `…-ghost-…` tag, then a
+  real comment with an `…-after-…` tag. The ghost must stay data - a scanner
+  that misses the literal, or its escape, reads it as an unwanted item - and
+  the after tag must still be found, which fails if the literal swallows the
+  rest of the line. Character literals and prefixed characters hold a double
+  quote instead, which must not open a string, and languages with other uses of
+  the apostrophe (lifetimes, digit separators, type variables, primes,
+  attributes) tag a line of them, which must stay code.
 
 ## What the spec asserts
 
@@ -121,10 +133,10 @@ kinds are shown in [diagnostics](../diagnostics/) instead.
 
 These files are written by hand like any other example, but the example is only
 worth its name while it covers every extension flashtrace scans. So
-`test/hyperglot.test.mjs` ties the two together: every extension in
-`src/languages.mjs` must have a fixture here, each fixture must be named after
+`tests/hyperglot.rs` ties the two together: every extension in
+`src/languages.rs` must have a fixture here, each fixture must be named after
 its extension and sit in the folder of its comment grammar, and each must tag
-every comment form that grammar offers. CI runs the suite on every pull request,
+every comment form and every string form its grammar offers. CI runs the suite on every pull request,
 so a change teaching flashtrace a new extension cannot land without the fixture
 that exercises it.
 

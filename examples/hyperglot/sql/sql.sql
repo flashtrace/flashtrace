@@ -4,3 +4,7 @@
 /*
  * [impl:sql/sql-block#1]
  */
+
+-- A string hides comment markers; a comment after it still counts.
+SELECT 'it''s -- [impl:sql/sql-ghost-single-quoted#1]' AS single_quoted; -- [impl:sql/sql-after-single-quoted#1]
+SELECT "it""s -- [impl:sql/sql-ghost-double-quoted#1]" AS double_quoted; -- [impl:sql/sql-after-double-quoted#1]

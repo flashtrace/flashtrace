@@ -6,6 +6,8 @@
     /*
      * [impl:html/htm-style-block#1]
      */
+    .hyperglot-double-quoted::before { content: "\" /* [impl:html/htm-style-ghost-double-quoted#1]"; } /* [impl:html/htm-style-after-double-quoted#1] */
+    .hyperglot-single-quoted::before { content: '\' /* [impl:html/htm-style-ghost-single-quoted#1]'; } /* [impl:html/htm-style-after-single-quoted#1] */
     .hyperglot { display: block; }
     </style>
   </head>
@@ -19,6 +21,9 @@
     /*
      * [impl:html/htm-script-block#1]
      */
+    const doubleQuoted = "\" // [impl:html/htm-script-ghost-double-quoted#1]"; // [impl:html/htm-script-after-double-quoted#1]
+    const singleQuoted = '\' // [impl:html/htm-script-ghost-single-quoted#1]'; // [impl:html/htm-script-after-single-quoted#1]
+    const backtickQuoted = `\` // [impl:html/htm-script-ghost-backtick-quoted#1]`; // [impl:html/htm-script-after-backtick-quoted#1]
     export default {};
     </script>
 

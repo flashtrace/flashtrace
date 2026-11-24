@@ -17,4 +17,4 @@ Tags: grammar, hash
 
 `req:coffee/coffee#1`
 
-Needs: impl:coffee/coffee-line-hash#1, impl:coffee/coffee-line-hash-run#1, impl:coffee/coffee-block#1
+Needs: impl:coffee/coffee-line-hash#1, impl:coffee/coffee-line-hash-run#1, impl:coffee/coffee-block#1, impl:coffee/coffee-after-double-quoted#1, impl:coffee/coffee-after-single-quoted#1

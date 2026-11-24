@@ -4,3 +4,7 @@
 /*
  * [impl:c-like/groovy-block#1]
  */
+
+// A string hides comment markers; a comment after it still counts.
+def doubleQuoted = "\" // [impl:c-like/groovy-ghost-double-quoted#1]" // [impl:c-like/groovy-after-double-quoted#1]
+def singleQuoted = '\' // [impl:c-like/groovy-ghost-single-quoted#1]' // [impl:c-like/groovy-after-single-quoted#1]

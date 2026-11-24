@@ -23,6 +23,8 @@ Needs:
 - impl:c-like-nested/kt-block#1
 - impl:c-like-nested/kt-nested/deep#1
 - impl:c-like-nested/kt-nested/after-close#1
+- impl:c-like-nested/kt-after-double-quoted#1
+- impl:c-like-nested/kt-after-character-literal#1
 
 ## .kts
 
@@ -33,6 +35,8 @@ Needs:
 - impl:c-like-nested/kts-block#1
 - impl:c-like-nested/kts-nested/deep#1
 - impl:c-like-nested/kts-nested/after-close#1
+- impl:c-like-nested/kts-after-double-quoted#1
+- impl:c-like-nested/kts-after-character-literal#1
 
 ## .rs
 
@@ -43,6 +47,9 @@ Needs:
 - impl:c-like-nested/rs-block#1
 - impl:c-like-nested/rs-nested/deep#1
 - impl:c-like-nested/rs-nested/after-close#1
+- impl:c-like-nested/rs-after-double-quoted#1
+- impl:c-like-nested/rs-after-character-literal#1
+- impl:c-like-nested/rs-after-lifetime#1
 
 ## .scala
 
@@ -53,6 +60,8 @@ Needs:
 - impl:c-like-nested/scala-block#1
 - impl:c-like-nested/scala-nested/deep#1
 - impl:c-like-nested/scala-nested/after-close#1
+- impl:c-like-nested/scala-after-double-quoted#1
+- impl:c-like-nested/scala-after-character-literal#1
 
 ## .swift
 
@@ -63,3 +72,4 @@ Needs:
 - impl:c-like-nested/swift-block#1
 - impl:c-like-nested/swift-nested/deep#1
 - impl:c-like-nested/swift-nested/after-close#1
+- impl:c-like-nested/swift-after-double-quoted#1

@@ -34,7 +34,7 @@ Tags: grammar, hash
 
 `req:hash/awk#1`
 
-Needs: impl:hash/awk#1
+Needs: impl:hash/awk#1, impl:hash/awk-after-double-quoted#1
 
 ## .bash
 
@@ -46,37 +46,37 @@ Needs: impl#2.x
 
 `req:hash/cr#1`
 
-Needs: impl:hash/cr#1
+Needs: impl:hash/cr#1, impl:hash/cr-after-double-quoted#1, impl:hash/cr-after-character-literal#1
 
 ## .ex
 
 `req:hash/ex#1`
 
-Needs: impl:hash/ex#1
+Needs: impl:hash/ex#1, impl:hash/ex-after-double-quoted#1, impl:hash/ex-after-single-quoted#1, impl:hash/ex-after-character-prefix#1
 
 ## .exs
 
 `req:hash/exs#1`
 
-Needs: impl:hash/exs#1
+Needs: impl:hash/exs#1, impl:hash/exs-after-double-quoted#1, impl:hash/exs-after-single-quoted#1, impl:hash/exs-after-character-prefix#1
 
 ## .gd
 
 `req:hash/gd#1`
 
-Needs: impl:hash/gd#1
+Needs: impl:hash/gd#1, impl:hash/gd-after-double-quoted#1, impl:hash/gd-after-single-quoted#1
 
 ## .gql
 
 `req:hash/gql#1`
 
-Needs: impl:hash/gql#1
+Needs: impl:hash/gql#1, impl:hash/gql-after-double-quoted#1
 
 ## .graphql
 
 `req:hash/graphql#1`
 
-Needs: impl:hash/graphql#1
+Needs: impl:hash/graphql#1, impl:hash/graphql-after-double-quoted#1
 
 ## .pm
 
@@ -88,19 +88,19 @@ Needs: impl:hash/pm#1
 
 `req:hash/py#1`
 
-Needs: impl#1.2
+Needs: impl#1.2, impl:hash/py-after-double-quoted#1, impl:hash/py-after-single-quoted#1
 
 ## .r
 
 `req:hash/r#1`
 
-Needs: impl:hash/r#1
+Needs: impl:hash/r#1, impl:hash/r-after-double-quoted#1, impl:hash/r-after-single-quoted#1
 
 ## .rb
 
 `req:hash/rb#1`
 
-Needs: impl#x
+Needs: impl#x, impl:hash/rb-after-double-quoted#1, impl:hash/rb-after-single-quoted#1
 
 ## .sh
 
@@ -118,7 +118,7 @@ Needs: impl:hash/tcl#1
 
 `req:hash/toml#1`
 
-Needs: impl:hash/toml
+Needs: impl:hash/toml, impl:hash/toml-after-double-quoted#1, impl:hash/toml-after-single-quoted#1
 
 ## .yaml
 

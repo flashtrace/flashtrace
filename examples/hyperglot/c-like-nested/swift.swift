@@ -9,3 +9,6 @@
   /* [impl:c-like-nested/swift-nested/deep#1] inner */
   [impl:c-like-nested/swift-nested/after-close#1] still inside the outer block
 */
+
+// A string hides comment markers; a comment after it still counts.
+let doubleQuoted = "\" // [impl:c-like-nested/swift-ghost-double-quoted#1]" // [impl:c-like-nested/swift-after-double-quoted#1]

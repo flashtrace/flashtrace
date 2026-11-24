@@ -16,4 +16,4 @@ Tags: grammar, dash
 
 `req:lua/lua#1`
 
-Needs: impl:lua/lua-line#1, impl:lua/lua-block#1
+Needs: impl:lua/lua-line#1, impl:lua/lua-block#1, impl:lua/lua-after-double-quoted#1, impl:lua/lua-after-single-quoted#1

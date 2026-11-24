@@ -9,3 +9,7 @@
   {- [impl:haskell/elm-nested/deep#1] inner -}
   [impl:haskell/elm-nested/after-close#1] still inside the outer block
 -}
+
+-- A string hides comment markers; a comment after it still counts.
+doubleQuoted = "\" -- [impl:haskell/elm-ghost-double-quoted#1]" -- [impl:haskell/elm-after-double-quoted#1]
+characterLiteral = '"' -- [impl:haskell/elm-after-character-literal#1]

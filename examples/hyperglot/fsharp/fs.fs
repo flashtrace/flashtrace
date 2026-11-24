@@ -9,3 +9,8 @@
   (* [impl:fsharp/fs-nested/deep#1] inner *)
   [impl:fsharp/fs-nested/after-close#1] still inside the outer block
 *)
+
+// A string hides comment markers; a comment after it still counts.
+let doubleQuoted = "\" // [impl:fsharp/fs-ghost-double-quoted#1]" // [impl:fsharp/fs-after-double-quoted#1]
+let characterLiteral = '"' // [impl:fsharp/fs-after-character-literal#1]
+let identity (value: 'T) : 'T = value // [impl:fsharp/fs-after-type-variable#1]
