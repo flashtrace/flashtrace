@@ -40,11 +40,17 @@ mod tests {
     // exercises the resolved parser instead of comparing identities.
     #[test]
     fn spec_parser_for_resolves_spec_extensions_to_their_parser() {
-        for ext in ["md", "markdown"] {
+        // given
+        let extensions = ["md", "markdown"];
+
+        for ext in extensions {
+            // when
             let parser = spec_parser_for(ext).unwrap();
             let mut problems = Vec::new();
             let mut forwards = Vec::new();
             let items = parser("spec.md", "`req:a#1`", &mut problems, &mut forwards);
+
+            // then
             assert_eq!(items.len(), 1, "{ext}");
             assert_eq!(items[0].id, "req:a#1", "{ext}");
         }
@@ -52,18 +58,31 @@ mod tests {
 
     #[test]
     fn spec_parser_for_returns_none_for_non_spec_extensions() {
+        // given
         // a code extension is not a spec format; the CLI falls back to the
-        // code tag scanner
-        assert!(spec_parser_for("js").is_none());
-        // an unknown extension is neither, and neither is no extension
-        assert!(spec_parser_for("txt").is_none());
-        assert!(spec_parser_for("").is_none());
+        // code tag scanner; an unknown extension is neither, and neither is
+        // no extension
+        let extensions = ["js", "txt", ""];
+
+        // when
+        let resolved: Vec<bool> = extensions
+            .iter()
+            .map(|ext| spec_parser_for(ext).is_some())
+            .collect();
+
+        // then
+        assert_eq!(resolved, [false, false, false]);
     }
 
     #[test]
     fn spec_ext_is_exactly_the_set_of_dispatched_extensions() {
+        // given
         let mut sorted = SPEC_EXT.to_vec();
+
+        // when
         sorted.sort_unstable();
+
+        // then
         assert_eq!(sorted, ["markdown", "md"]);
         for ext in SPEC_EXT {
             assert!(spec_parser_for(ext).is_some());
@@ -76,9 +95,15 @@ mod tests {
     // than loosen this.
     #[test]
     fn every_keyword_is_a_regex_safe_bare_word() {
+        // given
         let metacharacter = Regex::new(r"[\\^$.*+?()\[\]{}|]").unwrap();
+
         for keyword in KEYWORDS {
-            assert!(!metacharacter.is_match(keyword), "keyword \"{keyword}\"");
+            // when
+            let has_metacharacter = metacharacter.is_match(keyword);
+
+            // then
+            assert!(!has_metacharacter, "keyword \"{keyword}\"");
             assert!(is_keyword(keyword));
         }
     }
