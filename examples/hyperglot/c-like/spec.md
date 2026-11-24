@@ -186,7 +186,7 @@ Needs: impl:c-like/scss-line#1, impl:c-like/scss-block#1
 
 `req:c-like/sol#1`
 
-Needs: impl:c-like/sol-line#1, impl:c-like/sol-block#1
+Needs: impl:c-like/sol-line#1, impl:c-like/sol-block#1, impl:c-like/sol-after-double-quoted#1, impl:c-like/sol-after-single-quoted#1
 
 ## .tpp
 
