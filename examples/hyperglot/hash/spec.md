@@ -34,7 +34,7 @@ Tags: grammar, hash
 
 `req:hash/awk#1`
 
-Needs: impl:hash/awk#1
+Needs: impl:hash/awk#1, impl:hash/awk-after-double-quoted#1
 
 ## .bash
 
