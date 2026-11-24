@@ -174,7 +174,7 @@ Needs: impl:c-like/mts-line#1, impl:c-like/mts-block#1, impl:c-like/mts-after-do
 
 `req:c-like/proto#1`
 
-Needs: impl:c-like/proto-line#1, impl:c-like/proto-block#1
+Needs: impl:c-like/proto-line#1, impl:c-like/proto-block#1, impl:c-like/proto-after-double-quoted#1, impl:c-like/proto-after-single-quoted#1
 
 ## .scss
 
