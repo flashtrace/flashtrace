@@ -229,6 +229,57 @@ static TOML_QUOTED: &[StringForm] = &[
     },
 ];
 
+// Languages that escape a quote by doubling it. A doubled quote closes the
+// literal and reopens it at once, so no escape character is needed.
+// SQL: '…' strings and "…" quoted identifiers, as the SQL standard and
+// PostgreSQL define them. MySQL's default backslash escapes ('it\'s') are not
+// followed, since they contradict the standard ('C:\' is a complete string).
+//   https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-STRINGS
+//   https://dev.mysql.com/doc/refman/8.4/en/string-literals.html
+static SQL_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '\'',
+        escape: None,
+    },
+    StringForm::Quoted {
+        quote: '"',
+        escape: None,
+    },
+];
+// Pascal: '…' strings only.
+//   https://www.freepascal.org/docs-html/ref/refse8.html
+static PASCAL_QUOTED: &[StringForm] = &[StringForm::Quoted {
+    quote: '\'',
+    escape: None,
+}];
+// Ada and VHDL: "…" strings and 'c' character literals, neither with an
+// escape character - ''' is the apostrophe literal, and an attribute
+// apostrophe (Text'Length, clk'event) stays code.
+//   Ada   https://www.adaic.org/resources/add_content/standards/22rm/html/RM-2-6.html
+//         https://www.adaic.org/resources/add_content/standards/22rm/html/RM-2-5.html
+//   VHDL  https://peterfab.com/ref/vhdl/vhdl_renerta/source/vhd00070.htm
+//         https://peterfab.com/ref/vhdl/vhdl_renerta/source/vhd00041.htm
+static ADA_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '"',
+        escape: None,
+    },
+    StringForm::CharacterLiteral { escape: None },
+];
+// PowerShell: verbatim '…' strings escape by doubling; expandable "…"
+// strings escape with the backtick (doubling works there too).
+//   https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_quoting_rules
+static POWERSHELL_QUOTED: &[StringForm] = &[
+    StringForm::Quoted {
+        quote: '\'',
+        escape: None,
+    },
+    StringForm::Quoted {
+        quote: '"',
+        escape: Some('`'),
+    },
+];
+
 // Shared comment families, reused across the extension table below. C_LIKE is
 // also the fallback comment family for unknown extensions (see parse_code.rs).
 pub static C_LIKE: Comments = Comments {
@@ -525,8 +576,8 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("nim", &NIM, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("coffee", &COFFEE, DOUBLE_AND_SINGLE_QUOTED),
         leaf("cmake", &CMAKE, DOUBLE_QUOTED),
-        leaf("ps1", &POWERSHELL, NO_STRINGS),
-        leaf("psm1", &POWERSHELL, NO_STRINGS),
+        leaf("ps1", &POWERSHELL, POWERSHELL_QUOTED),
+        leaf("psm1", &POWERSHELL, POWERSHELL_QUOTED),
         leaf("tf", &HCL, DOUBLE_QUOTED),
         leaf("tfvars", &HCL, DOUBLE_QUOTED),
         leaf("hcl", &HCL, DOUBLE_QUOTED),
@@ -547,20 +598,20 @@ static BY_EXT: LazyLock<Vec<(&str, Grammar)>> = LazyLock::new(|| {
         leaf("tex", &PERCENT, NO_STRINGS),
         leaf("sty", &PERCENT, NO_STRINGS),
         // dash line-only (Ada, VHDL)
-        leaf("adb", &DASH_LINE, NO_STRINGS),
-        leaf("ads", &DASH_LINE, NO_STRINGS),
-        leaf("vhd", &DASH_LINE, NO_STRINGS),
-        leaf("vhdl", &DASH_LINE, NO_STRINGS),
+        leaf("adb", &DASH_LINE, ADA_QUOTED),
+        leaf("ads", &DASH_LINE, ADA_QUOTED),
+        leaf("vhd", &DASH_LINE, ADA_QUOTED),
+        leaf("vhdl", &DASH_LINE, ADA_QUOTED),
         // ML-family
         leaf("ml", &ML, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("mli", &ML, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("fs", &FSHARP, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("fsi", &FSHARP, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("fsx", &FSHARP, DOUBLE_QUOTED_AND_CHARACTER),
-        leaf("pas", &PASCAL, NO_STRINGS),
-        leaf("dpr", &PASCAL, NO_STRINGS),
+        leaf("pas", &PASCAL, PASCAL_QUOTED),
+        leaf("dpr", &PASCAL, PASCAL_QUOTED),
         // dashes and others
-        leaf("sql", &SQL, NO_STRINGS),
+        leaf("sql", &SQL, SQL_QUOTED),
         leaf("lua", &LUA, DOUBLE_AND_SINGLE_QUOTED),
         leaf("hs", &HASKELL, DOUBLE_QUOTED_AND_CHARACTER),
         leaf("elm", &HASKELL, DOUBLE_QUOTED_AND_CHARACTER),
